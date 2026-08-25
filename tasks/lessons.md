@@ -1307,3 +1307,60 @@ too", "also handled") — must map to a verification step actually performed. Fo
 gate/UI-copy change advertising new input, trace the gesture through the IPC handler it calls
 before claiming it works. Not a Fega correction — caught in review before it reached him.
 
+## Session 194 (2026-08-25) — Renaming a mechanism is not hiding it (#74)
+
+**What happened:** #74 asked to hide the pipeline internals behind branded copy, and the issue
+itself supplied a placeholder table — one branded label per internal label. I expanded and
+sharpened that table, offered two voices, and presented it for approval. Fega rejected both:
+"the playful lines still read too closely to what is being done. There doesn't also need to be
+a 1 for 1 line for what is going on in the backend."
+
+**Why it happened:** I treated the leak as a *vocabulary* problem when it was a *structure*
+problem. Ten rows that light up in sequence still publish the stage count, the stage order and
+where each boundary falls, no matter what the rows are called — "Feeling the room" sitting in
+slot five between transcription and frame extraction tells a competitor as much as
+"Audio Energy Analysis" does. The issue's own placeholder table framed it as a relabel and I
+inherited that frame instead of questioning it. The right shape was to break the mapping: 3-5
+lines drawn per run from a pool of 50, rotating on real progress, so nothing on screen
+corresponds to anything in the backend.
+
+**Rule:** When the task is to hide a mechanism, ask whether the *shape* of the UI still mirrors
+the mechanism — count, order, timing, boundaries — not just whether the words do. Renaming
+leaks structure; a per-item relabel is the tell. If a design has one visible element per
+internal step, the mapping is the leak, and no wording fixes it.
+
+**Also this session (same issue, second correction):** I proposed gating the technical labels
+behind the existing `devMode` toggle, because the issue suggested it and the 7-click unlock
+already existed. Fega: "That 'dev mode' was for me when I was still learning and setting up the
+app." The toggle being *available* is not a reason to make it the permanent home for internals.
+**Rule:** before extending an existing flag, establish what it is *for* and whether it is still
+load-bearing — a leftover from an earlier phase should be left to die, not built on. Dropping
+it also made the change smaller: with nothing to re-expose, `ai-pipeline.js` needed no edits at
+all, because the renderer simply stopped rendering `detail`.
+
+## Session 194 (2026-08-25) — A failed encode truncated a source file to zero bytes
+
+**What happened:** A patch script did `io.open(path, "w", encoding="utf-8").write(s)`. The
+string held an unpaired surrogate (from a `"🎬"` escape I had retyped), so `write`
+raised `UnicodeEncodeError` — but `open(..., "w")` had already truncated the file. `UploadView.js`
+went to **0 bytes**, 1865 lines gone. Recovered with `git checkout --` only because the file's
+last commit was clean; had the file held uncommitted work it would have been lost outright.
+
+**Why it happened:** Text-mode `open` truncates at open time and encodes at write time, so any
+encode error lands *after* the destruction. Every earlier failure in the same script had been an
+assertion — which fires before the write and is therefore harmless — and I had generalised
+"asserts protect me" into "the script is safe to re-run".
+
+**Rule:** Never write a source file through text-mode `open` in a patch script. Encode first,
+sanity-check the length, then write bytes:
+`blob = s.encode("utf-8"); assert len(blob) > orig_len * 0.5; open(p, "wb").write(blob)`.
+Keep the asserts, but treat them as protecting *correctness*, not the file — only encode-then-
+write protects the file.
+
+**Related, same root cause (extends the s187 backslash rule):** literal `\uXXXX` escapes that
+already exist in a source file cannot be retyped through a Bash heredoc — the tool eats one
+backslash, Python then decodes the escape into a real (sometimes unpaired-surrogate) character,
+and the anchor no longer matches the file. Don't retype them: slice the existing region out of
+the file and splice it back verbatim (`header = old_card[hs:he]`), or build the backslash with
+`chr(92)`. For anything longer than a few lines, write the patch script to a file with the Write
+tool and run it — large heredocs also fail outright on quote balancing.

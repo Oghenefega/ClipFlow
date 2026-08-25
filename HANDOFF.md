@@ -1,68 +1,96 @@
-# HANDOFF — Session 193 (2026-08-24)
+# HANDOFF — Session 194 (2026-08-25)
 
-> Pending session title (set automatically at next session start): S193 · Batch 3 review — MKV drop unblocked, fallback fenced
+> Pending session title (set automatically at next session start): S194 · Batch 4 shipped — the first ten minutes don't look broken
 
 ## Current State
 
-**Batch 3 is review-clean — `aa45e1d`.** The Fable fresh-eyes pass over `0fe55c7`
-found and fixed two real gaps (MKV drop was blocked by the main-process import gate;
-silent-fallback windows leaked into taste calibration), corrected two lying comments,
-and reordered the changelog day. All three batches (1–3) are now built AND reviewed.
-Desktop and laptop are still on **0.4.0-alpha.4** — nothing from batches 1–3 has
-reached a machine yet, by design. #303 filed (Recordings drop target still silently
-ignores `.mkv` — needs the convert flow wired in, its own ticket).
+**Batch 4 is built and verified — `1b7e78d` + `e2c3031`.** #153, #152 and #74 are all
+closed `status: untested`. That completes batches 1–4 (~14 issues), none of which has
+reached a machine: desktop and laptop are still on **0.4.0-alpha.4**, by design. Batch 4
+has NOT had its fresh-eyes Fable review yet — batches 1, 2 and 3 each got one and each
+one found a real gap, so batch 4 should get the same treatment before the installer.
+
+#304 filed (dead `STAGE_LABELS` map in `UploadView.js`) and left open on purpose.
 
 ## Key Decisions
 
-1. **Silent-fallback windows never teach (s193, follows the #240 precedent).** The #62
-   review windows are offers the model never picked, so approving/rejecting one now
-   skips taste calibration via `source: "silent-fallback"` + a fence in
-   `feedback.js handleStatusTransition`. Decisions still move the clip. Fega hasn't
-   ruled on this — it followed the spec's own principle; he can veto.
-2. **`import:externalFile` accepts `.mkv`** — main-process gate now matches the UI the
-   batch shipped. Conversion still happens at rename, exactly as batch 3 designed.
+1. **#74 is not a relabel — the mapping itself was the leak (Fega's call).** The issue
+   proposed one branded label per internal label; Fega rejected two drafts of that table
+   because a per-stage line still publishes stage count, order and boundaries. Shipped
+   instead: 3-5 lines drawn per recording from a pool of 50 in `WORKING_LINES`
+   (`UploadView.js`), bucketed early/middle/late, rotating on real progress. Nothing on
+   screen corresponds to a stage, a signal or a model.
+2. **The `devMode` gate in #74's acceptance criteria was deliberately NOT built.** Fega:
+   dev mode is a leftover from when he was learning the app, not the place internals
+   should live. There is now no in-app way to re-expose the technical labels. The full
+   technical record stays in `processing/logs/<video>.log` via `logger.failStep`. Knock-on
+   benefit: `ai-pipeline.js` needed zero changes — the renderer just stopped rendering
+   `progress.detail`.
+3. **#152 got a confirm dialog, not the undo toast the ticket asked for.** `deleteProject`
+   is an `fs.rmSync` with no recycle bin and no soft delete, so an undo button would have
+   been a fake undo (the #175 class of lie). The dialog names the project and its clip
+   count instead. Bulk delete keeps its existing two-click confirm — deliberately not
+   unified, to stay surgical.
+4. **The line pool is data, not logic.** Fega marked 18 lines good, 15 bad, 17 usable-with-
+   tweaks on a screenshot; the shipped 50 keep all 18 greens verbatim, cut all 15 reds,
+   rework the 17, and add 15 new. Changing any line is a one-line edit in `WORKING_LINES` —
+   expect him to want a few changed after he sees them live.
 
 ## Next Steps
 
-1. **Batch 4 — the first ten minutes don't look broken:** #153, #74 (**needs Fega to
-   approve replacement copy** — still the long pole), #152.
-2. **Then cut ONE installer** covering batches 1–4 (~14 issues). Optional batch 5 if
-   there is room: #157, #151, #158.
-3. When Fega tests batch 3: drop an `.mkv` on the **Rename** tab (the one path that was
-   broken until s193), then the untested labels on #62/#300/#178 can start clearing.
+1. **Fresh-eyes review of batch 4** (Fable @ xhigh, own session, commit-by-hash:
+   `1b7e78d` and `e2c3031`). Three prior batch reviews each caught a real gap.
+2. **Then cut ONE installer** covering batches 1–4. Optional batch 5 first if there is
+   room: #157, #151, #158.
+3. When Fega tests batch 4: the three watcher states on the Rename tab, the delete dialog,
+   and — the one thing never seen on screen — the **completion** headline on a real
+   generation ("✅ N clips ready for you").
+4. #304 should be settled now that #74 has landed (it was parked to avoid a conflict).
 
 ## Watch Out For
 
-- **The 45s / max-6 fallback window is still a guess** — verified working, not verified
-  *good*, on a real silent gameplay recording.
-- **`source` on clip objects now has two live values:** `"import"` (#240) and
-  `"silent-fallback"` (#62/s193). Every consumer treats non-"import" as a normal
-  pipeline clip; `projects.updateClip` merges, so the field survives editor saves.
-  Any future summary/list IPC that strips clip fields must keep `source`.
-- **All s190/s192 watch-items still stand:** `gatewayAuthTokenPreMigration` has no
-  reader (keep until the installer reaches the laptop); prod profile has NOT run the
-  #301 migration; "Corva Default" still never seen on screen; `LEGACY_TIME_SLOTS` in
-  App.js is load-bearing; `SUPPORTED_EXTENSIONS`/`normalizeExtension` in
-  naming-presets.js has exactly one live caller (retroactive renames) — not dead code.
+- **The completion / degraded / failed headlines were never seen on screen.** Verified by
+  19 direct function checks only. The card auto-clears 3s after finishing and both live
+  runs cleared between polls. The *running* state was watched live across two real runs.
+- **`log` is not a binding in `main.js` module scope.** Four call sites in `project:delete`
+  and `project:list` used it and threw `ReferenceError` at runtime — every delete returned
+  `{ error: "log is not defined" }` after succeeding, and `project:list` returned **zero
+  projects** whenever reconciliation reset an orphaned file. Fixed to `logger`. The seven
+  remaining bare `log.` calls (main.js ~4055-4208) are fine — those two functions define
+  `log` locally. Don't "tidy" them into `logger`.
+- **`pipeline:signalProgress` is now emitted with no renderer subscriber.** Left in the
+  main process on purpose; it costs nothing and the data still reaches the log.
+- **A future summary/list IPC must not strip `progress.clipCount` or `signalSummary`** —
+  the headline is the only place clip count is now shown at the end of a run.
+- **All s190/s192/s193 watch-items still stand:** `gatewayAuthTokenPreMigration` has no
+  reader (keep until the installer reaches the laptop); prod profile has NOT run the #301
+  migration; "Corva Default" still never seen on screen; `LEGACY_TIME_SLOTS` in App.js is
+  load-bearing; `SUPPORTED_EXTENSIONS`/`normalizeExtension` in naming-presets.js has
+  exactly one live caller; `source` on clip objects has two live values (`"import"`,
+  `"silent-fallback"`).
 - **The wrap-changelog hook** blocks any commit whose message contains "wrap" when
-  CHANGELOG.md is untouched in the working tree AND absent from the last commit.
-  (This wrap commit rides on CHANGELOG being in `aa45e1d` — the previous commit —
-  so it passes.)
-- **Third consecutive batch shipped an unexercised side claim** (s188, s190, s193
-  reviews each caught one). A checklist line now enforces it in `clipflow-code-review`:
-  every "X works too" claim must map to a performed verification step.
+  CHANGELOG.md is untouched in the working tree AND absent from the last commit. This wrap
+  commit rides on CHANGELOG being in `e2c3031`.
 
 ## Logs / Debugging
 
-- **This session was read-only until the fixes** — no harnesses built. Verification of
-  the fixes: `node --check` on all edited files, control-char scan (the s187 class,
-  because the changelog reorder went through a Python script), and a clean
-  `CLIPFLOW_PROFILE=dev npm start` boot (DB v9 init, migrations, watcher, frame sniff,
-  zero errors).
-- **s192's reusable harnesses still sit in its scratchpad** (`…\scratchpad\b3\`):
-  `cdp.js`, `remux-test.js`, `signals-silent-test.js`, `naming-and-cleanup.js` — reach
-  for them when Fega's batch-3 test pass surfaces anything.
-- **Pipeline logs**: `%APPDATA%\clipflow-dev\processing\logs\<video>_<ts>.log` — where
-  `#62 effectively no speech (N words/min)` prints. App log:
-  `%APPDATA%\clipflow-dev\logs\app.log` — where `#300 converted … → …` and the new
-  fence's absence of feedback writes would show.
+- **Scratchpad for this session** (`…\2acb5ac4-…\scratchpad\b4\`), all reusable:
+  `cdp.js` (Runtime.evaluate driver), `shot.js` (Page.captureScreenshot to a file),
+  `setfolder.js` (drives Settings → Watch Folder → Edit → Save, the real UI path),
+  `test-lines.js` (extracts the #74 pure functions out of the JSX and exercises every
+  branch — 19 checks), `patch74.py`, `issue-74-progress-card.html` (the mock Fega marked
+  up), plus `state-yellow.png` / `state-red.png` / `card-running.png`.
+- **How the pipeline was exercised cheaply:** `ffmpeg -ss 420 -t 60 -map 0 -c copy` off a
+  real recording into a scratch watch tree, dev profile repointed at it
+  (`watchFolder` + `projectsRoot`), renamed through the real Rename flow, then
+  "Clip 1 Recording". Full run ≈70s. Restore the profile from `settings-backup.json`
+  afterwards — it holds Fega's real paths.
+- **Locking a file to force a delete failure:** a live process with its **CWD** inside the
+  directory does NOT work (Windows marks the dir delete-pending and `rmSync` still
+  reports success). A process holding an **open file handle** inside it does — see
+  `lockfile.py`.
+- **Un-marking a "done" recording via CDP is unreliable** once the row label becomes
+  "✓ N"; it worked when the label was a bare "✓". This is what stopped the completion-frame
+  screenshot. Worth a better handle if more Recordings E2Es are needed.
+- App log: `%APPDATA%\clipflow-dev\logs\app.log`. Pipeline logs:
+  `%APPDATA%\clipflow-dev\processing\logs\<video>_<ts>.log` — still fully technical.
