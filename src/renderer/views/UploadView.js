@@ -72,19 +72,82 @@ function compareRecordings(a, b) {
   return (sa.length - sb.length) || sa.localeCompare(sb);
 }
 
-// AI pipeline stages in order
-const PIPELINE_STEPS = [
-  { key: "probing", label: "Analyzing File", icon: "\uD83D\uDD0D" },
-  { key: "creating", label: "Creating Project", icon: "\uD83D\uDCC1" },
-  { key: "extracting", label: "Extracting Audio", icon: "\uD83C\uDFA7" },
-  { key: "transcribing", label: "Transcription (stable-ts)", icon: "\uD83D\uDCDD" },
-  { key: "energy", label: "Audio Energy Analysis", icon: "\u26A1" },
-  { key: "signals", label: "Signal Extraction", icon: "\uD83C\uDFAF" },
-  { key: "frames", label: "Frame Extraction", icon: "\uD83D\uDDBC\uFE0F" },
-  { key: "claude", label: "Claude Analysis", icon: "\uD83E\uDDE0" },
-  { key: "cutting", label: "Cutting Clips", icon: "\u2702\uFE0F" },
-  { key: "saving", label: "Creating Project", icon: "\uD83D\uDCBE" },
-];
+// #74: what the card says while a pipeline runs. Deliberately NOT one line per
+// backend stage - each recording draws 3-5 of these and rotates through them as
+// real progress advances, so two runs never read the same and nothing on screen
+// maps to a signal, a model or a method. Buckets only track how far along it is.
+const WORKING_LINES = {
+  early: [
+    "Cooking something up",
+    "Rolling the tape back",
+    "Starting the sweep",
+    "Cracking this one open",
+    "Easing into it",
+    "Setting things up",
+    "Taking it from the top",
+    "Loading up the session",
+    "Firing it up",
+    "Sitting down with this one",
+    "First pass on this one",
+    "Making a start",
+    "Getting the tape rolling",
+    "Sizing up the session",
+    "Pulling up a chair",
+    "Queuing this one up",
+  ],
+  middle: [
+    "Hunting for the gold",
+    "Making sense of the chaos",
+    "Doing the boring part for you",
+    "This one has potential",
+    "Chasing something down",
+    "Looking for the good stuff",
+    "Digging through the tape",
+    "Deep in the tape now",
+    "Sorting the keepers",
+    "Marking the good parts",
+    "Combing through the session",
+    "Something is shaping up",
+    "Working through the messy middle",
+    "Found a couple already",
+    "Rewinding that bit",
+    "Sticking a pin in that one",
+    "Turning up some good stuff",
+    "Watching this so you do not have to",
+    "There is gold in here somewhere",
+    "This lot is promising",
+  ],
+  late: [
+    "Tightening things up",
+    "Doing a final pass",
+    "Putting it all together",
+    "Almost ready for you",
+    "Wrapping up",
+    "Lining up the highlights",
+    "Last bits of tidying",
+    "Finishing touches",
+    "Sorting the final order",
+    "Getting these ready for you",
+    "Squaring everything away",
+    "Taking one last look",
+    "Making sure nothing slipped past",
+    "Handing these over",
+  ],
+};
+
+const drawLine = (bucket, taken) => {
+  const pool = WORKING_LINES[bucket].filter((l) => !taken.includes(l));
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
+// 3-5 lines per run: 1-2 early, 1-2 middle, 1 late.
+function pickWorkingLines() {
+  const out = [];
+  for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) out.push(drawLine("early", out));
+  for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) out.push(drawLine("middle", out));
+  out.push(drawLine("late", out));
+  return out;
+}
 
 const STAGE_LABELS = {
   probing: "Analyzing file",
@@ -101,26 +164,30 @@ const STAGE_LABELS = {
   failed: "Failed",
 };
 
-const SIGNAL_ROWS = [
-  { key: "transcript_density", label: "Transcript density" },
-  { key: "reaction_words", label: "Reaction words" },
-  { key: "silence_spike", label: "Silence-then-spike" },
-  { key: "yamnet", label: "YAMNet (audio events)" },
-  { key: "pitch_spike", label: "Pitch spike" },
-];
+// #74: the single line the card shows. Never names a stage, a signal or a model.
+// The technical record lives in the pipeline log (ai-pipeline.js logger.failStep).
+function statusHeadline(progress, workLines) {
+  if (!progress) return { text: "", color: T.text };
+  if (progress.stage === "failed") return { text: "❌ Stopped before it could finish", color: T.red };
+  if (progress.stage === "complete") {
+    const n = progress.clipCount || 0;
+    if (n === 0) return { text: "✅ Finished — nothing made the cut", color: T.green };
+    const clips = `${n} clip${n !== 1 ? "s" : ""}`;
+    if (progress.signalSummary === "degraded") return { text: `⚠️ ${clips} — ran a little short-handed`, color: T.yellow };
+    return { text: `✅ ${clips} ready for you`, color: T.green };
+  }
+  if (!workLines || workLines.length === 0) return { text: "Getting started", color: T.text };
+  const idx = Math.min(workLines.length - 1, Math.floor((progress.pct || 0) / (100 / workLines.length)));
+  return { text: workLines[idx], color: T.text };
+}
 
-// #190: game-audio rows appear only when the pipeline actually emits them
-// (game track configured) — mic-only runs keep the same 5-row table.
-const GAME_SIGNAL_ROWS = [
-  { key: "game_energy", label: "Game energy" },
-  { key: "game_yamnet", label: "Game YAMNet" },
-];
-
-function signalStatusVisuals(status) {
-  if (status === "done") return { icon: "✅", color: T.green };
-  if (status === "running") return { icon: "⚡", color: T.yellow };
-  if (status === "failed") return { icon: "❌", color: T.red };
-  return { icon: "⬜", color: T.textTertiary };
+function StatusHeadline({ progress, workLines }) {
+  const h = statusHeadline(progress, workLines);
+  return (
+    <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: h.color, minHeight: 24 }}>
+      {h.text}
+    </div>
+  );
 }
 
 const PILL_MIN = 200;
@@ -148,9 +215,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [collapsed, setCollapsed] = useState({});
   const [generating, setGenerating] = useState(null);
   const [progress, setProgress] = useState(null);
-  // Per-signal health for the signal-health table during the "signals" stage.
-  // Map of signalKey → { status, progress, elapsed_ms, failureReason? }.
-  const [signalHealth, setSignalHealth] = useState({});
+  // #74: the 3-5 lines this recording drew. Redrawn per run, so a second pass
+  // over the same file reads differently.
+  const [workLines, setWorkLines] = useState([]);
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
@@ -319,23 +386,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     return () => { window.clipflow?.removePipelineProgressListener?.(); };
   }, []);
 
-  // Per-signal progress events (Issue #72 Phase 1)
-  useEffect(() => {
-    if (!window.clipflow?.onSignalProgress) return;
-    window.clipflow.onSignalProgress((data) => {
-      if (!data || !data.signal) return;
-      setSignalHealth((prev) => ({
-        ...prev,
-        [data.signal]: {
-          status: data.status,
-          progress: data.progress,
-          elapsed_ms: data.elapsed_ms,
-          failureReason: data.failureReason,
-        },
-      }));
-    });
-    return () => { window.clipflow?.removeSignalProgressListener?.(); };
-  }, []);
+
 
   // Refresh the recordings list from SQLite (oldest first), used after a generate.
   const refreshFiles = useCallback(async () => {
@@ -383,7 +434,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const game = findGameByTag(file.tag, gamesDb);
     setGenerating(file.current_path);
     setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
-    setSignalHealth({});
+    setWorkLines(pickWorkingLines()); // #74: new recording, new lines
     posthog.capture("clipflow_pipeline_started");
     try {
       const result = await window.clipflow.generateClips(file.current_path, {
@@ -425,11 +476,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     if (generating) return;
     const result = await runOnePipeline(file);
     if (!result.ok) {
-      setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 5000);
+      setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
       return;
     }
     await refreshFiles();
-    setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 3000);
+    setTimeout(() => { setGenerating(null); setProgress(null); }, 3000);
     if (result.profileUpdateNeeded && result.gameTag) {
       try {
         const updateResult = await window.clipflow.gameProfilesGenerateUpdate(result.gameTag);
@@ -472,7 +523,6 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     await refreshFiles();
     setGenerating(null);
     setProgress(null);
-    setSignalHealth({});
     setBatchState(null);
     setSelected({});
     setBatchSummary({
@@ -1251,7 +1301,10 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         </div>
       )}
 
-      {/* Pipeline progress panel — multi-step status */}
+      {/* Pipeline progress panel - #74: one rotating line, not a stage checklist.
+          The old panel listed every stage plus a signal-health table naming all
+          seven signals, which told anyone watching exactly how detection works.
+          Technical detail still goes to the pipeline log, which is unchanged. */}
       {generating && progress && (
         <Card style={{ padding: "16px 20px", marginBottom: 16, borderColor: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : T.accentBorder }}>
           {/* Video name header */}
@@ -1260,117 +1313,20 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             <span style={{ color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {generating ? generating.split(/[/\\]/).pop() : ""}
             </span>
-            {progress.stage === "complete" && progress.signalSummary === "all" && (
-              <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} {(progress.computedSignals || []).length || SIGNAL_ROWS.length + 1} signals contributed</span>
-            )}
-            {progress.stage === "complete" && progress.signalSummary === "degraded" && (
-              <span style={{ color: T.yellow, fontSize: 13, fontWeight: 700 }} title={(progress.failedSignals || []).map((f) => `${f.signal}: ${f.failureReason}`).join("; ")}>
-                {"\u26A0\uFE0F"} {progress.clipCount || 0} clips — {(progress.failedSignals || []).length} of {SIGNAL_ROWS.length} signals failed
-              </span>
-            )}
-            {progress.stage === "complete" && !progress.signalSummary && (
-              <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} Done</span>
-            )}
-            {progress.stage === "failed" && progress.signalSummary === "strict-fail" && (
-              <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }} title={progress.detail}>
-                {"\u274C"} Pipeline halted — {progress.failedSignal} failed after {Math.round((progress.failedAfterMs || 0) / 1000)}s
-              </span>
-            )}
-            {progress.stage === "failed" && !progress.signalSummary && (
-              <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>{"\u274C"} Failed</span>
-            )}
           </div>
+
+          <StatusHeadline progress={progress} workLines={workLines} />
 
           {/* #200: zero clips is a judgment, not a failure \u2014 say so, or an empty
               project reads as a crash. */}
           {progress.stage === "complete" && progress.clipCount === 0 && (
-            <div style={{ padding: "8px 12px", marginBottom: 12, background: `${T.yellow}12`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33`, color: T.textSecondary, fontSize: 12 }}>
+            <div style={{ padding: "8px 12px", marginTop: 12, background: `${T.yellow}12`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33`, color: T.textSecondary, fontSize: 12 }}>
               Detection finished but found no moments that meet your bar \u2014 nothing was clipped. Setup talk, training segments, and moments similar to ones you've rejected before are skipped on purpose.
             </div>
           )}
 
-          {/* Step-by-step status */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {PIPELINE_STEPS.map((step) => {
-              const currentIdx = PIPELINE_STEPS.findIndex((s) => s.key === progress.stage);
-              const stepIdx = PIPELINE_STEPS.findIndex((s) => s.key === step.key);
-              const isComplete = progress.stage === "complete" || stepIdx < currentIdx;
-              const isRunning = step.key === progress.stage && progress.stage !== "complete" && progress.stage !== "failed";
-              const isFailed = progress.stage === "failed" && step.key === progress.stage;
-              const isWaiting = stepIdx > currentIdx && progress.stage !== "complete";
-
-              let statusIcon, statusColor;
-              if (isComplete) { statusIcon = "\u2705"; statusColor = T.green; }
-              else if (isRunning) { statusIcon = "\u26A1"; statusColor = T.yellow; }
-              else if (isFailed) { statusIcon = "\u274C"; statusColor = T.red; }
-              else { statusIcon = "\u2B1C"; statusColor = T.textTertiary; }
-
-              const showSignalTable = step.key === "signals" && Object.keys(signalHealth).length > 0;
-
-              return (
-                <React.Fragment key={step.key}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "5px 8px", borderRadius: 6,
-                    background: isRunning ? "rgba(251,191,36,0.06)" : "transparent",
-                    opacity: isWaiting ? 0.4 : 1,
-                  }}>
-                    <span style={{ fontSize: 13, width: 22, textAlign: "center" }}>{statusIcon}</span>
-                    <span style={{ fontSize: 14 }}>{step.icon}</span>
-                    <span style={{ color: statusColor, fontSize: 12, fontWeight: isRunning ? 700 : 500, flex: 1 }}>
-                      {step.label}
-                    </span>
-                    {isRunning && progress.detail && (
-                      <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono }}>
-                        {progress.detail}
-                      </span>
-                    )}
-                    {isFailed && (
-                      <span style={{ color: T.red, fontSize: 10 }}>{progress.detail}</span>
-                    )}
-                  </div>
-                  {showSignalTable && (
-                    <div style={{
-                      marginLeft: 32, marginRight: 8, marginBottom: 4,
-                      padding: "6px 10px", borderRadius: 6,
-                      background: "rgba(255,255,255,0.02)",
-                      border: `1px solid ${T.border}`,
-                      display: "flex", flexDirection: "column", gap: 4,
-                    }}>
-                      {[...SIGNAL_ROWS, ...GAME_SIGNAL_ROWS.filter((r) => signalHealth[r.key])].map((row) => {
-                        const sh = signalHealth[row.key] || { status: "pending", progress: 0, elapsed_ms: 0 };
-                        const v = signalStatusVisuals(sh.status);
-                        const pct = Math.round((sh.progress || 0) * 100);
-                        const elapsedSec = sh.elapsed_ms ? (sh.elapsed_ms / 1000).toFixed(1) + "s" : "";
-                        return (
-                          <div key={row.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
-                            <span style={{ width: 16, textAlign: "center" }}>{v.icon}</span>
-                            <span style={{ color: v.color, flex: "0 0 150px", fontWeight: sh.status === "running" ? 700 : 500 }}>
-                              {row.label}
-                            </span>
-                            <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                              <div style={{
-                                height: "100%", borderRadius: 2,
-                                background: sh.status === "failed" ? T.red : sh.status === "done" ? T.green : T.accent,
-                                width: `${sh.status === "failed" ? 100 : pct}%`,
-                                transition: "width 0.2s ease",
-                              }} />
-                            </div>
-                            <span style={{ color: T.textTertiary, fontFamily: T.mono, fontSize: 10, minWidth: 60, textAlign: "right" }}>
-                              {sh.status === "failed" ? sh.failureReason || "failed" : sh.status === "done" ? `done ${elapsedSec}` : elapsedSec}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-
           {/* Overall progress bar */}
-          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden", marginTop: 12 }}>
+          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden", marginTop: 14 }}>
             <div style={{
               height: "100%", borderRadius: 2,
               background: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : `linear-gradient(90deg, ${T.accent}, ${T.accentLight})`,
