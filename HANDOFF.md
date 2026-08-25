@@ -1,58 +1,71 @@
-# HANDOFF — Session 196 (2026-08-25)
+# HANDOFF — Session 197 (2026-08-25)
 
 ## Current State
 
-**Planning-only session — zero app code changed.** Two new features filed, explored,
-designed, and approved: **#305** (cut a single-word subtitle at the playhead into two
-copies of the word) and **#306** (Repost a published clip from the Tracker, optional
-tweak step, bangers included). The full build specs live as comments on the issues —
-the build session needs nothing from this conversation. Everything from s195 still
-stands: batches 1–4 built + reviewed, **the installer covering them is still uncut**.
+**Batch 5 built and machine-verified: #305 (cut a one-word subtitle in half) and #306
+(repost a published clip).** Two commits, one per feature, plus the changelog — all
+pushed. Both issues are left OPEN with a full verification write-up commented on each;
+Fega hasn't eyeballed either yet. Everything from s195/s196 still stands: batches 1–4
+built + reviewed, **the installer covering them is still uncut**, and batch 5 is now
+sitting in front of it.
+
+Commits: `fa5e3fb` (#305), `e964752` (#306), `084b596` (changelog).
 
 ## Key Decisions
 
-1. **Model split for this batch:** Fable planned (this session) → **Opus@high builds
-   #305 + #306 as one batch in its own session** (commit per feature) → Fable@xhigh
-   reviews commit-by-hash right after. Per the 2026-08-24 workflow memory.
-2. **#306 repost = a fresh clip copy that reuses the render** (file copied on disk),
-   NOT re-arming the original id — the Queue's trackerData knockout (QueueView.js:763-768)
-   and the `UNIQUE(clip_id)` title-training table make id-reuse unworkable.
-3. **Reposts never teach** the AI title/caption data (extends #240's imports fence).
-   The optional tweak step is the existing Queue card panel — no new editing UI.
-4. **Drag-and-drop from the Tracker consciously deferred** (cross-tab drag infeasible;
-   visible Repost buttons on the Tracker popover + Published shelf carry the capability).
-5. **#305 mechanism:** 1-word branch inside `splitSegment` + a `splitCopy` flag on the
-   duplicated word objects so `setSegmentMode`'s whisperx dedup can't eat one half.
+1. **#306 copies the THUMBNAIL as well as the render** — one step beyond the approved
+   spec. `deleteClip(deleteFile)` unlinks `thumbnailPath` too, so a shared thumbnail
+   meant deleting a repost would strip the frame off the original's Tracker popover,
+   which is the very surface the Repost button lives on. `filePath` (the pre-cut clip
+   file) is still shared — that's `duplicateClip`'s existing behaviour and was left alone
+   rather than widening scope.
+2. **Verification ran against an isolated fixture library, not the real one.** Dev
+   `projectsRoot`/`watchFolder` were repointed at a scratchpad tree holding a throwaway
+   project (gotcha 48), so the editor's autosave and the repost's file writes could be
+   fully destructive at zero risk. Settings were restored from backup at teardown.
+3. **No publish was run** — #306's `logPost` passthrough and the AI-training fence are
+   left for the review session to read, per the spec.
 
 ## Next Steps
 
-1. **Opus@high build session:** build #305 + #306 from the specs on the issues.
-2. **Fable@xhigh review session** on those commits, right after they land.
-3. **Cut the installer** covering batches 1–4 (clipflow-update-launcher) — carried from
-   s195; decide whether to fold the #305/#306 batch in first.
-4. Fega's batch-4 eyeball checks (Rename watcher states, delete dialog, completion
-   headline) — carried from s195.
+1. **Fable@xhigh review session** on `fa5e3fb` and `e964752`, commit-by-hash. The two
+   things worth the reviewer's attention are named under Watch Out For.
+2. **Cut the installer** covering batches 1–5 (`clipflow-update-launcher`) — carried
+   from s195, now with two more features folded in.
+3. Fega's eyeball checks: #305 and #306 in the real app, plus the carried batch-4 items
+   (Rename watcher states, delete dialog, completion headline).
+4. #307 (filed this session): the timeline right-click menu labels Split with `S` while
+   the shortcut is `U`, and the hint is hardcoded so it ignores rebinds.
 
 ## Watch Out For
 
-- **#305's landmine is the segment-mode dedup** (`useSubtitleStore.js:1258-1267`):
-  verification MUST include the 1-word → 3-word → 1-word round trip proving neither
-  word copy vanishes.
-- **#306: the title-based queue knockout will silently eat a same-titled repost** unless
-  the `c.repostOf` exemption at QueueView.js:768 ships with it — it's in the spec, don't
-  let it get simplified away.
-- **Never run a real publish while verifying #306** — dev profile only; the publish path
-  itself is unchanged and its repost passthrough is verified by review, not execution.
-- `duplicateClip` cannot be reused for repost (its hard-coded resets land AFTER the
-  overrides spread) — the spec calls for a sibling `repostClip()`, not an option flag.
-- Standing s190–s195 items unchanged (see f97bbb0's HANDOFF): prod hasn't run the #301
+- **#305's `splitCopy` flag has to survive three hops to work**: the words array through
+  `setSegmentMode`'s rebuild, `cleanWordTimestamps` (all passes spread `{...w}`), and
+  `segmentWords` (passes word objects by reference). It does today — the 3w→1w→3w→1w
+  round trip was run and both copies survived — but any future pass that REBUILDS word
+  objects instead of spreading them will silently re-arm the dedup and eat a half.
+- **#306's queue exemption is load-bearing.** `c.repostOf ||` at QueueView.js:771 is the
+  only reason a repost isn't filtered out for matching its original's title. If a
+  simplification pass removes it, reposts vanish with no error.
+- **The second half of a #305 split drifts its end time on every mode switch**
+  (7.0 → 7.4 → 7.8 → 8.0 across the round trip). That is segmentWords' existing
+  linger/min-display rule stretching the last word of a partition, not new behaviour —
+  don't "fix" it as a split bug.
+- Standing s190–s196 items unchanged (see b1572b9's HANDOFF): prod hasn't run the #301
   migration; `gatewayAuthTokenPreMigration` kept until the installer reaches the laptop;
   completion headline still never eyeballed on screen.
 
 ## Logs / Debugging
 
-- No app runs this session — nothing new in logs.
-- Exploration evidence (file:line citations for every claim in the specs) is embedded in
-  the issue comments on #305/#306; the approved plan file is at
-  `C:\Users\IAmAbsolute\.claude\plans\declarative-squishing-swing.md`.
-- CHANGELOG.md deliberately untouched: no product change to record this session.
+- Verification harness lives in this session's scratchpad: `drv.js` (CDP evaluator),
+  `key.js` (trusted key dispatch via `Input.dispatchKeyEvent`), `shot.js` (screenshot),
+  `mkfixture.py` (builds the fixture library + repoints dev settings),
+  `checklie.py` (reads split results straight off the fixture's project.json).
+  `clipflow-settings.dev.backup.json` is the restored-from backup — dev profile is back
+  on the real library, verified after teardown.
+- Reading split results **off disk** (the editor autosaves ~800ms after every edit) was
+  far cheaper than walking the React fiber tree for store state. Worth reusing.
+- New CDP trap recorded as #57 in the `project_cdp_verification_gotchas` memory: the
+  Tracker calendar only renders the visible week, so a seeded entry dated outside it
+  reads as "the feature didn't render". Cost one restart.
+- No app errors in `%APPDATA%\clipflow-dev\logs` during the run; nothing new in Sentry.
