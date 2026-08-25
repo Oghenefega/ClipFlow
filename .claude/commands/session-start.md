@@ -2,6 +2,10 @@
 description: Start a new session — read handoff, check context, ask focus
 ---
 
+## 0. Heal the previous session's title (silent, no user involvement)
+
+If HANDOFF.md contains a `> Pending session title` line: the previous wrap couldn't set its own title (the app's session registry lags behind a live session — s193). Fix it now, when the session is flushed and addressable: `list_sessions`, find the most recent entry with this repo's cwd, `set_session_title` with the pending title, then delete the pending line from HANDOFF.md (ride the change into this session's next commit). One sentence of report, then move on. If the pending line is absent but the newest ClipFlow session's title doesn't start with `S<number> ·`, same repair using HANDOFF's `# HANDOFF — Session N` anchor.
+
 ## 1. Read Handoff
 
 ! cat HANDOFF.md 2>/dev/null || echo "No HANDOFF.md found — fresh start."

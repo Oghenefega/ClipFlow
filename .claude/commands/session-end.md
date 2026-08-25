@@ -38,6 +38,14 @@ Keep it lean — commits and CHANGELOG.md already record what was built; don't r
 
 Stage HANDOFF.md, the distilled skill changes, and any uncommitted work, commit with a descriptive message, and push to master.
 
-## 5. Set the session name (template-locked)
+## 5. Set the session name (template-locked, self-healing)
 
 Set the title directly with the session-title tool — don't just suggest it. A title that does not START with `S<number> ·` is INVALID — check before setting (3 violations: s143, s145, s146). Template: `S<N> · alpha.<X> — <plain summary>` when an installer was cut this session; `S<N> · <plain summary>` when not. Copy the anchor from HANDOFF's header. State what you set; Fega can rename if he prefers a different headline.
+
+The tool needs a `session_id` — get it from `list_sessions` (this repo's cwd, newest entry). **If the live session isn't listed yet** ("Session not found" — the app's registry can lag behind the running session; hit in s193), do NOT leave it manual: append this line directly under HANDOFF.md's `# HANDOFF` header, commit it (tiny follow-up commit is fine), and say the title will set itself at next session start:
+
+```
+> Pending session title (set automatically at next session start): S<N> · <the exact title>
+```
+
+Session-start step 0 reads that line and heals it — by then the session is always flushed and addressable. Fega does nothing either way.

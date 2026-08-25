@@ -1,5 +1,7 @@
 # HANDOFF — Session 193 (2026-08-24)
 
+> Pending session title (set automatically at next session start): S193 · Batch 3 review — MKV drop unblocked, fallback fenced
+
 ## Current State
 
 **Batch 3 is review-clean — `aa45e1d`.** The Fable fresh-eyes pass over `0fe55c7`

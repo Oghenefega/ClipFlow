@@ -82,6 +82,9 @@ No app code changed this session — it was an audit of the Claude Code configur
 ### Changed
 - **Two misleading comments corrected (no behavior change).** The convert-on-rename handler justified itself with "Chromium can't decode Matroska" — the exact claim session 192 measured to be false (h264+aac MKV previews fine; the conversion is about the extension always telling the truth). And `formatFilename`'s note said whole-recording renames pass the source's own extension, when in fact they deliberately don't — the file is converted to MP4 first, so the `.mp4` default IS the truth; only retroactive renames pass an extension.
 
+### Added
+- **Session titles heal themselves when the app's session registry lags (tooling, not app code).** This session's wrap couldn't set its own title — the running session wasn't registered in the session store yet, so the title tool had nothing to address. The wrap ritual now records the exact title as a "Pending session title" line in HANDOFF.md when that happens, and the session-start ritual sets it retroactively and removes the line. No manual renaming needed in either direction.
+
 ## [Unreleased] — 2026-08-23 (session 186) — Backlog truth audit: all 110 open issues verified against the code
 
 ### Added
