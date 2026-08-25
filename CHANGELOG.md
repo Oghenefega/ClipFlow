@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 198) — Fresh-eyes review of Batch 5: two repost edges
+
+### Fixed
+- **The Queue tab's badge now counts a waiting repost (#306 follow-up).** The badge count in App.js is a deliberate mirror of the Queue's unscheduled-list filter — that's the whole point of it, per #139 — but Batch 5 only taught the *list* to exempt reposts from the same-title knockout. A repost (which deliberately repeats its title) appeared in the Queue but was subtracted from the badge, recreating exactly the badge-vs-list mismatch #139 fixed. The badge filter now carries the same exemption.
+- **A failed thumbnail copy no longer leaves a repost sharing the original's thumbnail (#306 follow-up).** Repost's core promise is that the copy owns its files, so deleting either clip can't strip the other. The thumbnail path broke that promise on its failure path: if the copy failed (or the source thumbnail was missing), the repost kept pointing at the *original's* thumbnail file, and "delete rendered video" on the repost would have unlinked it. The repost now carries a thumbnail only when it owns the copied file, and otherwise none — a missing thumbnail is cosmetic.
+
 ## [Unreleased] — 2026-08-25 (session 197) — Batch 5: cut a word in half, and post a clip twice (#305, #306)
 
 ### Added

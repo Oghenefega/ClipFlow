@@ -537,13 +537,15 @@ function repostClip(watchFolder, projectId, clipId) {
     return { error: `Could not copy the rendered video: ${err.message}` };
   }
 
-  let thumbnailPath = src.thumbnailPath || null;
-  if (thumbnailPath && fs.existsSync(thumbnailPath)) {
-    const tExt = path.extname(thumbnailPath);
-    const tDir = path.dirname(thumbnailPath);
-    const tDest = uniquePath(tDir, `${path.basename(thumbnailPath, tExt)} repost`, tExt);
-    // A missing thumbnail is cosmetic — keep the repost even if the copy fails.
-    try { fs.copyFileSync(thumbnailPath, tDest); thumbnailPath = tDest; } catch (e) { /* ignore */ }
+  // A missing thumbnail is cosmetic — keep the repost even if the copy fails,
+  // but only carry a thumbnail the repost OWNS: falling back to src's path would
+  // share one file between two clips, and deleting either would strip the other.
+  let thumbnailPath = null;
+  if (src.thumbnailPath && fs.existsSync(src.thumbnailPath)) {
+    const tExt = path.extname(src.thumbnailPath);
+    const tDir = path.dirname(src.thumbnailPath);
+    const tDest = uniquePath(tDir, `${path.basename(src.thumbnailPath, tExt)} repost`, tExt);
+    try { fs.copyFileSync(src.thumbnailPath, tDest); thumbnailPath = tDest; } catch (e) { /* ignore */ }
   }
 
   const copy = {

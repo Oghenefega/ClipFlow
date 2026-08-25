@@ -845,7 +845,9 @@ export default function App() {
       && !trackedIds.has(c.id)
       // #240: imports dedupe by id only — mirrors QueueView's list filter
       // (OpusClip-era titles repeat; title-matching would hide siblings).
-      && (c.source === "import" || !trackedTitles.has(c.title))
+      // #306: reposts are exempt from the title knockout for the same reason
+      // QueueView exempts them — a repost deliberately repeats its title.
+      && (c.source === "import" || c.repostOf || !trackedTitles.has(c.title))
     ).length;
   }, [allClips, trackerData]);
 
