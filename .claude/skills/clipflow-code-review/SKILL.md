@@ -41,6 +41,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] Before editing a function, `Grep` for its callers. **Zero callers = dead code.** Editing it has no user-facing effect (this is how #102/#97 got patched into the dead `commitAudioResize` path).
 - [ ] Did I confirm the component/handler I changed is the one actually mounted (top-down from `EditorLayout`), not a similarly-named twin?
 - [ ] If I claimed "this fixes X," can I name the live path mount→handler that the user's gesture actually hits? If not, verify in the running app before saying done.
+- [ ] **Every side claim in the commit/changelog ("X works too", "also handled") maps to a verification step actually performed.** A renderer gate/UI-copy change advertising new input is only half a path — trace the gesture through the IPC handler it calls. Three consecutive batch reviews (s188, s190, s193) caught an unexercised side claim; s193's: "dropped .mkv accepted" while `import:externalFile` still refused it.
 - [ ] See the `clipflow-trace-verify` skill for the full grep-callers / top-down / liveness-proof protocol.
 
 ## Build & Launch Protocol
