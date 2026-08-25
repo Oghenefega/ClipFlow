@@ -1,5 +1,7 @@
 # HANDOFF — Session 199 (2026-08-25)
 
+> Pending session title (set automatically at next session start): S199 · Media overlays planned (#308-#312), mock approved
+
 ## Current State
 
 **Media overlays (images/GIFs/videos on the timeline) fully planned and approved; mockup
