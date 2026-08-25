@@ -2331,7 +2331,9 @@ export default function RightPanelNew({ gamesDb }) {
       )}
 
       {/* Icon rail (always visible) */}
-      <div className="w-16 min-w-[64px] border-l bg-card flex flex-col items-center py-3 gap-1">
+      {/* #310: overlay lanes can make the timeline tall enough to push the last
+          rail item off a short window. The rail scrolls rather than clipping. */}
+      <div className="w-16 min-w-[64px] border-l bg-card flex flex-col items-center py-3 gap-1 overflow-y-auto">
         <TooltipProvider delayDuration={300}>
           {RAIL_ICONS.map((item, i) => {
             const Icon = item.icon;

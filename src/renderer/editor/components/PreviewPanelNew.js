@@ -6,7 +6,9 @@ import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
+import { resolveMediaPlacements } from "../models/mediaPlacements";
 import { sourceToTimeline } from "../models/timeMapping";
+import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
@@ -695,6 +697,121 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
   );
 }
 
+// ── #310: image/GIF overlays on the canvas ──
+// Position and size are percentages of the canvas box, which IS the output
+// frame — the same numbers render.js turns into pixels, so what's dragged here
+// is what gets encoded. x/y address the overlay's CENTRE.
+//
+// Modelled on CalibrationBoxes above, minus the snapping: crop rects want to
+// land on exact halves, an overlay just wants to go where it's put.
+const MEDIA_HANDLES = ["nw", "ne", "sw", "se"];
+
+function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange }) {
+  const elRef = useRef(null);
+  const dragRef = useRef(null);
+
+  const beginDrag = useCallback((e, mode) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect(p.id);
+    const canvas = canvasRef.current?.getBoundingClientRect();
+    const box = elRef.current?.getBoundingClientRect();
+    if (!canvas || !box) return;
+    dragRef.current = {
+      mode, canvas,
+      startX: e.clientX, startY: e.clientY,
+      x0: p.xPct, y0: p.yPct,
+      boxW: box.width, boxH: box.height,
+      // A corner drag pins the OPPOSITE corner, the way every NLE does it.
+      fixedX: (mode.includes("w") ? box.right : box.left) - canvas.left,
+      fixedY: (mode.includes("n") ? box.bottom : box.top) - canvas.top,
+      moved: false,
+    };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }, [p.id, p.xPct, p.yPct, canvasRef, onSelect]);
+
+  const onMove = useCallback((e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    // One undo entry per gesture, and only once the pointer actually moved —
+    // a click that selects must not cost a Ctrl+Z.
+    if (!d.moved) {
+      if (Math.abs(e.clientX - d.startX) < 3 && Math.abs(e.clientY - d.startY) < 3) return;
+      d.moved = true;
+      onGestureStart();
+    }
+    if (d.mode === "move") {
+      const dx = ((e.clientX - d.startX) / d.canvas.width) * 100;
+      const dy = ((e.clientY - d.startY) / d.canvas.height) * 100;
+      // Allowed a little past the edge — half-off-frame is a real look.
+      onChange(p.id, {
+        xPct: Math.max(-25, Math.min(125, d.x0 + dx)),
+        yPct: Math.max(-25, Math.min(125, d.y0 + dy)),
+      });
+    } else {
+      // Width drives it and the aspect ratio follows, so an overlay can never
+      // be squashed — there's no un-squash control to offer if it could.
+      const newW = Math.max(8, Math.abs((e.clientX - d.canvas.left) - d.fixedX));
+      const newH = newW * (d.boxH / Math.max(1, d.boxW));
+      const cx = d.fixedX + (d.mode.includes("w") ? -newW / 2 : newW / 2);
+      const cy = d.fixedY + (d.mode.includes("n") ? -newH / 2 : newH / 2);
+      onChange(p.id, {
+        wPct: Math.max(3, Math.min(200, (newW / d.canvas.width) * 100)),
+        xPct: (cx / d.canvas.width) * 100,
+        yPct: (cy / d.canvas.height) * 100,
+      });
+    }
+  }, [p.id, onChange, onGestureStart]);
+
+  const endDrag = useCallback(() => { dragRef.current = null; }, []);
+
+  return (
+    <div
+      ref={elRef}
+      className="absolute"
+      style={{
+        left: `${p.xPct}%`, top: `${p.yPct}%`, width: `${p.wPct}%`,
+        transform: "translate(-50%, -50%)",
+        opacity: p.opacity ?? 1,
+        cursor: "grab",
+        touchAction: "none",
+        outline: selected ? "1.5px solid hsl(350 90% 70%)" : "none",
+        outlineOffset: 1,
+      }}
+      onPointerDown={(e) => beginDrag(e, "move")}
+      onPointerMove={onMove}
+      onPointerUp={endDrag}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <img
+        src={toFileUrl(p.path)}
+        alt=""
+        draggable={false}
+        className="block w-full pointer-events-none"
+      />
+      {selected && MEDIA_HANDLES.map((h) => (
+        <div
+          key={h}
+          onPointerDown={(e) => beginDrag(e, h)}
+          onPointerMove={onMove}
+          onPointerUp={endDrag}
+          style={{
+            position: "absolute", width: 10, height: 10,
+            background: "#0a0b10", border: "1.5px solid hsl(350 90% 70%)", borderRadius: 2,
+            top: h.includes("n") ? -5 : undefined,
+            bottom: h.includes("s") ? -5 : undefined,
+            left: h.includes("w") ? -5 : undefined,
+            right: h.includes("e") ? -5 : undefined,
+            cursor: h === "nw" || h === "se" ? "nwse-resize" : "nesw-resize",
+            touchAction: "none",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ── Main Preview Panel ──
 export default function PreviewPanelNew() {
   // Session 124: viewer screenshot → Shorts thumbnail. Self-contained — builds
@@ -1322,6 +1439,27 @@ export default function PreviewPanelNew() {
 
   // NLE segments from editor store — used for gap-crossing during playback
   const nleSegments = useEditorStore((s) => s.nleSegments);
+
+  // ── #310: image/GIF overlays ── resolved through the SAME helper the timeline
+  // and the render use, so all three agree on where and when an overlay is.
+  const mediaPlacements = useEditorStore((s) => s.mediaPlacements);
+  const [selectedMediaId, setSelectedMediaId] = useState(null);
+  const resolvedMedia = useMemo(
+    () => resolveMediaPlacements(mediaPlacements, nleSegments),
+    [mediaPlacements, nleSegments]
+  );
+  const visibleMedia = useMemo(
+    () => resolvedMedia.filter(
+      (m) => m.enabled !== false && currentTime >= m.tlStart && currentTime < m.tlEnd
+    ),
+    [resolvedMedia, currentTime]
+  );
+  const mediaGestureStart = useCallback(() => {
+    useEditorStore.getState()._pushNleUndo();
+  }, []);
+  const setMediaProps = useCallback((id, patch) => {
+    useEditorStore.getState().setMediaPlacementProps(id, patch);
+  }, []);
   const mapSourceTime = usePlaybackStore((s) => s.mapSourceTime);
 
   // Derive timeline-mapped subtitle segments (source-absolute → timeline time)
@@ -1860,6 +1998,7 @@ export default function PreviewPanelNew() {
     if (e.target === canvasRef.current || e.target.dataset.canvasBg) {
       setSelectedOverlay(null);
       setEditingCaption(false);
+      setSelectedMediaId(null); // #310: and drop the overlay's handles
     }
   }, []);
 
@@ -2127,6 +2266,21 @@ export default function PreviewPanelNew() {
               />
             </>
           )}
+
+          {/* #310 image/GIF overlays — above the picture, below the words, which
+              is the order the render composites them in. Hidden while
+              calibrating: they belong to the composed frame, not the raw source. */}
+          {!calibrating && laneEnabled?.media !== false && visibleMedia.map((m) => (
+            <MediaOverlay
+              key={m.id}
+              p={m}
+              canvasRef={canvasRef}
+              selected={selectedMediaId === m.id}
+              onSelect={setSelectedMediaId}
+              onGestureStart={mediaGestureStart}
+              onChange={setMediaProps}
+            />
+          ))}
 
           {/* Caption overlay(s) — render all active caption segments at current time.
               Hidden while calibrating (#164) — they belong to the composed space. */}

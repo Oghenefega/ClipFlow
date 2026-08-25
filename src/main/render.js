@@ -6,6 +6,7 @@ const { FFMPEG_BIN, FFPROBE_BIN } = require("./app-paths");
 const { createOverlaySession } = require("./subtitle-overlay-renderer");
 const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
 const { resolvePlacements } = require("../renderer/editor/models/audioPlacements");
+const { resolveMediaPlacements } = require("../renderer/editor/models/mediaPlacements");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../renderer/editor/utils/reframeStyle");
@@ -35,6 +36,33 @@ function probeFps(filePath) {
       resolve(isNaN(fps) || fps <= 0 ? 30 : Math.round(fps * 100) / 100);
     });
     proc.on("error", () => resolve(30));
+  });
+}
+
+/**
+ * Probe a video file for its frame width (#310). Overlay sizes are percentages
+ * of the OUTPUT frame, and without reframe the output IS the source frame — a
+ * project saved before source dimensions were recorded would otherwise have to
+ * guess. Only called on that path, so no existing render's args change.
+ * @param {string} filePath
+ * @returns {Promise<number>} width in px, or 0 if the probe fails
+ */
+function probeWidth(filePath) {
+  return new Promise((resolve) => {
+    const proc = spawn(FFPROBE_BIN, [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-show_entries", "stream=width",
+      "-of", "csv=p=0",
+      filePath,
+    ]);
+    let stdout = "";
+    proc.stdout.on("data", (d) => (stdout += d.toString()));
+    proc.on("close", (code) => {
+      const w = parseInt(stdout.trim(), 10);
+      resolve(code !== 0 || isNaN(w) || w <= 0 ? 0 : w);
+    });
+    proc.on("error", () => resolve(0));
   });
 }
 
@@ -136,6 +164,11 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  *   With no audioAssets the audio graph is byte-identical to the pre-#202 output.
  *   { sourceMuted: true } (#296) silences the clip's OWN audio while leaving the
  *   picture and the mixed-in sounds alone. Omitted/false is byte-identical too.
+ *   { mediaAssets } (#310) composites image/GIF overlays under the subtitles:
+ *   mediaAssets = [{ inputIndex, mediaType, tlStart, tlEnd, xPct, yPct, wPct,
+ *   opacity }], already sorted so the last one drawn is on top. { outputWidth }
+ *   is the output frame width used to resolve wPct when reframe is inactive.
+ *   With no mediaAssets the video graph is byte-identical to the pre-#310 output.
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
 function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight, opts = {}) {
@@ -234,6 +267,48 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     filters.push(`[rf_t2]format=yuv420p[base_out]`);
     videoLabel = "base_out";
     }
+  }
+
+  // #310: composite image/GIF overlays onto the picture, UNDER the subtitle
+  // layer (which chains off videoLabel below) and in trackIndex order — the
+  // caller hands them already sorted, so the last one drawn sits on top.
+  //
+  // Position and size are percentages of the OUTPUT frame. Width resolves to
+  // pixels here (scale can't reference the main input), but x/y stay as
+  // expressions in terms of main_w/main_h and overlay_w/overlay_h, so the
+  // overlay's own pixel height never has to be probed: xPct/yPct address its
+  // CENTRE at any aspect ratio.
+  //
+  // A still loops forever (-loop 1) and a GIF loops forever (-ignore_loop 0);
+  // `enable` is what decides when either is actually on screen, and overlay
+  // ends with the main input, so an endless overlay input can't extend the
+  // output. With no mediaAssets this whole block is skipped and the video graph
+  // text is unchanged.
+  const mediaAssets = opts.mediaAssets || [];
+  if (mediaAssets.length > 0) {
+    // Reframe always bakes 1080x1920; otherwise the output IS the source frame.
+    const outW = geo ? 1080 : (opts.outputWidth > 0 ? opts.outputWidth : 1080);
+    mediaAssets.forEach((m, i) => {
+      const tlStart = Math.max(0, m.tlStart || 0);
+      const tlEnd = Math.max(tlStart, m.tlEnd || 0);
+      const wpx = Math.max(2, 2 * Math.round((outW * (m.wPct || 40) / 100) / 2));
+      let chain = "";
+      // A GIF's animation should start when its block does, not at second 0.
+      if (m.mediaType === "gif" && tlStart > 0) {
+        chain += `setpts=PTS-STARTPTS+${+tlStart.toFixed(3)}/TB,`;
+      }
+      chain += `format=rgba,scale=${wpx}:-1`;
+      const opacity = Math.max(0, Math.min(1, m.opacity == null ? 1 : m.opacity));
+      if (opacity < 1) chain += `,colorchannelmixer=aa=${+opacity.toFixed(3)}`;
+      filters.push(`[${m.inputIndex}:v]${chain}[movl${i}]`);
+      const x = `(main_w*${+(m.xPct == null ? 50 : m.xPct).toFixed(3)}/100)-(overlay_w/2)`;
+      const y = `(main_h*${+(m.yPct == null ? 50 : m.yPct).toFixed(3)}/100)-(overlay_h/2)`;
+      filters.push(
+        `[${videoLabel}][movl${i}]overlay=x='${x}':y='${y}':` +
+        `enable='between(t,${+tlStart.toFixed(3)},${+tlEnd.toFixed(3)})':eof_action=pass[movid${i}]`
+      );
+      videoLabel = `movid${i}`;
+    });
   }
 
   // #202: mix sound/song placements into the base audio. One chain shape for
@@ -494,6 +569,43 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         console.warn("[Render] Clip has sound placements but is rendering via the legacy (no-NLE) path — sounds skipped");
       }
 
+      // ── #310: image/GIF overlays ── same discipline as the sounds above:
+      // switched-off overlays (and a switched-off Media lane) are filtered out
+      // FIRST, so an overlay the user already turned off can never fail their
+      // render; anything still in play whose file is gone fails loudly rather
+      // than exporting a silently different picture.
+      const allMedia = Array.isArray(clipData.media) ? clipData.media : [];
+      const mediaPlacements = lanes.media === false
+        ? []
+        : allMedia.filter((p) => p.enabled !== false);
+      if (mediaPlacements.length !== allMedia.length) {
+        console.log(`[Render] ${allMedia.length - mediaPlacements.length} overlay(s) disabled — excluded from the render`);
+      }
+      let activeMediaAssets = [];
+      let mediaOutputWidth = 0;
+      if (mediaPlacements.length > 0 && useNle) {
+        for (const p of mediaPlacements) {
+          if (!p.path || !fs.existsSync(p.path)) {
+            return reject(new Error(
+              `Overlay "${p.name || p.assetId}" is missing on disk (${p.path || "no path"}) — ` +
+              `remove it from the clip or restore the file, then render again.`
+            ));
+          }
+        }
+        activeMediaAssets = resolveMediaPlacements(mediaPlacements, nleSegments);
+        // Overlay sizes are percentages of the output frame. Reframe bakes
+        // 1080x1920; otherwise the output is the source frame, so fall back to
+        // a probe when the project never recorded its dimensions.
+        if (!reframeActive && activeMediaAssets.length > 0) {
+          mediaOutputWidth = projectData.sourceWidth > 0
+            ? projectData.sourceWidth
+            : await probeWidth(srcFile);
+        }
+        console.log(`[Render] Overlays: ${activeMediaAssets.length} of ${mediaPlacements.length} placements active`);
+      } else if (mediaPlacements.length > 0) {
+        console.warn("[Render] Clip has overlays but is rendering via the legacy (no-NLE) path — overlays skipped");
+      }
+
       // Check if we have any overlay content
       const hasOverlay = subtitleSegments.length > 0 || captionSegments.length > 0;
 
@@ -595,12 +707,29 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         });
       }
 
+      // #310: one input per active overlay, AFTER the sound inputs so every
+      // index already handed out stays put. A still loops (-loop 1) and a GIF
+      // loops (-ignore_loop 0); `enable` in the filter decides when each shows.
+      if (activeMediaAssets.length > 0) {
+        const baseIdx = nleSegments.length + (hasFrames ? 1 : 0) + activeAudioAssets.length;
+        activeMediaAssets = activeMediaAssets.map((m, i) => {
+          if (m.mediaType === "gif") args.push("-ignore_loop", "0", "-i", m.path);
+          else args.push("-loop", "1", "-i", m.path);
+          return { ...m, inputIndex: baseIdx + i };
+        });
+      }
+
       // Build filter_complex
       if (useNle) {
         // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
         const { filterComplex, mapArgs } = buildNleFilterComplex(
           nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight,
-          { audioAssets: activeAudioAssets, sourceMuted: clipData.sourceAudioMuted === true }
+          {
+            audioAssets: activeAudioAssets,
+            sourceMuted: clipData.sourceAudioMuted === true,
+            mediaAssets: activeMediaAssets,
+            outputWidth: mediaOutputWidth,
+          }
         );
         args.push("-filter_complex", filterComplex);
         args.push(...mapArgs);
@@ -824,13 +953,41 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
     // (reframe composite included), video-only, one frame out.
     const args = ["-y", "-ss", String(sourceTime), "-i", srcFile];
     if (overlayPng) args.push("-i", overlayPng.replace(/\\/g, "/"));
+
+    // #310: this graph knows only ONE instant, so the overlays are pre-filtered
+    // to the ones actually on screen at it and their enable window is rebased
+    // to that frame. Without this the thumbnail would silently lose them.
+    // A missing file is skipped rather than fatal — a thumbnail is worth less
+    // than the export, and refusing to grab one helps nobody.
+    const thumbLanes = clipData.laneEnabled || {};
+    const thumbMedia = thumbLanes.media === false || !useNle
+      ? []
+      : resolveMediaPlacements(
+          (Array.isArray(clipData.media) ? clipData.media : []).filter((p) => p.enabled !== false),
+          nleSegments
+        ).filter((m) => t >= m.tlStart && t < m.tlEnd && m.path && fs.existsSync(m.path));
+    const mediaAssets = thumbMedia.map((m, i) => {
+      // A GIF is seeked to the frame this instant lands on, wrapping through
+      // its loop; a still has only the one frame.
+      if (m.mediaType === "gif") {
+        const into = m.durationSec > 0 ? (t - m.tlStart) % m.durationSec : 0;
+        args.push("-ss", String(+into.toFixed(3)), "-i", m.path);
+      } else {
+        args.push("-i", m.path);
+      }
+      return { ...m, mediaType: "image", tlStart: 0, tlEnd: 1e6, inputIndex: 1 + (overlayPng ? 1 : 0) + i };
+    });
+    const thumbOutputWidth = reframeActive || mediaAssets.length === 0
+      ? 0
+      : (projectData.sourceWidth > 0 ? projectData.sourceWidth : await probeWidth(srcFile));
+
     const { filterComplex, mapArgs } = buildNleFilterComplex(
       [{ id: "thumb", sourceStart: sourceTime, sourceEnd: sourceTime + 1 }],
       !!overlayPng,
       projectData.reframe,
       projectData.sourceWidth,
       projectData.sourceHeight,
-      { audio: false }
+      { audio: false, mediaAssets, outputWidth: thumbOutputWidth }
     );
     args.push("-filter_complex", filterComplex, ...mapArgs, "-frames:v", "1", outputPath);
     console.log("[Thumbnail] FFmpeg args:", args.join(" "));

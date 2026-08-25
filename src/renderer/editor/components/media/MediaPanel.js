@@ -5,6 +5,8 @@ import { ScrollArea } from "../../../../components/ui/scroll-area";
 import { Button } from "../../../../components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../../components/ui/tooltip";
 import useEditorStore from "../../stores/useEditorStore";
+import usePlaybackStore from "../../stores/usePlaybackStore";
+import { getTimelineDuration, timelineToSource } from "../../models/timeMapping";
 import { fmtDur } from "../audio/TrackRow";
 import { toFileUrl } from "../../../components/shared";
 
@@ -35,16 +37,16 @@ function VideoThumb({ path }) {
 
 /**
  * The Media panel (#309): images, GIFs and videos from the watched media
- * folders (Settings) plus drop-imported one-offs, ahead of the overlay
- * placement model (#310) that will let them onto the timeline. Modeled on
+ * folders (Settings) plus drop-imported one-offs. Clicking one puts it on the
+ * clip at the playhead (#310 — videos are still Batch 3). Modeled on
  * AudioPanel; speaks only in categories — folder names never show here
  * (they're internal lingo; Settings is where folders live).
  */
 export default function MediaPanel() {
   const [subTab, setSubTab] = useState("image");
   const [search, setSearch] = useState("");
-  // All / Favorites / Recent — same flow as Audio. Recent stays empty until
-  // #310 wires add-to-timeline, which stamps lastUsedAt.
+  // All / Favorites / Recent — same flow as Audio. Recent fills from the
+  // lastUsedAt stamp that adding to the timeline writes (#310).
   const [view, setView] = useState("all");
   const [assets, setAssets] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -127,6 +129,43 @@ export default function MediaPanel() {
       .filter(Boolean);
     importFiles(paths);
   }, [importFiles]);
+
+  // #310: put this picture on the clip at the playhead's SOURCE moment, so it
+  // follows that footage through later trims — the same anchoring sounds use.
+  // A GIF's own length isn't in the library index (only audio and video get
+  // probed), so it's read here, once, and the block starts one loop long.
+  const handleAddToTimeline = useCallback(async (item) => {
+    if (item.missing || item.offline) return;
+    const es = useEditorStore.getState();
+    if (!es.clip) { flashStatus("Open a clip to add media", true); return; }
+    if (item.type === "video") { flashStatus("Video overlays aren't ready yet — images and GIFs work", true); return; }
+
+    const nle = es.nleSegments || [];
+    const tl = usePlaybackStore.getState().currentTime;
+    let sourceTime = tl;
+    if (nle.length > 0) {
+      const clamped = Math.max(0, Math.min(tl, getTimelineDuration(nle) - 0.05));
+      const m = timelineToSource(clamped, nle);
+      sourceTime = m.found ? m.sourceTime : nle[0].sourceStart;
+    }
+
+    let durationSec = null;
+    if (item.type === "gif") {
+      try {
+        const probe = await window.clipflow.ffmpegProbe(item.path);
+        const d = probe?.duration ?? probe?.format?.duration;
+        if (d > 0) durationSec = Number(d);
+      } catch (_) { /* falls back to the default length */ }
+    }
+
+    es.addMediaPlacement(item, sourceTime, durationSec);
+    flashStatus(`${item.name} added at ${fmtDur(Math.max(0, tl))}`);
+    // The one chokepoint for placing media, so the one place Recent is stamped.
+    // Fire-and-forget — a failed stamp must not undo a placement that happened.
+    window.clipflow.assetsMarkUsed(item.id, item.path).then((r) => {
+      if (r?.success) setAssets((prev) => prev.map((a) => (a.id === item.id ? { ...a, lastUsedAt: r.lastUsedAt } : a)));
+    }).catch(() => {});
+  }, [flashStatus]);
 
   const toggleFavorite = useCallback(async (item) => {
     const result = await window.clipflow.assetsFavorite(item.id);
@@ -256,8 +295,17 @@ export default function MediaPanel() {
                 <div
                   key={item.id}
                   onMouseLeave={() => setArmedDeleteId((cur) => (cur === item.id ? null : cur))}
-                  title={item.offline ? `${item.name} — folder offline` : item.missing ? `${item.name} — file missing` : item.name}
-                  className={`relative rounded-md overflow-hidden bg-secondary/40 border border-border/40 group ${item.offline || item.missing ? "opacity-50" : ""}`}
+                  onClick={() => handleAddToTimeline(item)}
+                  title={
+                    item.offline ? `${item.name} — folder offline`
+                      : item.missing ? `${item.name} — file missing`
+                      : `${item.name} — click to add at the playhead`
+                  }
+                  className={`relative rounded-md overflow-hidden bg-secondary/40 border border-border/40 group ${
+                    item.offline || item.missing
+                      ? "opacity-50"
+                      : "cursor-pointer hover:border-primary/50 transition-colors"
+                  }`}
                 >
                   {item.missing || item.offline ? (
                     <div className="w-full h-16 flex items-center justify-center">
@@ -270,7 +318,7 @@ export default function MediaPanel() {
                   )}
                   {/* Star — hover or already favorited */}
                   <button
-                    onClick={() => toggleFavorite(item)}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(item); }}
                     title={item.favorite ? "Unfavorite" : "Favorite"}
                     className={`absolute top-1 left-1 h-5 w-5 rounded flex items-center justify-center bg-black/60 transition-opacity ${
                       item.favorite ? "text-yellow-400" : "text-white/80 opacity-0 group-hover:opacity-100"
@@ -281,7 +329,7 @@ export default function MediaPanel() {
                   {/* Uploaded one-offs can be deleted; watched-folder files can't */}
                   {item.source !== "folder" && (
                     <button
-                      onClick={() => handleDelete(item)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
                       title={armedDeleteId === item.id ? "Click again to delete" : "Delete"}
                       className={`absolute top-1 right-1 h-5 w-5 rounded items-center justify-center bg-black/60 transition-colors hidden group-hover:flex ${
                         armedDeleteId === item.id ? "text-red-400" : "text-white/80 hover:text-foreground"

@@ -59,6 +59,9 @@ export function buildRenderPayload() {
     // ride along and are filtered in render.js, which is the one choke point
     // every render path shares.
     sfx: editorState.audioPlacements || [],
+    // #310: same rule for image/GIF overlays — current (possibly unsaved)
+    // placements, disabled ones filtered in render.js at the shared choke point.
+    media: editorState.mediaPlacements || [],
     laneEnabled: lanes,
     sourceAudioMuted: editorState.sourceAudioMuted === true,
   };

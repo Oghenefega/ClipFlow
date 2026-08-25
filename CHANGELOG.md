@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 202) — Batch 2 of media overlays: images and GIFs on the clip (#310)
+
+### Added
+- **Images and GIFs can be placed on a clip, end to end (#310).** Clicking a picture in the editor's Media panel drops it onto the clip at the playhead: it appears on a new Media lane on the timeline and on the preview canvas at the same moment. On the canvas you drag it anywhere and drag a corner to resize it (the opposite corner stays pinned and the aspect ratio is kept, so an overlay can't be squashed); on the timeline you drag its block to another moment and drag either end to change how long it's on screen — with no upper limit, since a still has no length of its own and a GIF simply loops. Every gesture is one Ctrl+Z, the overlays save with the clip and come back on reopen, and the render burns them in exactly where the preview showed them. GIFs animate from the moment their block starts, and a GIF's real length is read when you place it, so a fresh one starts exactly one loop long.
+- **Overlay lanes stack for layering.** A "+" on the Media lane's label adds a lane (up to three); a higher lane draws on top, in the preview and in the render alike. Which lane an overlay sits on is set from its right-click settings popover, which also carries the dedicated Size and Opacity sliders, a Recentre button, and Disable / Duplicate / Remove. Empty lanes can be removed again; a lane with anything on it can't, so an overlay can never vanish because a lane was closed under it.
+- **The Media panel's Recent view works now.** Placing a picture stamps it as used, which is what fills that view — the piece #309 left waiting on this batch.
+
+### Changed
+- **The editor's timeline height is computed from its lanes** instead of the hard-coded 276px, so adding an overlay lane makes room for it rather than hiding it. The editor's right-hand icon rail scrolls if a tall timeline would otherwise push its last item off a short window.
+- **The render composites overlays under the subtitles**, matching the preview's layering. Overlay inputs are appended after the sound inputs so nothing already in the filter graph shifts, and the graph is byte-identical to before on a clip with no overlays (asserted by tests). Shorts thumbnails include whichever overlays are on screen at the captured moment.
+
 ## [Unreleased] — 2026-08-25 (session 201) — Fresh-eyes review of the Media tab batch: two small fixes
 
 ### Fixed

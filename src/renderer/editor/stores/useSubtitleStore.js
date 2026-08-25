@@ -164,7 +164,16 @@ function _snapshotStyling(subState) {
     }
   } catch (_) {}
 
-  return { sub, cap, layout, nleSegments, audioPlacements };
+  // Capture media placements (#310 — image/GIF overlays on the Media lanes)
+  let mediaPlacements = null;
+  try {
+    const es = useEditorStore.getState();
+    if (es.mediaPlacements) {
+      mediaPlacements = es.mediaPlacements.map((p) => ({ ...p }));
+    }
+  } catch (_) {}
+
+  return { sub, cap, layout, nleSegments, audioPlacements, mediaPlacements };
 }
 
 function _restoreStyling(snapshot, subSet) {
@@ -195,6 +204,12 @@ function _restoreStyling(snapshot, subSet) {
   if (snapshot.audioPlacements) {
     try {
       useEditorStore.setState({ audioPlacements: snapshot.audioPlacements });
+    } catch (_) {}
+  }
+  // Restore media placements (#310)
+  if (snapshot.mediaPlacements) {
+    try {
+      useEditorStore.setState({ mediaPlacements: snapshot.mediaPlacements });
     } catch (_) {}
   }
 }

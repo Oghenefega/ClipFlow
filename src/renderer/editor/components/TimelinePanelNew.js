@@ -7,9 +7,11 @@ import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
 import { resolvePlacements, assignRows } from "../models/audioPlacements";
+import { resolveMediaPlacements, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
   PanelBottomClose, Music, Volume2, VolumeX, Eye, EyeOff, Trash2, Copy, RotateCcw, Check,
+  Image as ImageIcon, Film, Plus, Minus,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -23,6 +25,7 @@ import {
   TIMELINE_BG, RULER_BG, TRACK_SEPARATOR,
   TRACK_H, AUDIO_TRACK_H, LABEL_W, END_PADDING,
   SOUND_TRACK_H, SOUND_ROW_H, SOUND_STACK_ROW_H,
+  MEDIA_TRACK_H, MEDIA_ROW_H, MEDIA_STACK_ROW_H, MEDIA_COLORS,
   CLUSTER_GAP_PX, CLUSTER_MIN_WIDTH_PX, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
 } from "./timeline/timelineConstants";
 import { registerTimelineHandlers } from "../shortcuts/timelineHandlers";
@@ -32,6 +35,7 @@ import SpeedDropdown from "./timeline/SpeedDropdown";
 import TrackContextMenu from "./timeline/TrackContextMenu";
 import SegmentBlock from "./timeline/SegmentBlock";
 import SoundBlock from "./timeline/SoundBlock";
+import MediaBlock from "./timeline/MediaBlock";
 import WaveformTrack from "./timeline/WaveformTrack";
 import Ruler from "./timeline/Ruler";
 import { TimelinePlayhead, TimelineTimecode } from "./timeline/TimelinePlayhead";
@@ -99,6 +103,8 @@ export default function TimelinePanelNew() {
   const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
   const trimNleSegmentRight = useEditorStore((s) => s.trimNleSegmentRight);
   const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Music + SFX lanes
+  const mediaPlacements = useEditorStore((s) => s.mediaPlacements); // #310 Media lanes
+  const mediaTrackCount = useEditorStore((s) => s.mediaTrackCount);
   // #296: lane switches. `showSubs` IS the Subtitle lane — the switch the
   // render was already handed and never honoured (#295) — so there is one
   // subtitle on/off, not two competing ones.
@@ -108,6 +114,7 @@ export default function TimelinePanelNew() {
   const capLaneOn = laneEnabled?.cap !== false;
   const musicLaneOn = laneEnabled?.music !== false;
   const sfxLaneOn = laneEnabled?.sfx !== false;
+  const mediaLaneOn = laneEnabled?.media !== false;
   const disableKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.toggleDisable));
 
   // ── Local state ──
@@ -125,6 +132,9 @@ export default function TimelinePanelNew() {
   // state lives inside SoundBlock — it writes through the store, so the block
   // always renders from one source of truth.
   const [soundPopover, setSoundPopover] = useState(null); // { id, x, y, pushed }
+  // #310 media lanes: same arrangement — the block owns its drag, this owns the
+  // right-click settings popover.
+  const [mediaPopover, setMediaPopover] = useState(null); // { id, x, y, pushed }
 
   // Refs
   const scrollRef = useRef(null);
@@ -736,7 +746,7 @@ export default function TimelinePanelNew() {
     const srcTime = toSource(time);
     // A selected sound is not splittable — fall back to auto-detect rather than
     // letting S silently split whatever subtitle the playhead happens to be on.
-    let track = selectedTrack === "sound" ? null : selectedTrack;
+    let track = (selectedTrack === "sound" || selectedTrack === "media") ? null : selectedTrack;
 
     if (!track) {
       const capSegsNow = useCaptionStore.getState().captionSegments;
@@ -783,6 +793,9 @@ export default function TimelinePanelNew() {
     } else if (track === "sound") {
       // A placed sound/song — never ripples the footage, just comes off the clip.
       useEditorStore.getState().deleteAudioPlacement(segId);
+    } else if (track === "media") {
+      // #310: same for an overlay — it comes off the picture, the cut is untouched.
+      useEditorStore.getState().deleteMediaPlacement(segId);
     }
 
     if (isRipple) {
@@ -844,6 +857,7 @@ export default function TimelinePanelNew() {
     if (selectedSegIds.size === 0 || !selectedTrack) return;
     const ids = Array.from(selectedSegIds);
     if (selectedTrack === "sound") useEditorStore.getState().toggleAudioPlacementEnabled(ids);
+    else if (selectedTrack === "media") useEditorStore.getState().toggleMediaPlacementEnabled(ids);
     else if (selectedTrack === "sub") useSubtitleStore.getState().toggleSegmentsEnabled(ids);
     else if (selectedTrack === "cap") useCaptionStore.getState().toggleCaptionSegmentsEnabled(ids);
   }, [selectedTrack, selectedSegIds]);
@@ -858,6 +872,9 @@ export default function TimelinePanelNew() {
       const p = es.audioPlacements.find((x) => selectedSegIds.has(x.id));
       es.toggleLaneEnabled(p?.kind === "music" ? "music" : "sfx");
     }
+    // #310: the overlay lanes share one switch — they're one family, split only
+    // by z-order, so turning "the pictures" off shouldn't depend on which lane.
+    else if (selectedTrack === "media") es.toggleLaneEnabled("media");
   }, [selectedTrack, selectedSegIds]);
 
   useEffect(
@@ -1028,6 +1045,147 @@ export default function TimelinePanelNew() {
               onTrimLeft={handleSoundTrimLeft}
               onTrimRight={handleSoundTrimRight}
               onDuplicate={handleSoundDuplicate}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Overlays on the clip (#310): the Media lanes ──
+  // Resolved through the SAME helper the preview and the render use, and sorted
+  // so a higher lane draws on top everywhere.
+  const resolvedMedia = useMemo(
+    () => resolveMediaPlacements(mediaPlacements, nleSegments),
+    [mediaPlacements, nleSegments]
+  );
+
+  const mediaGestureStart = useCallback(() => {
+    useEditorStore.getState()._pushNleUndo();
+  }, []);
+
+  const handleMediaMove = useCallback((id, tlStart) => {
+    const m = timelineToSource(tlStart, nleSegments);
+    if (m.found) useEditorStore.getState().setMediaPlacementProps(id, { sourceTime: m.sourceTime });
+  }, [nleSegments]);
+
+  // The right edge stays where it is: the overlay comes in later and shows for
+  // correspondingly less time.
+  const handleMediaResizeLeft = useCallback((id, length, tlStart) => {
+    const m = timelineToSource(tlStart, nleSegments);
+    useEditorStore.getState().setMediaPlacementProps(id, {
+      trimEnd: length,
+      ...(m.found ? { sourceTime: m.sourceTime } : {}),
+    });
+  }, [nleSegments]);
+
+  const handleMediaResizeRight = useCallback((id, length) => {
+    useEditorStore.getState().setMediaPlacementProps(id, { trimEnd: length });
+  }, []);
+
+  const handleMediaSelect = useCallback((id) => {
+    setSelectedTrack("media");
+    setSelectedSegIds(new Set([id]));
+  }, []);
+
+  const handleMediaDuplicate = useCallback(
+    (id) => useEditorStore.getState().duplicateMediaPlacement(id),
+    []
+  );
+
+  const openMediaPopover = useCallback((id, e) => {
+    setSelectedTrack("media");
+    setSelectedSegIds(new Set([id]));
+    setMediaPopover({
+      id,
+      x: Math.min(e.clientX, window.innerWidth - 280),
+      y: Math.max(40, e.clientY - 10),
+      pushed: false,
+    });
+  }, []);
+
+  // One lane per z-order level. Higher lane = drawn on top, which is the only
+  // reason to have more than one — so the label says so rather than numbering
+  // them for their own sake.
+  const renderMediaLane = (trackIndex) => {
+    const isTop = trackIndex === mediaTrackCount - 1;
+    // The top lane also catches anything sitting ABOVE the visible range —
+    // an undo can put an overlay back on a lane that has since been removed,
+    // and an overlay that renders but has no block is unfixable by hand.
+    const { blocks, rows } = assignRows(resolvedMedia.filter((m) => {
+      const t = m.trackIndex || 0;
+      return isTop ? t >= trackIndex : t === trackIndex;
+    }));
+    const rowH = rows === 2 ? MEDIA_STACK_ROW_H : MEDIA_ROW_H;
+    const baseTop = rows === 2 ? 2 : Math.round((MEDIA_TRACK_H - MEDIA_ROW_H) / 2);
+    const canAdd = isTop && mediaTrackCount < MEDIA_TRACK_CAP;
+    const canRemove = isTop && mediaTrackCount > 1 && blocks.length === 0;
+    return (
+      <div
+        key={`media-${trackIndex}`}
+        className="flex items-stretch"
+        style={{ height: MEDIA_TRACK_H, borderBottom: `1px solid ${TRACK_SEPARATOR}` }}
+        onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
+      >
+        <div
+          className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 group/lane"
+          style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+        >
+          <span
+            className={`text-[12px] font-medium truncate cursor-pointer ${mediaLaneOn ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}
+            title={mediaLaneOn ? "Disable every overlay lane" : "Enable the overlay lanes"}
+            onClick={() => useEditorStore.getState().toggleLaneEnabled("media")}
+          >
+            {mediaTrackCount > 1 ? `Media ${trackIndex + 1}` : "Media"}
+          </span>
+          {/* Lane add/remove appears on hover only — the label gutter is 80px
+              and a permanently-visible third control truncates "Media" to "Me…". */}
+          {canAdd && (
+            <button
+              title="Add a lane above — overlays there draw on top"
+              onClick={() => useEditorStore.getState().addMediaTrack()}
+              className="shrink-0 h-4 w-4 rounded hidden group-hover/lane:flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          )}
+          {canRemove && (
+            <button
+              title="Remove this empty lane"
+              onClick={() => useEditorStore.getState().removeMediaTrack()}
+              className="shrink-0 h-4 w-4 rounded hidden group-hover/lane:flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+          )}
+          {isTop && <LaneToggle on={mediaLaneOn} family="eye" title="Overlay lanes" />}
+        </div>
+        <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
+          {blocks.length === 0 && trackIndex === 0 && (
+            <button
+              onClick={() => useLayoutStore.getState().togglePanel("media")}
+              className="absolute top-1/2 -translate-y-1/2 ml-3 text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors"
+            >
+              <ImageIcon className="h-3 w-3" /> Add an image
+            </button>
+          )}
+          {blocks.map((b) => (
+            <MediaBlock
+              key={b.id}
+              p={b}
+              pxPerSec={soundPxPerSec}
+              maxTl={nleDuration}
+              top={baseTop + b.row * (rowH + 2)}
+              height={rowH}
+              selected={selectedTrack === "media" && selectedSegIds.has(b.id)}
+              disabled={!mediaLaneOn || b.enabled === false}
+              onSelect={handleMediaSelect}
+              onContextMenu={openMediaPopover}
+              onGestureStart={mediaGestureStart}
+              onMove={handleMediaMove}
+              onResizeLeft={handleMediaResizeLeft}
+              onResizeRight={handleMediaResizeRight}
+              onDuplicate={handleMediaDuplicate}
             />
           ))}
         </div>
@@ -1337,6 +1495,11 @@ export default function TimelinePanelNew() {
             </div>
           </div>
 
+          {/* ── Media lanes (#310) ── highest index last, so it sits nearest the
+              Subtitle lane and reads as "on top" the way it renders. */}
+          {Array.from({ length: mediaTrackCount }, (_, i) => mediaTrackCount - 1 - i)
+            .map((trackIndex) => renderMediaLane(trackIndex))}
+
           {/* ── Audio track ── */}
           <div
             className="flex items-stretch"
@@ -1568,6 +1731,127 @@ export default function TimelinePanelNew() {
                 </button>
                 <button
                   onClick={() => { useEditorStore.getState().deleteAudioPlacement(p.id); setSoundPopover(null); }}
+                  className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" /> Remove
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {/* ── #310 overlay settings ── the canvas gestures are accelerators; these
+          are the dedicated controls for the same three properties. */}
+      {mediaPopover && (() => {
+        const p = resolvedMedia.find((x) => x.id === mediaPopover.id);
+        if (!p) return null;
+        const length = Math.max(0, p.tlEnd - p.tlStart);
+        const opacityPct = Math.round((p.opacity ?? 1) * 100);
+        const sizePct = Math.round(p.wPct ?? 40);
+        // One undo entry per settings session, pushed on the FIRST change only —
+        // opening and closing without touching anything must not eat a Ctrl+Z.
+        const setProps = (patch) => {
+          if (!mediaPopover.pushed) {
+            useEditorStore.getState()._pushNleUndo();
+            setMediaPopover({ ...mediaPopover, pushed: true });
+          }
+          useEditorStore.getState().setMediaPlacementProps(p.id, patch);
+        };
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onPointerDown={() => setMediaPopover(null)} onContextMenu={(e) => { e.preventDefault(); setMediaPopover(null); }} />
+            <div
+              className="fixed z-50 w-[260px] rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3 dark"
+              style={{ left: mediaPopover.x, top: mediaPopover.y, transform: "translateY(-100%)" }}
+            >
+              <div className="flex items-center gap-1.5">
+                {p.mediaType === "gif"
+                  ? <Film className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
+                  : <ImageIcon className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />}
+                <span className="text-xs font-medium text-foreground truncate flex-1">{p.name}</span>
+                <span className="text-[11px] text-muted-foreground">{p.mediaType === "gif" ? "GIF" : "Image"}</span>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">Size</span>
+                  <span className="text-[11px] text-foreground">{sizePct}% of the frame</span>
+                </div>
+                <Slider value={[sizePct]} min={5} max={100} step={1}
+                  onValueChange={([v]) => setProps({ wPct: v })} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">Opacity</span>
+                  <span className="text-[11px] text-foreground">{opacityPct}%</span>
+                </div>
+                <Slider value={[opacityPct]} min={0} max={100} step={1}
+                  onValueChange={([v]) => setProps({ opacity: v / 100 })} />
+              </div>
+              {/* Which lane it sits on IS its z-order, so this is the control
+                  for "put this in front of that" — the lanes are only ever
+                  added for stacking. Hidden while there's just the one. */}
+              {mediaTrackCount > 1 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-muted-foreground">Lane</span>
+                    <span className="text-[11px] text-muted-foreground/70">higher draws on top</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: mediaTrackCount }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setProps({ trackIndex: i })}
+                        className={`flex-1 h-6 rounded text-[11px] border transition-colors ${
+                          (p.trackIndex || 0) === i
+                            ? "text-foreground border-border bg-secondary/60"
+                            : "text-muted-foreground border-border/40 hover:border-border hover:text-foreground"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-[11px] text-muted-foreground">
+                  On screen for {length.toFixed(1)}s
+                </span>
+                <button
+                  onClick={() => setProps({ xPct: 50, yPct: 50, wPct: 40 })}
+                  title="Back to centred, 40% wide"
+                  className="shrink-0 h-6 px-1.5 rounded text-[11px] flex items-center gap-1 text-muted-foreground hover:text-foreground border border-border/40 hover:border-border transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" /> Recentre
+                </button>
+              </div>
+              <button
+                onClick={() => useEditorStore.getState().toggleMediaPlacementEnabled(p.id)}
+                className={`w-full h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 border transition-colors ${
+                  p.enabled === false
+                    ? "text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
+                    : "text-foreground/80 border-border/60 hover:bg-secondary/50"
+                }`}
+              >
+                {p.enabled === false
+                  ? <><Eye className="h-3 w-3" /> Enable</>
+                  : <><EyeOff className="h-3 w-3" /> Disable</>}
+                <span className="ml-1 text-muted-foreground text-[10px]">{disableKeyLabel}</span>
+              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    const newId = useEditorStore.getState().duplicateMediaPlacement(p.id);
+                    setMediaPopover(null);
+                    if (newId) handleMediaSelect(newId);
+                  }}
+                  className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-foreground/80 border border-border/60 hover:bg-secondary/50 transition-colors"
+                >
+                  <Copy className="h-3 w-3" /> Duplicate
+                </button>
+                <button
+                  onClick={() => { useEditorStore.getState().deleteMediaPlacement(p.id); setMediaPopover(null); }}
                   className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
                 >
                   <Trash2 className="h-3 w-3" /> Remove

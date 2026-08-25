@@ -55,6 +55,16 @@ export const SOUND_COLORS = {
   },
 };
 
+// Image/GIF overlays on the clip (#310): rose, so an overlay is never
+// confusable with a song (teal) or a one-shot (violet) at a glance.
+export const MEDIA_COLORS = {
+  bg: "rgba(244,63,94,0.26)",
+  border: "rgba(244,63,94,0.6)",
+  ring: "rgba(251,113,133,0.95)",
+  icon: "hsl(350 90% 82%)",
+  text: "hsl(350 80% 94%)",
+};
+
 // ── Playhead & guides ──
 export const PLAYHEAD_COLOR = "#9ca3af";
 export const SNAP_GUIDE_COLOR = "#22d3ee";
@@ -74,6 +84,15 @@ export const AUDIO_TRACK_H = 56;
 export const SOUND_TRACK_H = 36;
 export const SOUND_ROW_H = 28;
 export const SOUND_STACK_ROW_H = 15;
+// Media lanes (#310) — one per z-order level, same geometry as a sound lane so
+// the stack of lanes reads as one family.
+export const MEDIA_TRACK_H = 36;
+export const MEDIA_ROW_H = 28;
+export const MEDIA_STACK_ROW_H = 15;
+// Everything in the timeline that is always there: ruler + controls bar +
+// Caption + Subtitle + Audio + Music + SFX + the horizontal scrollbar. This is
+// the 276 EditorLayout used to hard-code; the Media lanes (#310) add on top.
+export const TIMELINE_FIXED_H = RULER_H + 36 + TRACK_H * 2 + AUDIO_TRACK_H + SOUND_TRACK_H * 2 + 12;
 export const LABEL_W = 80;
 export const END_PADDING = 200;
 // Subtitle clustering: subs whose visual gap (in px) is below this threshold

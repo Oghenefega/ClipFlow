@@ -10,6 +10,7 @@ import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource } from "../models/timeMapping";
 import { normalizePlacements, resolvePlacements } from "../models/audioPlacements";
+import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
 
@@ -126,12 +127,20 @@ const useEditorStore = create((set, get) => ({
   //          sourceTime, trimStart, trimEnd, volume 0-1,
   //          fadeIn?/fadeOut? (music only, seconds) }
   audioPlacements: [],
+  // #310: images/GIFs placed on the picture. Anchored to a SOURCE moment like
+  // sounds are, plus where they sit on the OUTPUT frame (percent, x/y = centre).
+  // Shape: { id, assetId, name, path, mediaType: "image"|"gif", durationSec,
+  //          sourceTime, trimStart: 0, trimEnd, trackIndex, xPct, yPct, wPct,
+  //          opacity 0-1 }. See models/mediaPlacements.js.
+  mediaPlacements: [],
+  // How many media lanes are shown. Lane index IS z-order — higher draws on top.
+  mediaTrackCount: 1,
   // #296: lane enable + source-audio mute, persisted per clip. Absent means
   // ENABLED everywhere — every read is `!== false` — so clips saved before this
   // feature open with every lane on and nothing has to migrate. The Subtitle
   // lane is NOT here: it is `showSubs` in useSubtitleStore, the switch the
   // render already had and never honoured (#295).
-  laneEnabled: { cap: true, music: true, sfx: true },
+  laneEnabled: { cap: true, music: true, sfx: true, media: true },
   sourceAudioMuted: false,
   // #210: bumped whenever something outside the Audio panel edits the asset
   // LIBRARY (not a placement) — saving a sound's default volume from the
@@ -216,7 +225,9 @@ const useEditorStore = create((set, get) => ({
         audioSegments: [],
         nleSegments: [],
         audioPlacements: [],
-        laneEnabled: { cap: true, music: true, sfx: true },
+        mediaPlacements: [],
+        mediaTrackCount: 1,
+        laneEnabled: { cap: true, music: true, sfx: true, media: true },
         sourceAudioMuted: false,
         sourceStartTime: 0,
         sourceEndTime: 0,
@@ -249,7 +260,7 @@ const useEditorStore = create((set, get) => ({
       const newClipId = editorContext?.clipId || null;
       useAIStore.getState().swapToClip(oldClipId, newClipId);
     } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], laneEnabled: { cap: true, music: true, sfx: true }, sourceAudioMuted: false });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], mediaPlacements: [], mediaTrackCount: 1, laneEnabled: { cap: true, music: true, sfx: true, media: true }, sourceAudioMuted: false });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -316,12 +327,17 @@ const useEditorStore = create((set, get) => ({
       // #202: restore SFX/music placements from the clip record (normalize fills
       // the trim window + anchor that pre-trimming clips don't carry)
       audioPlacements: normalizePlacements(clip?.sfx, nleSegs),
+      // #310: image/GIF overlays. Same deal — normalize fills the defaults a
+      // clip saved by an older build doesn't carry.
+      mediaPlacements: normalizeMediaPlacements(clip?.media),
+      mediaTrackCount: Math.max(1, Math.min(MEDIA_TRACK_CAP, clip?.mediaTrackCount || 1)),
       // #296: absent = enabled, so a clip that predates the feature opens with
       // every lane on and its source audio audible.
       laneEnabled: {
         cap: clip?.laneEnabled?.cap !== false,
         music: clip?.laneEnabled?.music !== false,
         sfx: clip?.laneEnabled?.sfx !== false,
+        media: clip?.laneEnabled?.media !== false,
       },
       sourceAudioMuted: clip?.sourceAudioMuted === true,
       sourceStartTime: sourceStart,
@@ -727,7 +743,106 @@ const useEditorStore = create((set, get) => ({
     get().markDirty();
   },
 
-  // Caption / Music / SFX lanes. The Subtitle lane lives in useSubtitleStore
+  // ── Media placements (#310) — the image/GIF overlay lanes ──
+  // Same anchoring as sounds (a SOURCE moment, so an overlay follows its
+  // footage), plus where it sits on the OUTPUT frame in percent.
+  // See models/mediaPlacements.js.
+
+  // `durationSec` is the file's own length — a GIF's loop, probed at add time;
+  // null for a still. The block starts one loop long, or DEFAULT_MEDIA_SEC.
+  addMediaPlacement: (asset, sourceTime, durationSec = null) => {
+    get()._pushNleUndo();
+    const len = durationSec > 0 ? durationSec : DEFAULT_MEDIA_SEC;
+    const placement = {
+      id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      assetId: asset.id,
+      name: asset.name,
+      path: asset.path,
+      mediaType: asset.type === "gif" ? "gif" : "image",
+      durationSec: durationSec > 0 ? durationSec : null,
+      sourceTime,
+      trimStart: 0,
+      trimEnd: len,
+      // Bottom lane by default. Nothing auto-stacks: which lane an overlay sits
+      // on IS the user's z-order decision, so we never move one for them.
+      trackIndex: 0,
+      xPct: 50,
+      yPct: 50,
+      wPct: 40,
+      opacity: 1,
+    };
+    set({ mediaPlacements: [...get().mediaPlacements, placement] });
+    get().markDirty();
+    return { id: placement.id };
+  },
+
+  // Alt+drag duplicate — the clone sits on the same moment and the drag that
+  // follows moves it (same convention as sound and subtitle blocks).
+  duplicateMediaPlacement: (id) => {
+    const src = get().mediaPlacements.find((p) => p.id === id);
+    if (!src) return null;
+    get()._pushNleUndo();
+    const clone = { ...src, id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` };
+    set({ mediaPlacements: [...get().mediaPlacements, clone] });
+    get().markDirty();
+    return clone.id;
+  },
+
+  // Live-updating props (canvas drag/resize, opacity, trim handles) — no undo
+  // entry per tick; the caller pushes one when its gesture starts.
+  setMediaPlacementProps: (id, patch) => {
+    set({
+      mediaPlacements: get().mediaPlacements.map((p) =>
+        p.id === id ? { ...p, ...patch } : p
+      ),
+    });
+    get().markDirty();
+  },
+
+  deleteMediaPlacement: (id) => {
+    get()._pushNleUndo();
+    set({ mediaPlacements: get().mediaPlacements.filter((p) => p.id !== id) });
+    get().markDirty();
+  },
+
+  // #296 convention: re-enabling REMOVES the key rather than writing
+  // `enabled: true`, so a placement switched off and back on is byte-identical.
+  toggleMediaPlacementEnabled: (ids) => {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.length === 0) return;
+    const placements = get().mediaPlacements;
+    const anyOn = placements.some((p) => list.includes(p.id) && p.enabled !== false);
+    get()._pushNleUndo();
+    set({
+      mediaPlacements: placements.map((p) => {
+        if (!list.includes(p.id)) return p;
+        if (!anyOn) { const { enabled, ...rest } = p; return rest; }
+        return { ...p, enabled: false };
+      }),
+    });
+    get().markDirty();
+  },
+
+  addMediaTrack: () => {
+    const next = Math.min(MEDIA_TRACK_CAP, (get().mediaTrackCount || 1) + 1);
+    if (next === get().mediaTrackCount) return;
+    set({ mediaTrackCount: next });
+    get().markDirty();
+  },
+
+  // Only ever removes the TOP lane, and only when it's empty — an overlay
+  // should never vanish because a lane was closed under it.
+  removeMediaTrack: () => {
+    const count = get().mediaTrackCount || 1;
+    if (count <= 1) return false;
+    const top = count - 1;
+    if (get().mediaPlacements.some((p) => (p.trackIndex || 0) >= top)) return false;
+    set({ mediaTrackCount: top });
+    get().markDirty();
+    return true;
+  },
+
+  // Caption / Music / SFX / Media lanes. The Subtitle lane lives in useSubtitleStore
   // (`showSubs`), and the Audio lane gets a MUTE rather than a disable — its
   // blocks are the video sections, so switching it off would delete the picture.
   toggleLaneEnabled: (lane) => {
@@ -1285,7 +1400,7 @@ const useEditorStore = create((set, get) => ({
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
-      const { nleSegments, audioSegments, audioPlacements, laneEnabled, sourceAudioMuted } = get();
+      const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, laneEnabled, sourceAudioMuted } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
@@ -1354,6 +1469,8 @@ const useEditorStore = create((set, get) => ({
         subtitles: { sub1: persistedSubs, sub2: [], _format: "source-absolute" },
         nleSegments: nleSegments,
         sfx: audioPlacements, // #202: SFX/music placements (Sounds lane)
+        media: mediaPlacements, // #310: image/GIF overlays (Media lanes)
+        mediaTrackCount, // how many overlay lanes this clip shows
         laneEnabled, // #296: Caption / Music / SFX lane switches
         sourceAudioMuted, // #296: Audio lane mute (the clip's own sound)
         audioSegments: audioSegments, // legacy — kept for backwards compatibility
