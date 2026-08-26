@@ -1416,3 +1416,24 @@ placement time 0/mid × length shorter/longer than clip) and probe output durati
 output (-t timelineDuration) — don't derive it from beliefs about input behaviour.
 Routed: clipflow-code-review (matrix + duration line); clipflow-ffmpeg-media already carries
 the concrete caps via 4eaa36c.
+
+## S208 — a regression test that passes both ways proves nothing (#314)
+
+**What happened:** the new `listAssets` tests went green on the first run, which is exactly what
+a test asserting the OLD behaviour also does. Stashing the fix and re-running showed 4 of 6
+failing — only then was the suite worth committing.
+**Rule:** for any bug fix, run the new tests once against the unfixed code (`git stash push --
+<file>`) and record how many fail. "Tests pass" is not evidence; "these four fail without the
+change" is.
+Routed: clipflow-code-review (verification step).
+
+## S208 — repro at the layer the bug lives, then confirm at the layer the user sees
+
+**What happened:** #314 lived in one main-process function, so the fast repro was a headless
+electron harness calling the real `listAssets` against a scratch fixture — five broken shapes
+proven in seconds, before any code changed. The UI check afterwards added something the harness
+could not: that the ghosts render as unclickable 50%-opacity tiles, and that the sounds inside
+the removed media folder stay listed.
+**Rule:** don't choose between the two. Harness for the measurement (fast, exact, repeatable
+after the fix), app for the symptom Fega actually reported. When the harness needs a module that
+requires electron, `npx electron <script>` beats stubbing.
