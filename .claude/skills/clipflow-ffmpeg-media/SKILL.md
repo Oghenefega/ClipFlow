@@ -19,13 +19,27 @@ args = ['-i', src, '-ss', start, '-to', end,
 
 **NEVER use `-c copy` for clip cutting.** Stream copy seeks to the nearest keyframe (2-10s imprecision), causing subtitle sync to be off by seconds. Always re-encode with libx264.
 
-## Subtitle Rendering (ASS Burn-in)
+## Subtitle Rendering (offscreen PNG pipe — NOT ASS)
 
-The render pipeline:
-1. Generate ASS subtitle file from `editSegments` + styling
-2. FFmpeg overlay: `ass=subtitleFile.ass` filter
-3. Output to configured output folder
-4. Progress events via IPC (`render:progress`)
+There is no ASS file and no `ass=` filter anywhere in the pipeline. Subtitles are
+painted by an **offscreen transparent BrowserWindow** running the same style engine
+the editor preview uses, and streamed into FFmpeg as PNG frames.
+
+The render pipeline (`render.js` → `subtitle-overlay-renderer.js`):
+1. `resolveTimelineSubtitles` builds the segments, clip-relative
+2. `createOverlaySession` opens the offscreen window at the output canvas size —
+   probed from the source, or the explicit override reframe passes (#164). The
+   style engine is authored for 1080px width, so everything scales by `width / 1080`
+3. Frames are captured at `OVERLAY_FPS = 30` (10fps read as stop-motion, #148) and
+   piped straight into FFmpeg's stdin — `-f image2pipe -framerate <session.fps> -i pipe:0`,
+   no PNG files on disk. Output is conformed to the source fps, not to 30
+4. A frame identical to the previous one re-sends the cached PNG instead of
+   re-capturing (the log reports `N captured, M skipped (identical)`)
+5. Composited last, on top of everything: `[v][sub]overlay=0:0:eof_action=pass[out]`
+6. Output to configured output folder; progress events via IPC (`render:progress`)
+
+`renderThumbnail` drives the same engine, so a thumbnail is pixel-identical to the
+frame the render produces at that moment.
 
 ## Audio/Waveform Extraction
 
@@ -85,7 +99,7 @@ exec(`cmd /c "set "PATH=${dllDir};%PATH%" && "${binary}" ${args}"`)
 | Extract audio | 120s |
 | Cut clip (re-encode) | 600s (10 min) |
 | Transcribe | 600s |
-| Render (ASS burn-in) | 600s |
+| Render (overlay PNG pipe) | 600s |
 | Thumbnail | 30s |
 
 ## Distilled Lessons (gaps)
