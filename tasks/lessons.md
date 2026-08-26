@@ -1373,6 +1373,21 @@ the file and splice it back verbatim (`header = old_card[hs:he]`), or build the 
 `chr(92)`. For anything longer than a few lines, write the patch script to a file with the Write
 tool and run it — large heredocs also fail outright on quote balancing.
 
+## Session 202 — a caveat in the wrap-up is user-facing copy too
+
+Reported #310 done with the honest caveat "jest is not installed in this repo, so the tests
+can't run — I ran them through a shim instead." Fega: "what is jest? and why do we need it
+installed?" Every noun in that sentence was a tool name he has no reason to know.
+
+**Why it happened:** the jargon-free rule was filed in my head under *verification steps* and
+*decision requests* — the parts addressed TO him. A caveat felt like a disclosure about my own
+work, so it got written in my own vocabulary.
+
+**Rule:** anything that reaches chat is user-facing, caveats and limitations included. Name the
+tool in plain terms on first mention ("jest is a test runner — a program that executes the
+project's automated checks and prints pass/fail"), say what it costs him (nothing: dev-only,
+never in the installer), and say what's lost without it. Don't drop a bare tool name and move on.
+
 ## Session 199 — folder names are internal lingo, not UI labels
 
 Media panel mock surfaced watched-folder names ("Cutouts", "vids to gifs") as group headers.

@@ -1,65 +1,85 @@
-# HANDOFF — Session 201 (2026-08-25)
+# HANDOFF — Session 202 (2026-08-25)
 
 ## Current State
 
-**`741d3a8` (#309 Media tab) reviewed and PASSED** — verdict + findings commented on #309.
-Two review nits fixed and shipped as `d30fd39` (safe thumbnail URLs via shared `toFileUrl`,
-"N sounds → Audio panel" import message); verified by build + dev-profile CDP drive (grid
-renders, all thumbnails load). Session then turned into a publishing-infra firefight — all
-resolved (see Key Decisions). App code is otherwise untouched; #310 is the next build.
+**#310 built, driven end to end, pushed as `ff2c020`.** Images and GIFs now go from the Media
+panel onto a clip and out through the render: click to place at the playhead, drag/corner-resize
+on the canvas, move/resize the block on the timeline, undo per gesture, up to 3 stacking lanes,
+settings popover (size / opacity / lane / recentre / disable / duplicate / remove), persists on
+reopen, burns into both the render and the Shorts thumbnail. Verification notes and the
+deviations-from-spec list are commented on #310.
+
+Awaiting Fega's in-app check. He tests on the installed daily driver, so **#310 and #309 both
+need the next installer** — neither is closeable until then.
+
+`#317` filed: the repo's two render-graph test files can't run (no jest, no `test` script).
 
 ## Key Decisions
 
-1. **#314 filed (review finding, edge case):** watched-folder lists are kind-blind on
-   shared/nested roots across audio+media lists — ghost "file missing" entries + toggle-off
-   leak. Doesn't bite disjoint setups. Fix sketch in the issue (kind-aware membership).
-2. **#315 filed and PARKED (Fega's call):** Tracker loses a partially-failed scheduled clip
-   (invisible until retry), then logs it at retry time snapped to the wrong slot. Fix
-   direction in issue: stamp from `clip.publishedAt` (Part A) + keep a "needs retry" card
-   visible (Part B).
-3. **TikTok TLS publish failures = NordVPN**, not the app (memory saved). Fega split-tunneled
-   Corva out of the VPN; TikTok confirmed working after.
-4. **YouTube weekly token death PROPERLY fixed:** the Aug 6 Production flip had hit the wrong
-   twin — two GCP projects are both named "ClipFlow"; the app's client lives in
-   `clipflow-489803` (number 808510634988). Published to Production via Claude-driven Chrome
-   (Branding filled: flowve.app URLs + authorized domain; app name stays "ClipFlow" —
-   dev-app rename is trademark-gated). Fega reconnected post-flip (token 19:29Z, no expiry).
-   Any future `invalid_grant` is genuinely new.
-5. **#316 filed (launch-ops):** flowve.app/clipflow privacy/terms links are dead — catch-all
-   serves the homepage. Google accepted the URL for now; real pages needed before any review.
+1. **`trimStart` is dead weight for media, deliberately.** A still has no inside and a GIF just
+   loops, so there is no window INTO the file — the left handle shortens the block from the left
+   (moving the anchor), the right handle lengthens it, no upper clamp. The field stays in the
+   shape only so `resolvePlacements` (borrowed whole from `audioPlacements.js`) keeps working.
+2. **`renderSoundLane` was NOT generalised** into the lane-descriptor loop the ticket sketched —
+   the lanes differ in blocks, colours, empty state and the +/− buttons, so merging them makes
+   one worse function. Sibling `renderMediaLane(trackIndex)` instead.
+3. **The timeline grows with its lanes instead of capping at ~360 and scrolling.** Its scroll
+   container is `overflow-y-hidden`, so a cap would hide a lane outright. `TIMELINE_FIXED_H`
+   (the old magic 276, now derived from the lane constants) + N × `MEDIA_TRACK_H`. The right
+   icon rail got `overflow-y-auto` so a 3-lane timeline can't push "Layout" off a 1280×860 window.
+4. **Lane changes happen in the popover, not by dragging a block vertically.** Cheaper, and it
+   puts the dedicated control where Size and Opacity already are (UI standards: gestures are
+   accelerators, never the only path).
+5. **The top media lane absorbs any placement above the visible range.** Undo can restore an
+   overlay onto a lane that has since been removed; an overlay that renders but has no block
+   would be unfixable by hand.
+6. **GIF length is probed at placement time** (`window.clipflow.ffmpegProbe`) — #309 only probes
+   audio and video, so the library carries no duration for GIFs. Falls back to 3s.
 
 ## Next Steps
 
-1. **Fega's in-app check of #309** (needs next installer, or `npm run dev`): open clip →
-   Media rail → eyeball grid + physically drag a file onto the drop strip. Then close #309.
-2. **Build #310** — image/GIF overlays end-to-end (placement model, overlay tracks,
-   on-canvas drag/resize, FFmpeg compositing). MediaPanel review notes for it: subscribe to
-   `assets:scanProgress` for live video-duration badges (preload's `removeAllListeners`
-   teardown means naive dual subscription conflicts with AudioPanel), and `lastUsedAt`
-   stamping feeds the Recent chip.
-3. Then #311, #312; #313 doc fix; #314 whenever convenient.
+1. **Fega's in-app check of #310 + #309** — needs an installer (or `npm run dev`). #309's is:
+   open a clip → Media rail → eyeball the grid + drag a file onto the drop strip. #310's is in
+   the issue comment.
+2. **Cut that installer** — #309 + #310 together is a real batch, and nothing has shipped since
+   alpha.5 on the dev side. Use the `clipflow-update-launcher` skill.
+3. **#311** (video overlays + their audio) is the next build. It appends ANOTHER FFmpeg input
+   after the media inputs — read `renderMediaOverlay.test.js`'s byte-identical test first, that
+   is exactly the trap it guards.
+4. Then #312; #313 doc fix; #314, #317 whenever convenient.
 
 ## Watch Out For
 
-- Everything in S200's handoff still applies to #310: magic `276` timeline height
-  (`EditorLayout.js:1206`), `renderThumbnail` needs overlay pre-filtering at its timeline
-  `t`, media-entry ids unstable until an installer ships (prod alpha.5 prunes dev-written
-  media entries — favorites set before then can vanish).
-- Publish-log forensics: per-platform raw API responses live in
-  `%APPDATA%\clipflow\clipflow-publish-log.json` (`apiResponse` field on failures) — that's
-  how both the TikTok TLS and YouTube invalid_grant diagnoses were made.
-- "My confidence lasted two seconds" (Mon 1:30p clip) may still be in the
-  partial-failure state (FB/IG out, TikTok failed during the VPN block) — if Fega hasn't
-  retried it, it's invisible on the Tracker (#315's exact symptom).
+- **Input-index order in `render.js` is load-bearing:** segments → subtitle PNG pipe (index `n`)
+  → audio assets → media assets. #311 must append after media, not in the middle.
+- **Test clip carries artifacts.** "Clip 4 (copy)" in *2026-08-06 RL Day14 Pt2* (dev profile) has
+  two overlays saved on it and its render output + thumbnail were overwritten with overlay
+  versions. It's the duplicate clip, nothing real was touched — delete the overlays when done.
+- **Preview-vs-output percent mismatch on un-reframed clips** (accepted v1 limit): the preview
+  canvas is always 9:16 while the output is the source's own shape. Same mismatch subtitles
+  already have; invisible on reframed clips, which is all of Fega's.
+- **GIF frames aren't scrub-synced in the preview** (accepted). The render and the thumbnail are
+  exact — the thumbnail seeks the GIF with `-ss (t - tlStart) % durationSec`.
+- Everything in S201's handoff still stands: media-entry ids are unstable until an installer
+  ships (prod alpha.5 prunes dev-written media entries).
 
 ## Logs/Debugging
 
-- GCP console URLs accept a project NUMBER in `?project=` and redirect to the id — fastest
-  way to find which of several same-named projects owns an OAuth client (client id prefix
-  = owning project number).
-- CDP driver pattern for the dev app lives in the s200 scratchpad (`cdp309.js`); editor nav
-  = click the sidebar `button > span` with exact text, rail items via leaf-text ancestor
-  walk. Dev boot "TikTok TLS" warnings were the VPN all along (memory updated), not stale
-  dev tokens.
-- curl (schannel) is a good app-independent TLS probe: reproduced TikTok's handshake reset
-  outside the app while FB/IG/YT connected fine, which is what cleared the app of blame.
+- **jest is not installed and there is no `test` script** (#317). To run the two `__tests__`
+  files, use the scratchpad shim pattern from this session: intercept `Module._load` to stub
+  `./subtitle-overlay-renderer`, then define global `jest.mock` / `describe` / `test` / `expect`.
+  24 assertions passed today.
+- `buildNleFilterComplex` is exported as a seam, and `render.js` **loads under plain node** with
+  only `subtitle-overlay-renderer` stubbed — fastest way to eyeball a filter graph without
+  launching anything.
+- **CDP driver for the dev app** lives in this session's scratchpad (`cdp.js` + `step1/step2/
+  open-clip/drag/blocks/undo/save/render/shot.js`). Node 24 has a global `WebSocket`, so no `ws`
+  dependency is needed. Real input via `Input.dispatchMouseEvent` drives the pointer-event
+  handlers correctly, including `setPointerCapture`.
+- **Don't put JS with quotes/escapes inside `node -e` inside a Bash heredoc** — several attempts
+  died on "Invalid or unexpected token". Write the driver to a `.js` file and run it.
+- Overlay geometry probe that proved the render matches the preview: read each overlay wrapper's
+  `style.left/top/width` (percent) in the app, then extract the same frame from the render with
+  `ffmpeg -ss <t> -i <out> -frames:v 1`.
+- Render output duration is the check that the looping `-loop 1` / `-ignore_loop 0` inputs aren't
+  extending the video: `ffprobe -show_entries format=duration` — 46.045s, matching the clip.
