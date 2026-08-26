@@ -1,99 +1,82 @@
-# HANDOFF — Session 204 (2026-08-26)
+# HANDOFF — Session 205 (2026-08-26)
 
 ## Current State
 
-**#317 done and closed** (`8188f9d`) — `npm test` exists and runs 145 tests across 4 files that
-were sitting in the repo unrunnable. **#311 built and pushed** (`5bd9873`), left OPEN for Fega's
-one-pass verification on the daily driver.
+**`5bd9873` (#311) reviewed at Fable@xhigh and its fixes shipped** (`4eaa36c`) — 15 findings,
+11 fixed, review summary on #311. The two big ones were measured export-overrun bugs: a video
+overlay window past the clip's end (the DEFAULT drop of a long reaction clip) exported 30s from
+an 8s timeline, and a looping GIF at tlStart>0 overran by exactly tlStart. Both re-measured at
+exactly 8.000000 after the fix; the s203 still-overlay hang case stays fixed. `npm test`: 145
+passing; renderer builds.
 
-**A render-hanging bug shipped in s203's own review fix was found and fixed here** (see Key
-Decision 1). It never reached an installer.
-
-Epic #308 status: #309, #310, #311 built; **#312 is the last build**, then #313/#314, then the
-single installer. Nothing in the media track has been verified by Fega yet — that is still one
-pass at the end, and the installer is still the gate.
+Epic #308: **#312 is the last build** (Opus@high, fresh session), then #313/#314, then the one
+big installer. Nothing in the media track has been verified by Fega yet — still one pass at the
+end, installer still the gate.
 
 ## Key Decisions
 
-1. **Every looping overlay input is capped with `-t <timelineDuration>`** (`5bd9873`). s203's
-   `eof_action=repeat` (correct, kept) also changes what happens when an overlay input NEVER
-   ends — and a still (`-loop 1`) and a forever-looping GIF (`-ignore_loop 0`) are exactly that.
-   Measured: 10s clip + one still overlay was still encoding at 60s / 3.6 MB; with the cap,
-   exit 0 at 0.29s, duration exactly 10.000000. Play-once GIFs still freeze on their last frame
-   (re-proved frame by frame). Commented on #310; rule added to the ffmpeg skill.
-2. **A video overlay's sound is composed INSIDE `buildNleFilterComplex`**, not in `renderClip`.
-   It reuses the SFX amix chain verbatim, off the media input already handed out — so a video
-   overlay adds **no new FFmpeg input** and no index shifts, and the whole thing sits inside the
-   one seam the tests can reach. Video mixins land after the SFX mixins.
-3. **A video block's edges trim the FILE, a still's don't.** `trimStart`/`trimEnd` are a real
-   window into a video (clamped to `durationSec`, left-drag starts further in — standard NLE);
-   images and GIFs keep `trimStart: 0` and stay stretchable forever. One expression covers both.
-4. **No thumbnail on a video timeline block — icon only.** A live `<video>` per block is the
-   Chromium-crash shape. The Media panel's grid thumbnails (`VideoThumb`, with teardown) stay.
-5. **Silent video files are handled at render time, not at add time** (`probeHasAudio`). The file
-   on disk is the authority and can be replaced. Load-bearing, not defensive: without it FFmpeg
-   refuses the entire render (`Stream specifier ':a' ... matches no streams`) — verified both ways.
-6. **jest's `testMatch` is narrowed to `src/**/__tests__/**/*.test.js`.** The default glob would
-   also sweep the six self-running scripts (`ai-prompt`, `game-profiles`, `gemini-watch`,
-   `signals`, `segmentWords`, `trackerCalendarModel`), which end in `process.exit()` and would
-   kill the runner. They keep their `node <file>` contract.
+1. **The export is bounded at the OUTPUT: `-t timelineDuration` on the render args** (useNle
+   only). `overlay` (shortest=0) does NOT stop at the main input's end — it repeats the main's
+   last frame while any secondary stream runs — so export length is enforced, not inferred from
+   input behaviour. Per-input caps kept as belt: still = timeline length, GIF =
+   `timelineDuration - tlStart` (its setpts shift), video = `-ss trimStart -t window` with the
+   graph handed a 0-rebased window (also kills the decode-the-lead-in cost; content parity
+   proven pixel-per-second).
+2. **probeHasAudio is a wrapper over ffmpeg.js `probeAudioTracks`** — inherits its 30s timeout
+   (a stuck probe can't hang the render), returns true/false/null so a failed probe logs as a
+   failure instead of "has no audio track". Both non-true states still drop the file from the mix.
+3. **Review deferrals are tracked, not patched**: #318 (unprobed `durationSec` escapes every
+   trim clamp), #319 (preview blind spots: mount-at-start latency, no onError), and the
+   sync-loop dedupe is noted ON #312 because that batch rebuilds the same code.
 
 ## Next Steps
 
-**Fega's standing call: NO installer until the whole media track is done — then one big one.**
+**Fega's standing call: NO installer until the media track is done — then one big one.**
 
-1. **#312 (dynamic extra SFX/Music tracks)** — batch 4, closes out epic #308's build work.
-   Input-index order in `render.js` is still load-bearing: segments → subtitle PNG pipe → audio
-   assets → media assets. #311 kept it intact by adding no input at all; #312 WILL add inputs —
-   append them with the audio assets and re-run `npm test` (the byte-identical guards now run).
-2. **#314** (kind-blind watched-folder lists) and **#313** (stale ffmpeg-skill doc: ASS burn-in
-   description — note the skill gained two new lines this session and last, don't clobber them).
-3. **THEN cut the one big installer** (`clipflow-update-launcher`): #309/#310/#311/#312 + the
-   review commits (d30fd39, 62ee3ee) + #313/#314/#317. Fega verifies in one pass on the daily
-   driver; issues stay open (`status: untested` on anything closed early) until then.
+1. **#312 (dynamic extra SFX/Music tracks)** — Opus@high, its own session. It WILL add FFmpeg
+   inputs: append them with the audio assets (order: segments → subtitle PNG pipe → audio
+   assets → media assets), re-run `npm test`, and read the s205 comment on #312 first (sync-loop
+   merge belongs there; input-cap rules its new inputs must not disturb).
+2. **#314** (kind-blind watched-folder lists) and **#313** (stale ffmpeg-skill ASS burn-in doc —
+   the skill gained lines in s203/s204/s205, don't clobber them).
+3. **THEN the one big installer** (`clipflow-update-launcher`): #309/#310/#311/#312 + review
+   commits (d30fd39, 62ee3ee, 4eaa36c) + #313/#314/#317. Issues stay open (`status: untested`
+   on anything closed early) until Fega's one pass.
 
-Build/review rhythm stays: Opus@high builds each batch in its own session, Fable@xhigh reviews
-it commit-by-hash right after it lands. **`5bd9873` has not been reviewed yet.**
+Rhythm stands: Opus@high builds, Fable@xhigh reviews commit-by-hash right after it lands.
+`4eaa36c` is itself unreviewed — it's a review-fix commit; the next Fable session can fold a
+quick pass over it into the #312 review rather than a dedicated session.
 
 ## Watch Out For
 
-- **First thing in Fega's verification pass: open a clip with a still or a normal looping GIF
-  and hit Render — it must finish.** That is the s203 hang; it is fixed, but it is the one
-  regression that would waste his whole session if it came back.
-- The **"Clip 4 (copy)"** test clip in *2026-08-06 RL Day14 Pt2* (dev profile) is the sacrificial
-  clip — it carries 2 test overlays and was restored to exactly that state at the end of this
-  session (verified against the on-disk JSON). The first clip in that project
-  ("He DOMINATED me after my trashtalk") is **approved AND published** — a card-matching heuristic
-  opened it by mistake this session; back out without touching it.
-- `-t` on the overlay inputs is invisible in the filter graph, so **no test covers it** — the
-  seam is `buildNleFilterComplex` and the cap lives in `renderClip`'s args. It is protected only
-  by the comment there and the two skill lines. Don't "tidy" it away.
+- **Fega's verification pass gains one check**: besides "still/looping GIF render must finish"
+  (s203 hang), drop a video LONGER than the clip, leave it untrimmed, render — **the export
+  must be exactly the clip's length** (s205 overrun).
+- **The output `-t` cap and the per-input caps live in `renderClip`'s args, not the filter
+  graph — no test covers them.** Protection is the comments there, the ffmpeg skill lines, and
+  the s205 comment on #312. Don't "tidy" either layer away; each covers shapes the other doesn't.
+- The graph's video trim window is now ALWAYS 0-rebased by renderClip (`-ss`/`-t` on the
+  input). `buildNleFilterComplex` still accepts arbitrary windows (tests feed `trim=1:5`
+  directly) — that asymmetry is intentional; don't "fix" one to match the other.
+- **jest passing proves render.js's whole require chain loads** (the test file requires it), so
+  a broken cross-tree require would fail the suite, not just boot.
+- The sacrificial test clip remains **"Clip 4 (copy)"** in *2026-08-06 RL Day14 Pt2* (dev
+  profile); the first clip there ("He DOMINATED me…") is approved AND published — don't touch.
 - Preview-vs-output percent mismatch on un-reframed clips is still an accepted v1 limit; GIF
-  frames still aren't scrub-synced in the preview (video overlays ARE — they seek while paused).
-- `npm i -D jest` reserialized `package-lock.json` wholesale (+11k lines). Diffed package by
-  package: the only pre-existing version change is `@babel/helper-plugin-utils 7.28.6 → 7.29.7`
-  plus two dedupes. No runtime dependency moved.
+  frames still aren't scrub-synced in the preview (video overlays ARE).
 
 ## Logs/Debugging
 
-- **`npm test` now works** — the throwaway jest shim from s202/s203 is dead, delete any copy.
-- **Real-FFmpeg overlay harness** (scratchpad `311/`): a source clip plus an overlay built as one
-  solid colour per second (red/green/blue/yellow/magenta) with a 1 kHz tone over a SILENT source.
-  Reading a pixel back tells you exactly which second of the FILE is on screen, and any sound at
-  all can only have come from the overlay. This is what proved the trim window, the timeline
-  placement and the mix in one run. `run.js` / `run2.js` (multi-input + silent-file guard).
-- Sample a pixel: `-ss <t> -vf "crop=4:4:<x>:<y>,scale=1:1,format=rgb24" -frames:v 1 -f rawvideo -`.
-  Measure a window's level: `-ss <t> -t <d> -af volumedetect -f null -` → `mean_volume`.
-- **Audio level maths:** `volume=0.6` is −4.4 dB and that is exactly what lands. A further −3 dB
-  appears on MONO sources — that is the pre-existing `aformat=channel_layouts=stereo` upmix every
-  SFX already goes through, not an overlay bug. Check a stereo file before chasing it.
-- **A render harness that times out is a result, not a flake** — that timeout is what exposed the
-  s203 hang. Kill stray `ffmpeg.exe` after one (`taskkill //F //IM ffmpeg.exe`).
-- **CDP driving** (scratchpad `311/`): `cdp.js` (Runtime.evaluate), `shot.js` (screenshot),
-  `click.js` / `rclick.js` (real Input mouse events — needed for the bottom nav, which ignores
-  synthetic `.click()`). `ws` resolves from `C:/Users/IAmAbsolute/node_modules/ws`, not the repo.
-  Launch: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-features=CalculateNativeWinOcclusion`.
-- **Card-matching gotcha:** walking up from a button until an ancestor's text contains a title
-  matches a container holding EVERY card. Walk up until the ancestor contains the button's own
-  label exactly once, then read its first line — and re-check that line before clicking.
+- **FFmpeg overrun/parity harness** (scratchpad `drain/`, this session): `main8.mp4` (8s),
+  `overlay120.mp4` (120s), `anim.gif` (2s loop), `colors5.mp4` (colour-per-second + tone).
+  Technique: run the exact renderClip arg shape, then `ffprobe -show_entries format=duration`
+  — **duration is the assertion; "exit 0" passed both bugs.** Pixel read-back:
+  `-ss <t> -vf "crop=4:4:<x>:<y>,scale=1:1,format=rgb24" -frames:v 1 -f rawvideo - | xxd -p`.
+- Overlay-mix presence via volumedetect delta: in-window vs out-of-window mean_volume differed
+  ~1.4 dB with a 0.6-gain tone over an existing tone — small but reliable.
+- Left-resize verified through the REAL model in node (resolveMediaPlacements + the handler
+  maths inline) — no app boot needed for placement-model regressions; pattern in the s205
+  transcript, cheap to rebuild.
+- The StrictMode dev-only blank-overlay class: any "works installed, broken under npm run dev"
+  report on media elements → check effect cleanups that strip attributes React set (React
+  won't re-apply an unchanged prop).
