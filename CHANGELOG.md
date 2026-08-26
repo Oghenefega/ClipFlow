@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-26 (session 205) — Fresh-eyes review of the video-overlay batch: two export-length bugs and a resize regression
+
+### Fixed
+- **An overlay could make the export longer than the clip (#311 review).** Dropping a video longer than the clip — the normal reaction-clip case — kept the render going after the picture finished: an 8-second clip exported as a 30-second file, frozen on its last frame with dead air. A looping GIF placed anywhere but the very start overran the export by its start time the same way. Both were measured against real FFmpeg, and the render now carries a hard stop at the timeline's own length (plus corrected per-input caps), re-measured at exactly the clip's duration in every shape — including the still-image case from the previous session's hang fix, which stays fixed.
+- **Dragging the left edge of an image or GIF block moved it instead of trimming it (#311 review).** The video-trim change to the resize handler regressed the #310 behaviour: the right edge slid along with the drag. Verified through the placement model and restored — the right edge stays pinned again, and a video's trim window still behaves exactly as built.
+- **Editing segments while paused now updates video overlays.** Splitting or deleting a segment re-times every overlay, but the preview's videos weren't told — they kept showing the old frame until the next scrub (a missing dependency). They now follow segment edits immediately, and the same change stopped the preview from recomputing every placement sixty times a second during playback.
+- **Video overlays were permanently blank under the dev server.** React's StrictMode (development only) runs each element's cleanup once at mount, which stripped the video's source and never restored it — every overlay was a dead black box under `npm run dev` while the installed app worked fine. The source is now restored after that cycle. Installed builds were never affected.
+- **A stuck audio probe can no longer hang a render.** The "does this file have sound" check had no time limit and reported every failure as "no audio track". It now rides the existing 30-second-limited probe, and a failed probe is logged as a failure ("the file may still have sound") instead of a false claim about the file.
+- **Rendering a trimmed window deep inside a long file no longer decodes everything before it.** The overlay's input is now seeked to the window (like clip segments already were), proven frame-exact with a colour-per-second test file — a window minutes into a long reaction recording no longer adds that lead-in's decode time to every export.
+
+### Changed
+- The review's two remaining findings were parked as issues rather than patched: #318 (a video whose duration probe failed escapes the trim clamps) and #319 (preview blind spots: late element mount, and undecodable files failing silently). Merging the preview's two clock-sync loops was deliberately left for #312, which rebuilds that area next.
+
 ## [Unreleased] — 2026-08-26 (session 204) — Video overlays with their sound mixed in (#311), and the tests can finally be run (#317)
 
 ### Added

@@ -720,6 +720,11 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
     const el = mediaRef.current;
     if (!el) return undefined;
     videoRegistry.set(p.id, el);
+    // StrictMode (dev) runs mount → cleanup → mount on this effect; the cleanup
+    // below strips src off the live element and React never re-applies an
+    // unchanged src prop, so restore it here or every video overlay is a dead
+    // blank box under the dev server. No-op outside that cycle.
+    if (!el.src) el.src = toFileUrl(p.path);
     return () => {
       videoRegistry.delete(p.id);
       el.pause();
@@ -1492,15 +1497,15 @@ export default function PreviewPanelNew() {
   // an overlay shows a frame at every scrub position, not just during playback
   // — so the tolerance tightens when the clock isn't running.
   const mediaVideoRef = useRef(new Map()); // placementId → HTMLVideoElement
-  const syncMediaVideos = useCallback((timelineTime, isPlaying) => {
+  const syncMediaVideos = useCallback((placements, timelineTime, isPlaying) => {
     const map = mediaVideoRef.current;
     if (map.size === 0) return;
-    const es = useEditorStore.getState();
-    const laneOn = (es.laneEnabled || {}).media !== false;
+    const laneOn = (useEditorStore.getState().laneEnabled || {}).media !== false;
     const rate = videoRef.current?.playbackRate || 1;
-    // Same resolver the timeline and the render use, so all three agree on
-    // where an overlay is and which part of its file is playing.
-    for (const p of resolveMediaPlacements(es.mediaPlacements, es.nleSegments || [])) {
+    // `placements` is the resolvedMedia memo — already through the same
+    // resolver the timeline and the render use, and recomputed only when
+    // placements or segments change, never per clock tick.
+    for (const p of placements) {
       const el = map.get(p.id);
       if (!el || p.mediaType !== "video") continue;
       const within = laneOn && p.enabled !== false
@@ -1523,11 +1528,13 @@ export default function PreviewPanelNew() {
   }, []);
 
   // Runs on every clock update (playback ticks setCurrentTime ~60x/s) and on
-  // every scrub, pause and placement edit — the one place video overlays are
-  // told what to do.
+  // every scrub, pause, placement edit and SEGMENT edit — resolvedMedia
+  // re-memoizes on both placements and nleSegments, so an NLE edit that
+  // re-times an overlay re-drives its element too (a plain mediaPlacements
+  // dep missed that).
   useEffect(() => {
-    syncMediaVideos(currentTime, playing);
-  }, [currentTime, playing, mediaPlacements, laneEnabled, syncMediaVideos]);
+    syncMediaVideos(resolvedMedia, currentTime, playing);
+  }, [resolvedMedia, currentTime, playing, laneEnabled, syncMediaVideos]);
 
   // Full teardown on unmount (standing <media> cleanup rule). MediaOverlay
   // already tears down its own element as it unmounts; this catches anything

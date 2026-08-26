@@ -6,7 +6,7 @@ const { FFMPEG_BIN, FFPROBE_BIN } = require("./app-paths");
 const { createOverlaySession } = require("./subtitle-overlay-renderer");
 const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
 const { resolvePlacements } = require("../renderer/editor/models/audioPlacements");
-const { resolveMediaPlacements } = require("../renderer/editor/models/mediaPlacements");
+const { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } = require("../renderer/editor/models/mediaPlacements");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../renderer/editor/utils/reframeStyle");
@@ -72,23 +72,18 @@ function probeWidth(filePath) {
  * doesn't exist — so a silent reaction clip has to be spotted BEFORE the graph
  * is built rather than blowing up the export. Probed at render time, not stored
  * on the placement: the file on disk is the authority, and it can be replaced.
+ * Rides on ffmpeg.js's probeAudioTracks (which carries a 30s timeout, so a
+ * stuck probe can't hang the render) instead of a second hand-rolled ffprobe.
  * @param {string} filePath
- * @returns {Promise<boolean>} false when there's no audio stream, or on any probe failure
+ * @returns {Promise<boolean|null>} true/false when the probe answered; null when
+ *   the probe itself failed — the caller logs those differently, but both keep
+ *   the file out of the mix (referencing a stream that may not exist fails the
+ *   whole render).
  */
 function probeHasAudio(filePath) {
-  return new Promise((resolve) => {
-    const proc = spawn(FFPROBE_BIN, [
-      "-v", "error",
-      "-select_streams", "a:0",
-      "-show_entries", "stream=codec_type",
-      "-of", "csv=p=0",
-      filePath,
-    ]);
-    let stdout = "";
-    proc.stdout.on("data", (d) => (stdout += d.toString()));
-    proc.on("close", (code) => resolve(code === 0 && stdout.trim() === "audio"));
-    proc.on("error", () => resolve(false));
-  });
+  return require("./ffmpeg").probeAudioTracks(filePath)
+    .then((info) => info.trackCount > 0)
+    .catch(() => null);
 }
 
 /**
@@ -310,8 +305,11 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   //
   // A still loops forever (-loop 1) and a GIF loops per its own loop count
   // (-ignore_loop 0 — most loop forever); `enable` is what decides when either
-  // is actually on screen, and overlay ends with the main input, so an endless
-  // overlay input can't extend the output. eof_action=repeat: a GIF whose file
+  // is actually on screen. NOTE: overlay (shortest=0) does NOT end with the
+  // main input — a secondary stream that still runs extends the output with
+  // the main's last frame repeated, so the export's length is bounded in
+  // renderClip instead: per-input -t caps plus an output -t at the timeline's
+  // length. eof_action=repeat: a GIF whose file
   // says "don't loop" freezes on its last frame when its stream ends — exactly
   // what the preview's <img> does — instead of vanishing mid-block. With no
   // mediaAssets this whole block is skipped and the video graph text is
@@ -383,7 +381,7 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
           inputIndex: m.inputIndex,
           trimStart: m.trimStart,
           trimEnd: m.trimEnd,
-          volume: m.volume == null ? 0.6 : m.volume,
+          volume: m.volume == null ? DEFAULT_VIDEO_VOLUME : m.volume,
           delaySec: m.tlStart,
         }))
     : [];
@@ -670,8 +668,9 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           const m = activeMediaAssets[i];
           if (m.mediaType !== "video" || m.muted === true) continue;
           const hasAudio = await probeHasAudio(m.path);
-          activeMediaAssets[i] = { ...m, hasAudio };
-          if (!hasAudio) console.log(`[Render] Overlay "${m.name || m.assetId}" has no audio track — mixing skipped`);
+          activeMediaAssets[i] = { ...m, hasAudio: hasAudio === true };
+          if (hasAudio === false) console.log(`[Render] Overlay "${m.name || m.assetId}" has no audio track — mixing skipped`);
+          else if (hasAudio === null) console.warn(`[Render] Overlay "${m.name || m.assetId}" audio probe FAILED — mixing skipped (the file may still have sound)`);
         }
         console.log(`[Render] Overlays: ${activeMediaAssets.length} of ${mediaPlacements.length} placements active`);
       } else if (mediaPlacements.length > 0) {
@@ -787,18 +786,39 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // so it never adds an input of its own.
       if (activeMediaAssets.length > 0) {
         const baseIdx = nleSegments.length + (hasFrames ? 1 : 0) + activeAudioAssets.length;
-        // The -t cap is LOAD-BEARING, not a nicety: `-loop 1` (a still) and
+        // The -t caps are LOAD-BEARING, not a nicety: `-loop 1` (a still) and
         // `-ignore_loop 0` (a GIF that loops forever) both make an input that
         // never ends, and overlay's eof_action=repeat (62ee3ee) then keeps the
         // render going forever once the picture has finished — a hang, not a
-        // slow export. Capping each looping input at the timeline's own length
-        // makes it end with the picture. A GIF that plays ONCE still ends early
-        // and still freezes on its last frame, which is what repeat is for.
-        const loopCap = String(Math.max(0.04, timelineDuration));
+        // slow export. A still's cap is the timeline's own length; a GIF's
+        // stream is then setpts-shifted to its block, so its cap must be
+        // shortened by tlStart or the shifted tail outlives the picture
+        // (measured: a GIF at 4s on an 8s clip exported 11.9s). A GIF that
+        // plays ONCE still ends early and still freezes on its last frame,
+        // which is what repeat is for. The output-level -t below is the
+        // backstop for every shape.
         activeMediaAssets = activeMediaAssets.map((m, i) => {
-          if (m.mediaType === "video") args.push("-i", m.path);
-          else if (m.mediaType === "gif") args.push("-ignore_loop", "0", "-t", loopCap, "-i", m.path);
-          else args.push("-loop", "1", "-t", loopCap, "-i", m.path);
+          if (m.mediaType === "video") {
+            // #311: a real clip that plays once. Seek the INPUT to the trim
+            // window (frame-accurate when re-encoding, like the segment inputs
+            // above) so a window deep into a long reaction file doesn't decode
+            // everything before it — picture AND sound. The graph then sees a
+            // pre-cut file, so the window it's handed is rebased to 0:length.
+            const vs = Math.max(0, m.trimStart || 0);
+            const ve = Math.max(vs, m.trimEnd != null ? m.trimEnd : vs);
+            const win = +(ve - vs).toFixed(3);
+            if (win > 0) {
+              if (vs > 0) args.push("-ss", String(+vs.toFixed(3)));
+              args.push("-t", String(win), "-i", m.path);
+              return { ...m, inputIndex: baseIdx + i, trimStart: 0, trimEnd: win };
+            }
+            args.push("-i", m.path);
+          } else if (m.mediaType === "gif") {
+            args.push("-ignore_loop", "0", "-t",
+              String(Math.max(0.04, timelineDuration - Math.max(0, m.tlStart || 0))), "-i", m.path);
+          } else {
+            args.push("-loop", "1", "-t", String(Math.max(0.04, timelineDuration)), "-i", m.path);
+          }
           return { ...m, inputIndex: baseIdx + i };
         });
       }
@@ -846,6 +866,13 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         // other target (YouTube, TikTok) re-encodes audio well below this anyway.
         "-b:a", "128k",
         "-movflags", "+faststart",
+        // #311 review: the export is exactly the timeline, whatever the inputs
+        // do. overlay (shortest=0) does NOT stop at the main input's end — it
+        // repeats the main's last frame while any secondary stream still runs
+        // (measured: a video overlay window past the clip's end exported a 30s
+        // file from an 8s timeline). The input caps above bound each input;
+        // this bounds the OUTPUT, so no overlay shape can overrun the clip.
+        ...(useNle ? ["-t", String(timelineDuration)] : []),
         outputPath
       );
       console.log(`[Render] Encoder: ${renderEncoder === "nvenc" ? "NVENC" : "x264"}`);

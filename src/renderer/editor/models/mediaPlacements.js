@@ -92,7 +92,6 @@ function resolveMediaPlacements(placements, nleSegments) {
 module.exports = {
   DEFAULT_MEDIA_SEC,
   DEFAULT_VIDEO_VOLUME,
-  MIN_VIDEO_WINDOW,
   MEDIA_TRACK_CAP,
   normalizeMediaPlacements,
   resolveMediaPlacements,

@@ -100,9 +100,12 @@ function MediaBlock({
           // The right edge stays put: the overlay starts later and shows for
           // correspondingly less time. On a video that also means starting
           // FURTHER INTO the file, so dragging left can't go past its head.
+          // Stills/GIFs keep trimStart 0 — their trimEnd IS the on-screen
+          // length, so the handler must receive 0 here or the new length is
+          // cancelled out and the drag turns into a move.
           const back = isVideo ? Math.min(origTl, trimStart) : origTl;
           const delta = Math.max(-back, Math.min(dt, length - 0.1));
-          onResizeLeft(p.id, length - delta, origTl + delta, trimStart + delta);
+          onResizeLeft(p.id, length - delta, origTl + delta, isVideo ? trimStart + delta : 0);
         } else {
           // A video can't play past its own end.
           const maxLen = fileLen ? Math.max(0.1, fileLen - trimStart) : Infinity;
