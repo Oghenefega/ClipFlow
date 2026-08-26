@@ -279,11 +279,14 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   // overlay's own pixel height never has to be probed: xPct/yPct address its
   // CENTRE at any aspect ratio.
   //
-  // A still loops forever (-loop 1) and a GIF loops forever (-ignore_loop 0);
-  // `enable` is what decides when either is actually on screen, and overlay
-  // ends with the main input, so an endless overlay input can't extend the
-  // output. With no mediaAssets this whole block is skipped and the video graph
-  // text is unchanged.
+  // A still loops forever (-loop 1) and a GIF loops per its own loop count
+  // (-ignore_loop 0 — most loop forever); `enable` is what decides when either
+  // is actually on screen, and overlay ends with the main input, so an endless
+  // overlay input can't extend the output. eof_action=repeat: a GIF whose file
+  // says "don't loop" freezes on its last frame when its stream ends — exactly
+  // what the preview's <img> does — instead of vanishing mid-block. With no
+  // mediaAssets this whole block is skipped and the video graph text is
+  // unchanged.
   const mediaAssets = opts.mediaAssets || [];
   if (mediaAssets.length > 0) {
     // Reframe always bakes 1080x1920; otherwise the output IS the source frame.
@@ -305,7 +308,7 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
       const y = `(main_h*${+(m.yPct == null ? 50 : m.yPct).toFixed(3)}/100)-(overlay_h/2)`;
       filters.push(
         `[${videoLabel}][movl${i}]overlay=x='${x}':y='${y}':` +
-        `enable='between(t,${+tlStart.toFixed(3)},${+tlEnd.toFixed(3)})':eof_action=pass[movid${i}]`
+        `enable='between(t,${+tlStart.toFixed(3)},${+tlEnd.toFixed(3)})':eof_action=repeat[movid${i}]`
       );
       videoLabel = `movid${i}`;
     });

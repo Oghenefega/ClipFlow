@@ -30,11 +30,12 @@ describe("buildNleFilterComplex — #310 media overlays", () => {
       mediaAssets: [IMG], outputWidth: 1920,
     });
     // 40% of 1920 = 768. x/y stay expressions so the overlay's own height
-    // never has to be probed.
+    // never has to be probed. eof_action=repeat so a non-looping GIF freezes
+    // on its last frame (like the preview's <img>) instead of vanishing.
     expect(filterComplex).toContain("[3:v]format=rgba,scale=768:-1[movl0]");
     expect(filterComplex).toContain(
       "[base_v][movl0]overlay=x='(main_w*25/100)-(overlay_w/2)':" +
-      "y='(main_h*80/100)-(overlay_h/2)':enable='between(t,1.5,4.5)':eof_action=pass[movid0]"
+      "y='(main_h*80/100)-(overlay_h/2)':enable='between(t,1.5,4.5)':eof_action=repeat[movid0]"
     );
   });
 

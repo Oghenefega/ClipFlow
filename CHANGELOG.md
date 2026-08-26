@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 203) — Fresh-eyes review of the overlay batch: one parity fix
+
+### Fixed
+- **A GIF that doesn't loop no longer vanishes mid-block in the render (#310 review).** Most GIFs loop forever, but one whose file says "play once" ends before its block does. The preview freezes it on its last frame (that's what browsers do); the render was dropping the overlay entirely from that moment. The render's overlay stage now freezes the last frame too (`eof_action=repeat`), so the export matches the preview for every GIF. Stills and normal looping GIFs are unaffected — their streams never end. Proven against real FFmpeg with a play-once GIF: last frame held on screen after its stream ends, still gone after its block ends, output duration unchanged. The rest of the review (every file of ff2c020, plus a re-run of all 10 render-graph tests) found nothing else to change.
+
 ## [Unreleased] — 2026-08-25 (session 202) — Batch 2 of media overlays: images and GIFs on the clip (#310)
 
 ### Added
