@@ -1,85 +1,59 @@
-# HANDOFF — Session 202 (2026-08-25)
+# HANDOFF — Session 203 (2026-08-25)
 
 ## Current State
 
-**#310 built, driven end to end, pushed as `ff2c020`.** Images and GIFs now go from the Media
-panel onto a clip and out through the render: click to place at the playhead, drag/corner-resize
-on the canvas, move/resize the block on the timeline, undo per gesture, up to 3 stacking lanes,
-settings popover (size / opacity / lane / recentre / disable / duplicate / remove), persists on
-reopen, burns into both the render and the Shorts thumbnail. Verification notes and the
-deviations-from-spec list are commented on #310.
+**Fresh-eyes review of `ff2c020` (#310, image/GIF overlays) PASSED** — all 14 files checked
+against the running code, plus a re-run of all 10 render-graph tests and a clean renderer build.
+One finding, fixed and pushed as `62ee3ee`: the render made a "play once" GIF vanish mid-block
+(`eof_action=pass`) while the preview freezes it on its last frame — now `eof_action=repeat`
+on the media overlay stage, proven against real FFmpeg with a play-once GIF (last frame held
+after its stream ends, still gone after its block ends, duration unchanged). Stills and normal
+looping GIFs never hit end-of-stream, so nothing Opus verified in s202 changes.
 
-Awaiting Fega's in-app check. He tests on the installed daily driver, so **#310 and #309 both
-need the next installer** — neither is closeable until then.
-
-`#317` filed: the repo's two render-graph test files can't run (no jest, no `test` script).
+**Both #309 and #310 remain unverified by Fega** — he tests on the installed daily driver, so
+the installer is still the gate. That was already Next Step 1 last session and still is.
 
 ## Key Decisions
 
-1. **`trimStart` is dead weight for media, deliberately.** A still has no inside and a GIF just
-   loops, so there is no window INTO the file — the left handle shortens the block from the left
-   (moving the anchor), the right handle lengthens it, no upper clamp. The field stays in the
-   shape only so `resolvePlacements` (borrowed whole from `audioPlacements.js`) keeps working.
-2. **`renderSoundLane` was NOT generalised** into the lane-descriptor loop the ticket sketched —
-   the lanes differ in blocks, colours, empty state and the +/− buttons, so merging them makes
-   one worse function. Sibling `renderMediaLane(trackIndex)` instead.
-3. **The timeline grows with its lanes instead of capping at ~360 and scrolling.** Its scroll
-   container is `overflow-y-hidden`, so a cap would hide a lane outright. `TIMELINE_FIXED_H`
-   (the old magic 276, now derived from the lane constants) + N × `MEDIA_TRACK_H`. The right
-   icon rail got `overflow-y-auto` so a 3-lane timeline can't push "Layout" off a 1280×860 window.
-4. **Lane changes happen in the popover, not by dragging a block vertically.** Cheaper, and it
-   puts the dedicated control where Size and Opacity already are (UI standards: gestures are
-   accelerators, never the only path).
-5. **The top media lane absorbs any placement above the visible range.** Undo can restore an
-   overlay onto a lane that has since been removed; an overlay that renders but has no block
-   would be unfixable by hand.
-6. **GIF length is probed at placement time** (`window.clipflow.ffmpegProbe`) — #309 only probes
-   audio and video, so the library carries no duration for GIFs. Falls back to 3s.
+1. **`eof_action` differs on purpose between the two overlay stages** (62ee3ee): media overlays
+   use `repeat` (freeze = what Chromium's `<img>` does in the preview); the subtitle PNG-pipe
+   composite keeps `pass` (a pipe ending early must drop the overlay, never hold a stale frame).
+   Don't "unify" them — now also a line in the clipflow-ffmpeg-media skill.
+2. **Two odd-looking behaviors were checked and deliberately left alone** because they match the
+   audio lanes byte-for-byte: placing media before the timeline finishes loading falls back the
+   same way the Sounds panel does, and grabbing a resize handle without moving costs an undo
+   entry exactly like SoundBlock's handles.
 
 ## Next Steps
 
-1. **Fega's in-app check of #310 + #309** — needs an installer (or `npm run dev`). #309's is:
-   open a clip → Media rail → eyeball the grid + drag a file onto the drop strip. #310's is in
-   the issue comment.
-2. **Cut that installer** — #309 + #310 together is a real batch, and nothing has shipped since
-   alpha.5 on the dev side. Use the `clipflow-update-launcher` skill.
-3. **#311** (video overlays + their audio) is the next build. It appends ANOTHER FFmpeg input
-   after the media inputs — read `renderMediaOverlay.test.js`'s byte-identical test first, that
-   is exactly the trap it guards.
+1. **Cut the installer** (`clipflow-update-launcher` skill) — #309 + #310 + the two review-fix
+   commits (d30fd39, 62ee3ee) are the batch. Nothing reaches Fega's daily driver until this.
+2. **Fega's in-app check of #310 + #309**, then close both (`status: untested` until confirmed).
+3. **#311 (video overlays)** is the next build — it appends ANOTHER FFmpeg input after the media
+   inputs. Input-index order in `render.js` is load-bearing: segments → subtitle PNG pipe →
+   audio assets → media assets. The byte-identical test in `renderMediaOverlay.test.js` is
+   exactly the trap guard; #317 (install jest) would let it actually run.
 4. Then #312; #313 doc fix; #314, #317 whenever convenient.
 
 ## Watch Out For
 
-- **Input-index order in `render.js` is load-bearing:** segments → subtitle PNG pipe (index `n`)
-  → audio assets → media assets. #311 must append after media, not in the middle.
-- **Test clip carries artifacts.** "Clip 4 (copy)" in *2026-08-06 RL Day14 Pt2* (dev profile) has
-  two overlays saved on it and its render output + thumbnail were overwritten with overlay
-  versions. It's the duplicate clip, nothing real was touched — delete the overlays when done.
-- **Preview-vs-output percent mismatch on un-reframed clips** (accepted v1 limit): the preview
-  canvas is always 9:16 while the output is the source's own shape. Same mismatch subtitles
-  already have; invisible on reframed clips, which is all of Fega's.
-- **GIF frames aren't scrub-synced in the preview** (accepted). The render and the thumbnail are
-  exact — the thumbnail seeks the GIF with `-ss (t - tlStart) % durationSec`.
-- Everything in S201's handoff still stands: media-entry ids are unstable until an installer
-  ships (prod alpha.5 prunes dev-written media entries).
+- Everything in S202's handoff still stands: the "Clip 4 (copy)" test clip in *2026-08-06 RL
+  Day14 Pt2* (dev profile) still carries two test overlays; preview-vs-output percent mismatch
+  on un-reframed clips is an accepted v1 limit; GIF frames aren't scrub-synced in the preview.
+- The review confirmed the undo path for overlays runs through `useSubtitleStore._pushUndo` →
+  `_snapshotStyling`/`_restoreStyling` (now carrying `mediaPlacements`). `mediaTrackCount` is
+  deliberately NOT in the snapshot — lane add/remove isn't undoable, and the top lane absorbs
+  any placement above the visible range, so undo can never strand an overlay.
 
 ## Logs/Debugging
 
-- **jest is not installed and there is no `test` script** (#317). To run the two `__tests__`
-  files, use the scratchpad shim pattern from this session: intercept `Module._load` to stub
-  `./subtitle-overlay-renderer`, then define global `jest.mock` / `describe` / `test` / `expect`.
-  24 assertions passed today.
-- `buildNleFilterComplex` is exported as a seam, and `render.js` **loads under plain node** with
-  only `subtitle-overlay-renderer` stubbed — fastest way to eyeball a filter graph without
-  launching anything.
-- **CDP driver for the dev app** lives in this session's scratchpad (`cdp.js` + `step1/step2/
-  open-clip/drag/blocks/undo/save/render/shot.js`). Node 24 has a global `WebSocket`, so no `ws`
-  dependency is needed. Real input via `Input.dispatchMouseEvent` drives the pointer-event
-  handlers correctly, including `setPointerCapture`.
-- **Don't put JS with quotes/escapes inside `node -e` inside a Bash heredoc** — several attempts
-  died on "Invalid or unexpected token". Write the driver to a `.js` file and run it.
-- Overlay geometry probe that proved the render matches the preview: read each overlay wrapper's
-  `style.left/top/width` (percent) in the app, then extract the same frame from the render with
-  `ffmpeg -ss <t> -i <out> -frames:v 1`.
-- Render output duration is the check that the looping `-loop 1` / `-ignore_loop 0` inputs aren't
-  extending the video: `ffprobe -show_entries format=duration` — 46.045s, matching the clip.
+- **Jest-shim runner for the render-graph tests** (until #317): this session's copy lives at
+  scratchpad `run-media-overlay-tests.js` — intercepts `Module._load` to stub
+  `./subtitle-overlay-renderer`, defines global `jest.mock`/`describe`/`test`/`expect`, runs the
+  real test file under plain node. 10/10 passing at 62ee3ee.
+- **eof_action proof harness**: `ffmpeg -f lavfi color=` base + `-f lavfi ... -loop -1 x.gif`
+  makes a play-once GIF (NOTE: gif muxer `-loop 0` = loop FOREVER — a `-f null` decode of one
+  with `-ignore_loop 0` never terminates; that mistake cost a 2-min timeout + a stray ffmpeg to
+  kill). Sample a pixel: `-vf "crop=4:4:x:y,scale=1:1,format=rgb24" -f rawvideo - | od`.
+- `probeWidth`/`isReframeActive`/`computeReframeGeometry` agree exactly (geo non-null iff
+  active), so the render's 1080-wide assumption can't desync from the actual output width.
