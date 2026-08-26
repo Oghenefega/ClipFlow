@@ -29,9 +29,12 @@ installer still the gate.
 
 **Fega's standing call: NO installer until the media track is done — then one big one.**
 
-1. **#314** (kind-blind watched-folder lists) — next build, Opus@high.
-2. **#313** (stale ffmpeg-skill ASS burn-in doc — the skill gained lines in s203/s204/s205,
-   don't clobber them).
+1. **#314 + #313 in ONE Opus@high session, TWO commits** (decided end of s207; Fega has the
+   session prompt). #314 (kind-blind watched-folder lists) is the real work — repro in dev
+   profile first, plan, approval, fix, measure gone. #313 is a doc-only chore riding along
+   (stale ASS burn-in section in the ffmpeg skill — the file gained lines in s203/s204/s205,
+   don't clobber them). Separate commits so the review covers #314's hash properly.
+2. **Fable@xhigh review of #314's commit** (light accuracy check on the #313 doc commit).
 3. **THEN the one big installer** (`clipflow-update-launcher`): #309/#310/#311/#312 + review
    commits (d30fd39, 62ee3ee, 4eaa36c, d65bbdb, f98191a) + #313/#314/#317. Issues stay open
    (`status: untested` on anything closed early) until Fega's one pass.

@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **The sound lane label's tooltip now tells the truth about scope (#312 review).** Clicking a lane's name disables every lane of its kind, but with several Music lanes open the tooltip still said "Disable the Music lane" — singular. It now matches the Media lanes' copy: "Disable every Music lane" once there's more than one, unchanged with a single lane.
 
 ### Changed
+- The next build session was scoped at wrap: #314 (kind-blind watched-folder lists) and #313 (stale ffmpeg-skill doc) land together in one session as two separate commits, so the review that follows can target the #314 commit by hash — the last two gates before the one big installer.
 - The review of `d65bbdb` (#312, extra sound lanes) and `4eaa36c` (#311 review fixes) found no functional bugs — undo semantics, drag geometry, persistence, the render-isolation guarantee and the probe/resize/sync contracts all verified against the code, 152 tests passing. One pre-existing wart shared with the Media lanes was filed as #321 instead of patched: the "remove this empty lane" button can render but silently refuse when a sound whose footage was cut away still occupies the lane invisibly.
 
 ## [Unreleased] — 2026-08-26 (session 206) — Extra Music and SFX lanes, so stacked sounds stop hiding each other (#312)
