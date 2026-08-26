@@ -26,14 +26,23 @@ the installer is still the gate. That was already Next Step 1 last session and s
 
 ## Next Steps
 
-1. **Cut the installer** (`clipflow-update-launcher` skill) — #309 + #310 + the two review-fix
-   commits (d30fd39, 62ee3ee) are the batch. Nothing reaches Fega's daily driver until this.
-2. **Fega's in-app check of #310 + #309**, then close both (`status: untested` until confirmed).
-3. **#311 (video overlays)** is the next build — it appends ANOTHER FFmpeg input after the media
-   inputs. Input-index order in `render.js` is load-bearing: segments → subtitle PNG pipe →
-   audio assets → media assets. The byte-identical test in `renderMediaOverlay.test.js` is
-   exactly the trap guard; #317 (install jest) would let it actually run.
-4. Then #312; #313 doc fix; #314, #317 whenever convenient.
+**Fega's call (s203 wrap): NO installer until the whole media track is done — then one big one.**
+Finish everything under epic #308 plus the issues it spawned, in this order:
+
+1. **#317 first (install jest)** — quick, and #311's byte-identical render-graph guard can then
+   actually run during the build that needs it most.
+2. **#311 (video overlays + mixed-in audio)** — the next build. It appends ANOTHER FFmpeg input
+   after the media inputs. Input-index order in `render.js` is load-bearing: segments → subtitle
+   PNG pipe → audio assets → media assets. Append after media, never in the middle.
+3. **#312 (dynamic extra SFX/Music tracks)** — batch 4, closes out epic #308's build work.
+4. **#314** (kind-blind watched-folder lists — filed off #309's folder work) and **#313**
+   (stale ffmpeg-skill doc: ASS burn-in description) — sweep these with the track.
+5. **THEN cut the one big installer** (`clipflow-update-launcher`): #309/#310/#311/#312 + the
+   review commits (d30fd39, 62ee3ee) + #313/#314/#317. Fega verifies everything in-app on the
+   daily driver in one pass; issues stay open (`status: untested` on any closed early) until then.
+
+Build/review rhythm stays: Opus@high builds each batch in its own session, Fable@xhigh reviews
+it commit-by-hash right after it lands.
 
 ## Watch Out For
 
