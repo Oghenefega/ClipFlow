@@ -4,7 +4,10 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-26 (session 209) — Fresh-eyes review of the watched-folder fix: logic passes, changelog history restored
+## [Unreleased] — 2026-08-26 (session 209) — Watched-folder review passes; 0.4.0-alpha.6 cut with the whole media-overlays epic
+
+### Changed
+- **Version bumped to 0.4.0-alpha.6 and an installer cut** — the one big build promoting everything since alpha.5: the media-overlays epic (#308) end to end — watched media folders and the Media tab (#309), image and GIF overlays (#310), video overlays with their sound mixed in (#311), extra Music and SFX lanes (#312) — plus every fresh-eyes review fix from sessions 201–209, the watched-folder membership fix (#314), the corrected FFmpeg skill doc (#313), and the runnable test suite (#317).
 
 ### Fixed
 - **Session 207's changelog section got its heading back.** The #314 commit accidentally *replaced* the session-207 heading with the session-208 one instead of adding a new section above it, which erased the record of the sound-lanes review session and left its entries stranded under the wrong heading with duplicate section labels. The heading is restored; no entry text was lost.
