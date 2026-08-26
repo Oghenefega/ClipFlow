@@ -148,6 +148,20 @@ function groupLabel(dir) {
   return parent && parent !== name ? `${parent} › ${name}` : name;
 }
 
+/**
+ * The watched roots allowed to vouch for a file of this kind (#314). Each root
+ * is only ever SCANNED for its own list's kinds, so membership has to be judged
+ * the same way: an audio root sitting above a media root must not claim the
+ * image/video files nobody scanned, or they read as covered and then as "file
+ * missing" forever. An unrecognised extension can't pick a side and answers to
+ * both lists — never pruned out of the index on a technicality.
+ */
+function rootsForKind(kind, sets) {
+  if (AUDIO_KINDS.has(kind)) return sets.audio;
+  if (MEDIA_KINDS.has(kind)) return sets.media;
+  return [...sets.audio, ...sets.media];
+}
+
 /** Is `file` inside `dir`? Both absolute. */
 function isUnder(file, dir) {
   const a = file.toLowerCase();
@@ -176,17 +190,18 @@ async function listAssets(assetsRoot, folders, mediaFolders) {
 
   // #309: two watched lists, one index. The same root may appear in both lists
   // (scanned once per list, each for its own kinds), so scans is a list, not a
-  // Map keyed by root.
-  const configured = [...watchedRoots(folders, false), ...watchedRoots(mediaFolders, false)];
-  const roots = [...watchedRoots(folders, true), ...watchedRoots(mediaFolders, true)];
+  // Map keyed by root. #314: the three membership sets stay SPLIT by list for
+  // the same reason — see rootsForKind.
+  const configured = { audio: watchedRoots(folders, false), media: watchedRoots(mediaFolders, false) };
+  const enabled = { audio: watchedRoots(folders, true), media: watchedRoots(mediaFolders, true) };
+  const reachable = { audio: [], media: [] };
   const scans = []; // { root, files: [{ path, sizeBytes, mtimeMs }] } per reachable root
-  const reachableRoots = [];
-  for (const [list, kinds] of [[watchedRoots(folders, true), AUDIO_KINDS], [watchedRoots(mediaFolders, true), MEDIA_KINDS]]) {
+  for (const [list, kinds, reached] of [[enabled.audio, AUDIO_KINDS, reachable.audio], [enabled.media, MEDIA_KINDS, reachable.media]]) {
     for (const root of list) {
       let ok = false;
       try { ok = fs.statSync(root).isDirectory(); } catch (_) { /* offline */ }
       if (!ok) continue;
-      reachableRoots.push(root);
+      reached.push(root);
       scans.push({ root, files: walkFiles(root, kinds) });
     }
   }
@@ -195,9 +210,10 @@ async function listAssets(assetsRoot, folders, mediaFolders) {
 
   // Folder entries survive everything except the user removing their folder
   // from Settings. Toggling one off is not removing it — checked against every
-  // configured folder, enabled or not, so a toggle keeps favorites and lanes.
+  // configured folder OF ITS OWN LIST, enabled or not, so a toggle keeps
+  // favorites and lanes.
   const before = assets.length;
-  assets = assets.filter((a) => a.source !== "folder" || configured.some((r) => isUnder(a.path, r)));
+  assets = assets.filter((a) => a.source !== "folder" || rootsForKind(pathKind(a.path), configured).some((r) => isUnder(a.path, r)));
   if (assets.length !== before) dirty = true;
 
   // A file the sync replaced under the same name gets re-probed and re-classified.
@@ -248,8 +264,9 @@ async function listAssets(assetsRoot, folders, mediaFolders) {
       return [{ ...a, path: abs, offline: false, missing: !fs.existsSync(abs), group: "Uploads", groupPath: getFilesDir(assetsRoot) }];
     }
     // A folder toggled off leaves the panel but keeps its index entries.
-    if (!roots.some((r) => isUnder(abs, r))) return [];
-    const offline = !reachableRoots.some((r) => isUnder(abs, r));
+    const kind = pathKind(abs);
+    if (!rootsForKind(kind, enabled).some((r) => isUnder(abs, r))) return [];
+    const offline = !rootsForKind(kind, reachable).some((r) => isUnder(abs, r));
     const dir = path.dirname(abs);
     return [{
       ...a,
