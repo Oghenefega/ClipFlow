@@ -116,6 +116,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **A filter/logic block whose comment says it mirrors another copy MUST update both (session 198).** Batch 5 exempted reposts from QueueView's title knockout but not from App.js's badge count — whose own comment says "mirrors QueueView's list filter so the badge matches the list (#139)". Before done: grep for the code you changed being referenced elsewhere ("mirror", "same as", "matches", the issue number in comments) and patch every declared copy in the same commit.
 
+- **A fix that flips a SHARED flag must be re-verified on the cases it did NOT target (session 204).** s203 changed the media-overlay `eof_action` from `pass` to `repeat` so a play-once GIF freezes instead of vanishing — proven, on a play-once GIF. But `eof_action` governs every overlay on that stage, and the two kinds it wasn't tested against (a still, `-loop 1`; a forever-looping GIF, `-ignore_loop 0`) are endless inputs: with `repeat` the render never finishes. Shipped, reviewed, and caught only in the next session. Before done on any change to a shared option/flag/default: list the OTHER inputs that option applies to, name what makes them different from the one you tested, and run at least the one that differs most.
+
 ## Lesson Capture
 
 After ANY correction from the user:
