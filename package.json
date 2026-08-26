@@ -12,7 +12,14 @@
     "build:renderer": "vite build",
     "build": "npm run build:renderer && electron-builder",
     "pack": "electron-builder --dir",
-    "fetch:ffmpeg": "powershell -ExecutionPolicy Bypass -File scripts/fetch-ffmpeg.ps1"
+    "fetch:ffmpeg": "powershell -ExecutionPolicy Bypass -File scripts/fetch-ffmpeg.ps1",
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.js"
+    ]
   },
   "build": {
     "appId": "com.clipflow.app",
@@ -23,6 +30,7 @@
     "files": [
       "build/**/*",
       "src/main/**/*",
+      "!src/main/__tests__/**",
       "src/renderer/editor/models/**/*",
       "!src/renderer/editor/models/__tests__/**",
       "src/renderer/editor/utils/**/*",
@@ -117,6 +125,7 @@
     "concurrently": "^8.2.0",
     "electron": "^40.9.1",
     "electron-builder": "^26.15.3",
+    "jest": "^30.4.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "^5.9.3",
