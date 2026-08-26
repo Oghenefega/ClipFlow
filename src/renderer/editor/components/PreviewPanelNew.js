@@ -6,7 +6,7 @@ import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
-import { resolveMediaPlacements } from "../models/mediaPlacements";
+import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import { sourceToTimeline } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
@@ -697,7 +697,7 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
   );
 }
 
-// ── #310: image/GIF overlays on the canvas ──
+// ── #310/#311: image, GIF and video overlays on the canvas ──
 // Position and size are percentages of the canvas box, which IS the output
 // frame — the same numbers render.js turns into pixels, so what's dragged here
 // is what gets encoded. x/y address the overlay's CENTRE.
@@ -706,9 +706,27 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
 // land on exact halves, an overlay just wants to go where it's put.
 const MEDIA_HANDLES = ["nw", "ne", "sw", "se"];
 
-function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange }) {
+function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange, videoRegistry }) {
   const elRef = useRef(null);
   const dragRef = useRef(null);
+  const mediaRef = useRef(null);
+
+  // #311: a video overlay hands its element to the panel's registry, which
+  // drives it off the same clock as everything else. Teardown on the way out is
+  // the standing <video> rule — a dropped element without it crashes Chromium.
+  const isVideo = p.mediaType === "video";
+  useEffect(() => {
+    if (!isVideo || !videoRegistry) return undefined;
+    const el = mediaRef.current;
+    if (!el) return undefined;
+    videoRegistry.set(p.id, el);
+    return () => {
+      videoRegistry.delete(p.id);
+      el.pause();
+      el.removeAttribute("src");
+      el.load();
+    };
+  }, [isVideo, p.id, videoRegistry]);
 
   const beginDrag = useCallback((e, mode) => {
     if (e.button !== 0) return;
@@ -784,12 +802,22 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
       onPointerUp={endDrag}
       onClick={(e) => e.stopPropagation()}
     >
-      <img
-        src={toFileUrl(p.path)}
-        alt=""
-        draggable={false}
-        className="block w-full pointer-events-none"
-      />
+      {isVideo ? (
+        <video
+          ref={mediaRef}
+          src={toFileUrl(p.path)}
+          playsInline
+          draggable={false}
+          className="block w-full pointer-events-none"
+        />
+      ) : (
+        <img
+          src={toFileUrl(p.path)}
+          alt=""
+          draggable={false}
+          className="block w-full pointer-events-none"
+        />
+      )}
       {selected && MEDIA_HANDLES.map((h) => (
         <div
           key={h}
@@ -1456,6 +1484,61 @@ export default function PreviewPanelNew() {
   );
   const mediaGestureStart = useCallback(() => {
     useEditorStore.getState()._pushNleUndo();
+  }, []);
+
+  // ── #311: video overlays follow the playhead ──
+  // One <video> per on-screen placement, registered by MediaOverlay above and
+  // driven from here. Unlike a sound this also has to be right while PAUSED —
+  // an overlay shows a frame at every scrub position, not just during playback
+  // — so the tolerance tightens when the clock isn't running.
+  const mediaVideoRef = useRef(new Map()); // placementId → HTMLVideoElement
+  const syncMediaVideos = useCallback((timelineTime, isPlaying) => {
+    const map = mediaVideoRef.current;
+    if (map.size === 0) return;
+    const es = useEditorStore.getState();
+    const laneOn = (es.laneEnabled || {}).media !== false;
+    const rate = videoRef.current?.playbackRate || 1;
+    // Same resolver the timeline and the render use, so all three agree on
+    // where an overlay is and which part of its file is playing.
+    for (const p of resolveMediaPlacements(es.mediaPlacements, es.nleSegments || [])) {
+      const el = map.get(p.id);
+      if (!el || p.mediaType !== "video") continue;
+      const within = laneOn && p.enabled !== false
+        && timelineTime >= p.tlStart && timelineTime < p.tlEnd;
+      if (!within) {
+        if (!el.paused) el.pause();
+        continue;
+      }
+      el.muted = p.muted === true;
+      el.volume = Math.max(0, Math.min(1, p.volume ?? DEFAULT_VIDEO_VOLUME));
+      el.playbackRate = rate;
+      // Where inside the file this instant lands — the trim window's start plus
+      // however far into the block we are.
+      const filePos = Math.max(0, (p.trimStart || 0) + (timelineTime - p.tlStart));
+      const drift = isPlaying ? 0.25 : 0.05;
+      if (Math.abs(el.currentTime - filePos) > drift) el.currentTime = filePos;
+      if (isPlaying) { if (el.paused) el.play().catch(() => {}); }
+      else if (!el.paused) el.pause();
+    }
+  }, []);
+
+  // Runs on every clock update (playback ticks setCurrentTime ~60x/s) and on
+  // every scrub, pause and placement edit — the one place video overlays are
+  // told what to do.
+  useEffect(() => {
+    syncMediaVideos(currentTime, playing);
+  }, [currentTime, playing, mediaPlacements, laneEnabled, syncMediaVideos]);
+
+  // Full teardown on unmount (standing <media> cleanup rule). MediaOverlay
+  // already tears down its own element as it unmounts; this catches anything
+  // still registered when the whole panel goes.
+  useEffect(() => () => {
+    for (const [, el] of mediaVideoRef.current) {
+      el.pause();
+      el.removeAttribute("src");
+      el.load();
+    }
+    mediaVideoRef.current.clear();
   }, []);
   const setMediaProps = useCallback((id, patch) => {
     useEditorStore.getState().setMediaPlacementProps(id, patch);
@@ -2279,6 +2362,7 @@ export default function PreviewPanelNew() {
               onSelect={setSelectedMediaId}
               onGestureStart={mediaGestureStart}
               onChange={setMediaProps}
+              videoRegistry={mediaVideoRef.current}
             />
           ))}
 

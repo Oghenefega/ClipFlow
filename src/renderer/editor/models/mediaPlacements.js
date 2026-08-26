@@ -11,10 +11,15 @@
  * which is exactly the strict behaviour we want: an overlay whose moment was cut
  * away disappears with it (songs are the only thing that clamps forward).
  *
- * Unlike a sound, an overlay has no meaningful window INTO its file: an image
- * has no inside and a GIF just loops. So `trimStart` is always 0 and `trimEnd`
+ * An image or a GIF has no meaningful window INTO its file: an image has no
+ * inside and a GIF just loops. For those `trimStart` is always 0 and `trimEnd`
  * is simply how long the overlay is on screen — the field stays in the shape
  * only so the shared helpers keep working.
+ *
+ * A video (#311) DOES have an inside, so there `trimStart`/`trimEnd` mean what
+ * they mean for a sound: the window of the file that plays. Dragging the left
+ * edge trims into it rather than just delaying it, and neither edge can leave
+ * the file — a video, unlike a still, runs out.
  *
  * CJS on purpose: src/main/render.js requires this. Renderer code imports the
  * named bindings (Vite handles the interop).
@@ -26,6 +31,14 @@ const { resolvePlacements } = require("./audioPlacements");
 const DEFAULT_MEDIA_SEC = 3;
 /** Lanes are z-order — three is already more stacking than a short needs. */
 const MEDIA_TRACK_CAP = 3;
+/**
+ * A video overlay's sound is ON by default (#311) — a reaction cam nobody can
+ * hear is not a reaction cam — but sits under the clip's own audio rather than
+ * on top of it.
+ */
+const DEFAULT_VIDEO_VOLUME = 0.6;
+/** A video can't be trimmed down to nothing. */
+const MIN_VIDEO_WINDOW = 0.1;
 
 /**
  * Fill in what a saved placement doesn't carry. Nothing is migrated on disk:
@@ -36,10 +49,26 @@ function normalizeMediaPlacements(placements) {
   if (!Array.isArray(placements) || placements.length === 0) return [];
   return placements.map((p) => {
     const out = { ...p };
-    if (out.mediaType !== "gif") out.mediaType = "image";
-    out.trimStart = 0;
-    if (!(out.trimEnd > 0)) {
-      out.trimEnd = out.durationSec > 0 ? out.durationSec : DEFAULT_MEDIA_SEC;
+    if (out.mediaType !== "gif" && out.mediaType !== "video") out.mediaType = "image";
+    if (out.mediaType === "video") {
+      // The window into the file, clamped to the file. durationSec is probed at
+      // add time; when it's missing (an older save, an unprobeable file) the
+      // window is left alone rather than guessed at.
+      const fileLen = out.durationSec > 0 ? out.durationSec : 0;
+      out.trimStart = Math.max(0, out.trimStart || 0);
+      if (fileLen) out.trimStart = Math.min(out.trimStart, Math.max(0, fileLen - MIN_VIDEO_WINDOW));
+      if (!(out.trimEnd > out.trimStart)) {
+        // A fresh video overlay plays the whole file.
+        out.trimEnd = fileLen || (out.trimStart + DEFAULT_MEDIA_SEC);
+      }
+      if (fileLen) out.trimEnd = Math.min(out.trimEnd, fileLen);
+      if (out.volume == null) out.volume = DEFAULT_VIDEO_VOLUME;
+      if (out.muted == null) out.muted = false;
+    } else {
+      out.trimStart = 0;
+      if (!(out.trimEnd > 0)) {
+        out.trimEnd = out.durationSec > 0 ? out.durationSec : DEFAULT_MEDIA_SEC;
+      }
     }
     if (!(out.trackIndex >= 0)) out.trackIndex = 0;
     if (out.xPct == null) out.xPct = 50;
@@ -62,6 +91,8 @@ function resolveMediaPlacements(placements, nleSegments) {
 
 module.exports = {
   DEFAULT_MEDIA_SEC,
+  DEFAULT_VIDEO_VOLUME,
+  MIN_VIDEO_WINDOW,
   MEDIA_TRACK_CAP,
   normalizeMediaPlacements,
   resolveMediaPlacements,

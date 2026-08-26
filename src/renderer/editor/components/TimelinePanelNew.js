@@ -7,11 +7,11 @@ import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
 import { resolvePlacements, assignRows } from "../models/audioPlacements";
-import { resolveMediaPlacements, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
+import { resolveMediaPlacements, MEDIA_TRACK_CAP, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
   PanelBottomClose, Music, Volume2, VolumeX, Eye, EyeOff, Trash2, Copy, RotateCcw, Check,
-  Image as ImageIcon, Film, Plus, Minus,
+  Image as ImageIcon, Film, Video as VideoIcon, Plus, Minus,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -1070,18 +1070,26 @@ export default function TimelinePanelNew() {
   }, [nleSegments]);
 
   // The right edge stays where it is: the overlay comes in later and shows for
-  // correspondingly less time.
-  const handleMediaResizeLeft = useCallback((id, length, tlStart) => {
+  // correspondingly less time. On a video the block also carries the new
+  // trimStart (#311) — the file starts further in, so the frame under the
+  // handle is the one you see. The block computes it from where the gesture
+  // BEGAN, so a live re-read here can't double-apply it mid-drag.
+  const handleMediaResizeLeft = useCallback((id, length, tlStart, trimStart = 0) => {
     const m = timelineToSource(tlStart, nleSegments);
     useEditorStore.getState().setMediaPlacementProps(id, {
-      trimEnd: length,
+      trimStart,
+      trimEnd: trimStart + length,
       ...(m.found ? { sourceTime: m.sourceTime } : {}),
     });
   }, [nleSegments]);
 
+  // trimStart is 0 on stills and GIFs, so this is "how long it shows" there and
+  // "where the file window ends" on a video — one expression covers both.
   const handleMediaResizeRight = useCallback((id, length) => {
-    useEditorStore.getState().setMediaPlacementProps(id, { trimEnd: length });
-  }, []);
+    const p = resolvedMedia.find((x) => x.id === id);
+    const trimStart = p?.mediaType === "video" ? Math.max(0, p.trimStart || 0) : 0;
+    useEditorStore.getState().setMediaPlacementProps(id, { trimEnd: trimStart + length });
+  }, [resolvedMedia]);
 
   const handleMediaSelect = useCallback((id) => {
     setSelectedTrack("media");
@@ -1766,11 +1774,15 @@ export default function TimelinePanelNew() {
               style={{ left: mediaPopover.x, top: mediaPopover.y, transform: "translateY(-100%)" }}
             >
               <div className="flex items-center gap-1.5">
-                {p.mediaType === "gif"
-                  ? <Film className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
-                  : <ImageIcon className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />}
+                {p.mediaType === "video"
+                  ? <VideoIcon className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
+                  : p.mediaType === "gif"
+                    ? <Film className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
+                    : <ImageIcon className="h-3.5 w-3.5 shrink-0" style={{ color: MEDIA_COLORS.icon }} />}
                 <span className="text-xs font-medium text-foreground truncate flex-1">{p.name}</span>
-                <span className="text-[11px] text-muted-foreground">{p.mediaType === "gif" ? "GIF" : "Image"}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {p.mediaType === "video" ? "Video" : p.mediaType === "gif" ? "GIF" : "Image"}
+                </span>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -1788,6 +1800,39 @@ export default function TimelinePanelNew() {
                 <Slider value={[opacityPct]} min={0} max={100} step={1}
                   onValueChange={([v]) => setProps({ opacity: v / 100 })} />
               </div>
+              {/* #311: a video overlay brings its own sound. On by default —
+                  the whole point of a reaction cam — with the level and the
+                  mute right here, since the block itself has no room for them. */}
+              {p.mediaType === "video" && (() => {
+                const muted = p.muted === true;
+                const volPct = Math.round((p.volume ?? DEFAULT_VIDEO_VOLUME) * 100);
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-muted-foreground">Sound</span>
+                      <button
+                        onClick={() => setProps({ muted: !muted })}
+                        title={muted ? "Unmute this video" : "Mute this video"}
+                        className={`h-5 px-1.5 rounded text-[11px] flex items-center gap-1 border transition-colors ${
+                          muted
+                            ? "text-red-400 border-red-500/30 hover:bg-red-500/10"
+                            : "text-foreground/80 border-border/40 hover:border-border"
+                        }`}
+                      >
+                        {muted
+                          ? <><VolumeX className="h-3 w-3" /> Muted</>
+                          : <><Volume2 className="h-3 w-3" /> {volPct}%</>}
+                      </button>
+                    </div>
+                    {/* Radix marks itself data-disabled, which the shared Slider
+                        doesn't style — dim it here so muted reads at a glance. */}
+                    <div style={{ opacity: muted ? 0.4 : 1 }}>
+                      <Slider value={[volPct]} min={0} max={100} step={1} disabled={muted}
+                        onValueChange={([v]) => setProps({ volume: v / 100 })} />
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Which lane it sits on IS its z-order, so this is the control
                   for "put this in front of that" — the lanes are only ever
                   added for stacking. Hidden while there's just the one. */}
@@ -1816,7 +1861,10 @@ export default function TimelinePanelNew() {
               )}
               <div className="flex items-center justify-between gap-2 pt-0.5">
                 <span className="text-[11px] text-muted-foreground">
-                  On screen for {length.toFixed(1)}s
+                  {p.mediaType === "video"
+                    ? `Plays ${(p.trimStart || 0).toFixed(1)}s → ${(p.trimEnd || 0).toFixed(1)}s${
+                        p.durationSec > 0 ? ` of ${p.durationSec.toFixed(1)}s` : ""}`
+                    : `On screen for ${length.toFixed(1)}s`}
                 </span>
                 <button
                   onClick={() => setProps({ xPct: 50, yPct: 50, wPct: 40 })}

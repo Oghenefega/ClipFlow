@@ -67,6 +67,31 @@ function probeWidth(filePath) {
 }
 
 /**
+ * Does this file carry an audio stream (#311)? A video overlay's sound is mixed
+ * in by referencing [N:a], and FFmpeg fails the whole render if that stream
+ * doesn't exist — so a silent reaction clip has to be spotted BEFORE the graph
+ * is built rather than blowing up the export. Probed at render time, not stored
+ * on the placement: the file on disk is the authority, and it can be replaced.
+ * @param {string} filePath
+ * @returns {Promise<boolean>} false when there's no audio stream, or on any probe failure
+ */
+function probeHasAudio(filePath) {
+  return new Promise((resolve) => {
+    const proc = spawn(FFPROBE_BIN, [
+      "-v", "error",
+      "-select_streams", "a:0",
+      "-show_entries", "stream=codec_type",
+      "-of", "csv=p=0",
+      filePath,
+    ]);
+    let stdout = "";
+    proc.stdout.on("data", (d) => (stdout += d.toString()));
+    proc.on("close", (code) => resolve(code === 0 && stdout.trim() === "audio"));
+    proc.on("error", () => resolve(false));
+  });
+}
+
+/**
  * Validate a single reframe crop rect — all four fields must be finite
  * numbers and w/h must be positive (#164).
  * @param {object} rect - {x, y, w, h}
@@ -164,11 +189,15 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  *   With no audioAssets the audio graph is byte-identical to the pre-#202 output.
  *   { sourceMuted: true } (#296) silences the clip's OWN audio while leaving the
  *   picture and the mixed-in sounds alone. Omitted/false is byte-identical too.
- *   { mediaAssets } (#310) composites image/GIF overlays under the subtitles:
+ *   { mediaAssets } (#310) composites image/GIF/video overlays under the subtitles:
  *   mediaAssets = [{ inputIndex, mediaType, tlStart, tlEnd, xPct, yPct, wPct,
  *   opacity }], already sorted so the last one drawn is on top. { outputWidth }
  *   is the output frame width used to resolve wPct when reframe is inactive.
  *   With no mediaAssets the video graph is byte-identical to the pre-#310 output.
+ *   A mediaType "video" entry (#311) also carries { trimStart, trimEnd } — the
+ *   window of the file that plays — plus { volume, muted, hasAudio }: unless it
+ *   is muted or silent, its audio is appended to the audioAssets mix below, so
+ *   a clip with no video overlays keeps the pre-#311 audio graph exactly.
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
 function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight, opts = {}) {
@@ -300,6 +329,15 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
       if (m.mediaType === "gif" && tlStart > 0) {
         chain += `setpts=PTS-STARTPTS+${+tlStart.toFixed(3)}/TB,`;
       }
+      // #311: a video plays a WINDOW of its file at a moment on the timeline.
+      // trim cuts the window out, setpts then rebases it to that moment —
+      // mandatory in that order, because trim keeps the source timestamps.
+      if (m.mediaType === "video") {
+        const vs = Math.max(0, m.trimStart || 0);
+        const ve = Math.max(vs, m.trimEnd != null ? m.trimEnd : vs);
+        if (ve > vs) chain += `trim=${+vs.toFixed(3)}:${+ve.toFixed(3)},`;
+        chain += `setpts=PTS-STARTPTS+${+tlStart.toFixed(3)}/TB,`;
+      }
       chain += `format=rgba,scale=${wpx}:-1`;
       const opacity = Math.max(0, Math.min(1, m.opacity == null ? 1 : m.opacity));
       if (opacity < 1) chain += `,colorchannelmixer=aa=${+opacity.toFixed(3)}`;
@@ -330,8 +368,29 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     filters.push(`[base_a]volume=0[base_am]`);
     baseAudio = "base_am";
   }
+  // #311: a video overlay's own sound joins that same mix, as one more entry —
+  // it needs exactly what an SFX needs (a file window, a level, a delay to its
+  // timeline position), so it reuses the chain below rather than growing a
+  // second one. Its input is the media input already handed out above, so no
+  // index moves. `hasAudio: false` (probed by the caller) drops a silent file
+  // before it can reference a stream that isn't there. A muted overlay is left
+  // out entirely rather than mixed at volume 0 — nothing else depends on its
+  // length, so there's no reason to pay for decoding it.
+  const videoAudioAssets = withAudio
+    ? mediaAssets
+        .filter((m) => m.mediaType === "video" && m.muted !== true && m.hasAudio !== false)
+        .map((m) => ({
+          inputIndex: m.inputIndex,
+          trimStart: m.trimStart,
+          trimEnd: m.trimEnd,
+          volume: m.volume == null ? 0.6 : m.volume,
+          delaySec: m.tlStart,
+        }))
+    : [];
   let audioLabel = baseAudio;
-  const audioAssets = withAudio ? (opts.audioAssets || []) : [];
+  const audioAssets = withAudio
+    ? [...(opts.audioAssets || []), ...videoAudioAssets]
+    : [];
   if (audioAssets.length > 0) {
     const mixinLabels = [];
     audioAssets.forEach((a, i) => {
@@ -604,6 +663,16 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
             ? projectData.sourceWidth
             : await probeWidth(srcFile);
         }
+        // #311: a video overlay's sound only joins the mix if the file has one.
+        // Probed here, once per unmuted video, so a silent reaction clip is a
+        // silent overlay rather than a failed export.
+        for (let i = 0; i < activeMediaAssets.length; i++) {
+          const m = activeMediaAssets[i];
+          if (m.mediaType !== "video" || m.muted === true) continue;
+          const hasAudio = await probeHasAudio(m.path);
+          activeMediaAssets[i] = { ...m, hasAudio };
+          if (!hasAudio) console.log(`[Render] Overlay "${m.name || m.assetId}" has no audio track — mixing skipped`);
+        }
         console.log(`[Render] Overlays: ${activeMediaAssets.length} of ${mediaPlacements.length} placements active`);
       } else if (mediaPlacements.length > 0) {
         console.warn("[Render] Clip has overlays but is rendering via the legacy (no-NLE) path — overlays skipped");
@@ -713,11 +782,23 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // #310: one input per active overlay, AFTER the sound inputs so every
       // index already handed out stays put. A still loops (-loop 1) and a GIF
       // loops (-ignore_loop 0); `enable` in the filter decides when each shows.
+      // #311: a video gets NEITHER — it's a real clip that plays once, trimmed
+      // in the filter graph. Its input carries the audio the mix picks up too,
+      // so it never adds an input of its own.
       if (activeMediaAssets.length > 0) {
         const baseIdx = nleSegments.length + (hasFrames ? 1 : 0) + activeAudioAssets.length;
+        // The -t cap is LOAD-BEARING, not a nicety: `-loop 1` (a still) and
+        // `-ignore_loop 0` (a GIF that loops forever) both make an input that
+        // never ends, and overlay's eof_action=repeat (62ee3ee) then keeps the
+        // render going forever once the picture has finished — a hang, not a
+        // slow export. Capping each looping input at the timeline's own length
+        // makes it end with the picture. A GIF that plays ONCE still ends early
+        // and still freezes on its last frame, which is what repeat is for.
+        const loopCap = String(Math.max(0.04, timelineDuration));
         activeMediaAssets = activeMediaAssets.map((m, i) => {
-          if (m.mediaType === "gif") args.push("-ignore_loop", "0", "-i", m.path);
-          else args.push("-loop", "1", "-i", m.path);
+          if (m.mediaType === "video") args.push("-i", m.path);
+          else if (m.mediaType === "gif") args.push("-ignore_loop", "0", "-t", loopCap, "-i", m.path);
+          else args.push("-loop", "1", "-t", loopCap, "-i", m.path);
           return { ...m, inputIndex: baseIdx + i };
         });
       }
@@ -971,14 +1052,25 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
         ).filter((m) => t >= m.tlStart && t < m.tlEnd && m.path && fs.existsSync(m.path));
     const mediaAssets = thumbMedia.map((m, i) => {
       // A GIF is seeked to the frame this instant lands on, wrapping through
-      // its loop; a still has only the one frame.
+      // its loop; a video (#311) to the same instant inside its trim window,
+      // which doesn't wrap — it plays once. A still has only the one frame.
       if (m.mediaType === "gif") {
         const into = m.durationSec > 0 ? (t - m.tlStart) % m.durationSec : 0;
+        args.push("-ss", String(+into.toFixed(3)), "-i", m.path);
+      } else if (m.mediaType === "video") {
+        const into = Math.max(0, m.trimStart || 0) + (t - m.tlStart);
         args.push("-ss", String(+into.toFixed(3)), "-i", m.path);
       } else {
         args.push("-i", m.path);
       }
-      return { ...m, mediaType: "image", tlStart: 0, tlEnd: 1e6, inputIndex: 1 + (overlayPng ? 1 : 0) + i };
+      // Flattened to a still: this graph knows one instant, so the trim window
+      // and the sound are meaningless here — the seek above already picked the
+      // frame, and a thumbnail is video-only.
+      return {
+        ...m, mediaType: "image", tlStart: 0, tlEnd: 1e6,
+        trimStart: 0, trimEnd: 0,
+        inputIndex: 1 + (overlayPng ? 1 : 0) + i,
+      };
     });
     const thumbOutputWidth = reframeActive || mediaAssets.length === 0
       ? 0

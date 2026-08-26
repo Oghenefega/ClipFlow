@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-26 (session 204) — Video overlays with their sound mixed in (#311), and the tests can finally be run (#317)
+
+### Added
+- **Videos can be placed on a clip, with their sound mixed in (#311).** A reaction clip from the Media panel's Videos tab now drops onto the timeline like an image or a GIF, and plays over the clip in both the preview and the export — you hear it, at 60% by default, sitting under the clip's own audio. Its right-click settings popover gains a Sound row: a volume slider and a mute toggle that dims it. Unlike a still, a video has an inside, so its block edges trim the window of the file that plays: dragging the left edge starts further into it (the way every editor works) and neither edge can leave the file, so a block can never outlast the video behind it. The popover reads out what's playing — "Plays 0.0s -> 7.8s of 7.8s". A fresh placement starts as the whole file.
+- **The preview plays video overlays in step with the playhead.** Each on-screen video is driven off the same clock as everything else: it seeks when it drifts, matches the playback speed, follows the volume and mute, and shows the right frame while paused and scrubbing too, not only during playback. Measured against the running app: at a 6.4s playhead the overlay sat at 6.33s, and it disappears the moment its block ends. Every element is torn down on delete, on unmount, and when the panel closes.
+- **A silent video is a silent overlay, not a failed export.** Whether the file actually carries sound is checked at render time; one that doesn't is simply left out of the mix. Without that check FFmpeg refuses the whole render ("Stream specifier ':a' matches no streams") — verified both ways.
+- **`npm test` exists and runs (#317).** jest is installed as a dev dependency (it never reaches the installer — confirmed by listing the packaged app's contents, not just trusting the config) and `npm test` runs the four test files that were sitting in the repo unrunnable: 145 tests covering the render's filter graph, the timeline maths, and the placement model. The six older self-running test scripts are deliberately left out of jest's net — they end by exiting the process, which would kill the runner — and keep their existing `node <file>` contract.
+
+### Fixed
+- **A clip with an image or a looping GIF on it could render forever (#310, introduced in last session's review fix).** Making play-once GIFs freeze on their last frame also told FFmpeg to keep going after the picture had finished — and a still image is an endless input, so the export never ended. A 10-second clip with one still overlay was still encoding a minute later. Every looping overlay now stops with the picture, which fixes the hang while leaving the freeze behaviour exactly as it was. This shipped in `62ee3ee` and had not reached an installer.
+
 ## [Unreleased] — 2026-08-25 (session 203) — Fresh-eyes review of the overlay batch: one parity fix
 
 ### Fixed

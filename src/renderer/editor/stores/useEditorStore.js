@@ -10,7 +10,7 @@ import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource } from "../models/timeMapping";
 import { normalizePlacements, resolvePlacements } from "../models/audioPlacements";
-import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
+import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
 
@@ -127,11 +127,14 @@ const useEditorStore = create((set, get) => ({
   //          sourceTime, trimStart, trimEnd, volume 0-1,
   //          fadeIn?/fadeOut? (music only, seconds) }
   audioPlacements: [],
-  // #310: images/GIFs placed on the picture. Anchored to a SOURCE moment like
-  // sounds are, plus where they sit on the OUTPUT frame (percent, x/y = centre).
-  // Shape: { id, assetId, name, path, mediaType: "image"|"gif", durationSec,
-  //          sourceTime, trimStart: 0, trimEnd, trackIndex, xPct, yPct, wPct,
-  //          opacity 0-1 }. See models/mediaPlacements.js.
+  // #310/#311: images, GIFs and videos placed on the picture. Anchored to a
+  // SOURCE moment like sounds are, plus where they sit on the OUTPUT frame
+  // (percent, x/y = centre).
+  // Shape: { id, assetId, name, path, mediaType: "image"|"gif"|"video",
+  //          durationSec, sourceTime, trimStart, trimEnd, trackIndex,
+  //          xPct, yPct, wPct, opacity 0-1, and on videos volume 0-1 + muted }.
+  //          trimStart is 0 on stills and GIFs; on a video it's a real window
+  //          into the file. See models/mediaPlacements.js.
   mediaPlacements: [],
   // How many media lanes are shown. Lane index IS z-order — higher draws on top.
   mediaTrackCount: 1,
@@ -748,21 +751,26 @@ const useEditorStore = create((set, get) => ({
   // footage), plus where it sits on the OUTPUT frame in percent.
   // See models/mediaPlacements.js.
 
-  // `durationSec` is the file's own length — a GIF's loop, probed at add time;
-  // null for a still. The block starts one loop long, or DEFAULT_MEDIA_SEC.
+  // `durationSec` is the file's own length — a GIF's loop or a video's runtime,
+  // probed at add time; null for a still. The block starts one loop / one whole
+  // video long, or DEFAULT_MEDIA_SEC.
   addMediaPlacement: (asset, sourceTime, durationSec = null) => {
     get()._pushNleUndo();
     const len = durationSec > 0 ? durationSec : DEFAULT_MEDIA_SEC;
+    const mediaType = asset.type === "gif" ? "gif" : asset.type === "video" ? "video" : "image";
     const placement = {
       id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       assetId: asset.id,
       name: asset.name,
       path: asset.path,
-      mediaType: asset.type === "gif" ? "gif" : "image",
+      mediaType,
       durationSec: durationSec > 0 ? durationSec : null,
       sourceTime,
       trimStart: 0,
       trimEnd: len,
+      // #311: a video's sound rides along, on by default. Absent on stills and
+      // GIFs — there's nothing to level.
+      ...(mediaType === "video" ? { volume: DEFAULT_VIDEO_VOLUME, muted: false } : {}),
       // Bottom lane by default. Nothing auto-stacks: which lane an overlay sits
       // on IS the user's z-order decision, so we never move one for them.
       trackIndex: 0,

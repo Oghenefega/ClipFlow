@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from "react";
-import { Image as ImageIcon, Film } from "lucide-react";
+import { Image as ImageIcon, Film, Video as VideoIcon } from "lucide-react";
 import { SEGMENT_RADIUS, MEDIA_COLORS } from "./timelineConstants";
 import { toFileUrl } from "../../../components/shared";
 
@@ -9,9 +9,11 @@ import { toFileUrl } from "../../../components/shared";
  *
  *   drag body       → move to another moment
  *   Alt + drag body → duplicate and drag the copy
- *   drag either end → change how long the overlay is on screen. Unlike a sound
- *                     there is no upper limit: a still has no length of its own
- *                     and a GIF just loops, so an overlay can outlast its file.
+ *   drag either end → change how long the overlay is on screen. A still has no
+ *                     length of its own and a GIF just loops, so those can be
+ *                     stretched forever. A VIDEO (#311) can't: its edges trim
+ *                     the window of the file that plays, the way a sound's do,
+ *                     and neither edge can leave the file.
  *   right-click     → parent opens the settings popover
  *
  * Every gesture commits through the parent, which pushes ONE undo entry at the
@@ -31,6 +33,11 @@ function MediaBlock({
   const length = Math.max(0.1, p.tlEnd - p.tlStart);
   const widthPx = Math.max(10, length * pxPerSec);
   const leftPx = p.tlStart * pxPerSec;
+  // #311: a video's edges are a window into its file, so they stop at its ends.
+  // fileLen 0 means "never probed" — leave that one unclamped rather than guess.
+  const isVideo = p.mediaType === "video";
+  const trimStart = isVideo ? Math.max(0, p.trimStart || 0) : 0;
+  const fileLen = isVideo && p.durationSec > 0 ? p.durationSec : 0;
 
   // ── Body drag = move (Alt = duplicate then move the copy) ──
   const onBodyDown = useCallback((e) => {
@@ -91,11 +98,15 @@ function MediaBlock({
         const dt = (ev.clientX - startX) / (pxPerSec || 1);
         if (side === "left") {
           // The right edge stays put: the overlay starts later and shows for
-          // correspondingly less time.
-          const delta = Math.max(-origTl, Math.min(dt, length - 0.1));
-          onResizeLeft(p.id, length - delta, origTl + delta);
+          // correspondingly less time. On a video that also means starting
+          // FURTHER INTO the file, so dragging left can't go past its head.
+          const back = isVideo ? Math.min(origTl, trimStart) : origTl;
+          const delta = Math.max(-back, Math.min(dt, length - 0.1));
+          onResizeLeft(p.id, length - delta, origTl + delta, trimStart + delta);
         } else {
-          onResizeRight(p.id, Math.max(0.1, length + dt));
+          // A video can't play past its own end.
+          const maxLen = fileLen ? Math.max(0.1, fileLen - trimStart) : Infinity;
+          onResizeRight(p.id, Math.min(maxLen, Math.max(0.1, length + dt)));
         }
       });
     };
@@ -108,16 +119,18 @@ function MediaBlock({
     };
     window.addEventListener("pointermove", onMoveEv);
     window.addEventListener("pointerup", onUp);
-  }, [p.id, p.tlStart, length, pxPerSec, onResizeLeft, onResizeRight, onGestureStart]);
+  }, [p.id, p.tlStart, length, pxPerSec, isVideo, trimStart, fileLen, onResizeLeft, onResizeRight, onGestureStart]);
 
   const showHandles = (selected || hovered || gesture) && widthPx >= 22;
   const handleW = Math.min(10, Math.max(5, widthPx / 3));
-  const thumbW = Math.min(height - 2, widthPx - 2);
+  // No thumbnail for a video: painting one means a live <video> element per
+  // block, and a stray one of those is what crashes Chromium. The icon carries it.
+  const thumbW = isVideo ? 0 : Math.min(height - 2, widthPx - 2);
   const labelHidden = widthPx < 60;
 
   return (
     <div
-      title={`${p.name} · ${length.toFixed(1)}s${disabled ? " · Off" : ""}`}
+      title={`${p.name} · ${length.toFixed(1)}s${isVideo && p.muted ? " · Muted" : ""}${disabled ? " · Off" : ""}`}
       onPointerDown={onBodyDown}
       // The scroll container's onClick deselects everything — a click that
       // reached it would undo the selection this block just made.
@@ -155,9 +168,11 @@ function MediaBlock({
         className="absolute inset-y-0 right-0 flex items-center gap-1 px-1.5 pointer-events-none"
         style={{ left: thumbW > 8 ? thumbW + 3 : 4 }}
       >
-        {p.mediaType === "gif"
-          ? <Film className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
-          : <ImageIcon className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />}
+        {p.mediaType === "video"
+          ? <VideoIcon className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
+          : p.mediaType === "gif"
+            ? <Film className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
+            : <ImageIcon className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />}
         {!labelHidden && (
           <span className="text-[10px] truncate" style={{ color: MEDIA_COLORS.text, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
             {p.name}

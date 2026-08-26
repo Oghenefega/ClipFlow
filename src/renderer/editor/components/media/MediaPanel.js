@@ -38,7 +38,7 @@ function VideoThumb({ path }) {
 /**
  * The Media panel (#309): images, GIFs and videos from the watched media
  * folders (Settings) plus drop-imported one-offs. Clicking one puts it on the
- * clip at the playhead (#310 — videos are still Batch 3). Modeled on
+ * clip at the playhead (#310 images/GIFs, #311 videos). Modeled on
  * AudioPanel; speaks only in categories — folder names never show here
  * (they're internal lingo; Settings is where folders live).
  */
@@ -138,7 +138,6 @@ export default function MediaPanel() {
     if (item.missing || item.offline) return;
     const es = useEditorStore.getState();
     if (!es.clip) { flashStatus("Open a clip to add media", true); return; }
-    if (item.type === "video") { flashStatus("Video overlays aren't ready yet — images and GIFs work", true); return; }
 
     const nle = es.nleSegments || [];
     const tl = usePlaybackStore.getState().currentTime;
@@ -149,8 +148,11 @@ export default function MediaPanel() {
       sourceTime = m.found ? m.sourceTime : nle[0].sourceStart;
     }
 
-    let durationSec = null;
-    if (item.type === "gif") {
+    // A video's runtime is already in the library index (#309 probes those for
+    // the duration badge); a GIF's loop isn't, so it's read here. Either way an
+    // unprobeable file falls back to the default length.
+    let durationSec = item.type === "video" && item.durationSec > 0 ? Number(item.durationSec) : null;
+    if (durationSec == null && (item.type === "gif" || item.type === "video")) {
       try {
         const probe = await window.clipflow.ffmpegProbe(item.path);
         const d = probe?.duration ?? probe?.format?.duration;
