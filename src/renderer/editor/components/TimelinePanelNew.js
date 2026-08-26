@@ -6,7 +6,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
-import { resolvePlacements, assignRows } from "../models/audioPlacements";
+import { resolvePlacements, assignRows, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { resolveMediaPlacements, MEDIA_TRACK_CAP, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
@@ -105,6 +105,8 @@ export default function TimelinePanelNew() {
   const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Music + SFX lanes
   const mediaPlacements = useEditorStore((s) => s.mediaPlacements); // #310 Media lanes
   const mediaTrackCount = useEditorStore((s) => s.mediaTrackCount);
+  const musicTrackCount = useEditorStore((s) => s.musicTrackCount); // #312
+  const sfxTrackCount = useEditorStore((s) => s.sfxTrackCount);
   // #296: lane switches. `showSubs` IS the Subtitle lane — the switch the
   // render was already handed and never honoured (#295) — so there is one
   // subtitle on/off, not two competing ones.
@@ -966,6 +968,13 @@ export default function TimelinePanelNew() {
     useEditorStore.getState().setAudioPlacementProps(id, { trimEnd });
   }, []);
 
+  // #312: a vertical drag moves a sound between lanes of its own kind. Live,
+  // like every other in-gesture commit — the undo entry was pushed when the
+  // drag started, so one Ctrl+Z takes back the whole move.
+  const handleSoundTrackChange = useCallback((id, trackIndex) => {
+    useEditorStore.getState().setAudioPlacementProps(id, { trackIndex });
+  }, []);
+
   const handleSoundSelect = useCallback((id) => {
     setSelectedTrack("sound");
     setSelectedSegIds(new Set([id]));
@@ -999,28 +1008,70 @@ export default function TimelinePanelNew() {
     }
   }, []);
 
-  const renderSoundLane = (kind, label, hint) => {
+  // #312: a sound lane can be one of several for its kind. Lane index carries
+  // NO meaning in the mix — it exists so a third simultaneous sound stops being
+  // drawn over by the 2-row packer. Lane 1 stays at the top and extra lanes
+  // appear below it, so adding one never shuffles what is already on screen.
+  const renderSoundLane = (kind, trackIndex, label, hint) => {
     const laneOn = kind === "music" ? musicLaneOn : sfxLaneOn;
-    const { blocks, rows } = assignRows(resolvedSounds.filter((s) => s.kind === kind));
+    const trackCount = kind === "music" ? musicTrackCount : sfxTrackCount;
+    const isFirst = trackIndex === 0;
+    const isLast = trackIndex === trackCount - 1;
+    // The last lane also catches anything sitting BELOW the visible range — an
+    // undo can put a sound back on a lane that has since been removed, and a
+    // sound that plays but has no block is unfixable by hand (same guard the
+    // Media lanes use).
+    const { blocks, rows } = assignRows(resolvedSounds.filter((s) => {
+      if (s.kind !== kind) return false;
+      const t = s.trackIndex || 0;
+      return isLast ? t >= trackIndex : t === trackIndex;
+    }));
     const rowH = rows === 2 ? SOUND_STACK_ROW_H : SOUND_ROW_H;
     const baseTop = rows === 2 ? 2 : Math.round((SOUND_TRACK_H - SOUND_ROW_H) / 2);
+    const canAdd = isLast && trackCount < SOUND_TRACK_CAP;
+    const canRemove = isLast && trackCount > 1 && blocks.length === 0;
     return (
       <div
+        key={`${kind}-${trackIndex}`}
         className="flex items-stretch"
         style={{ height: SOUND_TRACK_H, borderBottom: `1px solid ${TRACK_SEPARATOR}` }}
         onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
       >
         <div
-          className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 cursor-pointer group/lane"
+          className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 group/lane"
           style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
-          title={laneOn ? `Disable the ${label} lane` : `Enable the ${label} lane`}
-          onClick={() => useEditorStore.getState().toggleLaneEnabled(kind)}
         >
-          <span className={`text-[12px] font-medium truncate ${laneOn ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}>{label}</span>
-          <LaneToggle on={laneOn} family="sound" title={`${label} lane`} />
+          <span
+            className={`text-[12px] font-medium truncate cursor-pointer ${laneOn ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}
+            title={laneOn ? `Disable the ${label} lane` : `Enable the ${label} lane`}
+            onClick={() => useEditorStore.getState().toggleLaneEnabled(kind)}
+          >
+            {trackCount > 1 ? `${label} ${trackIndex + 1}` : label}
+          </span>
+          {/* Lane add/remove appears on hover only — the label gutter is 80px
+              and a permanently-visible third control truncates the name. */}
+          {canAdd && (
+            <button
+              title={`Add another ${label} lane — for sounds that overlap`}
+              onClick={() => useEditorStore.getState().addSoundTrack(kind)}
+              className="shrink-0 h-4 w-4 rounded hidden group-hover/lane:flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          )}
+          {canRemove && (
+            <button
+              title="Remove this empty lane"
+              onClick={() => useEditorStore.getState().removeSoundTrack(kind)}
+              className="shrink-0 h-4 w-4 rounded hidden group-hover/lane:flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+          )}
+          {isFirst && <LaneToggle on={laneOn} family="sound" title={`${label} lane`} />}
         </div>
         <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
-          {blocks.length === 0 && (
+          {blocks.length === 0 && isFirst && (
             <button
               onClick={() => useLayoutStore.getState().togglePanel("audio")}
               className="absolute top-1/2 -translate-y-1/2 ml-3 text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors"
@@ -1036,12 +1087,15 @@ export default function TimelinePanelNew() {
               maxTl={nleDuration}
               top={baseTop + b.row * (rowH + 2)}
               height={rowH}
+              laneH={SOUND_TRACK_H}
+              trackCount={trackCount}
               selected={selectedTrack === "sound" && selectedSegIds.has(b.id)}
               disabled={!laneOn || b.enabled === false}
               onSelect={handleSoundSelect}
               onContextMenu={openSoundPopover}
               onGestureStart={soundGestureStart}
               onMove={handleSoundMove}
+              onTrackChange={handleSoundTrackChange}
               onTrimLeft={handleSoundTrimLeft}
               onTrimRight={handleSoundTrimRight}
               onDuplicate={handleSoundDuplicate}
@@ -1566,12 +1620,16 @@ export default function TimelinePanelNew() {
             </div>
           </div>
 
-          {/* ── Music + SFX lanes (#202) ──
-              Two lanes so a song and a sound can play together and both stay
-              visible; each lane splits into two rows when its own blocks
-              overlap. Every block is source-anchored (see audioPlacements.js). */}
-          {renderSoundLane("music", "Music", "Add music")}
-          {renderSoundLane("sfx", "SFX", "Add a sound")}
+          {/* ── Music + SFX lanes (#202 / #312) ──
+              One lane per kind so a song and a sound can play together and both
+              stay visible; each lane splits into two rows when its own blocks
+              overlap, and past that a kind can be split across extra lanes.
+              Lane 1 first, extras below, so adding one leaves the rest put.
+              Every block is source-anchored (see audioPlacements.js). */}
+          {Array.from({ length: Math.max(1, musicTrackCount) }, (_, i) =>
+            renderSoundLane("music", i, "Music", "Add music"))}
+          {Array.from({ length: Math.max(1, sfxTrackCount) }, (_, i) =>
+            renderSoundLane("sfx", i, "SFX", "Add a sound"))}
         </div>
       </div>
 
@@ -1685,6 +1743,33 @@ export default function TimelinePanelNew() {
                       onValueChange={([v]) => setProps({ fadeOut: v })} />
                   </div>
                 </>
+              )}
+              {/* #312: which lane it sits on. Unlike a media lane this changes
+                  NOTHING about how it sounds — it is only where the block is
+                  drawn — so it exists purely to stop overlapping sounds hiding
+                  each other. Hidden while this kind has just the one lane. */}
+              {(p.kind === "music" ? musicTrackCount : sfxTrackCount) > 1 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-muted-foreground">Lane</span>
+                    <span className="text-[11px] text-muted-foreground/70">layout only</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: p.kind === "music" ? musicTrackCount : sfxTrackCount }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setProps({ trackIndex: i })}
+                        className={`flex-1 h-6 rounded text-[11px] border transition-colors ${
+                          (p.trackIndex || 0) === i
+                            ? "text-foreground border-border bg-secondary/60"
+                            : "text-muted-foreground border-border/40 hover:border-border hover:text-foreground"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               {/* Trim readout — the handles on the block do the trimming, this
                   says what's playing and undoes it in one click. Reset moves the

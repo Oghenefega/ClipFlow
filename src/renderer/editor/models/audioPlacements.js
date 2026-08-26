@@ -12,6 +12,16 @@
 
 const { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped } = require("./timeMapping");
 
+/**
+ * How many lanes one kind (Music or SFX) can be split across (#312). Within a
+ * lane two overlapping blocks still stack into half-height rows, so three lanes
+ * shows six simultaneous sounds — well past the three Fega actually stacks.
+ *
+ * A sound lane's index is LAYOUT ONLY: unlike a media lane it carries no
+ * z-order, and the mix is unaffected by it. See resolvePlacements below.
+ */
+const SOUND_TRACK_CAP = 3;
+
 /** How long this placement occupies the timeline. */
 function placementLength(p) {
   const start = p.trimStart || 0;
@@ -43,6 +53,14 @@ function normalizePlacements(placements, nleSegments) {
     }
     if (out.trimStart == null) out.trimStart = 0;
     if (out.trimEnd == null) out.trimEnd = out.durationSec || 0;
+    // #312: which lane of its kind this sits on. Every clip saved before extra
+    // lanes existed had exactly one lane per kind, which IS lane 0. Anything
+    // that isn't a real lane number resolves to 0 rather than travelling on:
+    // `x >= 0` alone lets a null through (null >= 0 is true) and a string past
+    // that, and this value indexes a lane array.
+    out.trackIndex = Number.isFinite(out.trackIndex) && out.trackIndex > 0
+      ? Math.floor(out.trackIndex)
+      : 0;
     return out;
   });
 }
@@ -54,6 +72,12 @@ function normalizePlacements(placements, nleSegments) {
  * The two kinds differ ONLY here: a one-shot SFX belongs to an instant, so it
  * disappears with that instant; a song belongs to a stretch of footage, so its
  * anchor clamps forward to whatever footage survived instead of vanishing.
+ *
+ * `trackIndex` (#312) is deliberately NOT consulted and the input order is
+ * deliberately NOT changed: the mix is amix over every placement, so which lane
+ * a sound was dragged onto must not alter a single byte of the export. Media
+ * placements are the opposite case and sort by lane — that's z-order, which is
+ * real. Compare resolveMediaPlacements in mediaPlacements.js.
  */
 function resolvePlacements(placements, nleSegments) {
   const segs = nleSegments || [];
@@ -71,7 +95,9 @@ function resolvePlacements(placements, nleSegments) {
 /**
  * Lane layout: overlapping blocks stack into two half-height rows so neither
  * hides the other. Returns { blocks (sorted, each with .row), rows }.
- * A third simultaneous block reuses the row it overlaps least.
+ * A third simultaneous block reuses the row it overlaps least — which means it
+ * DRAWS OVER one of them. That's why extra lanes exist (#312): callers pass one
+ * lane's blocks at a time, so the packer never has to make that trade.
  */
 function assignRows(blocks) {
   const sorted = [...blocks].sort((a, b) => a.tlStart - b.tlStart);
@@ -90,6 +116,7 @@ function assignRows(blocks) {
 }
 
 module.exports = {
+  SOUND_TRACK_CAP,
   placementLength,
   normalizePlacements,
   resolvePlacements,

@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-26 (session 206) — Extra Music and SFX lanes, so stacked sounds stop hiding each other (#312)
+
+### Added
+- **Music and SFX can each be split across up to three lanes (#312).** Until now each kind had exactly one lane. Two overlapping sounds split it into two half-height rows, but a third simultaneous sound was simply drawn on top of one of the others — invisible and impossible to grab, which matters because stacking three effects on one moment is routine. Hovering a lane's name in the timeline gutter now reveals a **+** that opens another lane of that kind below it; the extra lane can be closed again with **−** once it's empty (a lane with a sound on it refuses to close, so nothing can vanish underneath you). The lanes are numbered only once there's more than one, so a clip that never needs a second lane looks exactly as it did.
+- **Drag a sound up or down to move it between lanes.** Same gesture as moving it along the timeline — grab the block and drag vertically — and one Ctrl+Z takes the whole move back. Its right-click popover also gains a **Lane** row with a button per lane, for when a drag is fiddlier than a click. The moment the sound plays at is untouched by either.
+
+### Changed
+- **A lane assignment can never change how a clip sounds.** Which lane a sound sits on is layout and nothing else: the mix takes every placement regardless, and the resolver that feeds the render deliberately neither reads the lane nor reorders by it. This is the opposite of the Media lanes, where the lane genuinely is the stacking order. A test asserts the render input is identical for the same sounds spread across lanes or piled onto one.
+- **The timeline's height follows its lane count on both sides.** It already grew with the Media lanes; the Music and SFX lanes were still assumed to be one apiece in the fixed height. Measured in the running app: 348px with one of each, 384px after adding one SFX lane.
+- Lane count is saved on the clip and restored with it. Clips saved before this open with one lane per kind — the shape they already had — with nothing migrated on disk.
+
 ## [Unreleased] — 2026-08-26 (session 205) — Fresh-eyes review of the video-overlay batch: two export-length bugs and a resize regression
 
 ### Fixed

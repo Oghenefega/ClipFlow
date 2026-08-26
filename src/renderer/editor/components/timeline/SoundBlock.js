@@ -26,7 +26,9 @@ function useAssetPeaks(filePath) {
  *
  * Gestures (all committed through the parent, which pushes ONE undo entry per
  * gesture via onGestureStart):
- *   drag body       → move to another moment
+ *   drag body       → move to another moment; drag it UP or DOWN and it also
+ *                     changes lane (#312), which is layout only — the mix takes
+ *                     every sound whatever lane it is on
  *   Alt + drag body → duplicate and drag the copy (subtitle-block convention)
  *   drag either end → trim the file window; the left end keeps the audible part
  *                     where it is and cuts the silence off the front
@@ -35,6 +37,7 @@ function useAssetPeaks(filePath) {
 function SoundBlock({
   p, pxPerSec, maxTl, top, height, selected,
   onSelect, onContextMenu, onGestureStart, onMove, onTrimLeft, onTrimRight, onDuplicate,
+  onTrackChange, laneH = 36, trackCount = 1,
   disabled = false,
 }) {
   const canvasRef = useRef(null);
@@ -56,14 +59,29 @@ function SoundBlock({
     if (e.button !== 0) return;
     e.stopPropagation();
     const startX = e.clientX;
+    const startY = e.clientY;
     const origTl = p.tlStart;
+    const origTrack = p.trackIndex || 0;
+    // #312: the block is re-parented into another lane mid-drag, so this
+    // component unmounts and a fresh one mounts there. Everything the gesture
+    // needs is in this closure and the listeners are on `window`, so the drag
+    // survives that — but nothing here may depend on staying mounted.
+    const canChangeLane = trackCount > 1 && !!onTrackChange;
+    let lastTrack = origTrack;
     movedRef.current = false;
     targetRef.current = p.id;
     const wantDuplicate = !!(e.altKey && onDuplicate);
 
     const onMoveEv = (ev) => {
       const dx = ev.clientX - startX;
-      if (!movedRef.current && Math.abs(dx) < 3) return;
+      const dy = ev.clientY - startY;
+      // A lane change is a purely VERTICAL gesture, so the start threshold has
+      // to see vertical movement too — otherwise dragging straight down never
+      // starts the drag at all. Only when there IS another lane to reach,
+      // though: with one lane a wobbly click must still land as a select, the
+      // way it always has.
+      const past = Math.abs(dx) >= 3 || (canChangeLane && Math.abs(dy) >= 3);
+      if (!movedRef.current && !past) return;
       if (!movedRef.current) {
         // Alt is read at press time OR live off the move event — Windows can
         // swallow the press-time modifier (menu accelerator).
@@ -81,6 +99,15 @@ function SoundBlock({
       rafRef.current = requestAnimationFrame(() => {
         const next = Math.max(0, Math.min(origTl + dx / (pxPerSec || 1), Math.max(0, maxTl - 0.05)));
         onMove(targetRef.current, next);
+        if (canChangeLane) {
+          const track = Math.max(0, Math.min(trackCount - 1, origTrack + Math.round(dy / laneH)));
+          // Only on a crossing — otherwise every tick of a purely horizontal
+          // drag would rewrite trackIndex to the value it already has.
+          if (track !== lastTrack) {
+            lastTrack = track;
+            onTrackChange(targetRef.current, track);
+          }
+        }
       });
     };
     const onUp = (ev) => {
@@ -93,7 +120,8 @@ function SoundBlock({
     };
     window.addEventListener("pointermove", onMoveEv);
     window.addEventListener("pointerup", onUp);
-  }, [p.id, p.tlStart, pxPerSec, maxTl, onMove, onSelect, onDuplicate, onGestureStart]);
+  }, [p.id, p.tlStart, p.trackIndex, pxPerSec, maxTl, laneH, trackCount,
+      onMove, onTrackChange, onSelect, onDuplicate, onGestureStart]);
 
   // ── Trim handles ──
   const onHandleDown = useCallback((side, e) => {

@@ -3,6 +3,7 @@ const {
   normalizePlacements,
   resolvePlacements,
   assignRows,
+  SOUND_TRACK_CAP,
 } = require("../audioPlacements");
 
 // Source 10-15 and 20-30 → timeline 0-5 and 5-15.
@@ -128,5 +129,83 @@ describe("assignRows — overlapping blocks stack instead of hiding each other",
       { id: "c", tlStart: 7, tlEnd: 8 },
     ]);
     expect(blocks.find((b) => b.id === "c").row).toBe(0);
+  });
+});
+
+// ── #312: extra Music / SFX lanes ──
+// A sound lane is LAYOUT ONLY. The one thing that must never happen is a lane
+// assignment reaching the mix, so the tests here are mostly about what does NOT
+// change. (The media lanes are the opposite case — there the index IS z-order
+// and resolveMediaPlacements sorts by it.)
+describe("trackIndex — extra sound lanes", () => {
+  test("a clip saved before extra lanes existed lands on lane 0", () => {
+    const [p] = normalizePlacements([sfx()], SEGS);
+    expect(p.trackIndex).toBe(0);
+  });
+
+  test("an explicit lane survives normalizing", () => {
+    const [p] = normalizePlacements([sfx({ trackIndex: 2 })], SEGS);
+    expect(p.trackIndex).toBe(2);
+  });
+
+  test("a nonsense lane falls back to 0 rather than propagating", () => {
+    for (const bad of [-1, null, "1", undefined, NaN]) {
+      const [p] = normalizePlacements([sfx({ trackIndex: bad })], SEGS);
+      expect(p.trackIndex).toBe(0);
+    }
+  });
+
+  test("the lane never reaches the mix: resolving is identical either way", () => {
+    // Same three sounds, once all on lane 0 and once spread across three lanes.
+    // What render.js consumes is this array, in this order — so if these two
+    // agree, moving a block between lanes cannot change a byte of the export.
+    const spread = [
+      sfx({ id: "a", sourceTime: 12, trackIndex: 0 }),
+      sfx({ id: "b", sourceTime: 12, trackIndex: 2 }),
+      song({ id: "c", trackIndex: 1 }),
+    ];
+    const flat = spread.map((x) => ({ ...x, trackIndex: 0 }));
+    const strip = (list) => list.map(({ trackIndex, ...rest }) => rest);
+    expect(strip(resolvePlacements(spread, SEGS)))
+      .toEqual(strip(resolvePlacements(flat, SEGS)));
+  });
+
+  test("resolving does NOT reorder by lane the way media placements do", () => {
+    const out = resolvePlacements([
+      sfx({ id: "high", sourceTime: 12, trackIndex: 2 }),
+      sfx({ id: "low", sourceTime: 12, trackIndex: 0 }),
+    ], SEGS);
+    expect(out.map((x) => x.id)).toEqual(["high", "low"]);
+  });
+
+  test("packing one lane at a time is what stops a 3rd sound being drawn over", () => {
+    // Three sounds overlapping at the same instant. On one lane the 2-row
+    // packer has to put the third somewhere — it lands on top of another block.
+    const all = [
+      { id: "a", tlStart: 0, tlEnd: 4, trackIndex: 0 },
+      { id: "b", tlStart: 1, tlEnd: 5, trackIndex: 0 },
+      { id: "c", tlStart: 2, tlEnd: 6, trackIndex: 1 },
+    ];
+    const oneLane = assignRows(all);
+    const collides = oneLane.blocks.some((x) =>
+      oneLane.blocks.some((y) => x.id !== y.id && x.row === y.row
+        && x.tlStart < y.tlEnd && x.tlEnd > y.tlStart));
+    expect(collides).toBe(true);
+
+    // Split across two lanes — the caller passes one lane at a time — and
+    // neither lane has an overlap left to hide.
+    for (const lane of [0, 1]) {
+      const { blocks } = assignRows(all.filter((x) => x.trackIndex === lane));
+      const hidden = blocks.some((x) =>
+        blocks.some((y) => x.id !== y.id && x.row === y.row
+          && x.tlStart < y.tlEnd && x.tlEnd > y.tlStart));
+      expect(hidden).toBe(false);
+    }
+  });
+
+  test("the cap leaves room for more than the three sounds that motivated it", () => {
+    // 2 rows packed per lane, so the cap is what actually bounds how many
+    // simultaneous sounds stay visible.
+    expect(SOUND_TRACK_CAP * 2).toBeGreaterThanOrEqual(3);
   });
 });

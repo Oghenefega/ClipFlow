@@ -9,7 +9,7 @@ import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource } from "../models/timeMapping";
-import { normalizePlacements, resolvePlacements } from "../models/audioPlacements";
+import { normalizePlacements, resolvePlacements, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
@@ -124,9 +124,14 @@ const useEditorStore = create((set, get) => ({
   // trims/reorders, like subtitles) plus the window of their file that plays.
   // Timeline length is DERIVED: trimEnd - trimStart.
   // Shape: { id, assetId, name, path, kind: "sfx"|"music", durationSec,
-  //          sourceTime, trimStart, trimEnd, volume 0-1,
+  //          sourceTime, trimStart, trimEnd, volume 0-1, trackIndex,
   //          fadeIn?/fadeOut? (music only, seconds) }
   audioPlacements: [],
+  // #312: how many lanes each sound kind is split across. Purely layout — the
+  // mix takes every placement regardless — so this exists only so overlapping
+  // sounds stop drawing over each other.
+  musicTrackCount: 1,
+  sfxTrackCount: 1,
   // #310/#311: images, GIFs and videos placed on the picture. Anchored to a
   // SOURCE moment like sounds are, plus where they sit on the OUTPUT frame
   // (percent, x/y = centre).
@@ -230,6 +235,8 @@ const useEditorStore = create((set, get) => ({
         audioPlacements: [],
         mediaPlacements: [],
         mediaTrackCount: 1,
+        musicTrackCount: 1,
+        sfxTrackCount: 1,
         laneEnabled: { cap: true, music: true, sfx: true, media: true },
         sourceAudioMuted: false,
         sourceStartTime: 0,
@@ -263,7 +270,7 @@ const useEditorStore = create((set, get) => ({
       const newClipId = editorContext?.clipId || null;
       useAIStore.getState().swapToClip(oldClipId, newClipId);
     } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], mediaPlacements: [], mediaTrackCount: 1, laneEnabled: { cap: true, music: true, sfx: true, media: true }, sourceAudioMuted: false });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], mediaPlacements: [], mediaTrackCount: 1, musicTrackCount: 1, sfxTrackCount: 1, laneEnabled: { cap: true, music: true, sfx: true, media: true }, sourceAudioMuted: false });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -334,6 +341,10 @@ const useEditorStore = create((set, get) => ({
       // clip saved by an older build doesn't carry.
       mediaPlacements: normalizeMediaPlacements(clip?.media),
       mediaTrackCount: Math.max(1, Math.min(MEDIA_TRACK_CAP, clip?.mediaTrackCount || 1)),
+      // #312: extra Music/SFX lanes. Absent = one lane, which is what every
+      // clip saved before this had.
+      musicTrackCount: Math.max(1, Math.min(SOUND_TRACK_CAP, clip?.musicTrackCount || 1)),
+      sfxTrackCount: Math.max(1, Math.min(SOUND_TRACK_CAP, clip?.sfxTrackCount || 1)),
       // #296: absent = enabled, so a clip that predates the feature opens with
       // every lane on and its source audio audible.
       laneEnabled: {
@@ -641,6 +652,9 @@ const useEditorStore = create((set, get) => ({
       sourceTime,
       trimStart: 0,
       trimEnd: fileLen,
+      // #312: first lane of its kind. Nothing auto-stacks — a sound landing on
+      // a second lane would be a surprise, and the lanes are layout only.
+      trackIndex: 0,
       // #209: both kinds fade. A cinematic boom wants a tail as much as a song
       // does; the fade math was never music-specific, only the gates were.
       fadeIn: 0,
@@ -715,6 +729,34 @@ const useEditorStore = create((set, get) => ({
       ),
     });
     get().markDirty();
+  },
+
+  // ── #312: extra Music / SFX lanes ──
+  // A sound lane index is LAYOUT ONLY — the mix is unchanged by it, so adding a
+  // lane and dragging a block onto it can never alter the export. That's the
+  // whole difference from a media lane, where the index IS z-order.
+  addSoundTrack: (kind) => {
+    const key = kind === "music" ? "musicTrackCount" : "sfxTrackCount";
+    const next = Math.min(SOUND_TRACK_CAP, (get()[key] || 1) + 1);
+    if (next === get()[key]) return;
+    set({ [key]: next });
+    get().markDirty();
+  },
+
+  // Only ever removes the LAST lane, and only when it's empty — a sound should
+  // never vanish because a lane was closed under it.
+  removeSoundTrack: (kind) => {
+    const key = kind === "music" ? "musicTrackCount" : "sfxTrackCount";
+    const count = get()[key] || 1;
+    if (count <= 1) return false;
+    const last = count - 1;
+    const occupied = get().audioPlacements.some(
+      (p) => p.kind === kind && (p.trackIndex || 0) >= last
+    );
+    if (occupied) return false;
+    set({ [key]: last });
+    get().markDirty();
+    return true;
   },
 
   deleteAudioPlacement: (id) => {
@@ -1408,7 +1450,7 @@ const useEditorStore = create((set, get) => ({
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
-      const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, laneEnabled, sourceAudioMuted } = get();
+      const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, musicTrackCount, sfxTrackCount, laneEnabled, sourceAudioMuted } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
@@ -1479,6 +1521,8 @@ const useEditorStore = create((set, get) => ({
         sfx: audioPlacements, // #202: SFX/music placements (Sounds lane)
         media: mediaPlacements, // #310: image/GIF overlays (Media lanes)
         mediaTrackCount, // how many overlay lanes this clip shows
+        musicTrackCount, // #312: how many Music lanes this clip shows
+        sfxTrackCount, //   #312: how many SFX lanes this clip shows
         laneEnabled, // #296: Caption / Music / SFX lane switches
         sourceAudioMuted, // #296: Audio lane mute (the clip's own sound)
         audioSegments: audioSegments, // legacy — kept for backwards compatibility

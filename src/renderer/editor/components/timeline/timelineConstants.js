@@ -80,7 +80,8 @@ export const RULER_H = 24;
 export const TRACK_H = 38;
 export const AUDIO_TRACK_H = 56;
 // Music + SFX lanes. A lane splits into two half-height rows when its blocks
-// overlap, so neither can hide the other (#202b).
+// overlap, so neither can hide the other (#202b); past that, each kind can be
+// split across extra lanes of its own (#312).
 export const SOUND_TRACK_H = 36;
 export const SOUND_ROW_H = 28;
 export const SOUND_STACK_ROW_H = 15;
@@ -90,9 +91,11 @@ export const MEDIA_TRACK_H = 36;
 export const MEDIA_ROW_H = 28;
 export const MEDIA_STACK_ROW_H = 15;
 // Everything in the timeline that is always there: ruler + controls bar +
-// Caption + Subtitle + Audio + Music + SFX + the horizontal scrollbar. This is
-// the 276 EditorLayout used to hard-code; the Media lanes (#310) add on top.
-export const TIMELINE_FIXED_H = RULER_H + 36 + TRACK_H * 2 + AUDIO_TRACK_H + SOUND_TRACK_H * 2 + 12;
+// Caption + Subtitle + Audio + the horizontal scrollbar. The Media lanes (#310)
+// and the Music/SFX lanes (#312) are all count-driven now, so EditorLayout adds
+// them on top — this no longer carries the one-Music-plus-one-SFX assumption
+// that made the old hard-coded 276.
+export const TIMELINE_FIXED_H = RULER_H + 36 + TRACK_H * 2 + AUDIO_TRACK_H + 12;
 export const LABEL_W = 80;
 export const END_PADDING = 200;
 // Subtitle clustering: subs whose visual gap (in px) is below this threshold

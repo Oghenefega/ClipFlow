@@ -43,7 +43,7 @@ import {
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
 import { buildRenderPayload } from "../utils/renderPayload";
-import { TIMELINE_FIXED_H, MEDIA_TRACK_H } from "./timeline/timelineConstants";
+import { TIMELINE_FIXED_H, MEDIA_TRACK_H, SOUND_TRACK_H } from "./timeline/timelineConstants";
 import {
   Tooltip,
   TooltipContent,
@@ -1120,14 +1120,20 @@ function MiniPlayerBar({ onShowTimeline }) {
 // ── Main Layout Shell ──
 export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
-  // #310: the timeline is as tall as its lanes. Fixed part = ruler + toolbar +
-  // Caption + Subtitle + Audio + Music + SFX + the horizontal scrollbar (this
-  // was the magic 276); each overlay lane adds its own row on top of that.
+  // #310/#312: the timeline is as tall as its lanes. Fixed part = ruler +
+  // toolbar + Caption + Subtitle + Audio + the horizontal scrollbar (what was
+  // the magic 276, minus the one-Music-plus-one-SFX it used to assume); every
+  // overlay and sound lane adds its own row on top of that.
   // It grows rather than capping and scrolling: the scroll container is
   // overflow-y-hidden, so a capped stack would hide a lane outright — and the
   // extra lanes only exist because the user asked for them and can remove them.
   const mediaTrackCount = useEditorStore((s) => s.mediaTrackCount);
-  const timelineHeight = TIMELINE_FIXED_H + Math.max(1, mediaTrackCount || 1) * MEDIA_TRACK_H;
+  const musicTrackCount = useEditorStore((s) => s.musicTrackCount);
+  const sfxTrackCount = useEditorStore((s) => s.sfxTrackCount);
+  const timelineHeight =
+    TIMELINE_FIXED_H
+    + Math.max(1, mediaTrackCount || 1) * MEDIA_TRACK_H
+    + (Math.max(1, musicTrackCount || 1) + Math.max(1, sfxTrackCount || 1)) * SOUND_TRACK_H;
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // The editor's one keyboard layer. It lives here because this shell is
