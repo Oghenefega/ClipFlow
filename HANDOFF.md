@@ -1,82 +1,94 @@
-# HANDOFF — Session 205 (2026-08-26)
+# HANDOFF — Session 206 (2026-08-26)
 
 ## Current State
 
-**`5bd9873` (#311) reviewed at Fable@xhigh and its fixes shipped** (`4eaa36c`) — 15 findings,
-11 fixed, review summary on #311. The two big ones were measured export-overrun bugs: a video
-overlay window past the clip's end (the DEFAULT drop of a long reaction clip) exported 30s from
-an 8s timeline, and a looping GIF at tlStart>0 overran by exactly tlStart. Both re-measured at
-exactly 8.000000 after the fix; the s203 still-overlay hang case stays fixed. `npm test`: 145
-passing; renderer builds.
+**#312 built and pushed (`d65bbdb`, Opus@high).** Music and SFX can each be split across up to
+three lanes; a vertical drag moves a block between lanes of its kind; the render is untouched.
+Reproduced the bug in the running app first (three SFX on one lane → two blocks at the same
+x/y, one drawn over the other), then measured the fix (zero overlaps, all three grabbable).
+`npm test`: **152 passing**. Renderer builds.
 
-Epic #308: **#312 is the last build** (Opus@high, fresh session), then #313/#314, then the one
-big installer. Nothing in the media track has been verified by Fega yet — still one pass at the
-end, installer still the gate.
+Epic #308's build track is now done: #309 / #310 / #311 / #312 have all landed. What's left
+before the installer is #314 and #313. **Nothing in the media track has been verified by Fega
+yet** — still one pass at the end, installer still the gate.
+
+`d65bbdb` is unreviewed. So is `4eaa36c` from s205 (a review-fix commit). The next Fable@xhigh
+session should cover both.
 
 ## Key Decisions
 
-1. **The export is bounded at the OUTPUT: `-t timelineDuration` on the render args** (useNle
-   only). `overlay` (shortest=0) does NOT stop at the main input's end — it repeats the main's
-   last frame while any secondary stream runs — so export length is enforced, not inferred from
-   input behaviour. Per-input caps kept as belt: still = timeline length, GIF =
-   `timelineDuration - tlStart` (its setpts shift), video = `-ss trimStart -t window` with the
-   graph handed a 0-rebased window (also kills the decode-the-lead-in cost; content parity
-   proven pixel-per-second).
-2. **probeHasAudio is a wrapper over ffmpeg.js `probeAudioTracks`** — inherits its 30s timeout
-   (a stuck probe can't hang the render), returns true/false/null so a failed probe logs as a
-   failure instead of "has no audio track". Both non-true states still drop the file from the mix.
-3. **Review deferrals are tracked, not patched**: #318 (unprobed `durationSec` escapes every
-   trim clamp), #319 (preview blind spots: mount-at-start latency, no onError), and the
-   sync-loop dedupe is noted ON #312 because that batch rebuilds the same code.
+1. **A sound lane index is LAYOUT ONLY — the exact opposite of a media lane.** A media
+   `trackIndex` is z-order and `resolveMediaPlacements` sorts by it. `resolvePlacements`
+   deliberately does NOT read `trackIndex` and does NOT reorder, because the mix is amix over
+   every placement: which lane a sound sits on must not change a byte of the export. Both
+   models carry that contrast in their comments, and a test asserts identical resolver output
+   for the same sounds spread across lanes vs piled onto one. **Don't "tidy" the two models
+   into agreement — the asymmetry is the point.**
+2. **`render.js` was not touched at all.** That's the whole reason the byte-identical
+   requirement is cheap: `trackIndex` is an extra field on a placement the graph never reads.
+3. **The s205 sync-loop merge (`syncMediaVideos` / `syncAssetAudio`) was deliberately NOT
+   done.** Its premise was that this batch rebuilds that area; it doesn't — `PreviewPanelNew.js`
+   has zero lines changed. Merging two unverified preview clock loops before the installer is
+   risk without payoff, and they differ in substance (the audio one creates and prunes its own
+   elements and applies fades; the video one is handed its elements and must be right while
+   paused). Reasoning is on #312. **Currently UNFILED** — file it after Fega's pass if wanted.
+4. **Lane geometry:** lane 1 stays on top and extras open BELOW it, so adding one never shuffles
+   what's on screen. (Media lanes go the other way — higher index is drawn on top, so it sits
+   nearer the Subtitle lane. Both are deliberate.) Controls live on the LAST lane of a kind, the
+   on/off toggle on the FIRST.
 
 ## Next Steps
 
 **Fega's standing call: NO installer until the media track is done — then one big one.**
 
-1. **#312 (dynamic extra SFX/Music tracks)** — Opus@high, its own session. It WILL add FFmpeg
-   inputs: append them with the audio assets (order: segments → subtitle PNG pipe → audio
-   assets → media assets), re-run `npm test`, and read the s205 comment on #312 first (sync-loop
-   merge belongs there; input-cap rules its new inputs must not disturb).
-2. **#314** (kind-blind watched-folder lists) and **#313** (stale ffmpeg-skill ASS burn-in doc —
+1. **#314** (kind-blind watched-folder lists) and **#313** (stale ffmpeg-skill ASS burn-in doc —
    the skill gained lines in s203/s204/s205, don't clobber them).
-3. **THEN the one big installer** (`clipflow-update-launcher`): #309/#310/#311/#312 + review
-   commits (d30fd39, 62ee3ee, 4eaa36c) + #313/#314/#317. Issues stay open (`status: untested`
-   on anything closed early) until Fega's one pass.
+2. **THEN the one big installer** (`clipflow-update-launcher`): #309/#310/#311/#312 + review
+   commits (d30fd39, 62ee3ee, 4eaa36c, d65bbdb) + #313/#314/#317. Issues stay open
+   (`status: untested` on anything closed early) until Fega's one pass.
 
 Rhythm stands: Opus@high builds, Fable@xhigh reviews commit-by-hash right after it lands.
-`4eaa36c` is itself unreviewed — it's a review-fix commit; the next Fable session can fold a
-quick pass over it into the #312 review rather than a dedicated session.
 
 ## Watch Out For
 
-- **Fega's verification pass gains one check**: besides "still/looping GIF render must finish"
-  (s203 hang), drop a video LONGER than the clip, leave it untrimmed, render — **the export
-  must be exactly the clip's length** (s205 overrun).
-- **The output `-t` cap and the per-input caps live in `renderClip`'s args, not the filter
-  graph — no test covers them.** Protection is the comments there, the ffmpeg skill lines, and
-  the s205 comment on #312. Don't "tidy" either layer away; each covers shapes the other doesn't.
-- The graph's video trim window is now ALWAYS 0-rebased by renderClip (`-ss`/`-t` on the
-  input). `buildNleFilterComplex` still accepts arbitrary windows (tests feed `trim=1:5`
-  directly) — that asymmetry is intentional; don't "fix" one to match the other.
-- **jest passing proves render.js's whole require chain loads** (the test file requires it), so
-  a broken cross-tree require would fail the suite, not just boot.
+- **Fega's verification pass gains one check** on top of the s203/s205 ones: drop three sound
+  effects on one moment, hover the SFX lane name, click `+`, drag one block down onto the new
+  lane. All three visible and grabbable, and **the render must sound identical** to before the
+  split.
+- **The drag threshold is gated, and the gate matters.** `SoundBlock`'s start threshold had to
+  begin noticing vertical movement, which made a wobbly click start a move instead of selecting.
+  It's now `|dx| >= 3 || (canChangeLane && |dy| >= 3)` — with one lane, behaviour is exactly what
+  it was. Don't simplify that back to an unconditional `|dy|`.
+- **A block is RE-PARENTED into another lane mid-drag** — React unmounts it and mounts a fresh
+  one there. The gesture survives only because everything it needs is in the pointerdown closure
+  and the listeners are on `window`. Nothing in that handler may depend on staying mounted.
+- **The last lane of a kind catches `t >= trackIndex`**, so an undo can't strand a block on a
+  lane that's since been closed (same guard the Media lanes use). Don't tighten it to `===`.
+- `TIMELINE_FIXED_H` no longer includes the two sound lanes — every lane is count-driven now,
+  and `EditorLayout` adds media + music + sfx on top. Measured 348px → 384px on adding a lane.
+- **#320 filed**: `mediaPlacements`' `!(x >= 0)` guard lets a `null` through (`null >= 0` is
+  `true`). Harmless today (every consumer reads `p.trackIndex || 0`). The audio twin was fixed
+  here; the media one was deliberately left for after the verification pass.
 - The sacrificial test clip remains **"Clip 4 (copy)"** in *2026-08-06 RL Day14 Pt2* (dev
-  profile); the first clip there ("He DOMINATED me…") is approved AND published — don't touch.
-- Preview-vs-output percent mismatch on un-reframed clips is still an accepted v1 limit; GIF
-  frames still aren't scrub-synced in the preview (video overlays ARE).
+  profile) — used and **restored** this session (verified against the project JSON on disk). The
+  first clip there ("He DOMINATED me…") is approved AND published — don't touch.
 
 ## Logs/Debugging
 
-- **FFmpeg overrun/parity harness** (scratchpad `drain/`, this session): `main8.mp4` (8s),
-  `overlay120.mp4` (120s), `anim.gif` (2s loop), `colors5.mp4` (colour-per-second + tone).
-  Technique: run the exact renderClip arg shape, then `ffprobe -show_entries format=duration`
-  — **duration is the assertion; "exit 0" passed both bugs.** Pixel read-back:
-  `-ss <t> -vf "crop=4:4:<x>:<y>,scale=1:1,format=rgb24" -frames:v 1 -f rawvideo - | xxd -p`.
-- Overlay-mix presence via volumedetect delta: in-window vs out-of-window mean_volume differed
-  ~1.4 dB with a 0.6-gain tone over an existing tone — small but reliable.
-- Left-resize verified through the REAL model in node (resolveMediaPlacements + the handler
-  maths inline) — no app boot needed for placement-model regressions; pattern in the s205
-  transcript, cheap to rebuild.
-- The StrictMode dev-only blank-overlay class: any "works installed, broken under npm run dev"
-  report on media elements → check effect cleanups that strip attributes React set (React
-  won't re-apply an unchanged prop).
+- **CDP driver, no dependencies.** `ws` is not installed, but Node 24 has a global `WebSocket`:
+  a ~40-line `cdp.js` over `/json/list` + `Runtime.evaluate` was the whole harness. Probes as
+  real files (`node cdp.js --file probe.js`), never heredocs. Full notes now in the
+  `project_cdp_verification_gotchas` memory.
+- **Launch for boot-verify:** `CLIPFLOW_PROFILE=dev electron . --remote-debugging-port=9222`
+  loads from `build/`, not Vite (`isDev` is hard-coded false), so CDP drives the REAL bundle.
+- **The trap that cost a pass:** dispatching a shortcut KeyboardEvent on both `window` AND
+  `document` fires it twice (document bubbles to window) — a "single" Ctrl+Z ran two undos and
+  looked like an undo bug. Dispatch on `window` only.
+- **Hidden controls, two kinds.** CSS-gated (`hidden group-hover/lane:flex`) responds to
+  `.click()` while invisible. React-state-gated (`{hovered && <button/>}`) isn't in the DOM:
+  dispatch `mouseover` on the row, await a tick, then query.
+- **The assertion that actually proved the bug** was geometric, not visual: collect every block's
+  rect per lane and count pairs overlapping in BOTH x and y. One lane → `overlapping: 1`; two
+  lanes → `0`. A screenshot alone would not have caught a block hidden exactly behind another.
+- Persistence was verified by reading the project JSON off disk after autosave
+  (`W:\...\.clipflow\projects\proj_1786068431412_4o50ad\project.json`), not from the UI.
