@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-26 (session 207) — Fresh-eyes review of the sound-lanes batch: both commits pass
+
+### Fixed
+- **The sound lane label's tooltip now tells the truth about scope (#312 review).** Clicking a lane's name disables every lane of its kind, but with several Music lanes open the tooltip still said "Disable the Music lane" — singular. It now matches the Media lanes' copy: "Disable every Music lane" once there's more than one, unchanged with a single lane.
+
+### Changed
+- The review of `d65bbdb` (#312, extra sound lanes) and `4eaa36c` (#311 review fixes) found no functional bugs — undo semantics, drag geometry, persistence, the render-isolation guarantee and the probe/resize/sync contracts all verified against the code, 152 tests passing. One pre-existing wart shared with the Media lanes was filed as #321 instead of patched: the "remove this empty lane" button can render but silently refuse when a sound whose footage was cut away still occupies the lane invisibly.
+
 ## [Unreleased] — 2026-08-26 (session 206) — Extra Music and SFX lanes, so stacked sounds stop hiding each other (#312)
 
 ### Added

@@ -1043,7 +1043,9 @@ export default function TimelinePanelNew() {
         >
           <span
             className={`text-[12px] font-medium truncate cursor-pointer ${laneOn ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}
-            title={laneOn ? `Disable the ${label} lane` : `Enable the ${label} lane`}
+            title={trackCount > 1
+              ? (laneOn ? `Disable every ${label} lane` : `Enable the ${label} lanes`)
+              : (laneOn ? `Disable the ${label} lane` : `Enable the ${label} lane`)}
             onClick={() => useEditorStore.getState().toggleLaneEnabled(kind)}
           >
             {trackCount > 1 ? `${label} ${trackIndex + 1}` : label}
