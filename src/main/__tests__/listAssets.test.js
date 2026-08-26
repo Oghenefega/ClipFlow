@@ -23,8 +23,11 @@ const off = (p) => [{ path: p, enabled: false }];
 const names = (list) => list.map((a) => path.basename(a.path)).sort();
 
 /** A fresh, empty index so each test starts from a cold library. */
+const indexDirs = [];
 function freshIndex() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "clipflow-assets-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "clipflow-assets-"));
+  indexDirs.push(dir);
+  return dir;
 }
 
 beforeAll(() => {
@@ -42,7 +45,10 @@ beforeAll(() => {
   }
 });
 
-afterAll(() => fs.rmSync(FIX, { recursive: true, force: true }));
+afterAll(() => {
+  fs.rmSync(FIX, { recursive: true, force: true });
+  for (const dir of indexDirs) fs.rmSync(dir, { recursive: true, force: true });
+});
 
 describe("listAssets — overlapping watched lists (#314)", () => {
   test("removing the media root drops its files, even under a still-watched audio root", async () => {
@@ -63,12 +69,17 @@ describe("listAssets — overlapping watched lists (#314)", () => {
   test("same root in both lists: toggling one Off hides only that list's kinds", async () => {
     const idx = freshIndex();
     const all = ["banner.png", "beep.mp3", "clip.mp4", "shot.png", "theme.wav", "voice.mp3"];
-    expect(names(await listAssets(idx, on(LIB()), on(LIB())))).toEqual(all);
+    const first = await listAssets(idx, on(LIB()), on(LIB()));
+    expect(names(first)).toEqual(all);
 
     expect(names(await listAssets(idx, off(LIB()), on(LIB())))).toEqual(["banner.png", "clip.mp4", "shot.png"]);
     expect(names(await listAssets(idx, on(LIB()), off(LIB())))).toEqual(["beep.mp3", "theme.wav", "voice.mp3"]);
     // A toggle is not a removal — everything comes back, index intact (#208).
-    expect(names(await listAssets(idx, on(LIB()), on(LIB())))).toEqual(all);
+    // Same ids proves the entries survived rather than being pruned and
+    // re-absorbed as strangers — that's what keeps favorites and lanes.
+    const again = await listAssets(idx, on(LIB()), on(LIB()));
+    expect(names(again)).toEqual(all);
+    expect(again.map((a) => a.id).sort()).toEqual(first.map((a) => a.id).sort());
   });
 
   test("nested roots: toggling the media root Off hides its files with no ghosts", async () => {

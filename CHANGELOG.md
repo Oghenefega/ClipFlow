@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-26 (session 209) — Fresh-eyes review of the watched-folder fix: logic passes, changelog history restored
+
+### Fixed
+- **Session 207's changelog section got its heading back.** The #314 commit accidentally *replaced* the session-207 heading with the session-208 one instead of adding a new section above it, which erased the record of the sound-lanes review session and left its entries stranded under the wrong heading with duplicate section labels. The heading is restored; no entry text was lost.
+
+### Changed
+- The review of `446d6f3` (#314, per-list watched-folder membership) found no functional bugs — the per-kind membership rule was traced through every overlap shape (nested roots, one folder on both lists, offline vs. missing, unknown extensions, disabled vs. removed) and held up in each. Its new tests were tightened in passing: the toggle-off test now proves index entries survive by identity (same ids, not re-absorbed lookalikes — that's what keeps favorites), and the test run no longer leaves temp folders behind. The light accuracy pass on `9ad0e47` (#313) checked every claim in the rewritten subtitle-pipeline section against the source and found all of them true.
+
 ## [Unreleased] — 2026-08-26 (session 208) — Watched folders stop vouching for each other's files (#314)
 
 ### Changed
@@ -11,6 +19,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - **Overlapping watched folders no longer leave un-removable "file missing" tiles (#314).** The Sounds list and the Media list are allowed to point at the same folder, or at folders nested inside one another — but the app was only half-aware of the split. When it went looking on disk it respected it (a Sounds folder is searched for sounds only, a Media folder for pictures, GIFs and videos only); when it later asked whether a file still belonged on screen, it accepted *any* watched folder as cover. So a Sounds folder vouched for picture files nobody had gone looking for, and they stayed in the Media tab forever as greyed-out, unclickable "file missing" tiles. Removing the Media folder from Settings didn't clear them, and neither did switching it Off — the only escape was removing the folder from the other list too. Each file is now judged against the list that matches its own kind, so removing or switching off a folder affects exactly that list's items and nothing else. Files with an extension the app doesn't recognise still answer to both lists, so nothing can be quietly dropped from the library. Folders that don't overlap — the ordinary setup — behave exactly as before, including flagging a whole folder as offline when its drive goes away.
+
+## [Unreleased] — 2026-08-26 (session 207) — Fresh-eyes review of the sound-lanes batch: both commits pass
 
 ### Fixed
 - **The sound lane label's tooltip now tells the truth about scope (#312 review).** Clicking a lane's name disables every lane of its kind, but with several Music lanes open the tooltip still said "Disable the Music lane" — singular. It now matches the Media lanes' copy: "Disable every Music lane" once there's more than one, unchanged with a single lane.
