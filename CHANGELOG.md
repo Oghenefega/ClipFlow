@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-26 (session 210) — The five media/tracker follow-ups, one commit each
+
+### Fixed
+- **A half-published clip no longer disappears from the Tracker (#315).** When a scheduled publish only partly works, the scheduler clears the clip's schedule at fire time while the Tracker entry is only written on full success — so between those two the clip was live on the platforms that worked and visible nowhere. The calendar now derives a red "RETRY" card for a clip with publish errors and no Tracker entry, sitting in the slot it actually went out in. It is a visual only: nothing is written, so the week count, pace ring, streak and XP still move only when the retry completes.
+- **A late retry logs the slot the audience got the clip in, not the slot the fix landed in (#315).** Retrying was overwriting `publishedAt` with the retry time, so the original first-success moment was gone before the Tracker entry could use it — a 12:30p clip retried at 2:20p filed itself at 2:30p. The stamp is now written once and the entry is derived from it.
+- **A video overlay can no longer outrun the file it plays from (#318).** A video whose length was never probed escaped every trim clamp, and each consumer broke differently: the render froze the last frame over silence, the preview seek never converged and re-seeked every tick, and a thumbnail seek past the end produced a zero-frame input that dropped the overlay or stalled. A video is now never placed without a known length (the Media panel refuses one it can't measure and says so), an older placement heals itself from what the preview element measures, the preview clamps its seek and holds the last frame instead of flickering, and the render and thumbnail both probe and re-clamp anything that still slips through.
+- **The remove-lane button and the store agree about what "empty" means (#321).** The − decided its visibility from the blocks it could see while the store checked the saved list, so a lane holding only a *dormant* placement — one whose footage was cut away, kept on purpose so an undo can revive it — looked empty, showed the −, and silently did nothing when clicked, forever. Per Fega's call the lane still refuses to close; it now says why, in the space where the block would be: "1 overlay is still here, hidden — its footage was cut away. The lane stays until it's back." Media and Sound lanes fixed together as one decision.
+- **A non-number lane index can no longer travel through the overlay model (#320).** `!(trackIndex >= 0)` lets a `null` straight through (`null >= 0` is true), so `normalizeMediaPlacements` could return a placement whose lane wasn't a number. Latent rather than live — nothing in the app produces one — but the sound twin was fixed in #312 and the two models are meant to agree.
+
+### Added
+- **A video overlay warms up before it is needed (#319).** Its `<video>` used to be created at the exact instant it had to be playing, so the first frames of every video overlay were blank while the file opened. Overlays now mount a second and a half early, invisible and click-through, and the element is parked on the first frame it will need.
+- **The preview says when it can't show a file (#319).** A file Chromium can't decode used to be an invisible box on the canvas and a black cell in the Media panel, even though the render composites it perfectly — so a working overlay looked broken. Both now say so: the overlay keeps its box and handles under "No preview for this file — it still renders", and the panel cell reads "No preview".
+
 ## [Unreleased] — 2026-08-26 (session 209) — Watched-folder review passes; 0.4.0-alpha.6 cut with the whole media-overlays epic
 
 ### Changed
