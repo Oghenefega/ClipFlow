@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-08-26 (session 210) — The five media/tracker follow-ups, one commit each
 
+### Changed
+- **Version bumped to 0.4.0-alpha.7 and an installer cut** — promotes the whole session-210 follow-up batch: the Tracker slot fixes and the "needs retry" card (#315, both the retry and the Publish-now path), the video-overlay length guarantee (#318), the overlay warm-up and the "no preview" state (#319), the overlay lane guard (#320), and the remove-lane fix with its visible reason (#321). Six commits, none of them yet seen running by Fega — this build is the first look at all of it.
+
 ### Fixed
 - **A half-published clip no longer disappears from the Tracker (#315).** When a scheduled publish only partly works, the scheduler clears the clip's schedule at fire time while the Tracker entry is only written on full success — so between those two the clip was live on the platforms that worked and visible nowhere. The calendar now derives a red "RETRY" card for a clip with publish errors and no Tracker entry, sitting in the slot it actually went out in. It is a visual only: nothing is written, so the week count, pace ring, streak and XP still move only when the retry completes.
 - **A late retry logs the slot the audience got the clip in, not the slot the fix landed in (#315).** Retrying was overwriting `publishedAt` with the retry time, so the original first-success moment was gone before the Tracker entry could use it — a 12:30p clip retried at 2:20p filed itself at 2:30p. The stamp is now written once and the entry is derived from it.
