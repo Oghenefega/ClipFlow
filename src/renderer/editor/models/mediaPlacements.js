@@ -25,7 +25,7 @@
  * named bindings (Vite handles the interop).
  */
 
-const { resolvePlacements } = require("./audioPlacements");
+const { resolvePlacements, occupantsFromLane } = require("./audioPlacements");
 
 /** How long a freshly-placed image shows for when nothing else says otherwise. */
 const DEFAULT_MEDIA_SEC = 3;
@@ -100,6 +100,8 @@ module.exports = {
   DEFAULT_MEDIA_SEC,
   DEFAULT_VIDEO_VOLUME,
   MEDIA_TRACK_CAP,
+  // Re-exported so media callers don't reach into the sound model for it.
+  occupantsFromLane,
   normalizeMediaPlacements,
   resolveMediaPlacements,
 };

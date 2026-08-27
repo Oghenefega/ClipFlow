@@ -1,5 +1,6 @@
 const {
   placementLength,
+  occupantsFromLane,
   normalizePlacements,
   resolvePlacements,
   assignRows,
@@ -207,5 +208,35 @@ describe("trackIndex — extra sound lanes", () => {
     // 2 rows packed per lane, so the cap is what actually bounds how many
     // simultaneous sounds stay visible.
     expect(SOUND_TRACK_CAP * 2).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// ── #321: who is holding the last lane ──
+// The remove-lane button and the store action have to ask ONE question, and it
+// has to be asked of the RAW list: a placement whose footage was cut away is
+// dropped by the resolver (no block is drawn) but still occupies its lane.
+describe("occupantsFromLane", () => {
+  test("counts the lane itself and everything above it", () => {
+    const list = [sfx({ id: "a", trackIndex: 0 }), sfx({ id: "b", trackIndex: 1 }), sfx({ id: "c", trackIndex: 2 })];
+    expect(occupantsFromLane(list, 1).map((p) => p.id)).toEqual(["b", "c"]);
+    expect(occupantsFromLane(list, 0)).toHaveLength(3);
+    expect(occupantsFromLane(list, 3)).toHaveLength(0);
+  });
+
+  test("a missing lane counts as lane 0", () => {
+    expect(occupantsFromLane([{ id: "x" }], 0)).toHaveLength(1);
+    expect(occupantsFromLane([{ id: "x" }], 1)).toHaveLength(0);
+  });
+
+  test("a dormant placement still holds its lane after the resolver drops it", () => {
+    // Source 16-19 is between the two segments — cut away, so no block renders.
+    const dormant = sfx({ id: "gone", sourceTime: 17, trackIndex: 1 });
+    expect(resolvePlacements([dormant], SEGS)).toHaveLength(0);
+    expect(occupantsFromLane([dormant], 1)).toHaveLength(1);
+  });
+
+  test("non-arrays are empty rather than throwing", () => {
+    expect(occupantsFromLane(null, 0)).toEqual([]);
+    expect(occupantsFromLane(undefined, 1)).toEqual([]);
   });
 });

@@ -9,7 +9,7 @@ import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource } from "../models/timeMapping";
-import { normalizePlacements, resolvePlacements, SOUND_TRACK_CAP } from "../models/audioPlacements";
+import { normalizePlacements, resolvePlacements, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
@@ -744,16 +744,17 @@ const useEditorStore = create((set, get) => ({
   },
 
   // Only ever removes the LAST lane, and only when it's empty — a sound should
-  // never vanish because a lane was closed under it.
+  // never vanish because a lane was closed under it. "Empty" is asked of the RAW
+  // placements, so a dormant one (footage cut away, block not drawn) still holds
+  // the lane; the timeline's − button asks the same question, so it can never
+  // render over a click this refuses (#321).
   removeSoundTrack: (kind) => {
     const key = kind === "music" ? "musicTrackCount" : "sfxTrackCount";
     const count = get()[key] || 1;
     if (count <= 1) return false;
     const last = count - 1;
-    const occupied = get().audioPlacements.some(
-      (p) => p.kind === kind && (p.trackIndex || 0) >= last
-    );
-    if (occupied) return false;
+    const mine = get().audioPlacements.filter((p) => p.kind === kind);
+    if (occupantsFromLane(mine, last).length > 0) return false;
     set({ [key]: last });
     get().markDirty();
     return true;
@@ -881,12 +882,14 @@ const useEditorStore = create((set, get) => ({
   },
 
   // Only ever removes the TOP lane, and only when it's empty — an overlay
-  // should never vanish because a lane was closed under it.
+  // should never vanish because a lane was closed under it. Same raw-placement
+  // occupancy question the sound twin asks, and the same one the − button asks
+  // before it renders (#321).
   removeMediaTrack: () => {
     const count = get().mediaTrackCount || 1;
     if (count <= 1) return false;
     const top = count - 1;
-    if (get().mediaPlacements.some((p) => (p.trackIndex || 0) >= top)) return false;
+    if (occupantsFromLane(get().mediaPlacements, top).length > 0) return false;
     set({ mediaTrackCount: top });
     get().markDirty();
     return true;

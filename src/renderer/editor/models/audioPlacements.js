@@ -115,8 +115,24 @@ function assignRows(blocks) {
   return { blocks: placed, rows };
 }
 
+/**
+ * Which placements are sitting on lane `laneIndex` or beyond (#321).
+ *
+ * `>=` rather than `===` because the last lane of a kind DISPLAYS everything
+ * above it — an undo can put a block back on a lane that has since been
+ * removed — so 'is the last lane occupied' has to ask the same question the
+ * lane itself does. Runs on RAW placements on purpose: a placement whose
+ * footage was cut away is dropped by the resolver but still holds its lane,
+ * and the remove-lane button and the store action must agree about that.
+ */
+function occupantsFromLane(placements, laneIndex) {
+  if (!Array.isArray(placements)) return [];
+  return placements.filter((p) => (p.trackIndex || 0) >= laneIndex);
+}
+
 module.exports = {
   SOUND_TRACK_CAP,
+  occupantsFromLane,
   placementLength,
   normalizePlacements,
   resolvePlacements,

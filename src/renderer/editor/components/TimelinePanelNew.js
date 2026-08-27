@@ -6,7 +6,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
-import { resolvePlacements, assignRows, SOUND_TRACK_CAP } from "../models/audioPlacements";
+import { resolvePlacements, assignRows, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { resolveMediaPlacements, MEDIA_TRACK_CAP, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
@@ -57,6 +57,29 @@ function LaneToggle({ on, family, title }) {
       }`}
       aria-label={title}
     />
+  );
+}
+
+/**
+ * #321: why the last lane isn't closing.
+ *
+ * A placement whose footage was cut away keeps its lane — the resolver drops it
+ * so no block is drawn, but the save keeps it so undoing the cut brings it back.
+ * The lane then LOOKS empty while the store still refuses to close it, and the
+ * occupant has no handle of its own to grab. So the lane says what is holding
+ * it, in the space where the block would be, instead of leaving a dead minus
+ * button to click at.
+ */
+function DormantLaneNote({ count, noun }) {
+  const subject = count === 1 ? `1 ${noun} is` : `${count} ${noun}s are`;
+  return (
+    <div
+      className="absolute top-1/2 -translate-y-1/2 ml-3 flex items-center gap-1.5 text-[10px] text-amber-400/70 pointer-events-none"
+      title={`This lane can't close while something is on it. Bring the footage back (undo the cut) and the ${noun} reappears.`}
+    >
+      <EyeOff className="h-3 w-3 shrink-0" />
+      {subject} still here, hidden — its footage was cut away. The lane stays until it's back.
+    </div>
   );
 }
 
@@ -1029,7 +1052,14 @@ export default function TimelinePanelNew() {
     const rowH = rows === 2 ? SOUND_STACK_ROW_H : SOUND_ROW_H;
     const baseTop = rows === 2 ? 2 : Math.round((SOUND_TRACK_H - SOUND_ROW_H) / 2);
     const canAdd = isLast && trackCount < SOUND_TRACK_CAP;
-    const canRemove = isLast && trackCount > 1 && blocks.length === 0;
+    // #321: a lane can LOOK empty while a dormant placement still holds it —
+    // one whose footage was cut away, which the resolver drops but the save
+    // keeps so an undo can revive it. Ask the raw list the same question the
+    // store asks, so the − never renders over a click that would refuse.
+    const dormant = isLast && trackCount > 1 && blocks.length === 0
+      ? occupantsFromLane(audioPlacements.filter((p) => p.kind === kind), trackIndex)
+      : [];
+    const canRemove = isLast && trackCount > 1 && blocks.length === 0 && dormant.length === 0;
     return (
       <div
         key={`${kind}-${trackIndex}`}
@@ -1080,6 +1110,12 @@ export default function TimelinePanelNew() {
             >
               {kind === "music" ? <Music className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />} {hint}
             </button>
+          )}
+          {dormant.length > 0 && (
+            <DormantLaneNote
+              count={dormant.length}
+              noun={kind === "music" ? "song" : "sound"}
+            />
           )}
           {blocks.map((b) => (
             <SoundBlock
@@ -1183,7 +1219,12 @@ export default function TimelinePanelNew() {
     const rowH = rows === 2 ? MEDIA_STACK_ROW_H : MEDIA_ROW_H;
     const baseTop = rows === 2 ? 2 : Math.round((MEDIA_TRACK_H - MEDIA_ROW_H) / 2);
     const canAdd = isTop && mediaTrackCount < MEDIA_TRACK_CAP;
-    const canRemove = isTop && mediaTrackCount > 1 && blocks.length === 0;
+    // #321: same as the sound lanes — a cut-away overlay still holds its lane
+    // even though no block is drawn for it, so the − asks the raw list.
+    const dormant = isTop && mediaTrackCount > 1 && blocks.length === 0
+      ? occupantsFromLane(mediaPlacements, trackIndex)
+      : [];
+    const canRemove = isTop && mediaTrackCount > 1 && blocks.length === 0 && dormant.length === 0;
     return (
       <div
         key={`media-${trackIndex}`}
@@ -1233,6 +1274,7 @@ export default function TimelinePanelNew() {
               <ImageIcon className="h-3 w-3" /> Add an image
             </button>
           )}
+          {dormant.length > 0 && <DormantLaneNote count={dormant.length} noun="overlay" />}
           {blocks.map((b) => (
             <MediaBlock
               key={b.id}
