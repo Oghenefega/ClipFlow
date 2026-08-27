@@ -19,7 +19,7 @@ The daily driver is still on `0.4.0-alpha.6`.
 | #315 | `df0f5ed` | retry logs the slot it went out in; half-published clips stay on the Tracker |
 | #319 | `a0cb39b` | video overlays warm up 1.5s early; "no preview" state on undecodable files |
 | #318 | `735c7aa` | a video overlay can never outrun its own file (4 places) |
-| #315 (b) | `832b855` | the `publishClip` twin of the same slot bug, both paths on one helper |
+| #315 (b) | `6a0214d` | the `publishClip` twin of the same slot bug, both paths on one helper |
 
 ## Key Decisions
 
