@@ -9,8 +9,9 @@ built and verified before each.** `npm test`: 172 passing (was 158 — the media
 first test file, plus `occupantsFromLane` and the #318 window-clamp contract).
 
 All five issues are **still open** with the commit hash and what was verified in a comment.
-Fega has not seen any of it running: **no installer was cut this batch**, per his instruction.
-The daily driver is still on `0.4.0-alpha.6`.
+**`0.4.0-alpha.7` was cut and published** at the end of the session (Fega asked for it after the
+batch landed) — feed verified, alpha.6 pruned. Fega has not yet installed or verified it, so
+every item here is `status: untested` in practice.
 
 | Issue | Commit | What it does |
 |---|---|---|
@@ -50,8 +51,9 @@ The daily driver is still on `0.4.0-alpha.6`.
 1. **Review the batch (Fable@xhigh, commit-by-hash):** `2564b06`, `686f828`, `df0f5ed`,
    `a0cb39b`, `735c7aa` and the #315 follow-up — in that order (cheapest to deepest). `735c7aa` touches the main
    process and the FFmpeg graph; it is the one worth the most attention.
-2. Then an installer (these five plus whatever the review produces) — the batch is small, so
-   it may be worth waiting for a few more.
+2. **Fega verifies alpha.7** — the six things to look at are on the issues; the two with a new
+   visible surface are #321 (the amber note on a lane holding a cut-away overlay) and #315 (the
+   red RETRY card, which only appears after a real partial publish failure).
 3. Beyond that the board is open — the commercial-launch items (#297–#303 data-safety family,
    #265 onboarding, #277 design pass) are the deep end.
 
