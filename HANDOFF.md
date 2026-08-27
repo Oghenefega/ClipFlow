@@ -19,6 +19,7 @@ The daily driver is still on `0.4.0-alpha.6`.
 | #315 | `df0f5ed` | retry logs the slot it went out in; half-published clips stay on the Tracker |
 | #319 | `a0cb39b` | video overlays warm up 1.5s early; "no preview" state on undecodable files |
 | #318 | `735c7aa` | a video overlay can never outrun its own file (4 places) |
+| #315 (b) | `832b855` | the `publishClip` twin of the same slot bug, both paths on one helper |
 
 ## Key Decisions
 
@@ -31,9 +32,11 @@ The daily driver is still on `0.4.0-alpha.6`.
    `publishState[k].at` are both already on the clip, so the Tracker card is *derived* in
    App.js and deliberately kept OUT of `schedByDate` — it counts as neither posted nor
    scheduled, and nothing is written until the retry really completes.
-3. **#315 Part A was two bugs.** `retryFailed` also *overwrote* `publishedAt` with the retry
-   time (`publishedStamped = false`), destroying the original stamp before anything could
-   read it. Seeded from the clip now.
+3. **#315 Part A was two bugs, in two places.** `retryFailed` also *overwrote* `publishedAt`
+   with the retry time (`publishedStamped = false`), destroying the original stamp before
+   anything could read it. `publishClip` carried the identical pair. Both are seeded from the
+   clip now and share one `logPostAtFirstSuccess` helper — the #321 lesson applied: twins that
+   must agree should be one function, not two that happen to match.
 4. **#318 got a strategy, not patches:** a video overlay never carries an unknown length —
    refused at placement, healed from the preview element, probed and re-clamped at render and
    thumbnail. That made per-consumer patches unnecessary (`MediaBlock`'s `Infinity` fallback
@@ -45,7 +48,7 @@ The daily driver is still on `0.4.0-alpha.6`.
 ## Next Steps
 
 1. **Review the batch (Fable@xhigh, commit-by-hash):** `2564b06`, `686f828`, `df0f5ed`,
-   `a0cb39b`, `735c7aa` — in that order (cheapest to deepest). `735c7aa` touches the main
+   `a0cb39b`, `735c7aa` and the #315 follow-up — in that order (cheapest to deepest). `735c7aa` touches the main
    process and the FFmpeg graph; it is the one worth the most attention.
 2. Then an installer (these five plus whatever the review produces) — the batch is small, so
    it may be worth waiting for a few more.
@@ -54,10 +57,9 @@ The daily driver is still on `0.4.0-alpha.6`.
 
 ## Watch Out For
 
-- **`publishClip` has #315's untouched twin.** Same `publishedStamped = false` init, same
-  `logPost(… new Date() …)`. A "Publish now" on an already-part-published clip would move its
-  slot exactly the way the retry used to. Left alone on purpose (out of the ticket, and I
-  couldn't establish the Queue offers that path for a failed clip) and flagged on #315.
+- **Neither #315 path is verified against a real publish.** The retry card and the slot
+  arithmetic were checked against seeded data; nothing here has actually published to a
+  platform, and the dev profile can't. The first real partial failure is the proof.
 - **`onError` does not catch ALAC.** #319's "no preview" state only fires for files that won't
   open at all. An ALAC-audio file decodes video fine with `audioDecodedBytes` exactly 0 and no
   error event — the silent half of the #178 family is still invisible.

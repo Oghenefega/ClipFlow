@@ -1499,16 +1499,7 @@ export default function QueueView({
         .map((pk) => activePlat.find((p) => accountToPlatformKey(p) === pk)?.key)
         .filter(Boolean);
       const everyDone = enabledKeys.every((k) => nextPublishState[k] === "success");
-      if (everyDone) {
-        // #315: log the slot the AUDIENCE got this clip in, not the one the retry
-        // finished in. A 12:30 post that failed on two platforms and was retried at
-        // 2:20 belongs at 12:30 — publishedAt is the first platform that landed.
-        // When everything failed the first time round, publishedAt IS the retry, so
-        // the fallback and the stamp agree either way.
-        const stamped = clip.publishedAt ? new Date(clip.publishedAt) : null;
-        const when = stamped && !isNaN(stamped.getTime()) ? stamped : new Date();
-        logPost(clip, localISO(when), FULL_DAY_NAMES[when.getDay()], when.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
-      }
+      if (everyDone) logPostAtFirstSuccess(clip);
     }
     return { allSuccess };
   };
@@ -1674,6 +1665,30 @@ export default function QueueView({
     delete publishResultsRef.current[clip.id];
   };
 
+  /**
+   * Log an unscheduled publish at the moment the AUDIENCE first got the clip (#315).
+   *
+   * That moment is `publishedAt` — stamped on the first platform that landed and never
+   * overwritten since — which on a partial failure can be hours before the run that
+   * finally completed. Filing the clip under the completing run instead put a 12:30p post
+   * in the 2:30p slot. When nothing had gone out before this run, the stamp IS this run,
+   * so the fallback agrees with it either way.
+   *
+   * One helper rather than two copies: publishClip and retryFailed are the same decision
+   * reached down two paths, and they drifted apart once already.
+   */
+  const logPostAtFirstSuccess = (clip) => {
+    const stamped = clip.publishedAt ? new Date(clip.publishedAt) : null;
+    const when = stamped && !isNaN(stamped.getTime()) ? stamped : new Date();
+    logPost(
+      clip,
+      localISO(when),
+      FULL_DAY_NAMES[when.getDay()],
+      when.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      false
+    );
+  };
+
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
   // Phase 2: respects per-clip platformToggles, captionOverrides, youtubeTitle, youtubePrivacy
   // #244: returns { allSuccess, failures } — failures are THIS run's per-platform
@@ -1745,7 +1760,11 @@ export default function QueueView({
     // checks. Stamped on the first real success rather than after the loop, so a crash
     // mid-run still can't leave the clip eligible to auto-fire and post twice.
     let anySuccess = false;
-    let publishedStamped = false;
+    // #315: seeded from the clip, so a re-publish NEVER overwrites an existing stamp —
+    // same rule as retryFailed. Reached when a partly-published clip is put through
+    // Publish now rather than Retry: the platforms that already worked went out at the
+    // original moment, and that moment is what the Tracker files the clip under.
+    let publishedStamped = !!clip.publishedAt;
 
     for (let i = 0; i < enabledPlat.length; i++) {
       const plat = enabledPlat[i];
@@ -1859,8 +1878,7 @@ export default function QueueView({
         setScheduled((p) => ({ ...p, [clipId]: `${d?.label || scheduleOpts.date} at ${tl}` }));
         logPost(clip, scheduleOpts.date, d?.dayName || "", tl, true);
       } else {
-        const now = new Date();
-        logPost(clip, localISO(now), FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+        logPostAtFirstSuccess(clip);
       }
     }
 
