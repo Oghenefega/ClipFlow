@@ -162,6 +162,45 @@ function rootsForKind(kind, sets) {
   return [...sets.audio, ...sets.media];
 }
 
+/**
+ * Watched media folders → resolved root → the game they're scoped to (#322).
+ * Only folders that actually name a game land here; the rest are universal.
+ */
+function folderGameMap(mediaFolders) {
+  const out = new Map();
+  for (const f of Array.isArray(mediaFolders) ? mediaFolders : []) {
+    if (!f || !f.path || typeof f.gameTag !== "string" || !f.gameTag.trim()) continue;
+    out.set(path.resolve(f.path).toLowerCase(), f.gameTag.trim());
+  }
+  return out;
+}
+
+/**
+ * The game an item belongs to, resolved at LIST time (#322): its own override
+ * wins, then the watched folder it was minted under, else universal. Storing
+ * only the override means re-pointing a folder at a different game re-scopes
+ * everything in it without touching a single index entry.
+ *
+ * `"universal"` as an override is the escape hatch — an item inside a
+ * game-scoped folder that should still show everywhere. Inheritance keys off
+ * the entry's own `watchRoot`, the same root it was absorbed with, because two
+ * watched lists can overlap and only that root vouches for it (#314).
+ *
+ * Returns { gameTag, gameTagSource }: gameTag null means universal, and
+ * gameTagSource says whether the answer came from the item, the folder, or
+ * nothing at all — the panel needs that to show what an override would undo.
+ */
+function effectiveGame(entry, folderGames) {
+  const own = typeof entry.gameTag === "string" ? entry.gameTag.trim() : "";
+  if (own === "universal") return { gameTag: null, gameTagSource: "item" };
+  if (own) return { gameTag: own, gameTagSource: "item" };
+  if (entry.source === "folder" && entry.watchRoot) {
+    const inherited = folderGames.get(path.resolve(entry.watchRoot).toLowerCase());
+    if (inherited) return { gameTag: inherited, gameTagSource: "folder" };
+  }
+  return { gameTag: null, gameTagSource: null };
+}
+
 /** Is `file` inside `dir`? Both absolute. */
 function isUnder(file, dir) {
   const a = file.toLowerCase();
@@ -192,6 +231,7 @@ async function listAssets(assetsRoot, folders, mediaFolders) {
   // (scanned once per list, each for its own kinds), so scans is a list, not a
   // Map keyed by root. #314: the three membership sets stay SPLIT by list for
   // the same reason — see rootsForKind.
+  const folderGames = folderGameMap(mediaFolders);
   const configured = { audio: watchedRoots(folders, false), media: watchedRoots(mediaFolders, false) };
   const enabled = { audio: watchedRoots(folders, true), media: watchedRoots(mediaFolders, true) };
   const reachable = { audio: [], media: [] };
@@ -260,8 +300,11 @@ async function listAssets(assetsRoot, folders, mediaFolders) {
 
   return assets.flatMap((a) => {
     const abs = resolvePath(assetsRoot, a);
+    // Overwrites the stored override with the resolved answer — the renderer
+    // filters on the effective game, never on what happens to be on disk.
+    const game = effectiveGame(a, folderGames);
     if (a.source !== "folder") {
-      return [{ ...a, path: abs, offline: false, missing: !fs.existsSync(abs), group: "Uploads", groupPath: getFilesDir(assetsRoot) }];
+      return [{ ...a, ...game, path: abs, offline: false, missing: !fs.existsSync(abs), group: "Uploads", groupPath: getFilesDir(assetsRoot) }];
     }
     // A folder toggled off leaves the panel but keeps its index entries.
     const kind = pathKind(abs);
@@ -270,6 +313,7 @@ async function listAssets(assetsRoot, folders, mediaFolders) {
     const dir = path.dirname(abs);
     return [{
       ...a,
+      ...game,
       path: abs,
       offline,
       missing: !offline && !onDisk.has(abs.toLowerCase()),
@@ -351,6 +395,27 @@ function setAssetType(assetsRoot, assetId, type) {
   entry.typeLocked = true;
   saveIndex(assetsRoot, assets);
   return type;
+}
+
+/**
+ * Attach one item to a game by hand (#322) — the per-item half of the scoping,
+ * and the only way to contradict its folder. `gameTag` is a game's short tag,
+ * `"universal"` to show it under every game, or null to drop the override and
+ * follow the folder again.
+ *
+ * The tag is stored VERBATIM. Game tags are mixed case in the games library
+ * ("RL", "EO", "SCoG") and clips carry them unchanged, so normalising the case
+ * here would silently stop every stored tag from ever matching a clip's.
+ */
+function setAssetGame(assetsRoot, assetId, gameTag) {
+  const assets = loadIndex(assetsRoot);
+  const entry = assets.find((a) => a.id === assetId);
+  if (!entry) throw new Error("Asset not found");
+  const tag = gameTag == null ? "" : String(gameTag).trim();
+  if (tag) entry.gameTag = tag;
+  else delete entry.gameTag;
+  saveIndex(assetsRoot, assets);
+  return tag || null;
 }
 
 /**
@@ -570,9 +635,13 @@ function backfillLastUsed(assetsRoot, projects) {
 /**
  * Import files into the library (copy + index). `typeHint` is "music"/"sfx"
  * when the import came from that sub-tab, null to infer. Images, GIFs and
- * videos type by extension. Returns { imported, skipped: [{ file, reason }] }.
+ * videos type by extension. `gameTag` (#322) stamps the import with the game
+ * the Media panel was scoped to when it happened — an upload made while
+ * looking at Rocket League is a Rocket League asset until told otherwise.
+ * Returns { imported, skipped: [{ file, reason }] }.
  */
-async function importAssets(assetsRoot, filePaths, typeHint) {
+async function importAssets(assetsRoot, filePaths, typeHint, gameTag) {
+  const importGameTag = typeof gameTag === "string" && gameTag.trim() ? gameTag.trim() : null;
   const filesDir = getFilesDir(assetsRoot);
   fs.mkdirSync(filesDir, { recursive: true });
   const assets = loadIndex(assetsRoot);
@@ -604,6 +673,7 @@ async function importAssets(assetsRoot, filePaths, typeHint) {
         sizeBytes: fs.statSync(dest).size,
         favorite: false,
         addedAt: new Date().toISOString(),
+        ...(importGameTag ? { gameTag: importGameTag } : {}),
       };
       assets.push(entry);
       imported.push({ ...entry, path: dest });
@@ -680,6 +750,7 @@ module.exports = {
   listAssets,
   backfillDurations,
   setAssetType,
+  setAssetGame,
   setAssetDefaultVolume,
   getAssetDefaultVolume,
   MOODS,

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Search, X, RefreshCw, Loader2, Upload, Star, Trash2, Image as ImageIcon, EyeOff } from "lucide-react";
+import { Search, X, RefreshCw, Loader2, Upload, Star, Trash2, Image as ImageIcon, EyeOff, Gamepad2, ChevronDown, Check } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../../components/ui/popover";
 import { ScrollArea } from "../../../../components/ui/scroll-area";
 import { Button } from "../../../../components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../../components/ui/tooltip";
@@ -20,6 +21,10 @@ const SUB_TABS = [
   ["gif", "GIFs"],
   ["video", "Videos"],
 ];
+
+// #322: the scope showing everything, whatever game it belongs to. Not a tag —
+// no game can collide with it, and it never reaches the store.
+const ALL_GAMES = "__all__";
 
 /**
  * Video cell thumbnail. preload="metadata" paints the first frame without
@@ -61,13 +66,38 @@ function VideoThumb({ path }) {
 }
 
 /**
+ * One row in a game menu (#322) — used by both the panel's scope chip and the
+ * per-item "show this in" menu, so picking a game reads the same in both.
+ */
+function ScopeOption({ label, color, hint, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11.5px] text-left transition-colors ${
+        active ? "bg-primary/10 text-primary" : "text-foreground/90 hover:bg-secondary"
+      }`}
+    >
+      <span
+        className="h-2 w-2 rounded-full shrink-0"
+        style={color
+          ? { background: color, boxShadow: `0 0 6px ${color}` }
+          : { border: "1px solid currentColor", opacity: 0.5 }}
+      />
+      <span className="flex-1 truncate">{label}</span>
+      {hint && <span className="text-[10px] text-muted-foreground/70 shrink-0">{hint}</span>}
+      {active && <Check className="h-3 w-3 shrink-0" />}
+    </button>
+  );
+}
+
+/**
  * The Media panel (#309): images, GIFs and videos from the watched media
  * folders (Settings) plus drop-imported one-offs. Clicking one puts it on the
  * clip at the playhead (#310 images/GIFs, #311 videos). Modeled on
  * AudioPanel; speaks only in categories — folder names never show here
  * (they're internal lingo; Settings is where folders live).
  */
-export default function MediaPanel() {
+export default function MediaPanel({ gamesDb }) {
   const [subTab, setSubTab] = useState("image");
   const [search, setSearch] = useState("");
   // All / Favorites / Recent — same flow as Audio. Recent fills from the
@@ -80,8 +110,32 @@ export default function MediaPanel() {
   const [armedDeleteId, setArmedDeleteId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  // #322: which game's media the whole panel is showing. Everything below —
+  // counts, the All/Favorites/Recent pills, search — lives inside this scope.
+  const [scope, setScope] = useState(ALL_GAMES);
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const [gameMenuId, setGameMenuId] = useState(null); // per-item game popover
   const statusTimer = useRef(null);
   const searchRef = useRef(null);
+
+  // Only games that still exist can scope anything. An item tagged with a game
+  // that was deleted or turned off reads as universal — it keeps its tag on
+  // disk (the game may come back) but shows everywhere meanwhile.
+  const activeGames = useMemo(
+    () => (gamesDb || []).filter((g) => g && g.name && g.tag && g.active !== false),
+    [gamesDb],
+  );
+  const gameByTag = useMemo(() => new Map(activeGames.map((g) => [g.tag, g])), [activeGames]);
+  const gameOf = useCallback((item) => gameByTag.get(item.gameTag) || null, [gameByTag]);
+
+  // The clip's own tag, falling back to the project's — the same pair the
+  // send-to-queue gate reads. Retagging a clip in the AI panel writes it, so
+  // this re-runs and the panel follows.
+  const clipGameTag = useEditorStore((s) => s.clip?.gameTag || s.project?.gameTag || "");
+  useEffect(() => {
+    setScope(clipGameTag && gameByTag.has(clipGameTag) ? clipGameTag : ALL_GAMES);
+  }, [clipGameTag, gameByTag]);
+  const scopeGame = scope === ALL_GAMES ? null : gameByTag.get(scope) || null;
 
   const refresh = useCallback(async () => {
     const result = await window.clipflow.assetsList();
@@ -119,7 +173,10 @@ export default function MediaPanel() {
 
   const importFiles = useCallback(async (paths) => {
     if (!paths || paths.length === 0) return;
-    const result = await window.clipflow.assetsImport(paths, null);
+    // #322: an upload made while looking at one game belongs to that game —
+    // otherwise it lands in the pool and immediately vanishes from the view it
+    // was dropped into. Changeable per item afterwards.
+    const result = await window.clipflow.assetsImport(paths, null, scope === ALL_GAMES ? null : scope);
     if (!result?.success) { flashStatus(result?.error || "Import failed", true); return; }
     // Audio is still importable here (the library is one index) — say where it
     // went, or a dropped sound looks like it vanished.
@@ -131,7 +188,7 @@ export default function MediaPanel() {
     if (result.skipped.length) parts.push(`${result.skipped.length} skipped (${result.skipped[0].reason})`);
     flashStatus(parts.join(" · ") || "Nothing imported", result.imported.length === 0);
     refresh();
-  }, [flashStatus, refresh]);
+  }, [flashStatus, refresh, scope]);
 
   const handleUpload = useCallback(async () => {
     const paths = await window.clipflow.openFileDialog({
@@ -210,6 +267,17 @@ export default function MediaPanel() {
     if (result?.success) refresh();
   }, [refresh]);
 
+  // #322: move one item to a game, to every game ("universal"), or back to
+  // whatever its folder says (null). The folder assignment covers the bulk;
+  // this is the exception — one meme inside a game folder, one rank image
+  // dropped in from the desktop.
+  const setItemGame = useCallback(async (item, gameTag) => {
+    setGameMenuId(null);
+    const result = await window.clipflow.assetsSetGame(item.id, gameTag);
+    if (!result?.success) { flashStatus(result?.error || "Couldn't change that", true); return; }
+    refresh();
+  }, [flashStatus, refresh]);
+
   // Two-click confirm, disarmed when the pointer leaves the cell. Only
   // uploaded one-offs are deletable — watched-folder files belong to the user
   // (assets.js refuses them anyway).
@@ -226,14 +294,21 @@ export default function MediaPanel() {
     [assets],
   );
 
+  // A game's view is that game's media PLUS everything universal — the memes
+  // and overlays that belong to no game are wanted on every clip.
+  const scopedAssets = useMemo(() => {
+    if (scope === ALL_GAMES) return mediaAssets;
+    return mediaAssets.filter((a) => !gameByTag.has(a.gameTag) || a.gameTag === scope);
+  }, [mediaAssets, scope, gameByTag]);
+
   const counts = useMemo(() => {
     const c = { image: 0, gif: 0, video: 0 };
-    for (const a of mediaAssets) c[a.type]++;
+    for (const a of scopedAssets) c[a.type]++;
     return c;
-  }, [mediaAssets]);
+  }, [scopedAssets]);
 
   const filtered = useMemo(() => {
-    let t = mediaAssets.filter((a) => a.type === subTab);
+    let t = scopedAssets.filter((a) => a.type === subTab);
     if (view === "favorites") t = t.filter((a) => a.favorite);
     else if (view === "recent") {
       t = t.filter((a) => a.lastUsedAt)
@@ -242,16 +317,60 @@ export default function MediaPanel() {
     }
     if (search) t = t.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
     return t;
-  }, [mediaAssets, subTab, view, search]);
+  }, [scopedAssets, subTab, view, search]);
 
   const subTabLabel = SUB_TABS.find(([id]) => id === subTab)[1];
 
   return (
     <div className="flex flex-col h-full">
-      {/* Watched-folder note — categories only, no folder names (Settings has those) */}
-      {folderCount > 0 && (
-        <div className="px-3 pt-2 text-[11px] text-muted-foreground/70">
-          {folderCount} watched folder{folderCount === 1 ? "" : "s"} · {mediaAssets.length} item{mediaAssets.length === 1 ? "" : "s"}
+      {/* Game scope + watched-folder note — categories and game names only, no
+          folder names (those are internal lingo; Settings is where folders live) */}
+      {(activeGames.length > 0 || folderCount > 0) && (
+        <div className="flex items-center gap-2 px-3 pt-2">
+          {activeGames.length > 0 && (
+            <Popover open={scopeOpen} onOpenChange={setScopeOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  title="Which game's media to show"
+                  className="shrink-0 h-6 pl-1.5 pr-1.5 rounded-full border border-border/50 hover:border-border/80 flex items-center gap-1.5 text-[11px] font-medium text-foreground/90 transition-colors"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={scopeGame
+                      ? { background: scopeGame.color || "#888", boxShadow: `0 0 6px ${scopeGame.color || "#888"}` }
+                      : { border: "1px solid currentColor", opacity: 0.5 }}
+                  />
+                  <span className="max-w-[104px] truncate">{scopeGame ? scopeGame.name : "All games"}</span>
+                  <ChevronDown className="h-3 w-3 opacity-60 shrink-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-56 p-1">
+                <ScopeOption
+                  label="All games"
+                  active={scope === ALL_GAMES}
+                  onClick={() => { setScope(ALL_GAMES); setScopeOpen(false); }}
+                />
+                <Separator className="my-1" />
+                <div className="max-h-56 overflow-y-auto">
+                  {activeGames.map((g) => (
+                    <ScopeOption
+                      key={g.tag}
+                      label={g.name}
+                      color={g.color}
+                      hint={g.tag === clipGameTag ? "this clip" : null}
+                      active={scope === g.tag}
+                      onClick={() => { setScope(g.tag); setScopeOpen(false); }}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+          {folderCount > 0 && (
+            <span className="text-[11px] text-muted-foreground/70 truncate">
+              {folderCount} watched folder{folderCount === 1 ? "" : "s"} · {scopedAssets.length} item{scopedAssets.length === 1 ? "" : "s"}
+            </span>
+          )}
         </div>
       )}
 
@@ -364,6 +483,64 @@ export default function MediaPanel() {
                   >
                     <Star className={`h-3 w-3 ${item.favorite ? "fill-yellow-400" : ""}`} />
                   </button>
+                  {/* #322: which game this item shows under. An assigned item
+                      wears its game's dot at all times; a universal one only
+                      offers the control on hover, so the grid stays quiet. */}
+                  {activeGames.length > 0 && (
+                    <Popover
+                      open={gameMenuId === item.id}
+                      onOpenChange={(o) => setGameMenuId(o ? item.id : null)}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          title={gameOf(item)
+                            ? `Shows under ${gameOf(item).name} — click to change`
+                            : "Shows under every game — click to pick one"}
+                          className={`absolute top-1 left-7 h-5 w-5 rounded flex items-center justify-center bg-black/60 transition-opacity ${
+                            gameOf(item) ? "" : "text-white/80 opacity-0 group-hover:opacity-100"
+                          }`}
+                        >
+                          {gameOf(item)
+                            ? <span className="h-2 w-2 rounded-full" style={{ background: gameOf(item).color || "#888", boxShadow: `0 0 6px ${gameOf(item).color || "#888"}` }} />
+                            : <Gamepad2 className="h-3 w-3" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-56 p-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">Show this in</div>
+                        {/* Ticks the EFFECTIVE game, inherited or not — the menu
+                            answers "where does this show", not "what did I set" */}
+                        <ScopeOption
+                          label="All games"
+                          active={!item.gameTag}
+                          onClick={() => setItemGame(item, "universal")}
+                        />
+                        <div className="max-h-56 overflow-y-auto">
+                          {activeGames.map((g) => (
+                            <ScopeOption
+                              key={g.tag}
+                              label={g.name}
+                              color={g.color}
+                              active={item.gameTag === g.tag}
+                              onClick={() => setItemGame(item, g.tag)}
+                            />
+                          ))}
+                        </div>
+                        {/* Only a folder item can fall back to a folder */}
+                        {item.source === "folder" && item.gameTagSource === "item" && (
+                          <>
+                            <Separator className="my-1" />
+                            <button
+                              onClick={() => setItemGame(item, null)}
+                              className="w-full px-2 py-1.5 rounded text-[11.5px] text-left text-muted-foreground hover:bg-secondary transition-colors"
+                            >
+                              Use its folder&apos;s setting
+                            </button>
+                          </>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   {/* Uploaded one-offs can be deleted; watched-folder files can't */}
                   {item.source !== "folder" && (
                     <button
@@ -393,11 +570,13 @@ export default function MediaPanel() {
               <div className="text-xs text-muted-foreground">
                 {view === "favorites" ? "No favorites yet"
                   : view === "recent" ? "Nothing used yet"
+                  : scopeGame ? `No ${subTabLabel.toLowerCase()} for ${scopeGame.name}`
                   : `No ${subTabLabel.toLowerCase()} yet`}
               </div>
               <div className="text-[12px] text-muted-foreground/60 mt-1">
                 {view === "favorites" ? "Star an item to pin it here"
                   : view === "recent" ? "Media you add to a clip shows up here so you can reuse it"
+                  : scopeGame ? "Drop files below to add some, or switch to All games to see everything you have"
                   : "Drop files below, or add a media folder in Settings — everything in it shows up automatically, subfolders included"}
               </div>
             </div>

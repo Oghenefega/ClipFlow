@@ -4,6 +4,16 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-27 (session 212) — Game-scoped media: the Media tab shows the game you're editing
+
+### Added
+- **Media can now belong to a game, and the editor's Media tab shows the right one automatically (#322).** The panel used to be one flat pool — every image, GIF and video from every watched folder, on every clip, so Rocket League rank cards sat next to Egging On memes and the grid got noisier with every file added. Two ways to attach media to a game now exist and they stack. In **Settings → Media Folders**, each folder gets a dropdown: leave it on "All games" for the memes and overlays used everywhere, or point it at one game so its contents only surface while editing that game's clips. In the **Media tab**, every thumbnail carries a small control (a coloured dot once assigned) to move that one item to a game, make it universal, or hand it back to whatever its folder says — the exception path for a single meme inside a game folder, or a rank card dropped in from the desktop.
+- **The Media tab opens on the current clip's game.** A chip at the top of the panel shows which game's media is on screen; it starts on the clip's own game (falling back to the project's) plus everything universal, and a clip with no game yet opens on "All games". The chip's menu reaches any other game or everything at once, and the clip's own game is labelled as such. Sub-tab counts, the All/Favorites/Recent pills and search all work inside whatever scope is showing, and files uploaded or dropped while scoped to a game are stamped with it (changeable afterwards).
+- **A game's media is that game's plus everything universal.** Universal items were never meant to be hidden by scoping — they are the ones wanted on every clip. An item tagged with a game that has since been deleted or turned off reads as universal rather than disappearing, and keeps its tag on disk in case the game comes back.
+
+### Changed
+- **The effective game is worked out when the list is built, not written into the index.** Only an explicit per-item override is stored; everything else inherits from the folder it was scanned under. Re-pointing a folder at a different game therefore re-scopes everything inside it without rewriting a single index entry, and folders and items added before this shipped need no migration — an absent assignment simply means "All games".
+
 ## [Unreleased] — 2026-08-27 (session 211) — Boot splash: the Corva mark floats while the app loads hidden
 
 ### Added

@@ -2262,7 +2262,7 @@ export default function RightPanelNew({ gamesDb }) {
       case "brand": return <BrandKitPanel />;
       case "subs": return <SubtitlesPanel />;
       case "text": return <TextPanel />;
-      case "media": return <MediaPanel />;
+      case "media": return <MediaPanel gamesDb={gamesDb} />;
       case "layout": return <LayoutPanel />;
       default: return (
         <div className="p-4 flex items-center justify-center h-[200px] text-muted-foreground">

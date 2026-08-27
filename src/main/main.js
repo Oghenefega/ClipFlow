@@ -323,7 +323,8 @@ const STORE_DEFAULTS = {
   // recursively. Shape: [{ path, enabled }].
   audioFolders: [],
   // #309: folders whose images / GIFs / videos feed the editor's Media tab.
-  // Linked in place like audioFolders, same shape: [{ path, enabled }].
+  // Linked in place like audioFolders. Shape: [{ path, enabled, gameTag? }] —
+  // #322: gameTag scopes the folder to one game (absent = every game).
   mediaFolders: [],
   // How loud the Audio panel auditions a track (0–1). Preview only — a placed
   // sound carries its own volume. Defaults low: a commercial music library is
@@ -485,6 +486,27 @@ function runStoreMigrations(store) {
   // ── Migration (#309): watched media folders for the editor's Media tab ──
   // Existing installs predate the key; the defaults block only covers fresh ones.
   if (!Array.isArray(store.get("mediaFolders"))) store.set("mediaFolders", []);
+
+  // ── Migration (#322): a media folder can be scoped to one game ──
+  // Entries gain an optional `gameTag`. Absent means "All games", so every row
+  // written before this shipped is already correct and nothing is rewritten.
+  // The pass only strips a `gameTag` that isn't a string — a malformed value
+  // would otherwise be compared against real game tags on every list forever.
+  const storedMediaFolders = store.get("mediaFolders");
+  if (Array.isArray(storedMediaFolders)) {
+    let mediaFoldersChanged = false;
+    const cleanedMediaFolders = storedMediaFolders.map((f) => {
+      if (!f || typeof f !== "object") return f;
+      if (f.gameTag === undefined || typeof f.gameTag === "string") return f;
+      mediaFoldersChanged = true;
+      const { gameTag, ...rest } = f;
+      return rest;
+    });
+    if (mediaFoldersChanged) {
+      store.set("mediaFolders", cleanedMediaFolders);
+      logger.info(logger.MODULES.system, "Migrated mediaFolders: dropped malformed game assignments");
+    }
+  }
 
   // ── Migration (#208): Audio panel preview volume ──
   // Existing installs have no value; 0 is a legitimate setting, so this checks
@@ -1511,6 +1533,16 @@ ipcMain.handle("assets:setType", async (_, assetId, type) => {
   }
 });
 
+// #322: attach one media item to a game, override its folder, or clear the
+// override. `gameTag` is a game's short tag, "universal", or null to clear.
+ipcMain.handle("assets:setGame", async (_, assetId, gameTag) => {
+  try {
+    return { success: true, gameTag: assetLibrary.setAssetGame(assetsRootOrThrow(), assetId, gameTag) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 // #212: mood tags. The vocabulary is Epidemic Sound's own (assets.js MOODS).
 ipcMain.handle("assets:moods", async () => ({ success: true, moods: assetLibrary.MOODS }));
 
@@ -1595,9 +1627,9 @@ ipcMain.handle("assets:getDefaultVolume", async (_, assetId, filePath) => {
   }
 });
 
-ipcMain.handle("assets:import", async (_, filePaths, typeHint) => {
+ipcMain.handle("assets:import", async (_, filePaths, typeHint, gameTag) => {
   try {
-    const result = await assetLibrary.importAssets(assetsRootOrThrow(), filePaths, typeHint);
+    const result = await assetLibrary.importAssets(assetsRootOrThrow(), filePaths, typeHint, gameTag);
     logger.info(logger.MODULES.system, `Asset import: ${result.imported.length} imported, ${result.skipped.length} skipped`);
     return { success: true, ...result };
   } catch (err) {

@@ -75,10 +75,13 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Asset library (SFX / music / pictures)
   assetsList: () => ipcRenderer.invoke("assets:list"),
-  assetsImport: (filePaths, typeHint) => ipcRenderer.invoke("assets:import", filePaths, typeHint),
+  // #322: gameTag stamps an upload with the game the Media panel was scoped to.
+  assetsImport: (filePaths, typeHint, gameTag) => ipcRenderer.invoke("assets:import", filePaths, typeHint, gameTag),
   assetsDelete: (assetId) => ipcRenderer.invoke("assets:delete", assetId),
   assetsFavorite: (assetId) => ipcRenderer.invoke("assets:favorite", assetId),
   assetsSetType: (assetId, type) => ipcRenderer.invoke("assets:setType", assetId, type),
+  // #322: per-item game override — a tag, "universal", or null to follow the folder.
+  assetsSetGame: (assetId, gameTag) => ipcRenderer.invoke("assets:setGame", assetId, gameTag),
   // #210: per-sound default volume; null clears it. #214: pass filePath when the
   // id came off a clip — path is the identity that survives an index rebuild.
   assetsSetDefaultVolume: (assetId, volume, filePath) => ipcRenderer.invoke("assets:setDefaultVolume", assetId, volume, filePath),

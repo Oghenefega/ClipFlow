@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, PageHeader, SectionLabel, GamePill, PulseDot } from "../components/shared";
+import { Card, PageHeader, SectionLabel, GamePill, PulseDot, Select } from "../components/shared";
 import { GameEditModal } from "../components/modals";
 import AudioCalibrationModal from "../components/AudioCalibrationModal";
 import { trackLabelText } from "../audioTrackLabels";
@@ -11,6 +11,35 @@ const BTN = { padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "point
 const btnSecondary = { ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary };
 const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700 };
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
+// #322: the game a media folder is scoped to. "All games" (empty value) is the
+// default, and the value stored is the game's short tag — the same key clips
+// carry, so the editor can match a folder's media to the clip it's editing.
+// Headers are display-only; the onChange guard is what keeps them unpickable.
+const gameScopeOptions = (gamesDb) => {
+  const active = (gamesDb || []).filter((g) => g && g.name && g.tag && g.active !== false);
+  const games = active.filter((g) => !g.entryType || g.entryType === "game");
+  const contentTypes = active.filter((g) => g.entryType === "content");
+  const options = [{ value: "", label: "All games" }];
+  if (games.length > 0) {
+    options.push({ value: "__header_games__", label: "Games", isHeader: true });
+    games.forEach((g) => options.push({ value: g.tag, label: g.name, tag: g.tag, color: g.color }));
+  }
+  if (contentTypes.length > 0) {
+    options.push({ value: "__header_content__", label: "Content Types", isHeader: true });
+    contentTypes.forEach((g) => options.push({ value: g.tag, label: g.name, tag: g.tag, color: g.color }));
+  }
+  return options;
+};
+
+const renderGameScopeOption = (o) => (o.isHeader ? (
+  <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", pointerEvents: "none" }}>{o.label}</span>
+) : (
+  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    {o.tag && <GamePill tag={o.tag} color={o.color} size="sm" />}
+    {o.label}
+  </span>
+));
+
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
 export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, collapsedGroups, setCollapsedGroups, isActive }) {
@@ -539,6 +568,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           Subfolders are included, and files stay where they are &mdash; nothing is copied,
           so a folder that syncs itself keeps working.
         </p>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 12px 0", lineHeight: 1.5 }}>
+          Set a folder to one game and its items only show while you&apos;re editing that
+          game&apos;s clips. Leave it on &ldquo;All games&rdquo; for memes and overlays you use
+          everywhere. Single items can be moved to another game in the editor.
+        </p>
         {mediaFolders.length === 0 ? (
           <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>
             None yet &mdash; add the folders your images, GIFs and videos live in
@@ -561,6 +595,23 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: folder.enabled === false ? T.textTertiary : T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={folder.path}>
                   {folder.path}
                 </span>
+                <Select
+                  value={folder.gameTag || ""}
+                  onChange={(val) => {
+                    if (String(val).startsWith("__header")) return;
+                    setMediaFolders(mediaFolders.map((x, j) => {
+                      if (j !== i) return x;
+                      // Absent means "All games" — never store an empty tag, or the
+                      // resolver would have to special-case "" alongside undefined.
+                      const { gameTag, ...rest } = x;
+                      return val ? { ...rest, gameTag: val } : rest;
+                    }));
+                  }}
+                  options={gameScopeOptions(gamesDb)}
+                  style={{ width: 190, flexShrink: 0 }}
+                  renderSelected={renderGameScopeOption}
+                  renderOption={renderGameScopeOption}
+                />
                 <button
                   onClick={() => setMediaFolders(mediaFolders.filter((_, j) => j !== i))}
                   title="Remove this folder and its items from the Media tab (the files are not touched)"
