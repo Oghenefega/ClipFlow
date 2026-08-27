@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-27 (session 213) — Fresh-eyes review of #322 + the boot splash
+
+### Fixed
+- **An item whose game was deleted now ticks "All games" in its menu (#322 review).** The renderer already treats a tag whose game is gone as universal — the item shows in every scope and its thumbnail wears the universal icon — but the "Show this in" menu checked the raw stored tag, so such an item ticked nothing at all. The menu now agrees with the grid: gone game, "All games" ticked.
+- **The group headers in the new game dropdowns are no longer clickable (#322 review).** "GAMES" and "CONTENT TYPES" in the Settings media-folder dropdown rendered with a pointer cursor and hover highlight, and clicking one closed the menu having selected nothing. Header rows are now inert — no click, no hover, default cursor. Nothing bogus was ever stored (a guard already caught that); this fixes the dead-end click itself.
+
+### Changed
+- **The rest of both commits held up under two review passes.** The #322 resolver precedence, verbatim tag storage, migration, IPC wiring, folder inheritance (`watchRoot` has been stamped on every folder entry since #208, so no legacy gap) and the splash's reveal/fallback/crash paths were all traced end-to-end; the two fixes above were the only defects found.
+
 ## [Unreleased] — 2026-08-27 (session 212) — Game-scoped media: the Media tab shows the game you're editing
 
 ### Added

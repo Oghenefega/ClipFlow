@@ -182,8 +182,10 @@ export const Select = ({ value, onChange, options, style: x, renderOption, rende
 
   const menu = open && rect ? createPortal(
     <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, width: "max-content", maxWidth: Math.max(rect.width, window.innerWidth - rect.left - 12), maxHeight: 240, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 10000, padding: 4 }}>
+      {/* An option with isHeader is a group label (#322 game-scope pickers):
+          it must not select, close the menu, or invite a click. */}
       {parsed.map((o, i) => (
-        <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
+        <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { if (o.isHeader) return; onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: o.isHeader ? "default" : "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i && !o.isHeader ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
           {renderOption ? renderOption(o) : o.label}
         </div>
       ))}

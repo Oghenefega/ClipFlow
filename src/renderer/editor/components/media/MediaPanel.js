@@ -509,10 +509,12 @@ export default function MediaPanel({ gamesDb }) {
                       <PopoverContent align="start" className="w-56 p-1" onClick={(e) => e.stopPropagation()}>
                         <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">Show this in</div>
                         {/* Ticks the EFFECTIVE game, inherited or not — the menu
-                            answers "where does this show", not "what did I set" */}
+                            answers "where does this show", not "what did I set".
+                            gameOf, not the raw tag: a tag whose game was deleted
+                            reads as universal here, same as the grid dot. */}
                         <ScopeOption
                           label="All games"
-                          active={!item.gameTag}
+                          active={!gameOf(item)}
                           onClick={() => setItemGame(item, "universal")}
                         />
                         <div className="max-h-56 overflow-y-auto">
