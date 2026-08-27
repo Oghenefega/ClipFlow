@@ -35,6 +35,17 @@ import { Separator } from "../../../components/ui/separator";
 
 // ── Constants ──
 const ZOOM_PRESETS = [10, 25, 50, 75, 100, 200, 400];
+/**
+ * #319: how early a video overlay's <video> is created, in timeline seconds.
+ *
+ * The element used to be mounted at the exact instant it had to be playing, so
+ * the first frames the render WOULD show were blank while metadata loaded and
+ * the first seek landed. Mounting a beat early gives the decoder that time; the
+ * overlay stays invisible until its block actually starts. Deliberately short —
+ * keeping every overlay's element alive for the whole clip is the one-live-video
+ * -per-block crash the #311 design rules out.
+ */
+const MEDIA_VIDEO_LEAD_IN = 1.5;
 const FONT_OPTIONS = [
   "Latina Essential", "Montserrat", "Roboto", "Arial", "DM Sans", "Inter",
   "Oswald", "Poppins", "Lato", "Bebas Neue", "Playfair Display",
@@ -706,10 +717,14 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
 // land on exact halves, an overlay just wants to go where it's put.
 const MEDIA_HANDLES = ["nw", "ne", "sw", "se"];
 
-function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange, videoRegistry }) {
+function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange, videoRegistry, pending }) {
   const elRef = useRef(null);
   const dragRef = useRef(null);
   const mediaRef = useRef(null);
+  // #319: Chromium refused to open this file. The FFmpeg render composites and
+  // mixes it fine, so the overlay keeps its box and its handles — only the
+  // picture is missing, and saying so beats an invisible box the user deletes.
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   // #311: a video overlay hands its element to the panel's registry, which
   // drives it off the same clock as everything else. Teardown on the way out is
@@ -796,7 +811,9 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
       style={{
         left: `${p.xPct}%`, top: `${p.yPct}%`, width: `${p.wPct}%`,
         transform: "translate(-50%, -50%)",
-        opacity: p.opacity ?? 1,
+        // Mounted early (see MEDIA_VIDEO_LEAD_IN) but not on screen yet.
+        opacity: pending ? 0 : (p.opacity ?? 1),
+        pointerEvents: pending ? "none" : undefined,
         cursor: "grab",
         touchAction: "none",
         outline: selected ? "1.5px solid hsl(350 90% 70%)" : "none",
@@ -808,13 +825,28 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
       onClick={(e) => e.stopPropagation()}
     >
       {isVideo ? (
-        <video
-          ref={mediaRef}
-          src={toFileUrl(p.path)}
-          playsInline
-          draggable={false}
-          className="block w-full pointer-events-none"
-        />
+        <>
+          <video
+            ref={mediaRef}
+            src={toFileUrl(p.path)}
+            playsInline
+            draggable={false}
+            onError={() => setPreviewFailed(true)}
+            className="block w-full pointer-events-none"
+            style={previewFailed ? { display: "none" } : undefined}
+          />
+          {previewFailed && (
+            <div
+              className="w-full flex flex-col items-center justify-center gap-1 rounded border border-dashed border-amber-400/50 bg-black/50 px-2 text-center pointer-events-none"
+              style={{ aspectRatio: "16 / 9" }}
+            >
+              <AlertTriangle className="h-4 w-4 text-amber-400/80" />
+              <span className="text-[10px] leading-tight text-amber-400/80">
+                No preview for this file {"—"} it still renders
+              </span>
+            </div>
+          )}
+        </>
       ) : (
         <img
           src={toFileUrl(p.path)}
@@ -1482,9 +1514,12 @@ export default function PreviewPanelNew() {
     [mediaPlacements, nleSegments]
   );
   const visibleMedia = useMemo(
-    () => resolvedMedia.filter(
-      (m) => m.enabled !== false && currentTime >= m.tlStart && currentTime < m.tlEnd
-    ),
+    () => resolvedMedia.filter((m) => {
+      if (m.enabled === false || currentTime >= m.tlEnd) return false;
+      // #319: only a video gets the head start — an image has nothing to decode.
+      const lead = m.mediaType === "video" ? MEDIA_VIDEO_LEAD_IN : 0;
+      return currentTime >= m.tlStart - lead;
+    }),
     [resolvedMedia, currentTime]
   );
   const mediaGestureStart = useCallback(() => {
@@ -1512,6 +1547,18 @@ export default function PreviewPanelNew() {
         && timelineTime >= p.tlStart && timelineTime < p.tlEnd;
       if (!within) {
         if (!el.paused) el.pause();
+        // #319: mounted early, block not started yet — park it on the first
+        // frame it will need so tlStart shows picture instead of blank. Skipped
+        // when the file's length isn't known yet or the window starts past its
+        // end, so this can never turn into a seek that won't converge.
+        if (laneOn && p.enabled !== false
+          && timelineTime < p.tlStart && timelineTime >= p.tlStart - MEDIA_VIDEO_LEAD_IN) {
+          const start = p.trimStart || 0;
+          if (Number.isFinite(el.duration) && start < el.duration
+            && Math.abs(el.currentTime - start) > 0.05) {
+            el.currentTime = start;
+          }
+        }
         continue;
       }
       el.muted = p.muted === true;
@@ -2370,6 +2417,7 @@ export default function PreviewPanelNew() {
               onGestureStart={mediaGestureStart}
               onChange={setMediaProps}
               videoRegistry={mediaVideoRef.current}
+              pending={currentTime < m.tlStart}
             />
           ))}
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Search, X, RefreshCw, Loader2, Upload, Star, Trash2, Image as ImageIcon } from "lucide-react";
+import { Search, X, RefreshCw, Loader2, Upload, Star, Trash2, Image as ImageIcon, EyeOff } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 import { ScrollArea } from "../../../../components/ui/scroll-area";
 import { Button } from "../../../../components/ui/button";
@@ -25,14 +25,39 @@ const SUB_TABS = [
  * Video cell thumbnail. preload="metadata" paints the first frame without
  * pulling the whole file; the unmount teardown (pause → removeAttribute →
  * load) is the standing rule — a dropped <video> without it crashes Chromium.
+ *
+ * #319: a file Chromium can't open used to fail silently here — a black cell
+ * that reads as "broken file" when FFmpeg composites it perfectly well. Say
+ * which half is missing instead, so the file still gets used.
  */
 function VideoThumb({ path }) {
   const ref = useRef(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => () => {
     const v = ref.current;
     if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
   }, []);
-  return <video ref={ref} src={toFileUrl(path)} muted preload="metadata" className="w-full h-16 object-cover block" />;
+  if (failed) {
+    return (
+      <div
+        title="No preview for this file — it still renders fine"
+        className="w-full h-16 flex flex-col items-center justify-center gap-0.5 bg-secondary/40 text-muted-foreground/60"
+      >
+        <EyeOff className="h-3.5 w-3.5" />
+        <span className="text-[9px] leading-none">No preview</span>
+      </div>
+    );
+  }
+  return (
+    <video
+      ref={ref}
+      src={toFileUrl(path)}
+      muted
+      preload="metadata"
+      onError={() => setFailed(true)}
+      className="w-full h-16 object-cover block"
+    />
+  );
 }
 
 /**
