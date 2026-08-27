@@ -120,6 +120,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **"The cases the fix didn't target" is an ENUMERATION, not a judgment call — and for render work, measure output DURATION, not just termination (session 205).** s204 honoured the rule above (re-proved the still and the play-once GIF) yet both export-overrun bugs shipped anyway, because the untested shapes sat on axes nobody listed: placement time (a looping GIF at tlStart>0) and length-vs-clip (a video window past the timeline's end). For any overlay/flag/graph change, write the matrix first — media kind × placement time (0 / mid-clip) × length vs clip (shorter / longer) — and check `ffprobe format=duration` on each cell you run; "it finished, exit 0" passed both bugs. Corollary that fixed it: bound the OUTPUT (`-t timelineDuration`) instead of inferring export length from input behaviour.
 
+- **A new CHANGELOG session section is INSERTED above the previous heading — never written by editing the existing heading line (sessions 208+209).** Using the current top heading as the edit anchor and "updating" it to the new session replaces it, erasing the prior session's record and stranding its entries under the wrong heading with duplicate `### Fixed`/`### Changed` labels. Happened in 446d6f3 and again (self-caught) in the very review that flagged it. Anchor the insertion on content that comes AFTER the new section, or prepend above the old heading — one heading per session, even same-day.
+
 ## Lesson Capture
 
 After ANY correction from the user:
