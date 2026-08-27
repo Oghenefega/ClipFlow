@@ -1,76 +1,70 @@
-# HANDOFF — Session 212 (2026-08-27)
+# HANDOFF — Session 213 (2026-08-27)
 
 ## Current State
 
-**#322 built, verified in the running dev app, pushed as `1c010a4`.** Game-scoped media for the
-editor's Media tab: a per-folder game dropdown in Settings, a per-item override on every thumbnail,
-and a scope chip on the panel that opens on the current clip's game plus everything universal.
-Issue left OPEN with a full verification comment and `status: untested` — Fega sees it on the next
-installer cut.
+**The whole pending batch review is done and alpha.8 is live on the feed.** All eight commits from
+the s212 list (s210's six, the s211 splash `bc2184a`, #322's `1c010a4`) got the Fable@xhigh
+fresh-eyes pass. Three small defects found, all fixed and pushed: the stale-tag "All games" tick and
+the clickable dropdown headers (`d21d8ae`, #322-side) and the `occupantsFromLane` lane-coercion
+mismatch (`974b573`, #320/#321-side). One rare corner filed as #323 instead of fixed. Installer
+`0.4.0-alpha.8` built, published to `https://engine.flowve.app/updates/` (feed verified serving it,
+alpha.7 pruned), bump committed as `4bdaa48`.
 
-Nothing else in flight. The dev profile was returned to its pre-session state (test upload deleted,
-overrides cleared, the folder assignment removed, the test media placement stripped from the clip
-JSON).
+**Everything now waits on Fega's eyes**: #322 game scoping, the boot splash on an installed build,
+and the s210 batch (#315/#318/#319/#320/#321) — all `status: untested`. A machine still on alpha.6
+gets it all in one hop.
 
 ## Key Decisions
 
-1. **Effective game is resolved at LIST time, never written into the index.** Only an explicit
-   per-item override is stored (`effectiveGame` in `src/main/assets.js`: item ?? folder ??
-   universal). Re-pointing a folder at a different game therefore re-scopes everything inside it
-   with zero index writes, and pre-existing entries need no migration — absent means "All games".
-2. **Game tags are stored VERBATIM — no case folding, anywhere.** The #322 spec said "the
-   lowercased short tag"; that is wrong. `gamesDb` holds `AR`, `RL`, `Val`, `EO`, `DD`, `PoP`,
-   `SCoG`, `Pico`, `JC`, `MC`, `BB` and clips carry them unchanged. Lowercasing would have made
-   every stored assignment fail to match a clip forever, silently.
-3. **The scope chip follows the clip, and a manual pick sticks.** The effect keys on
-   `clipGameTag` + the games map, so switching clips (or retagging one in the AI panel) resets the
-   view to that game, while a deliberate choice survives every list refresh in between.
-4. **An item tagged with a deleted/inactive game reads as universal** — the renderer treats any tag
-   not in `gamesDb` as "no game", while the store keeps the value. Deciding this in the renderer
-   (not `assets.js`) is deliberate: `gamesDb` lives in the renderer, and main has no business
-   knowing which games are currently active.
+1. **Latent model disagreements get fixed, not just noted** — `occupantsFromLane` judged a lane
+   with `|| 0` while `normalizePlacements` draws with the finite guard; nothing in the app writes a
+   non-number, but #320 itself shipped on the models-must-agree rule, so the same standard applied.
+   Test pins the agreement.
+2. **#323 filed, not fixed inline** — a platform enabled *after* a partial publish is never attempted
+   by Retry, so `everyDone` stays false and the clip can go invisible again after a successful retry.
+   Needs cross-component knowledge (toggles live in QueueView, the derived card in App.js) and a
+   product call on what the card means. Body has the full trace.
+3. **Cosmetic corners deliberately left** (recorded in the s213 review report, no code): first-run
+   full-success logs at end-of-run not the mid-loop stamp (minutes of skew, pre-fix behavior); the
+   Media panel refresh toast counts new files across ALL scopes; the "this clip" hint shows for a
+   project-fallback tag; a folder assigned to a deleted game shows its bare tag in Settings.
 
 ## Next Steps
 
-1. **Next installer cut = alpha.8** — carries #322 *and* the s211 boot splash, plus alpha.7's six
-   items that Fega has still never seen running. One verification pass covers all of it.
-2. **Batch review still pending** (Fable@xhigh, commit-by-hash): `2564b06`, `686f828`, `df0f5ed`,
-   `a0cb39b`, `735c7aa`, `6a0214d` from s210, `bc2184a` from s211, and now `1c010a4`.
-3. **Audio panel scoping** is the obvious #322 follow-up and is explicitly out of scope on the
-   issue — the same mechanism drops in cleanly (audio shares the asset index). Only build it if
-   Fega asks; his audio library is one tree with no game split today.
+1. **Fega verifies alpha.8** — one pass covers the splash, #322, and the s210 batch; close the
+   `status: untested` issues as he confirms.
+2. **#323** when he prioritizes it (low likelihood, silent failure mode).
+3. **Stale comment cleanup next time someone is in App.js**: line ~114 still claims clip.gameTag is
+   lowercased — the exact misconception the s212 lesson corrected. One-line comment fix, not worth
+   its own session.
+4. **Audio panel scoping** stays the obvious #322 follow-up, still only if Fega asks.
 
 ## Watch Out For
 
-- **Never `.toLowerCase()` a game tag.** See Key Decision 2. The only lowercasing in the new code is
-  on *file paths* (`folderGameMap` keys, because Windows paths are case-insensitive) — leave it.
-- **`"universal"` is a sentinel stored value**, not a tag: it means "override the folder, show
-  everywhere". `ALL_GAMES = "__all__"` in `MediaPanel.js` is a *different* thing — a UI-only scope
-  value that never reaches the store. Don't merge them.
-- **`window.clipflow` is a frozen contextBridge object** — you cannot stub a bridge method from CDP
-  to record its arguments. Assignment silently no-ops and the real call runs. Verify renderer→main
-  argument passing by observing the main-process result, or by grepping the built bundle.
-- **The Bash tool eats a backslash inside heredocs**, so a Windows path in an injected JS string
-  becomes an escape sequence and never matches. Match on a path *fragment* (`/Cutouts$/`) instead.
-- **Radix popover triggers toggle.** A CDP helper that clicks the trigger to "open" a menu closes it
-  if a previous script left it open — check `data-state` before clicking.
-- **`innerText` is rendered text** — Settings group labels are uppercased by CSS, so
-  `textContent === "FILES & FOLDERS"` fails. Match case-insensitively (already in memory).
-- Inactive views stay mounted, so a bare `querySelector` for a button labelled "All" can hit the
-  Projects filter instead of the Media panel's pill. Scope queries to the panel root.
+- **Never `.toLowerCase()` a game tag** (s212 rule stands). Editor-path clips carry verbatim tags
+  ("RL", "EO"); queue-import paths lowercase theirs — QueueView normalizes at its own boundaries.
+  MediaPanel matches verbatim by design and verified behavior.
+- **`occupantsFromLane` and `normalizePlacements` must keep agreeing** on how a lane index is
+  judged — a change to either guard changes "who holds this lane" AND "where does this block draw";
+  the new test in audioPlacements.test.js pins them together.
+- **`"universal"` is a stored sentinel; `ALL_GAMES = "__all__"` is UI-only** — don't merge them
+  (s212 rule stands).
+- **`Select` in shared.js now treats `o.isHeader` options as inert labels** — new consumers of
+  header rows get that for free; don't re-add per-callsite guards (SettingsView's onChange guard
+  stays as a second wall).
+- **The everyDone gate in QueueView (~line 1501) only counts platforms that have a publishState
+  entry** — see #323 before touching retry/publish logging.
 
 ## Logs/Debugging
 
-- **CDP helpers** (session scratchpad, need `ws` from repo node_modules, run with repo as cwd):
-  `cdp.js <exprFile>` evaluates an expression in the app window and prints the value;
-  `shot.js <out.png>` captures the page. Launch the app for these with
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`,
-  wait for `build/index.html` to appear in `/json/list` (the splash target appears first), and kill
-  with `taskkill //F //IM electron.exe //T`.
-- Verifying against the **built** renderer on the dev profile is the right combination here: `npm
-  run dev` would have used Vite/HMR, and `npm start` would have hit the daily driver's single-
-  instance lock and the prod profile.
-- Dev asset index: `W:\…\Vertical Recordings Onwards\.clipflow\assets\assets.json` (767 entries at
-  session start; the three media folders had never been scanned in the dev profile and absorbed 101
-  items on the first `assets:list`).
-- No errors in `app.log` during the session; the only failures were in my own CDP driver scripts.
+- **Dev-profile boots here take ~20-35s cold** — I killed one mid-hydration at 18s and briefly read
+  the absent "Main window revealed" line as a possible regression. Gate any boot assertion on the
+  reveal line (`grep "revealed" app.log` for the newest `sess_*`), not on a fixed sleep.
+- **CDP hydration probe**: `%TEMP%\probe.js` (needs repo `ws`) connects to 9222, evaluates
+  root-children/bridge/title in one shot — cheap proof the renderer is alive. Launch with
+  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`, kill with
+  `taskkill //F //IM electron.exe //T`.
+- **Feed check**: `curl -s https://engine.flowve.app/updates/alpha.yml | head -1` → must read
+  `version: 0.4.0-alpha.8`.
+- Zero errors in the dev `app.log` across all three verification boots this session; model suites
+  135/135 green.
