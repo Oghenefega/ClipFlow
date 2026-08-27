@@ -8,6 +8,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Profile (#80) — "dev" or "prod"
   profile: process.env.CLIPFLOW_PROFILE === "dev" ? "dev" : "prod",
 
+  // #73: one-way boot signal — fired once after App.js's initial hydration
+  // commits. Main reveals the hidden window and closes the splash on it.
+  appReady: () => ipcRenderer.send("app:renderer-ready"),
+
   // File system
   getPathForFile: (file) => webUtils.getPathForFile(file),
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),

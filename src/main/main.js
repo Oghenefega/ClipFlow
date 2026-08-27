@@ -72,6 +72,12 @@ function fatal(context, err) {
   } catch (_) { /* the logger itself may not be up yet */ }
   try { Sentry.captureException(err); } catch (_) {}
   try {
+    // #73: the always-on-top splash would sit over the error dialog — drop it
+    // first. TDZ-safe: splashWindow is declared far below and this can fire
+    // mid-module-load, hence the try around the bare reference.
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+  } catch (_) {}
+  try {
     const lines = [context, "", err?.message || String(err)];
     if (logsDir) lines.push("", "Details are in:", logsDir);
     // Modal and synchronous: it is the only thing the user will ever see, and it
@@ -688,11 +694,22 @@ let mainWindow;
 let watcher = null;
 let testWatcher = null;
 
+// #73 Phase 1: boot splash — the Corva mark floats frameless/transparent over
+// the desktop while the main window loads HIDDEN. The reveal fires on the
+// renderer's app:renderer-ready (initial hydration committed, numbers real)
+// or the fallback timer, whichever comes first.
+let splashWindow = null;
+let revealFallbackTimer = null;
+
 // #156: someone tried to launch a second copy of this profile and it exited on the
 // lock check. Surface the window we already have so the launch isn't a silent no-op
 // — from the user's side clicking the icon again should just bring ClipFlow forward.
 app.on("second-instance", () => {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  // #73: still booting behind the splash — the splash IS the launch feedback;
+  // forcing show here would surface the half-hydrated window the gate exists
+  // to hide. The reveal (or its 15s fallback) is already on the way.
+  if (splashWindow && !splashWindow.isDestroyed()) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
@@ -708,13 +725,77 @@ const thumbnailCache = new Map();
 
 const isDev = false;
 
-function createWindow() {
+// #73: 280x280 transparent window holding build/splash.html (static page, no
+// preload). Non-focusable and click-through — it's a watermark, not a window.
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 280,
+    height: 280,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    focusable: false,
+    hasShadow: false,
+    show: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  splashWindow.setIgnoreMouseEvents(true);
+  // ready-to-show = first paint done; showing earlier flashes an empty rect.
+  splashWindow.once("ready-to-show", () => {
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.show();
+  });
+  splashWindow.on("closed", () => {
+    splashWindow = null;
+  });
+  // A broken splash must never block boot — everything downstream only ever
+  // *closes* it, so failing to load just means no logo for this launch.
+  splashWindow.loadFile(path.join(__dirname, "../../build/splash.html")).catch((err) => {
+    logger.warn(logger.MODULES.system, "Splash failed to load", { error: err.message });
+  });
+}
+
+// Idempotent: fires from app:renderer-ready, the 15s fallback, or both.
+function revealMainWindow(trigger) {
+  if (revealFallbackTimer) {
+    clearTimeout(revealFallbackTimer);
+    revealFallbackTimer = null;
+  }
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+    mainWindow.show();
+    // "renderer-ready" is the healthy path; "fallback-timer" showing up in a
+    // log means hydration hung or the signal never arrived — worth knowing.
+    logger.info(logger.MODULES.system, `Main window revealed (${trigger})`);
+  }
+  const splash = splashWindow;
+  if (!splash || splash.isDestroyed()) return;
+  // Brief CSS fade (html.out) so the swap doesn't pop; close is the fallback
+  // if the script can't run for any reason.
+  splash.webContents
+    .executeJavaScript('document.documentElement.classList.add("out")', true)
+    .catch(() => {});
+  setTimeout(() => {
+    if (!splash.isDestroyed()) splash.close();
+  }, 220);
+}
+
+ipcMain.on("app:renderer-ready", () => revealMainWindow("renderer-ready"));
+
+function createWindow({ holdUntilReady = false } = {}) {
   mainWindow = new BrowserWindow({
     title: CLIPFLOW_PROFILE === "dev" ? "Corva [DEV]" : "Corva",
     width: 1280,
     height: 860,
     minWidth: 960,
     minHeight: 700,
+    // #73: created hidden. The boot path holds it until the renderer reports
+    // hydration (splash covers the wait); any other caller shows it right away.
+    show: false,
     backgroundColor: "#0a0b10",
     titleBarStyle: "hidden",
     titleBarOverlay: {
@@ -748,6 +829,16 @@ function createWindow() {
     if (process.env.CLIPFLOW_DEVTOOLS === "1") {
       mainWindow.webContents.openDevTools({ mode: "detach" });
     }
+  }
+
+  // #73: reveal policy. The boot path stays hidden until app:renderer-ready,
+  // with a fallback so a renderer that never signals can't leave the app
+  // invisible forever. Any other caller (activate re-create) shows immediately
+  // — no splash exists there to cover a hold.
+  if (holdUntilReady) {
+    revealFallbackTimer = setTimeout(() => revealMainWindow("fallback-timer"), 15000);
+  } else {
+    mainWindow.show();
   }
 
   // Dev-only: force DevTools + forward renderer console to disk log for debugging.
@@ -812,6 +903,10 @@ app.whenReady().then(async () => {
     platform: process.platform,
     logsDir: logger.getLogsDir(),
   });
+
+  // #73: splash up FIRST — it covers both the main-side bootstrap below (which
+  // used to run against a blank desktop) and the renderer hydration after it.
+  createSplashWindow();
 
   // ── Bootstrap electron-store (v11 is ESM-only, requires async import) ──
   // Order: settings store → migrations → provider registries → sub-stores.
@@ -993,7 +1088,7 @@ app.whenReady().then(async () => {
     }
   }
 
-  createWindow();
+  createWindow({ holdUntilReady: true });
 
   // Game-art boot sweep: fetch Steam posters for games that have none yet.
   // Delayed so it never competes with boot I/O; fails soft offline.

@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-27 (session 211) — Boot splash: the Corva mark floats while the app loads hidden
+
+### Added
+- **Corva now opens behind a splash instead of half-loaded (#73 Phase 1).** The window used to appear the instant it was created — an empty frame, then the UI popping in, then every counter correcting itself as the data arrived. Launch now shows only the Corva mark, frameless on a fully transparent background, gently pulsing over whatever is on screen while the app loads hidden; the window appears once the renderer reports its first data load has committed, so the numbers are right at first sight. A 15-second failsafe shows the window regardless (a hung load can never leave the app invisible), the crash dialog closes the splash before appearing, and the log records which trigger revealed the window. Verified over three instrumented dev boots — the reveal fired from the renderer signal every time, with the app fully populated at first paint.
+
+### Changed
+- **Two features spec'd with Fega and filed.** Game-scoped media for the editor's Media tab went up as #322 (folders assigned to a game in Settings + per-item overrides; the panel auto-scopes to the clip's game plus universal items — "pinning" IS the game attachment, one concept). The splash decisions and a verified code map were folded into the existing #73 rather than duplicated; its bundle-slimming phases stay parked.
+
 ## [Unreleased] — 2026-08-26 (session 210) — The five media/tracker follow-ups, one commit each
 
 ### Changed

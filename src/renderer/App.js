@@ -503,6 +503,14 @@ export default function App() {
     load();
   }, []);
 
+  // #73: reveal signal. Main holds the window hidden behind the splash until
+  // the hydration above has COMMITTED — an effect on `loaded` (not a call
+  // inside load()) so every setState batch lands before the window shows and
+  // first paint has real numbers, not seeded defaults.
+  useEffect(() => {
+    if (loaded) window.clipflow?.appReady?.();
+  }, [loaded]);
+
   // #301: does this build carry a gateway token? One boolean, asked once —
   // it decides whether AI counts as available and what Settings shows, with
   // the token itself staying in the main process where it can't be persisted.

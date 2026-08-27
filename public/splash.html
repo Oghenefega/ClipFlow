@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- #73 Phase 1: boot splash. Static page, no JS, no preload — loaded into a
+       frameless transparent window by main.js while the real window hydrates
+       hidden. main.js adds the "out" class for the fade-out before closing. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>Corva</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      -webkit-user-select: none;
+      cursor: default;
+    }
+    html {
+      transition: opacity 200ms ease-out;
+    }
+    html.out {
+      opacity: 0;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    img {
+      width: 192px;
+      height: 192px;
+      /* Static glow so the mark reads on light and dark desktops alike;
+         the pulse animates transform/opacity only (compositor-cheap). */
+      filter: drop-shadow(0 8px 28px rgba(37, 99, 235, 0.45));
+      animation:
+        splash-in 240ms ease-out,
+        breathe 2200ms ease-in-out 240ms infinite;
+    }
+    @keyframes splash-in {
+      from { opacity: 0; transform: scale(0.88); }
+      to   { opacity: 0.94; transform: scale(1); }
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1);    opacity: 0.94; }
+      50%      { transform: scale(1.05); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <img src="./icon.png" alt="">
+</body>
+</html>

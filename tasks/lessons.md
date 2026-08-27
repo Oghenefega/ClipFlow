@@ -1446,3 +1446,14 @@ the removed media folder stay listed.
 **Rule:** don't choose between the two. Harness for the measurement (fast, exact, repeatable
 after the fix), app for the symptom Fega actually reported. When the harness needs a module that
 requires electron, `npx electron <script>` beats stubbing.
+
+## S211 — "ClipFlow-era" is not a synonym for outdated
+
+**What happened:** the splash spec called `public/icon.svg` "stale ClipFlow-era branding, do not
+use," treating anything from before the Corva rename as superseded. Fega corrected it: the logo
+he made under ClipFlow IS the current Corva mark — the rename changed the name, not the brand
+assets. (The SVG does happen to contain an older *design* — purple tile + bolt vs the blue C
+wave in the png/ico — but that's a per-file observation, not an era judgment.)
+**Rule:** never infer an asset is stale from its date or from the product rename. Open the
+files, compare what they actually depict, and when the live mark is ambiguous, ask Fega.
+Routed: memory (corva-rename note updated with logo continuity).
