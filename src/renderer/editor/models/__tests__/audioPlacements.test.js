@@ -239,4 +239,14 @@ describe("occupantsFromLane", () => {
     expect(occupantsFromLane(null, 0)).toEqual([]);
     expect(occupantsFromLane(undefined, 1)).toEqual([]);
   });
+
+  test("judges a malformed lane the way the normalizer draws it", () => {
+    // normalizePlacements sends a non-number to lane 0, so it must not hold a
+    // higher lane here — otherwise that lane can never close and the dormant
+    // note points at a block that is visibly rendering on lane 0.
+    expect(occupantsFromLane([sfx({ id: "x", trackIndex: "2" })], 1)).toHaveLength(0);
+    expect(occupantsFromLane([sfx({ id: "x", trackIndex: "2" })], 0)).toHaveLength(1);
+    expect(occupantsFromLane([sfx({ id: "y", trackIndex: 1.7 })], 1)).toHaveLength(1);
+    expect(occupantsFromLane([sfx({ id: "y", trackIndex: 1.7 })], 2)).toHaveLength(0);
+  });
 });

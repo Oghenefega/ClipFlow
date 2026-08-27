@@ -4,9 +4,10 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-27 (session 213) — Fresh-eyes review of #322 + the boot splash
+## [Unreleased] — 2026-08-27 (session 213) — Fresh-eyes review of #322, the boot splash, and the session-210 batch
 
 ### Fixed
+- **A malformed lane index can no longer hold a lane hostage (s210 batch review, #320/#321).** `occupantsFromLane` — the one question the remove-lane button and the store both ask — judged a placement's lane with `|| 0` while the normalizer that actually draws blocks uses the strict number guard. A non-number index (impossible from the app, possible from a hand-edited clip file) would therefore hold a high lane un-closable, with the "footage was cut away" note pointing at a block visibly rendering on lane 0. The occupancy check now coerces the lane exactly the way the normalizer does, with a test pinning the agreement — the same models-must-agree rule #320 itself shipped for.
 - **An item whose game was deleted now ticks "All games" in its menu (#322 review).** The renderer already treats a tag whose game is gone as universal — the item shows in every scope and its thumbnail wears the universal icon — but the "Show this in" menu checked the raw stored tag, so such an item ticked nothing at all. The menu now agrees with the grid: gone game, "All games" ticked.
 - **The group headers in the new game dropdowns are no longer clickable (#322 review).** "GAMES" and "CONTENT TYPES" in the Settings media-folder dropdown rendered with a pointer cursor and hover highlight, and clicking one closed the menu having selected nothing. Header rows are now inert — no click, no hover, default cursor. Nothing bogus was ever stored (a guard already caught that); this fixes the dead-end click itself.
 

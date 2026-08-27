@@ -127,7 +127,14 @@ function assignRows(blocks) {
  */
 function occupantsFromLane(placements, laneIndex) {
   if (!Array.isArray(placements)) return [];
-  return placements.filter((p) => (p.trackIndex || 0) >= laneIndex);
+  return placements.filter((p) => {
+    // Judge the lane the way normalizePlacements will DRAW it — the same
+    // finite guard, not `|| 0` — or a malformed index could hold a lane
+    // hostage that its own block will never render on (#320's agreement
+    // rule applies here too: this answer and the drawn lane are one fact).
+    const lane = Number.isFinite(p.trackIndex) && p.trackIndex > 0 ? Math.floor(p.trackIndex) : 0;
+    return lane >= laneIndex;
+  });
 }
 
 module.exports = {
