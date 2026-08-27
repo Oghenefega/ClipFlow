@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-27 (session 213) — alpha.8: splash, game-scoped media, review fixes
+
+### Changed
+- **Version bumped to 0.4.0-alpha.8 and an installer cut.** Promotes everything since alpha.7: the boot splash with the gated reveal (#73 Phase 1), game-scoped media for the editor's Media tab (#322), and the three session-213 review fixes (the stale-tag "All games" tick, the inert dropdown headers, and the lane-occupancy coercion). A machine still on alpha.6 gets the session-210 batch (#315/#318/#319/#320/#321) in the same hop — one verification pass covers all of it.
+
 ## [Unreleased] — 2026-08-27 (session 213) — Fresh-eyes review of #322, the boot splash, and the session-210 batch
 
 ### Fixed
