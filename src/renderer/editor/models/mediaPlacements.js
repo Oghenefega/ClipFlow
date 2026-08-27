@@ -70,7 +70,14 @@ function normalizeMediaPlacements(placements) {
         out.trimEnd = out.durationSec > 0 ? out.durationSec : DEFAULT_MEDIA_SEC;
       }
     }
-    if (!(out.trackIndex >= 0)) out.trackIndex = 0;
+    // Which lane (= z-order level) this sits on. Anything that isn't a real
+    // lane number resolves to 0 rather than travelling on: `x >= 0` alone lets
+    // a null through (null >= 0 is true) and a string past that, and this value
+    // both indexes a lane array and drives the draw-order sort. Same guard the
+    // sound twin uses (#312) — the two models are meant to agree (#320).
+    out.trackIndex = Number.isFinite(out.trackIndex) && out.trackIndex > 0
+      ? Math.floor(out.trackIndex)
+      : 0;
     if (out.xPct == null) out.xPct = 50;
     if (out.yPct == null) out.yPct = 50;
     if (out.wPct == null) out.wPct = 40;
