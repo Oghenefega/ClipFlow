@@ -1,5 +1,7 @@
 # HANDOFF — Session 209 (2026-08-26)
 
+> Pending session title (set automatically at next session start): S209 · alpha.6 — media epic reviewed, shipped, verified
+
 ## Current State
 
 **The media-overlays epic is DONE — shipped, reviewed, installed and verified.** The s209 review
