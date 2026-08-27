@@ -55,3 +55,46 @@ describe("trackIndex — the overlay lane", () => {
     expect(resolved.map((p) => p.id)).toEqual(["bottom", "mid", "top"]);
   });
 });
+
+const vid = (over) => ({ id: "v1", mediaType: "video", sourceTime: 12, ...over });
+
+// ── #318: the window into a video is only as long as the video ──
+// Every clamp on a video overlay's trim window derives from its file length, so
+// what the model does when that length is MISSING is the whole of #318: it can
+// clamp nothing, and the block can be stretched past the end of its own file.
+// The fix keeps a video from ever being placed unmeasured (MediaPanel refuses,
+// the preview writes back what the element measured, the render probes) — these
+// pin the clamps that then take effect.
+describe("video trim window", () => {
+  test("clamps the window to the file", () => {
+    const [p] = normalizeMediaPlacements([vid({ durationSec: 5, trimStart: 1, trimEnd: 30 })]);
+    expect(p.trimStart).toBe(1);
+    expect(p.trimEnd).toBe(5);
+  });
+
+  test("a start past the end is pulled back inside the file", () => {
+    const [p] = normalizeMediaPlacements([vid({ durationSec: 5, trimStart: 40, trimEnd: 50 })]);
+    expect(p.trimStart).toBeLessThan(5);
+    expect(p.trimEnd).toBe(5);
+    expect(p.trimEnd).toBeGreaterThan(p.trimStart);
+  });
+
+  test("a fresh video plays the whole file", () => {
+    const [p] = normalizeMediaPlacements([vid({ durationSec: 8 })]);
+    expect(p.trimStart).toBe(0);
+    expect(p.trimEnd).toBe(8);
+  });
+
+  test("with no file length there is nothing to clamp to — the #318 hole", () => {
+    // Documented, not desired: this is exactly why an unmeasured video is now
+    // refused at placement and healed from the preview element.
+    const [p] = normalizeMediaPlacements([vid({ durationSec: null, trimStart: 0, trimEnd: 999 })]);
+    expect(p.trimEnd).toBe(999);
+  });
+
+  test("a still is unaffected — it has no inside to run out of", () => {
+    const [p] = normalizeMediaPlacements([img({ durationSec: null })]);
+    expect(p.trimStart).toBe(0);
+    expect(p.trimEnd).toBe(3);
+  });
+});

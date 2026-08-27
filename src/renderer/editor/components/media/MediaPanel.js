@@ -185,6 +185,17 @@ export default function MediaPanel() {
       } catch (_) { /* falls back to the default length */ }
     }
 
+    // #318: a video is the only kind with a WINDOW into its file, and every
+    // clamp on that window is derived from the file's length. Placed without
+    // one it can be stretched past its own end, where the render freezes the
+    // last frame over silence and the preview seeks somewhere that doesn't
+    // exist. A GIF or a still has no inside to run out of, so those keep the
+    // default-length fallback.
+    if (item.type === "video" && !(durationSec > 0)) {
+      flashStatus(`Couldn't read how long ${item.name} is, so it wasn't added — try again, or re-export the file`, true);
+      return;
+    }
+
     es.addMediaPlacement(item, sourceTime, durationSec);
     flashStatus(`${item.name} added at ${fmtDur(Math.max(0, tl))}`);
     // The one chokepoint for placing media, so the one place Recent is stamped.

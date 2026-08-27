@@ -832,6 +832,16 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
             playsInline
             draggable={false}
             onError={() => setPreviewFailed(true)}
+            onLoadedMetadata={(e) => {
+              // #318: a placement saved before the length could be probed has
+              // nothing for the model to clamp its trim window to, and nothing
+              // in the app teaches it later. The element just measured the file
+              // — write it back, once, and every clamp downstream engages
+              // (normalizeMediaPlacements pulls trimEnd inside the file on the
+              // very next resolve).
+              const d = e.currentTarget.duration;
+              if (!(p.durationSec > 0) && Number.isFinite(d) && d > 0) onChange(p.id, { durationSec: d });
+            }}
             className="block w-full pointer-events-none"
             style={previewFailed ? { display: "none" } : undefined}
           />
@@ -1565,11 +1575,22 @@ export default function PreviewPanelNew() {
       el.volume = Math.max(0, Math.min(1, p.volume ?? DEFAULT_VIDEO_VOLUME));
       el.playbackRate = rate;
       // Where inside the file this instant lands — the trim window's start plus
-      // however far into the block we are.
-      const filePos = Math.max(0, (p.trimStart || 0) + (timelineTime - p.tlStart));
+      // however far into the block we are. Clamped to the file the element
+      // actually opened (#318): a block stretched past its own end otherwise
+      // asks for a position that doesn't exist, the seek never converges, and
+      // the loop re-seeks every tick for as long as the playhead is inside.
+      const rawPos = Math.max(0, (p.trimStart || 0) + (timelineTime - p.tlStart));
+      const filePos = Number.isFinite(el.duration) && el.duration > 0
+        ? Math.min(rawPos, Math.max(0, el.duration - 0.05))
+        : rawPos;
       const drift = isPlaying ? 0.25 : 0.05;
       if (Math.abs(el.currentTime - filePos) > drift) el.currentTime = filePos;
-      if (isPlaying) { if (el.paused) el.play().catch(() => {}); }
+      // Past the end of its own file: hold the last frame rather than play on.
+      // play() from an ended element rewinds it to 0, which the clamp above
+      // would immediately seek back — a loop the user sees as flicker (#318).
+      // Holding is also what the render does there (eof_action=repeat).
+      const beyond = Number.isFinite(el.duration) && el.duration > 0 && rawPos >= el.duration;
+      if (isPlaying && !beyond) { if (el.paused) el.play().catch(() => {}); }
       else if (!el.paused) el.pause();
     }
   }, []);

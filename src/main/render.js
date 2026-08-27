@@ -67,6 +67,36 @@ function probeWidth(filePath) {
 }
 
 /**
+ * How long is this video file, in seconds (#318)?
+ *
+ * A video overlay's trim window is clamped to its own length by the model — but
+ * only when the length is KNOWN. A placement whose duration was never probed
+ * (`durationSec: null`) escapes every clamp, and the export is where that stops
+ * being harmless: `trim` past EOF freezes the picture on the last frame while
+ * the audio runs out early, so the file plays nothing like the popover claims.
+ * The file on disk is the authority here, same reasoning as probeHasAudio.
+ * @param {string} filePath
+ * @returns {Promise<number>} seconds, or 0 when the probe can't say
+ */
+function probeDurationSec(filePath) {
+  return new Promise((resolve) => {
+    const proc = spawn(FFPROBE_BIN, [
+      "-v", "error",
+      "-show_entries", "format=duration",
+      "-of", "csv=p=0",
+      filePath,
+    ]);
+    let stdout = "";
+    proc.stdout.on("data", (d) => (stdout += d.toString()));
+    proc.on("close", (code) => {
+      const d = parseFloat(stdout.trim());
+      resolve(code !== 0 || isNaN(d) || d <= 0 ? 0 : d);
+    });
+    proc.on("error", () => resolve(0));
+  });
+}
+
+/**
  * Does this file carry an audio stream (#311)? A video overlay's sound is mixed
  * in by referencing [N:a], and FFmpeg fails the whole render if that stream
  * doesn't exist — so a silent reaction clip has to be spotted BEFORE the graph
@@ -661,6 +691,33 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
             ? projectData.sourceWidth
             : await probeWidth(srcFile);
         }
+        // #318: a video overlay whose duration was never probed carries no file
+        // length, so the model had nothing to clamp its trim window to and it can
+        // run past the end of its own file. Ask the file, once, and re-clamp both
+        // the window and the on-screen span together — leaving tlEnd long is what
+        // turns into a frozen last frame (eof_action=repeat) over silence.
+        for (let i = 0; i < activeMediaAssets.length; i++) {
+          const m = activeMediaAssets[i];
+          if (m.mediaType !== "video" || m.durationSec > 0) continue;
+          const fileLen = await probeDurationSec(m.path);
+          if (fileLen <= 0) {
+            console.warn(`[Render] Overlay "${m.name || m.assetId}" duration probe FAILED — trim window left as saved`);
+            continue;
+          }
+          const vs = Math.max(0, m.trimStart || 0);
+          if (vs >= fileLen) {
+            console.warn(`[Render] Overlay "${m.name || m.assetId}" starts past the end of its own file (${vs.toFixed(2)}s of ${fileLen.toFixed(2)}s) — skipped`);
+            activeMediaAssets[i] = null;
+            continue;
+          }
+          const ve = Math.min(m.trimEnd != null ? m.trimEnd : fileLen, fileLen);
+          if (ve < (m.trimEnd ?? Infinity)) {
+            console.log(`[Render] Overlay "${m.name || m.assetId}" clamped to its file: ${(m.trimEnd - ve).toFixed(2)}s trimmed off the end`);
+          }
+          activeMediaAssets[i] = { ...m, durationSec: fileLen, trimStart: vs, trimEnd: ve, tlEnd: m.tlStart + (ve - vs) };
+        }
+        activeMediaAssets = activeMediaAssets.filter(Boolean);
+
         // #311: a video overlay's sound only joins the mix if the file has one.
         // Probed here, once per unmuted video, so a silent reaction clip is a
         // silent overlay rather than a failed export.
@@ -1071,12 +1128,30 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
     // A missing file is skipped rather than fatal — a thumbnail is worth less
     // than the export, and refusing to grab one helps nobody.
     const thumbLanes = clipData.laneEnabled || {};
-    const thumbMedia = thumbLanes.media === false || !useNle
+    let thumbMedia = thumbLanes.media === false || !useNle
       ? []
       : resolveMediaPlacements(
           (Array.isArray(clipData.media) ? clipData.media : []).filter((p) => p.enabled !== false),
           nleSegments
         ).filter((m) => t >= m.tlStart && t < m.tlEnd && m.path && fs.existsSync(m.path));
+    // #318: an unprobed video carries no file length for the model to clamp its
+    // window to, and a `-ss` past EOF gives FFmpeg a zero-frame input — the
+    // overlay silently vanishes from the thumbnail, or the spawn stalls into the
+    // 60s kill. Ask the file, then drop only the overlays this instant genuinely
+    // lands past (the export clamps their span the same way).
+    for (let i = 0; i < thumbMedia.length; i++) {
+      const m = thumbMedia[i];
+      if (m.mediaType !== "video" || m.durationSec > 0) continue;
+      const fileLen = await probeDurationSec(m.path);
+      if (fileLen > 0) thumbMedia[i] = { ...m, durationSec: fileLen };
+    }
+    thumbMedia = thumbMedia.filter((m) => {
+      if (m.mediaType !== "video" || !(m.durationSec > 0)) return true;
+      const into = Math.max(0, m.trimStart || 0) + (t - m.tlStart);
+      if (into < m.durationSec) return true;
+      console.warn(`[Thumbnail] Overlay "${m.name || m.assetId}" is past the end of its own file at this frame — skipped`);
+      return false;
+    });
     const mediaAssets = thumbMedia.map((m, i) => {
       // A GIF is seeked to the frame this instant lands on, wrapping through
       // its loop; a video (#311) to the same instant inside its trim window,
