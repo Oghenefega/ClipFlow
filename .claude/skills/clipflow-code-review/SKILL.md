@@ -122,6 +122,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **A new CHANGELOG session section is INSERTED above the previous heading — never written by editing the existing heading line (sessions 208+209).** Using the current top heading as the edit anchor and "updating" it to the new session replaces it, erasing the prior session's record and stranding its entries under the wrong heading with duplicate `### Fixed`/`### Changed` labels. Happened in 446d6f3 and again (self-caught) in the very review that flagged it. Anchor the insertion on content that comes AFTER the new section, or prepend above the old heading — one heading per session, even same-day.
 
+- **An exact twin of the bug gets fixed in the same commit, not filed as a caveat (session 210).** #315's stamp-overwrite and wrong-slot logging lived in `retryFailed` AND, character for character, in `publishClip` beside it. Fixing one and writing the other up as "noted, not changed" ships a known bug and leaves two copies free to drift — which is exactly how #321's UI gate and store check diverged. Before done: grep the module for the same shape (the same variable init, the same derivation, the same guard) and either fix every copy or collapse them into one function. Scope discipline forbids inventing new work; it does not license leaving half of the work you just found. If a twin genuinely must wait, ASK in the same breath — don't file it as a caveat.
+
 ## Lesson Capture
 
 After ANY correction from the user:

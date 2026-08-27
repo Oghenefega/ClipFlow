@@ -1,6 +1,6 @@
-# HANDOFF — Session 210 (2026-08-26)
+# HANDOFF — Session 210 (2026-08-26, wrapped just past midnight on the 27th)
 
-> Pending session title (set automatically at next session start): S210 · five follow-ups shipped, one commit each
+> Pending session title (set automatically at next session start): S210 · alpha.7 — five media/tracker follow-ups, one commit each
 
 ## Current State
 
@@ -42,7 +42,8 @@ every item here is `status: untested` in practice.
    refused at placement, healed from the preview element, probed and re-clamped at render and
    thumbnail. That made per-consumer patches unnecessary (`MediaBlock`'s `Infinity` fallback
    is now unreachable rather than wrong, so it was left alone).
-5. **#319 did NOT take the keep-mounted option** — that is the one-live-`<video>`-per-block
+5. **The `publishClip` twin was fixed on Fega's call, as one function rather than two.** I had flagged it as out-of-scope; he wanted it fixed. Rather than patch it in parallel, both paths now share `logPostAtFirstSuccess` — the #321 lesson applied to itself. Captured as this session's lesson and routed to clipflow-code-review.
+6. **#319 did NOT take the keep-mounted option** — that is the one-live-`<video>`-per-block
    crash #311's design rules out. A 1.5s lead-in fixes the blank-first-frames symptom; scrub
    churn across the block edge is shifted, not eliminated.
 
