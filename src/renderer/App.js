@@ -821,6 +821,46 @@ export default function App() {
     );
   }, [allClips]);
 
+  // #315: clips stuck between "scheduled" and "posted".
+  //
+  // A scheduled publish that only partly worked leaves the clip in a gap: the
+  // scheduler's claim cleared `scheduledAt` (so the yellow card left the calendar)
+  // while QueueView only writes a tracker entry on FULL success (so no posted card
+  // took its place). It is live on the platforms that worked and invisible on the
+  // Tracker until someone retries — which is exactly when the user goes looking.
+  //
+  // Derived, never written: no tracker entry is created here, so nothing counts
+  // toward the week, the pace ring, the streak or XP until the retry completes and
+  // logPost runs for real. The slot is the moment the audience first got it
+  // (`publishedAt`), falling back to the earliest recorded failure when nothing
+  // went out at all — both are already persisted on the clip.
+  const needsRetryClips = React.useMemo(() => {
+    const tracked = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
+    return Object.entries(allClips).flatMap(([projectId, clips]) =>
+      clips.flatMap((c) => {
+        if (c.scheduledAt || tracked.has(c.id)) return [];
+        const states = Object.values(c.publishState || {});
+        const failed = states.filter((v) => v && typeof v === "object" && v.error);
+        if (failed.length === 0) return [];
+        const at = c.publishedAt || failed.map((v) => v.at).filter(Boolean).sort()[0];
+        if (!at) return [];
+        const when = new Date(at);
+        if (isNaN(when.getTime())) return [];
+        return [{
+          date: localISO(when),
+          time: when.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+          title: c.title,
+          game: (c.gameTag || "").toLowerCase() || null,
+          clipId: c.id,
+          projectId,
+          postedCount: states.filter((v) => v === "success").length,
+          failedCount: failed.length,
+          repostOf: c.repostOf || null,
+        }];
+      })
+    );
+  }, [allClips, trackerData]);
+
   // clipId → what the Tracker needs to identify a POSTED clip (#218). Tracker entries
   // store title + clipId at publish time (QueueView logPost); the frame and the file
   // path live on the clip, so they're resolved live and simply absent once a project
@@ -1046,6 +1086,7 @@ export default function App() {
               awardXp={awardXp}
               streakState={streakState}
               scheduledClips={scheduledClips}
+              needsRetryClips={needsRetryClips}
               gameArt={gameArt}
               clipIndex={trackerClipIndex}
               onOpenInEditor={handleOpenTrackerClipInEditor}

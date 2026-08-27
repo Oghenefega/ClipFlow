@@ -90,6 +90,7 @@ export default function TrackerView({
   xpLedger, awardXp,
   streakState,
   scheduledClips,
+  needsRetryClips,
   gameArt = {},
   clipIndex,
   onOpenInEditor,
@@ -143,6 +144,18 @@ export default function TrackerView({
     }
     return m;
   }, [scheduledClips]);
+  // #315: clips that partly published and are waiting on a retry. Kept OUT of
+  // schedByDate on purpose — they must not count as "scheduled" in the week
+  // aggregate any more than they count as posted. They are a visual only, so the
+  // clip stops vanishing from the calendar between firing and being fixed.
+  const retryByDate = useMemo(() => {
+    const m = new Map();
+    for (const c of needsRetryClips || []) {
+      if (!m.has(c.date)) m.set(c.date, []);
+      m.get(c.date).push(c);
+    }
+    return m;
+  }, [needsRetryClips]);
   // #276: one aggregate call gives the viewed week its state machine — current /
   // future / hit / missed / untracked / noData — plus frozen streak numbers and the
   // Mon..Sun scheduled count, exactly as the retired Calendar derived them.
@@ -1091,6 +1104,7 @@ export default function TrackerView({
             // and never reach trackerData until the scheduler fires, so this list is the
             // ONLY way the week log can show what's coming.
             const daySched = schedByDate.get(d.iso) || [];
+            const dayRetry = retryByDate.get(d.iso) || [];
 
             // Merge template slots (filled by an entry or a scheduled clip, else an open
             // "+" tile) with anything whose time doesn't land on a template slot, into one
@@ -1100,10 +1114,12 @@ export default function TrackerView({
             sortedSlots.forEach((slot) => {
               const matches = dayEntries.filter((e) => norm(e.time) === norm(slot));
               const schedMatches = daySched.filter((s) => norm(s.time) === norm(slot));
+              const retryMatches = dayRetry.filter((r) => norm(r.time) === norm(slot));
               matches.forEach((entry) => dayRows.push({ type: "entry", entry, minutes: safeMinutes(slot) }));
               schedMatches.forEach((sched) => dayRows.push({ type: "sched", sched, minutes: safeMinutes(slot) }));
+              retryMatches.forEach((retry) => dayRows.push({ type: "retry", retry, minutes: safeMinutes(slot) }));
               // #276: a frozen past week has nothing left to book — no open slots.
-              if (matches.length === 0 && schedMatches.length === 0 && viewMode !== "past") {
+              if (matches.length === 0 && schedMatches.length === 0 && retryMatches.length === 0 && viewMode !== "past") {
                 dayRows.push({ type: "slot", time: slot, minutes: safeMinutes(slot) });
               }
             });
@@ -1112,6 +1128,9 @@ export default function TrackerView({
             });
             daySched.filter((s) => !slotTimesNorm.has(norm(s.time))).forEach((sched) => {
               dayRows.push({ type: "sched", sched, minutes: safeMinutes(sched.time) });
+            });
+            dayRetry.filter((r) => !slotTimesNorm.has(norm(r.time))).forEach((retry) => {
+              dayRows.push({ type: "retry", retry, minutes: safeMinutes(retry.time) });
             });
             dayRows.sort((a, b) => a.minutes - b.minutes);
 
@@ -1135,31 +1154,39 @@ export default function TrackerView({
                   // corner glow, differing only in dot colour and border (#218). The
                   // published title is what actually tells Fega which clip this was —
                   // it has been stored on every entry since logPost, just never shown.
-                  if (row.type === "entry" || row.type === "sched") {
+                  if (row.type === "entry" || row.type === "sched" || row.type === "retry") {
                     const isSched = row.type === "sched";
-                    const item = isSched ? row.sched : row.entry;
+                    // #315: partly published, waiting on a retry. Not a preview and not
+                    // history — it is live on some platforms right now, which is why it
+                    // shows solid rather than ghosted like a scheduled card.
+                    const isRetry = row.type === "retry";
+                    const item = isSched ? row.sched : isRetry ? row.retry : row.entry;
                     const gd = resolveGameDisplay(item.game);
-                    const isAuto = !isSched && item.source === "clipflow";
-                    const dotColor = isSched ? T.yellow : (isAuto ? T.cyan : "#fff");
-                    const ring = isSched ? T.yellowBorder : rgba(gd.color, 0.26);
+                    const isAuto = !isSched && !isRetry && item.source === "clipflow";
+                    const dotColor = isRetry ? T.red : isSched ? T.yellow : (isAuto ? T.cyan : "#fff");
+                    const ring = isRetry ? rgba(T.red, 0.45) : isSched ? T.yellowBorder : rgba(gd.color, 0.26);
                     // #282: only a not-yet-published clip can be moved — it still has its
                     // own `scheduledAt` and nothing has gone out to a platform. Posted
-                    // entries (auto or manual) are history and stay put.
+                    // entries (auto or manual) are history and stay put, and a half-posted
+                    // one can't be moved to a slot it is already past.
                     const movable = isSched && !!item.clipId && !!item.projectId && !!onRescheduleClip;
+                    const retryTitle = isRetry
+                      ? `${item.title || "Clip"} — went out on ${item.postedCount} platform${item.postedCount === 1 ? "" : "s"}, ${item.failedCount} still failing. Click to retry in the Queue.`
+                      : null;
                     return (
-                      <div key={(isSched ? "s" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
-                        title={movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || "")}
+                      <div key={(isSched ? "s" : isRetry ? "r" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
+                        title={retryTitle || (movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || ""))}
                         draggable={movable}
                         onDragStart={movable ? (e) => startClipDrag(item, e) : undefined}
-                        onClick={(e) => openDetailPopover(item, isSched, e.currentTarget.getBoundingClientRect())}
+                        onClick={(e) => (isRetry ? onOpenQueue?.() : openDetailPopover(item, isSched, e.currentTarget.getBoundingClientRect()))}
                         style={{
                           position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 3,
-                          background: rgba(gd.color, isSched ? 0.05 : 0.09),
+                          background: isRetry ? T.redDim : rgba(gd.color, isSched ? 0.05 : 0.09),
                           border: `1px ${isSched ? "dashed" : "solid"} ${ring}`,
                           borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: movable ? "grab" : "pointer",
                           opacity: isSched ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
                         }}
-                        onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = rgba(gd.color, 0.5); }}
+                        onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = isRetry ? T.red : rgba(gd.color, 0.5); }}
                         onMouseLeave={(ev) => { ev.currentTarget.style.opacity = isSched ? 0.62 : 1; ev.currentTarget.style.borderColor = ring; }}
                       >
                         <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(90px 50px at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
@@ -1169,6 +1196,11 @@ export default function TrackerView({
                               seeing at a glance when reading a week's stats. */}
                           {item.repostOf && (
                             <span title="Repost" style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}` }}>REPOST</span>
+                          )}
+                          {/* #315: this one is half-posted. The badge is the whole point
+                              of the card — without it a red dot just looks like a variant. */}
+                          {isRetry && (
+                            <span style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.red, background: T.redDim, border: `1px solid ${rgba(T.red, 0.35)}` }}>RETRY</span>
                           )}
                           <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(item.time)}</span>
                           <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `${T.cyan}88` : "rgba(255,255,255,0.35)")}` }} />
@@ -1236,6 +1268,12 @@ export default function TrackerView({
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled
             </span>
+            {/* #315: only worth a legend slot when one is actually on screen. */}
+            {(needsRetryClips || []).length > 0 && (
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.red, boxShadow: `0 0 6px ${rgba(T.red, 0.55)}` }} /> Half posted {"—"} needs retry
+              </span>
+            )}
           </div>
           <span style={{ fontSize: 10.5, color: T.textTertiary, fontWeight: 500 }}>
             {viewMode === "current"

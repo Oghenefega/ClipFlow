@@ -1422,7 +1422,11 @@ export default function QueueView({
     // #156: same publishedAt stamp as publishClip — a retry that lands means the clip
     // has now gone out, and the scheduler must not treat it as still pending.
     let anySuccess = false;
-    let publishedStamped = false;
+    // #315: seeded from the clip, so a retry NEVER overwrites an existing stamp.
+    // publishedAt means "first moment the audience could see this", and on a
+    // partial failure that already happened — hours ago, on the platforms that
+    // worked. Re-stamping it here moved the clip's whole history to the retry.
+    let publishedStamped = !!clip.publishedAt;
     for (const platKey of failedKeys) {
       const plat = activePlat.find((p) => p.key === platKey);
       if (!plat) continue;
@@ -1496,8 +1500,14 @@ export default function QueueView({
         .filter(Boolean);
       const everyDone = enabledKeys.every((k) => nextPublishState[k] === "success");
       if (everyDone) {
-        const now = new Date();
-        logPost(clip, localISO(now), FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+        // #315: log the slot the AUDIENCE got this clip in, not the one the retry
+        // finished in. A 12:30 post that failed on two platforms and was retried at
+        // 2:20 belongs at 12:30 — publishedAt is the first platform that landed.
+        // When everything failed the first time round, publishedAt IS the retry, so
+        // the fallback and the stamp agree either way.
+        const stamped = clip.publishedAt ? new Date(clip.publishedAt) : null;
+        const when = stamped && !isNaN(stamped.getTime()) ? stamped : new Date();
+        logPost(clip, localISO(when), FULL_DAY_NAMES[when.getDay()], when.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
       }
     }
     return { allSuccess };
