@@ -1,58 +1,66 @@
-# HANDOFF — Session 219 (2026-08-28)
+# HANDOFF — Session 220 (2026-08-28)
 
 ## Current State
 
-**`0.4.0-alpha.10` is cut, published and live on the feed.** This session was the release loop
-and nothing else — no product code changed. `curl https://engine.flowve.app/updates/alpha.yml`
-reads `0.4.0-alpha.10`; alpha.9's exe and blockmap were pruned off the feed by the publish script.
+**The five alpha.10 commits are now audited** (038262f small wins, 39c2ebd Queue redesign,
+5938b26 Settings revamp, 42574c5 themes, 73066d0 scheduler+streaming). Findings fixed and
+pushed in `fbebff3`; `28173aa` opened the next release-notes "unreleased" block. The fixes
+are on master only — **not yet in Fega's installed alpha.10**; they ride the next cut.
 
-**What the cut promotes (three issues, not five):** the Settings revamp (#331), the theme system
-(#328), and the main-process publish scheduler + streaming mode (#329). #324 and #325 — the Queue
-redesign — went out in **alpha.9** and Fega's install has already run it: `lastSeenVersion` in
-`%APPDATA%\clipflow` reads `0.4.0-alpha.9`, and that key is stamped only by `whatsnew:ack`, i.e.
-only when he closed alpha.9's What's New screen. Session 218's handoff said five were stacked
-behind the cut; it was counting open `status: untested` issues, which is not the same question.
+What was fixed: 18 `${T.colour}NN` hex-alpha concats that became invalid CSS when #328 made
+T values var() strings (banner tints, engine-setup boxes, Tracker glows, Projects player
+glows, both new Settings info boxes — all silently flat in alpha.10); a scheduler wedge
+(`onTick` outside `tickOnce`'s try/finally could stick `running=true` forever); a
+tray-creation failure during streaming-mode entry leaving a windowless, trayless resident
+process; tray-quit skipping `database.close()`; the boot `applyTheme({persist:false})` call
+theme.js documented but nobody wrote; three inert `dark` classNames.
 
-**Fega has not yet installed alpha.10.** He needs to relaunch, take the banner, and confirm
-Settings reads v0.4.0-alpha.10.
+Everything else in the batch held up: claim arbitration, the pending-union anti-clobber
+guards, the shared caption/tracker-row resolvers (field-for-field vs. consumers), the
+What's New version walk, splash min-hold, Settings search index.
 
 ## Key Decisions
 
-- **No minor bump.** alpha.9 → alpha.10, per the standing policy: tick the counter forever, never
-  move the minor number without Fega saying so. Three visible features in one cut does not change that.
-- **`status: untested` was left on all five issues.** #324/#325 are verifiable now (they have been
-  in his hands since alpha.9), but confirmation is Fega's to give, not mine to assume.
+- **`editorPrimitives.js` is a dead file (zero importers) — left in place, noted on #40.**
+  Its `EditableTC` popover was themed anyway (correct if ever wired in). Deleting vs. wiring
+  is Fega's call in the hygiene pass.
+- **Remaining literal violet washes (~25 sites, e.g. `rgba(139,92,246,0.08)` drag overlays)
+  left alone.** They're readable on every theme; they just don't follow the pink accents on
+  Rose/Blush. Cosmetic follow-up candidate, not shipped-broken like the concats were.
+- The orphaned dev-store XP entries (`clip:mtdeiwr9…`/`clip:mtdejch8…`, no matching tracker
+  rows) are **s218's anti-clobber delete test as designed** — XP is append-only on purpose.
+  Not a leak; don't re-investigate.
 
 ## Next Steps
 
-1. **Fega installs alpha.10** — relaunch → "Update available" banner → Install → it restarts itself
-   and opens What's New. Settings → bottom should read **v0.4.0-alpha.10**.
-2. **Verification pass on the three new ones once he is on it:** #331 (Settings rail + search),
-   #328 (four themes, including the editor repainting), #329 (streaming mode — the tray, and a
-   scheduled clip going out with the window closed). Pull `status: untested` as each is confirmed.
-3. **#324/#325 can be confirmed now** — they have been live since alpha.9.
-4. **#332** — the GPU process does not retire in streaming mode (~119 MB held with no window).
-   Open, measured, not urgent.
+1. **Fega verifies alpha.10 on his install** (unchanged from s219): #331 Settings rail +
+   search, #328 four themes incl. editor, #329 streaming mode (tray + a scheduled clip with
+   the window closed), #324/#325 Queue redesign. Pull `status: untested` as confirmed.
+2. **Next installer cut picks up the audit fixes** — the restored-colours What's New entry
+   is already queued in release-notes.js. Batch per policy (~10 changes or explicit ask).
+3. #332 (GPU process doesn't retire in streaming mode) — open, measured, not urgent.
 
 ## Watch Out For
 
-- **The release build needs `NODE_OPTIONS=--max-old-space-size=8192`.** Without it `npm run build`
-  dies at the packaging step. Now encoded in the `clipflow-update-launcher` skill, step 3.
-- **`npm start` is a publishing action** (from s218, still true): it boots the prod profile, which
-  since #329 runs a live scheduler. The dev profile refuses to auto-publish without
-  `CLIPFLOW_ALLOW_DEV_PUBLISH=1`; prod has no such guard.
-- **Never `taskkill //F //IM Corva.exe`** — that image name is shared with Fega's running daily
-  driver (s218 killed it).
-- **A prior handoff's issue count is not evidence.** Re-derive from `git log <last-bump>..HEAD`.
+- **`npm start` is a publishing action** (prod profile boots a live scheduler since #329).
+  Verify with `CLIPFLOW_PROFILE=dev` (refuses to auto-publish) and confirm
+  `clipflow-dev\clipflow-tokens.json` is `{"accounts": {}}` before any dev boot.
+- **Never `taskkill //F //IM Corva.exe`** — shared image name with the daily driver. Kill
+  dev electron by PID.
+- **New colour code near themes:** never `${T.x}NN` — Dim/Border tokens or
+  `color-mix(in srgb, ${T.x} N%, transparent)`. Rule now in ui-standards.md +
+  clipflow-ui-debug; grep `\$\{T\.\w+\}[0-9a-fA-F]{2}` before shipping.
+- Release builds need `NODE_OPTIONS=--max-old-space-size=8192` (s219, in the launcher skill).
 
 ## Logs / Debugging
 
-- **Build OOM signature** — `⨯ Array buffer allocation failed  failedTask=build` /
-  `RangeError: Array buffer allocation failed at NtExecutable.generate (pe-library)` reached via
-  `addWinAsarIntegrity` → `beforeCopyExtraFiles`. It lands AFTER `✓ built in Ns`, so a partially
-  read log looks healthy; a failed packaging run leaves `dist/` holding the previous version's
-  installer and manifest, which is why the artifact-timestamp check in step 4 is not optional.
-- **Backgrounded builds vanish** — the first attempt returned `stopped` with "No completion record
-  was found" because the session process exited under it. The output file still held the real error.
-- **Publish verification** — `curl -s https://engine.flowve.app/updates/alpha.yml | head -1` is the
-  one-line proof the feed took the new version.
+- **Attribute app.log lines by `sess_` id, not tail recency** — a fresh boot's lines flush
+  late; s220 chased a phantom for 15 min on the previous boot's lines (now in trace-verify).
+- CDP against the dev boot: connect with `suppress_origin=True` (websocket-client sends an
+  Origin header Electron 40 rejects with 403 otherwise). The What's New modal (z-1000)
+  swallows synthetic clicks on everything under it — dismiss via its "Got it" before driving.
+- `color-mix` verified resolving in Electron 40: probe returned
+  `color(srgb 0.133 0.827 0.933 / 0.53)` for the cyan glow — the pattern is safe app-wide.
+- Audit verification run: dev boot `sess_a039d0b87dc6` (18:22) — scheduler refused on dev,
+  What's New fired for alpha.10 and acked (dev store's lastSeenVersion now alpha.10), real
+  clip opened in the editor (`.editor-scope` present, 2 videos, 4 canvases, no crash).

@@ -14,6 +14,12 @@ flips polarity so one alpha works on both dark and light. Literal colours are
 only for things that are NOT chrome: platform brand, the user's game colours,
 subtitle/caption styling, and anything painted over video frames.
 
+Never string-append an alpha suffix to a `T` colour — `` `${T.green}33` `` is
+invalid CSS since #328 (T values are `var()` strings) and the declaration is
+silently dropped. Use the `Dim`/`Border` tokens, or
+`color-mix(in srgb, ${T.x} N%, transparent)` for an exact alpha. Appending to a
+literal game colour from gamesDb is still fine.
+
 | Element | Standard |
 |---------|----------|
 | Indicator dots | Min 7-8px with `boxShadow` glow (`0 0 6px <color>`) |

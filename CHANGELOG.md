@@ -21,6 +21,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Scope: a code audit of the five commits live in alpha.10** (#326/#327/#330 small wins, the Queue redesign, the Settings revamp #331, the theme system #328, the scheduler move #329). Everything else held up under review: the claim arbitration, the pending-union anti-clobber guards, the shared caption/tracker-row resolvers, the What's New version walk, the splash min-hold, and the Settings search index all check out against their consumers.
 - **Verified on a dev-profile boot of the built bundle** (tokens confirmed empty first): scheduler correctly refuses on dev, What's New fired for alpha.10 and acked, a real clip opened in the editor with no crash, and a `color-mix` probe plus the Tracker's fixed glow both computed the intended colours.
 - The orphaned dev-store XP entries found during verification (`clip:mtdeiwr9…`/`clip:mtdejch8…` with no matching tracker rows) are session 218's anti-clobber delete test as designed — XP is append-only on purpose, not a leak.
+- **Session wrap:** two self-caught lessons distilled — the `${T.colour}NN` alpha-concat class into `clipflow-ui-debug` + `ui-standards.md` (never compose alphas by string-appending to a `T` value), and log-line attribution by `sess_` id into `clipflow-trace-verify`. The dead `editorPrimitives.js` file is noted on #40; the next release-notes "unreleased" block is open with the restored-colours entry.
 
 ## [0.4.0-alpha.10] — 2026-08-28 (session 219) — alpha.10: streaming mode, themes, and the Settings revamp
 
