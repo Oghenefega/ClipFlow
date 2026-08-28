@@ -421,6 +421,9 @@ const STORE_DEFAULTS = {
   // launches (locked design: it never nags its way back). bottom is CSS px
   // from the window's bottom edge.
   feedbackBubble: { tucked: false, bottom: 88 },
+  // #330: last app version whose What's New the user has seen (or been stamped
+  // past). "" only until the boot migration below stamps the current version.
+  lastSeenVersion: "",
 };
 
 function runStoreMigrations(store) {
@@ -710,6 +713,15 @@ function runStoreMigrations(store) {
     }
     store.set("_migrated_gatewayToken_v1", true);
   }
+
+  // ── Migration (#330): stamp lastSeenVersion so What's New only fires on real
+  // version CHANGES from here on. Fresh installs and installs upgrading onto
+  // this feature both start "caught up" — the first update AFTER this one is
+  // the first to announce itself. Handles fresh installs by definition (both
+  // start at "").
+  if (!store.get("lastSeenVersion")) {
+    store.set("lastSeenVersion", app.getVersion());
+  }
 }
 
 let mainWindow;
@@ -722,6 +734,12 @@ let testWatcher = null;
 // or the fallback timer, whichever comes first.
 let splashWindow = null;
 let revealFallbackTimer = null;
+// #326: when the splash actually appeared (0 = never shown). The reveal holds
+// until it has been on screen this long — a fast boot used to flash it for a
+// fraction of a second.
+let splashShownAt = 0;
+let revealHoldTimer = null;
+const SPLASH_MIN_VISIBLE_MS = 2000;
 
 // #156: someone tried to launch a second copy of this profile and it exited on the
 // lock check. Surface the window we already have so the launch isn't a silent no-op
@@ -770,7 +788,10 @@ function createSplashWindow() {
   splashWindow.setIgnoreMouseEvents(true);
   // ready-to-show = first paint done; showing earlier flashes an empty rect.
   splashWindow.once("ready-to-show", () => {
-    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.show();
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.show();
+      splashShownAt = Date.now();
+    }
   });
   splashWindow.on("closed", () => {
     splashWindow = null;
@@ -787,6 +808,23 @@ function revealMainWindow(trigger) {
   if (revealFallbackTimer) {
     clearTimeout(revealFallbackTimer);
     revealFallbackTimer = null;
+  }
+  // #326: minimum splash hold. A reveal that arrives before the splash has been
+  // visible SPLASH_MIN_VISIBLE_MS is deferred by the remainder; the single
+  // revealHoldTimer keeps this idempotent (a second trigger during the hold is
+  // a no-op). A splash that never showed (load failure) skips the hold, and a
+  // splash force-closed by the fatal-boot path fails the isDestroyed check.
+  if (splashShownAt && splashWindow && !splashWindow.isDestroyed()) {
+    const remaining = SPLASH_MIN_VISIBLE_MS - (Date.now() - splashShownAt);
+    if (remaining > 0) {
+      if (!revealHoldTimer) {
+        revealHoldTimer = setTimeout(() => {
+          revealHoldTimer = null;
+          revealMainWindow(`${trigger}+min-hold`);
+        }, remaining);
+      }
+      return;
+    }
   }
   if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
     mainWindow.show();
@@ -4940,6 +4978,41 @@ ipcMain.handle("feedback:snapshot", async (event, rect) => {
 // Get app version
 ipcMain.handle("app:getVersion", async () => {
   return app.getVersion();
+});
+
+// ── #330: What's New after an update ──
+// The renderer asks once per boot. Entries are curated in release-notes.js,
+// newest first; "show" means the stored lastSeenVersion differs from the
+// running version AND at least one entry sits above it in the list. The array
+// ORDER is the version ordering — no semver parsing, so alpha tags never
+// need comparing. An entry still tagged "unreleased" is dev-only and skipped.
+ipcMain.handle("whatsnew:get", async () => {
+  try {
+    const releaseNotes = require("./release-notes");
+    const current = app.getVersion();
+    const lastSeen = store.get("lastSeenVersion");
+    if (!lastSeen || lastSeen === current) return { show: false };
+    const entries = [];
+    for (const entry of releaseNotes) {
+      if (entry.version === lastSeen) break;
+      if (entry.version === "unreleased") continue;
+      entries.push(entry);
+    }
+    if (entries.length === 0) return { show: false };
+    return { show: true, current, lastSeen, entries };
+  } catch (err) {
+    // A malformed notes file must never block boot — worst case: no screen.
+    logger.warn(logger.MODULES.system, `whatsnew:get failed: ${err.message}`);
+    return { show: false };
+  }
+});
+
+// Stamp the running version as seen — fires when the user closes the screen.
+// Not stamped on show: an update the user never acknowledged (e.g. app died
+// mid-boot) announces itself again next launch.
+ipcMain.handle("whatsnew:ack", async () => {
+  store.set("lastSeenVersion", app.getVersion());
+  return { success: true };
 });
 
 // Open an external URL in the OS default browser. Only http/https allowed so a

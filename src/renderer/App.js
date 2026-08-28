@@ -5,6 +5,7 @@ import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import FeedbackBubble from "./components/FeedbackBubble";
 import UpdateBanner from "./components/UpdateBanner";
+import WhatsNewModal from "./components/WhatsNewModal";
 import DependencyBanner from "./components/DependencyBanner";
 import EngineSetupView from "./components/EngineSetupView";
 import PublishFailureBanner from "./components/PublishFailureBanner";
@@ -988,6 +989,9 @@ export default function App() {
         </div>
       </div>
       <UpdateBanner />
+      {/* #330: full-screen overlay on the first launch after an update — renders
+          null on every other boot, so mounting it unconditionally is free */}
+      <WhatsNewModal />
       {/* key: remount (→ re-check) when engine setup finishes, so the whisper
           issue clears from the banner without a manual "Check again" */}
       <DependencyBanner

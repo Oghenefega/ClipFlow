@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-28 (session 214) — Small wins: What's New after updates, exact tracker times, a splash that holds
+
+### Added
+- **What's New screen after updates (#330).** The first launch after an update now opens with a summary of what changed — Added / Changed / Fixed in plain product language — so updates stop being silent. Entries live in a curated `src/main/release-notes.js` (newest first, shown for every version the user skipped); "Got it" stamps the version so the screen shows exactly once. The release loop (clipflow-update-launcher skill) now includes the curation step: rename the "unreleased" entry to the real version at cut time. Fresh installs and the first update carrying this feature start "caught up" via a store migration.
+
+### Changed
+- **The boot splash holds for at least 2 seconds and grows instead of pulsing (#326).** The reveal used to fire the instant the renderer was ready, which on a fast boot flashed the splash for a fraction of a second. The main process now defers the reveal until the splash has been visible ≥2s (slow boots unchanged — the renderer signal still gates), and the icon's pulse animation was replaced with one slow continuous 6s grow. Verified live: a warm dev boot hydrated in under 2s and the log shows the reveal arriving via the new min-hold path.
+
+### Fixed
+- **The Tracker records the exact time a clip was posted (#327).** Manual publishes were snapped to the nearest weekly-template slot before logging — a 2:45 PM post showed as 2:30 PM (with the default 3-slot template the error could be hours). The snap is gone: manual posts log their real clock time (from `publishedAt`), scheduled posts keep logging the slot the user picked, and the Tracker's existing off-slot rendering shows odd times as their own rows. The scheduler itself always supported any posting cadence — only the log was lying. Verified by seeding a 2:45 PM entry and confirming the Tracker renders it verbatim.
+
 ## [Unreleased] — 2026-08-27 (session 213) — alpha.8: splash, game-scoped media, review fixes
 
 ### Changed

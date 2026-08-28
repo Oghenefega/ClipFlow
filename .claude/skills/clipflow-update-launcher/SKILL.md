@@ -53,6 +53,13 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
    `## [Unreleased] — YYYY-MM-DD (session N) — <summary>` format. One `### Changed` bullet noting
    the version bump and what the build promotes. To summarize what's shipping, look at
    `git log --oneline <last-version-bump-commit>..HEAD`.
+   - **Also cut the What's New entry (#330):** in `src/main/release-notes.js`, rename the
+     `"unreleased"` entry to the exact new version string and stamp its `date`. If the batch has
+     no `"unreleased"` entry, write one now covering what's shipping. These lines are shown to
+     USERS on their first launch after the update — plain product language ("The Tracker now
+     shows the exact time you posted"), never commit-speak. An entry left as `"unreleased"` is
+     never shown, so forgetting this step means a silent update. This file ships inside the build
+     (`src/main/**`), so it must be right BEFORE step 3 — and it gets committed in step 6.
 3. **Build** — run `npm run build` (= `vite build` then `electron-builder`; rebuilds the renderer
    fresh and packages the NSIS installer). Run it in the **background** — it takes a few minutes.
    - The `>500 kB chunk` Vite warning is **benign** (desktop app, no code-splitting wanted). Don't "fix" it.
@@ -70,7 +77,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
 ## CRITICAL — what to commit
 
 ```bash
-git add package.json CHANGELOG.md   # ONLY these two
+git add package.json CHANGELOG.md src/main/release-notes.js   # ONLY these three
 git status --short                  # confirm data/ files are NOT staged
 git commit -m "Bump version to <v> and cut installer to promote <what>"
 git push origin master

@@ -1476,3 +1476,27 @@ compares, normalises or keys off a stored value, open the real store/DB and look
 values. Cheap (one `python -c` on `clipflow-settings.json`), and it is the only thing that catches a
 silent no-match. Routed: memory `project_game_tag_names` (tags are mixed case, compare exactly, no
 `toLowerCase()`), plus the general rule in clipflow-code-review.
+
+## S214 — a routine dev verification boot published two real clips at 1 AM
+
+**What happened:** verifying the What's New modal and a tracker fix needed two dev-profile boots
+(`CLIPFLOW_PROFILE=dev npx electron .`). Fega's real library (shared `projectsRoot`, known gotcha)
+held two overdue scheduled clips; the Queue's auto-publish tick fires within a minute of boot; and
+the dev profile's `clipflow-tokens.json` — assumed empty since s182 — actually held live OAuth
+tokens copied by a past `dev:seed`. The two clips fully published to his real Facebook, TikTok and
+Instagram at ~1:15 AM. YouTube was spared only by an expired token. Nothing wrong was posted —
+they were his own scheduled clips with his own captions — but the posting time was not his choice,
+and the tracker/training records landed in the dev store where prod will never see them.
+
+**Why it slipped:** three individually-known facts (shared projectsRoot, boot-time publish tick,
+dev-seed copies everything) were never composed into "a dev boot is a live publisher." The stale
+belief "dev has no connected platforms" (true in s182) was carried forward without checking the
+tokens file — the same class as S212's unverified spec claim, but with an outward-facing blast
+radius instead of a silent no-match.
+
+**Rule:** before ANY dev-profile boot, confirm `%APPDATA%\clipflow-dev\clipflow-tokens.json` is
+`{}` — publishing from dev must be structurally impossible, not just unlikely. Never re-seed
+tokens into dev (`dev:seed` copies them; empty the file right after any seed). For queue/publish-
+adjacent work, repoint dev at a scratch fixture tree first. Applied: dev tokens emptied (backup
+`clipflow-tokens.backup-s214.json`); routed to memory `project_cdp_verification_gotchas` (s214
+incident block) + MEMORY.md index headline.

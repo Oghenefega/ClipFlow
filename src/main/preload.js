@@ -397,6 +397,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   getAppVersion: () => ipcRenderer.invoke("app:getVersion"),
   openExternal: (url) => ipcRenderer.invoke("app:openExternal", url),
 
+  // #330: What's New after an update
+  whatsNewGet: () => ipcRenderer.invoke("whatsnew:get"),
+  whatsNewAck: () => ipcRenderer.invoke("whatsnew:ack"),
+
   // Project Folders
   folderList: () => ipcRenderer.invoke("folder:list"),
   folderCreate: (data) => ipcRenderer.invoke("folder:create", data),

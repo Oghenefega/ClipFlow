@@ -240,32 +240,6 @@ const getUpcomingDates = () => {
   return d;
 };
 
-// Parse a time slot string like "3:30 PM" into total minutes since midnight
-const parseTimeToMinutes = (s) => {
-  const [t, ap] = s.split(" ");
-  let [h, m] = t.split(":").map(Number);
-  if (ap === "PM" && h !== 12) h += 12;
-  if (ap === "AM" && h === 12) h = 0;
-  return h * 60 + m;
-};
-
-// Snap a time string to the nearest slot in the provided timeSlots array
-const snapToSlot = (timeStr, timeSlots) => {
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return timeStr;
-  let h = parseInt(match[1]), m = parseInt(match[2]);
-  const ap = match[3].toUpperCase();
-  if (ap === "PM" && h !== 12) h += 12;
-  if (ap === "AM" && h === 12) h = 0;
-  const mins = h * 60 + m;
-  let best = 0, bestDist = Infinity;
-  for (let i = 0; i < timeSlots.length; i++) {
-    const d = Math.abs(parseTimeToMinutes(timeSlots[i]) - mins);
-    if (d < bestDist) { bestDist = d; best = i; }
-  }
-  return timeSlots[best];
-};
-
 function SortableRow({ id, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return children({ ref: setNodeRef, style: { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }, attributes, listeners });
@@ -1605,13 +1579,14 @@ export default function QueueView({
 
   const dates = getUpcomingDates();
   const activePlat = platforms.filter((p) => p.connected);
-  const wd = getWeekDates(new Date());
-  const mondayIso = wd[0].iso;
-  const effectiveTemplate = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
 
+  // #327: `time` is recorded VERBATIM. Manual publishes pass the real clock
+  // time (logPostAtFirstSuccess), scheduled ones pass the slot the user picked
+  // — both are already the truth. This used to snap to the nearest weekly-
+  // template slot, which filed a 2:45 PM post as 2:30 PM; TrackerView renders
+  // off-slot times as their own rows, so exact times need no snapping.
   const logPost = (clip, date, day, time, isScheduled) => {
     const gt = (clip.gameTag || extractGameTag(clip.title) || "unknown").toLowerCase();
-    const snapped = snapToSlot(time, effectiveTemplate.timeSlots);
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const captured = publishResultsRef.current[clip.id] || {};
     // Record the platforms that actually succeeded — captured this session or persisted on
@@ -1643,7 +1618,7 @@ export default function QueueView({
       tags: resolveTags(clip, ytDescriptions, gamesDb),
       tagsCustom: Array.isArray(clip.youtubeTags),
     };
-    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled, published: publishedSnapshot, ...(clip.repostOf ? { repostOf: clip.repostOf } : {}) }]);
+    setTrackerData((p) => [...p, { id, date, day, time, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled, published: publishedSnapshot, ...(clip.repostOf ? { repostOf: clip.repostOf } : {}) }]);
     // #183: the title/caption that actually shipped is voice training data —
     // especially when it was hand-written and never matched a suggestion.
     // Fire-and-forget; a logging failure must never affect the publish result.
