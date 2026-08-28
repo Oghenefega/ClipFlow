@@ -52,7 +52,13 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
 2. **Add a CHANGELOG.md entry** at the top (above the newest existing entry). Match the existing
    `## [Unreleased] — YYYY-MM-DD (session N) — <summary>` format. One `### Changed` bullet noting
    the version bump and what the build promotes. To summarize what's shipping, look at
-   `git log --oneline <last-version-bump-commit>..HEAD`.
+   `git log --oneline <last-version-bump-commit>..HEAD` — that range IS the answer. Do **not**
+   take the list from a prior HANDOFF or from open `status: untested` issues: that label tracks
+   whether Fega has confirmed a fix, not whether the code reached a build, and s219 shipped with a
+   handoff claiming five issues when two had already gone out in the previous cut. An installer is a
+   full build of master, never a delta — everything merged is in it. To test one specific fix, use
+   `git merge-base --is-ancestor <commit> <bump-commit>`; to test whether Fega has RUN a version,
+   read `lastSeenVersion` in `%APPDATA%\clipflow` settings (stamped only by `whatsnew:ack`).
    - **Also cut the What's New entry (#330):** in `src/main/release-notes.js`, rename the
      `"unreleased"` entry to the exact new version string and stamp its `date`. If the batch has
      no `"unreleased"` entry, write one now covering what's shipping. These lines are shown to
@@ -60,8 +66,16 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
      shows the exact time you posted"), never commit-speak. An entry left as `"unreleased"` is
      never shown, so forgetting this step means a silent update. This file ships inside the build
      (`src/main/**`), so it must be right BEFORE step 3 — and it gets committed in step 6.
-3. **Build** — run `npm run build` (= `vite build` then `electron-builder`; rebuilds the renderer
-   fresh and packages the NSIS installer). Run it in the **background** — it takes a few minutes.
+3. **Build** — run `NODE_OPTIONS=--max-old-space-size=8192 npm run build` (= `vite build` then
+   `electron-builder`; rebuilds the renderer fresh and packages the NSIS installer). Run it in the
+   **FOREGROUND** with a 600000 ms timeout — it takes ~3-5 min, and nothing else can usefully
+   proceed until it finishes. Backgrounding it loses the build if the session process exits (s219).
+   - **The heap flag is required, not defensive.** Without it the build dies at the LAST step with
+     `RangeError: Array buffer allocation failed` in `pe-library`/`addWinAsarIntegrity` —
+     electron-builder rewrites the whole ~200 MB exe in memory to stamp asar integrity (s219).
+   - **A clean `vite build` is not a successful build.** Packaging is a separate failure domain, and
+     a failure there leaves `dist/` holding the PREVIOUS version's artifacts — which is exactly
+     what step 4 exists to catch. Read the tail of the log for `building block map`, not just ✓ built.
    - The `>500 kB chunk` Vite warning is **benign** (desktop app, no code-splitting wanted). Don't "fix" it.
    - The electron-builder "author is missed" / "@electron/rebuild not required" warnings are cosmetic. Ignore.
 4. **Verify the artifacts** — `dist/Corva Setup <version>.exe` (pre-rename builds: `ClipFlow Setup`), its `.blockmap`, and `dist/alpha.yml`

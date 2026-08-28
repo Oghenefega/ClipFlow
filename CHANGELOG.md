@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - **Version bumped to 0.4.0-alpha.10 and an installer cut.** Promotes everything since alpha.9: the publish scheduler moving into the main process plus streaming mode (#329), so scheduled clips go out with no window open and closing Corva can leave a tray-resident process behind; the theme system (#328) with four themes on a CSS-variable substrate and an Appearance section to pick one; and the Settings revamp (#331) — a section rail, cross-section search, and seven sections instead of six stacked dropdowns.
+- **Scope correction: this cut promotes three issues, not the five session 218's handoff claimed.** #324 and #325 (the Queue redesign) shipped in **alpha.9** and the daily driver had already run it — `lastSeenVersion` reads `0.4.0-alpha.9`, and that key is written only by `whatsnew:ack`, when the What's New screen is closed. The handoff had counted open `status: untested` issues, which tracks whether Fega has confirmed a fix, not whether the code reached a build. An installer is a full build of master, never a delta.
+
+### Notes
+- **The build needs a raised Node heap now.** `npm run build` failed at the packaging step with `RangeError: Array buffer allocation failed` in `pe-library`, thrown from `addWinAsarIntegrity` — electron-builder rewrites the whole ~200 MB `Corva.exe` PE image in memory to stamp the asar-integrity resource, and that allocation now sits at Node's default ceiling. Re-running verbatim under `NODE_OPTIONS=--max-old-space-size=8192` succeeded with no other change. The failure lands *after* a clean `vite build`, and leaves `dist/` holding the previous version's artifacts — so the release loop's artifact-timestamp check is what stops a stale installer being published under a new version number. Encoded in the `clipflow-update-launcher` skill.
 
 ## [Unreleased] — 2026-08-28 (session 218) — Lightweight publish mode: the scheduler moves into the main process
 
