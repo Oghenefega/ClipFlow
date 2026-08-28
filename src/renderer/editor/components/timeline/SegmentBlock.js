@@ -173,8 +173,8 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         border: `1.5px solid ${borderColor}`,
         borderRadius: SEGMENT_RADIUS,
         boxShadow: selected
-          ? `0 0 0 1px ${trackColor.ring}, inset 0 1px 0 rgba(255,255,255,0.08)`
-          : "inset 0 1px 0 rgba(255,255,255,0.06)",
+          ? `0 0 0 1px ${trackColor.ring}, inset 0 1px 0 rgba(var(--lift),0.08)`
+          : "inset 0 1px 0 rgba(var(--lift),0.06)",
         zIndex: selected ? 5 : hovered ? 3 : 1,
         // #296: switched off. Greyed and faded rather than hidden — the block
         // stays exactly where it was, so it can be switched back on.
@@ -228,7 +228,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
             left: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
             width: 4,
             height: 16,
-            background: "rgba(255,255,255,0.55)",
+            background: "rgba(var(--lift),0.55)",
             opacity: showHandles ? 1 : 0,
           }}
         />
@@ -246,7 +246,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
             right: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
             width: 4,
             height: 16,
-            background: "rgba(255,255,255,0.55)",
+            background: "rgba(var(--lift),0.55)",
             opacity: showHandles ? 1 : 0,
           }}
         />
@@ -269,7 +269,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
             {/* vertical divider line */}
             <div
               className="absolute top-0 bottom-0"
-              style={{ left: WORD_TOOTH_HIT_W / 2 - 0.75, width: 1.5, background: "rgba(255,255,255,0.4)" }}
+              style={{ left: WORD_TOOTH_HIT_W / 2 - 0.75, width: 1.5, background: "rgba(var(--lift),0.4)" }}
             />
             {/* top grab knob */}
             <div

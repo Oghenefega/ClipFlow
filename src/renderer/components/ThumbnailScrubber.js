@@ -154,7 +154,7 @@ export default function ThumbnailScrubber({ thumbnails, duration, games, markers
     return (
       <div style={{ padding: "24px 0", textAlign: "center" }}>
         <div style={{ color: T.accent, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Preparing preview...</div>
-        <div style={{ width: 160, height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, margin: "0 auto", overflow: "hidden" }}>
+        <div style={{ width: 160, height: 3, background: "rgba(var(--lift),0.06)", borderRadius: 2, margin: "0 auto", overflow: "hidden" }}>
           <div style={{ width: "40%", height: "100%", background: T.accent, borderRadius: 2, animation: "thumbLoadSlide 1.2s ease-in-out infinite" }} />
         </div>
         <style>{`@keyframes thumbLoadSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }`}</style>
@@ -252,7 +252,7 @@ export default function ThumbnailScrubber({ thumbnails, duration, games, markers
               top: 0,
               left: timeToX(t),
               height: 60,
-              borderLeft: `1px dashed rgba(255,255,255,0.15)`,
+              borderLeft: `1px dashed rgba(var(--lift),0.15)`,
               pointerEvents: "none",
             }}
           >
@@ -262,6 +262,7 @@ export default function ThumbnailScrubber({ thumbnails, duration, games, markers
               left: 4,
               fontSize: 9,
               fontFamily: T.mono,
+              // #328: literal — this timecode sits over the thumbnail strip itself.
               color: "rgba(255,255,255,0.4)",
               whiteSpace: "nowrap",
             }}>
@@ -356,7 +357,7 @@ export default function ThumbnailScrubber({ thumbnails, duration, games, markers
                   alignItems: "center",
                   gap: 10,
                   padding: "8px 12px",
-                  background: "rgba(255,255,255,0.02)",
+                  background: "rgba(var(--lift),0.02)",
                   borderRadius: T.radius.sm,
                   border: `1px solid ${T.border}`,
                 }}

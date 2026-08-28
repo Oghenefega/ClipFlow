@@ -200,7 +200,7 @@ const CLUSTER_SHELL = {
   display: "flex", alignItems: "center", gap: 10,
   padding: "9px 12px", borderRadius: T.radius.lg,
   background: "rgba(22,23,31,0.92)", backdropFilter: "blur(14px)",
-  border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(0,0,0,0.5)",
+  border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
   animation: "clipflowClusterUp 0.18s ease-out",
 };
 
@@ -1025,7 +1025,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             display: "flex", alignItems: "center", justifyContent: "center",
             pointerEvents: "none",
           }}>
-            <div style={{ color: "#a78bfa", fontSize: 16, fontWeight: 700, textAlign: "center" }}>
+            <div style={{ color: T.accentLight, fontSize: 16, fontWeight: 700, textAlign: "center" }}>
               Drop recording to generate clips
               <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
             </div>
@@ -1062,7 +1062,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         onClick={cancelQuickImport}
         style={{
           position: "fixed", inset: 0, zIndex: 1000,
-          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+          background: "rgba(var(--shade),calc(0.6 * var(--shadeK)))", backdropFilter: "blur(4px)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}
       >
@@ -1071,7 +1071,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           style={{
             background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12,
             padding: 24, width: 420, maxHeight: "80vh", overflowY: "auto",
-            boxShadow: "0 16px 64px rgba(0,0,0,0.5)",
+            boxShadow: "0 16px 64px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
@@ -1121,7 +1121,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                 disabled={!quickImportGame}
                 style={{
                   width: "100%", padding: "10px 16px", borderRadius: 8, border: "none",
-                  background: quickImportGame ? `linear-gradient(135deg, ${T.accent}, #a78bfa)` : "rgba(255,255,255,0.06)",
+                  background: quickImportGame ? `linear-gradient(135deg, ${T.accent}, ${T.accentLight})` : "rgba(var(--lift),0.06)",
                   color: quickImportGame ? "#fff" : T.textMuted,
                   fontSize: 13, fontWeight: 700, cursor: quickImportGame ? "pointer" : "default",
                   fontFamily: T.font, opacity: quickImportGame ? 1 : 0.5,
@@ -1158,7 +1158,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                   onClick={() => { setQuickImportSplitSkip(true); setQuickImportStep(3); }}
                   style={{
                     padding: "10px 16px", borderRadius: 8,
-                    background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`,
+                    background: "rgba(var(--lift),0.03)", border: `1px solid ${T.border}`,
                     color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer",
                     fontFamily: T.font, textAlign: "left",
                   }}
@@ -1174,7 +1174,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           {quickImportStep === 3 && (
             <>
               <div style={{ fontSize: 13, fontWeight: 700, color: T.textSecondary, marginBottom: 8 }}>Preview</div>
-              <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+              <div style={{ background: "rgba(var(--lift),0.02)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
                 {needsSplit ? (
                   <>
                     <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 6 }}>This will create {quickImport.splitCount} recordings:</div>
@@ -1204,7 +1204,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                 onClick={confirmQuickImport}
                 style={{
                   width: "100%", padding: "12px 16px", borderRadius: 8, border: "none",
-                  background: `linear-gradient(135deg, ${T.accent}, #a78bfa)`,
+                  background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
                   color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
                   fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
                 }}
@@ -1247,7 +1247,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           display: "flex", alignItems: "center", justifyContent: "center",
           pointerEvents: "none",
         }}>
-          <div style={{ color: "#a78bfa", fontSize: 16, fontWeight: 700, textAlign: "center" }}>
+          <div style={{ color: T.accentLight, fontSize: 16, fontWeight: 700, textAlign: "center" }}>
             Drop recording to generate clips
             <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
           </div>
@@ -1257,8 +1257,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       {/* Import progress banner */}
       {importing && (
         <div style={{ padding: "10px 16px", borderRadius: 8, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: "#a78bfa", fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
-          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+          <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
+          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
             <div style={{ height: "100%", borderRadius: 2, background: T.accent, width: `${importing.pct}%`, transition: "width 0.3s ease" }} />
           </div>
         </div>
@@ -1328,7 +1328,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           )}
 
           {/* Overall progress bar */}
-          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden", marginTop: 14 }}>
+          <div style={{ height: 4, borderRadius: 2, background: "rgba(var(--lift),0.06)", overflow: "hidden", marginTop: 14 }}>
             <div style={{
               height: "100%", borderRadius: 2,
               background: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : `linear-gradient(90deg, ${T.accent}, ${T.accentLight})`,
@@ -1424,7 +1424,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "10px 14px", borderRadius: T.radius.md,
-                  background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
+                  background: "rgba(var(--lift),0.02)", border: `1px solid ${T.border}`,
                   cursor: "pointer", marginBottom: isCollapsed ? 0 : 10,
                 }}
               >
@@ -1607,12 +1607,12 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         .cf-info-btn { opacity: 0; transform: scale(0.82); transition: opacity .14s ease, transform .14s ease, color .12s; }
         .cf-rec-card:hover .cf-info-btn { opacity: 1; transform: scale(1); }
         .cf-info-btn-open { opacity: 1 !important; transform: scale(1) !important; }
-        .cf-info-btn:hover, .cf-info-btn-open { color: #a78bfa !important; }
+        .cf-info-btn:hover, .cf-info-btn-open { color: ${T.accentLight} !important; }
         /* #125: Spotlight popover action rows */
-        .cf-spot-action { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; cursor: pointer; color: #edeef2; font-size: 12.5px; font-weight: 500; padding: 9px 14px; text-align: left; transition: background .1s; }
-        .cf-spot-action:hover { background: #16171f; }
-        .cf-spot-action svg { width: 15px; height: 15px; color: rgba(255,255,255,0.55); flex-shrink: 0; }
-        .cf-spot-action:hover svg { color: #a78bfa; }
+        .cf-spot-action { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; cursor: pointer; color: ${T.text}; font-size: 12.5px; font-weight: 500; padding: 9px 14px; text-align: left; transition: background .1s; }
+        .cf-spot-action:hover { background: ${T.surfaceHover}; }
+        .cf-spot-action svg { width: 15px; height: 15px; color: rgba(var(--lift),0.55); flex-shrink: 0; }
+        .cf-spot-action:hover svg { color: ${T.accentLight}; }
       `}</style>
       {batchState ? (
         <div style={CLUSTER_SHELL}>
@@ -1667,8 +1667,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
 
       {/* #169: sparse-transcript warning — the configured voice track had almost no speech */}
       {sparseWarn && !sparseCal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 500, width: "90%", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.65 * var(--shadeK)))", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 500, width: "90%", boxShadow: "0 12px 40px rgba(var(--shade),calc(0.6 * var(--shadeK)))" }}>
             <div style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🎙 Almost no speech found</div>
             <div style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>
               Only {sparseWarn.wordCount} word{sparseWarn.wordCount === 1 ? "" : "s"} were transcribed from <span style={{ color: T.text }}>{sparseWarn.fileName}</span>.
@@ -1717,7 +1717,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           zIndex: 1000, pointerEvents: "none",
           background: "#15161d", border: `1px solid ${T.borderHover}`,
           borderRadius: 8, padding: "7px 10px", maxWidth: 380,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+          boxShadow: "0 8px 24px rgba(var(--shade),calc(0.45 * var(--shadeK)))",
         }}>
           <div style={{ color: T.text, fontSize: 12, fontFamily: T.mono, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>{tip.name}</div>
           <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, marginTop: 3 }}>
@@ -1741,7 +1741,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             style={{
               position: "fixed", left: infoPop.left, top: infoPop.top, zIndex: 1001, width: 248,
               background: "#15161d", border: `1px solid ${T.borderHover}`, borderRadius: 13,
-              boxShadow: "0 18px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02)", overflow: "hidden",
+              boxShadow: "0 18px 48px rgba(var(--shade),calc(0.6 * var(--shadeK))), 0 0 0 1px rgba(var(--lift),0.02)", overflow: "hidden",
             }}
           >
             {/* hero — accent-tinted strip with filename + Duration/Size (equal stats) */}

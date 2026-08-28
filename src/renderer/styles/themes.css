@@ -1,0 +1,370 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   #328 — Corva's themes. This file is the ONLY place a palette is written.
+
+   Adding a theme is: copy a block, change the values, give it an id, add that
+   id to THEMES in theme.js and to THEME_CHROME in main.js (which needs the
+   canvas colour before any HTML exists). Nothing else in the app changes.
+
+   Each block feeds BOTH styling systems at once:
+
+     · the T object (src/renderer/styles/theme.js) — every key there is now
+       var(--x), so the ~23 files that style with inline `style={{}}` follow
+       along without being touched.
+
+     · the editor's Tailwind/shadcn tokens (--background, --primary, …), which
+       used to live under a `.dark` class that was applied statically and never
+       toggled. They are root-level now, so the editor and its Radix popovers
+       (which portal to <body>) inherit the same theme with no class plumbing.
+
+   Three tokens do work the individual colours cannot:
+
+     --lift   Which way a subtle surface tint goes. The app tints surfaces with
+              rgba(var(--lift), 0.04) roughly 230 times — a hairline border, a
+              hover wash, an inset field. On dark themes --lift is white, so
+              that reads as a lift OUT of the canvas; on light themes it is
+              near-black, so the same 0.04 reads as a step INTO the page.
+              One token, correct polarity everywhere.
+
+     --shade  Shadow and scrim colour, with --shadeK as their strength. Light
+              themes want the same shadows at roughly a third of the weight, so
+              shadows are written rgba(var(--shade), calc(0.5 * var(--shadeK))).
+
+     --stage  The editor's video stage, the recessed area around the 9:16
+              preview. A step away from --background, either direction.
+
+     --trackTextL / --trackIconL / --trackTextDimL  Lightness for text and
+              icons printed on the timeline's track colours. The HUES are
+              identity (caption blue, subtitle lime, audio amber) and never
+              change; only how light the lettering is does, or a dark theme's
+              88%-light label lands on a light theme's white panel and
+              disappears. The Dim tier exists because the audio track's amber
+              label was deliberately 18 points darker than the others — one
+              flat value would have visibly bleached it on Midnight.
+
+     --onSolid  Text sitting ON a full-strength green/accent fill (the Queue's
+              Publish button). Near-black on dark themes, white on light ones —
+              it does NOT follow --text, which is the opposite value.
+
+   NOT themed, on purpose: platform brand colours (platformBrand.js — TikTok,
+   Instagram, Facebook, YouTube are identity, not decoration), the user's own
+   game colours, and DM Sans.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Midnight — the app's original look, and the default ─────────────────── */
+[data-theme="midnight"] {
+  --bg: #0a0b10;
+  --bgRgb: 10, 11, 16;
+  --surface: #111218;
+  --surfaceHover: #16171f;
+
+  --lift: 255, 255, 255;
+  --shade: 0, 0, 0;
+  --shadeK: 1;
+  --onSolid: #0a0b10;
+
+  --border: rgba(255, 255, 255, 0.06);
+  --borderHover: rgba(255, 255, 255, 0.12);
+
+  --text: #edeef2;
+  --textSecondary: rgba(255, 255, 255, 0.55);
+  --textTertiary: rgba(255, 255, 255, 0.32);
+  --textMuted: rgba(255, 255, 255, 0.16);
+  --labelStrong: rgba(255, 255, 255, 0.68);
+
+  --accent: #8b5cf6;
+  --accentLight: #a78bfa;
+  --accentDim: rgba(139, 92, 246, 0.12);
+  --accentBorder: rgba(139, 92, 246, 0.25);
+  --accentGlow: rgba(139, 92, 246, 0.06);
+
+  --green: #34d399;
+  --greenDim: rgba(52, 211, 153, 0.10);
+  --greenBorder: rgba(52, 211, 153, 0.22);
+  --yellow: #fbbf24;
+  --yellowDim: rgba(251, 191, 36, 0.10);
+  --yellowBorder: rgba(251, 191, 36, 0.22);
+  --red: #f87171;
+  --redDim: rgba(248, 113, 113, 0.08);
+  --redBorder: rgba(248, 113, 113, 0.18);
+  --orange: #f97316;
+  --orangeDim: rgba(249, 115, 22, 0.10);
+  --orangeBorder: rgba(249, 115, 22, 0.22);
+  --cyan: #22d3ee;
+  --cyanDim: rgba(34, 211, 238, 0.10);
+  --cyanBorder: rgba(34, 211, 238, 0.22);
+
+  --tierBronze: #cd7f44;
+  --tierSilver: #c4cdd6;
+  --tierGold: #f5c542;
+  --tierPlatinum: #6fe3d2;
+  --tierDiamond: #7cc4ff;
+
+  /* editor — shadcn tokens, hsl channels */
+  --background: 240 8% 4%;
+  --foreground: 240 5% 96%;
+  --card: 240 6% 7%;
+  --card-foreground: 240 5% 96%;
+  --popover: 240 6% 9%;
+  --popover-foreground: 240 5% 96%;
+  --primary: 263 70% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 12%;
+  --secondary-foreground: 240 5% 80%;
+  --muted: 240 5% 10%;
+  --muted-foreground: 240 4% 55%;
+  --accent-hsl: 263 70% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 98%;
+  --border-hsl: 240 4% 14%;
+  --input: 240 4% 16%;
+  --ring: 263 70% 58%;
+  /* editor stage, timeline lettering, scrollbar, resize handle */
+  --stage: 240 8% 3%;
+  --trackTextL: 88%;
+  --trackIconL: 74%;
+  --trackTextDimL: 70%;
+  --timelineBg: #131419;
+  --rulerBg: #0f1014;
+  --scrollThumb: hsl(240 4% 22%);
+  --scrollThumbHover: hsl(240 4% 30%);
+}
+
+/* ── Daylight — light. Same violet, darkened so it reads on white ────────── */
+[data-theme="daylight"] {
+  --bg: #f3f4f7;
+  --bgRgb: 243, 244, 247;
+  --surface: #ffffff;
+  --surfaceHover: #f7f8fb;
+
+  --lift: 17, 19, 28;
+  --shade: 17, 19, 28;
+  --shadeK: 0.30;
+  --onSolid: #ffffff;
+
+  --border: rgba(17, 19, 28, 0.10);
+  --borderHover: rgba(17, 19, 28, 0.20);
+
+  --text: #14151c;
+  --textSecondary: rgba(17, 19, 28, 0.62);
+  --textTertiary: rgba(17, 19, 28, 0.44);
+  --textMuted: rgba(17, 19, 28, 0.26);
+  --labelStrong: rgba(17, 19, 28, 0.74);
+
+  --accent: #7c3aed;
+  /* On dark themes accentLight is the READABLE accent (lighter than --accent).
+     On light themes readable means darker. The token's job is unchanged; only
+     its direction flips. Do not "correct" this to a lighter value. */
+  --accentLight: #6d28d9;
+  --accentDim: rgba(124, 58, 237, 0.10);
+  --accentBorder: rgba(124, 58, 237, 0.28);
+  --accentGlow: rgba(124, 58, 237, 0.05);
+
+  --green: #0d9463;
+  --greenDim: rgba(13, 148, 99, 0.10);
+  --greenBorder: rgba(13, 148, 99, 0.26);
+  --yellow: #b45309;
+  --yellowDim: rgba(180, 83, 9, 0.10);
+  --yellowBorder: rgba(180, 83, 9, 0.24);
+  --red: #dc2626;
+  --redDim: rgba(220, 38, 38, 0.08);
+  --redBorder: rgba(220, 38, 38, 0.20);
+  --orange: #ea580c;
+  --orangeDim: rgba(234, 88, 12, 0.10);
+  --orangeBorder: rgba(234, 88, 12, 0.24);
+  --cyan: #0e7490;
+  --cyanDim: rgba(14, 116, 144, 0.10);
+  --cyanBorder: rgba(14, 116, 144, 0.24);
+
+  --tierBronze: #a1622f;
+  --tierSilver: #7b8794;
+  --tierGold: #b8860b;
+  --tierPlatinum: #0f9b8a;
+  --tierDiamond: #2b7fd4;
+
+  --background: 240 20% 97%;
+  --foreground: 240 12% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 12% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 12% 10%;
+  --primary: 263 70% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 10% 94%;
+  --secondary-foreground: 240 12% 22%;
+  --muted: 240 12% 95%;
+  --muted-foreground: 240 6% 42%;
+  --accent-hsl: 263 70% 51%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border-hsl: 240 8% 88%;
+  --input: 240 8% 84%;
+  --ring: 263 70% 51%;
+  --stage: 240 14% 90%;
+  --trackTextL: 32%;
+  --trackIconL: 38%;
+  --trackTextDimL: 40%;
+  --timelineBg: #ffffff;
+  --rulerBg: #e9ebf2;
+  --scrollThumb: hsl(240 8% 78%);
+  --scrollThumbHover: hsl(240 8% 64%);
+}
+
+/* ── Neon Rose — dark, hot pink ──────────────────────────────────────────── */
+[data-theme="rose"] {
+  --bg: #120810;
+  --bgRgb: 18, 8, 16;
+  --surface: #1c0d18;
+  --surfaceHover: #26131f;
+
+  /* Warm-tinted rather than pure white, so tints stay in the plum family
+     instead of turning the surfaces grey. */
+  --lift: 255, 232, 244;
+  --shade: 0, 0, 0;
+  --shadeK: 1;
+  --onSolid: #12080f;
+
+  --border: rgba(255, 232, 244, 0.08);
+  --borderHover: rgba(255, 232, 244, 0.15);
+
+  --text: #fdeef6;
+  --textSecondary: rgba(255, 232, 244, 0.58);
+  --textTertiary: rgba(255, 232, 244, 0.34);
+  --textMuted: rgba(255, 232, 244, 0.18);
+  --labelStrong: rgba(255, 232, 244, 0.70);
+
+  --accent: #ec4899;
+  --accentLight: #f9a8d4;
+  --accentDim: rgba(236, 72, 153, 0.14);
+  --accentBorder: rgba(236, 72, 153, 0.32);
+  --accentGlow: rgba(236, 72, 153, 0.07);
+
+  --green: #34d399;
+  --greenDim: rgba(52, 211, 153, 0.10);
+  --greenBorder: rgba(52, 211, 153, 0.22);
+  --yellow: #fbbf24;
+  --yellowDim: rgba(251, 191, 36, 0.10);
+  --yellowBorder: rgba(251, 191, 36, 0.22);
+  --red: #fb7185;
+  --redDim: rgba(251, 113, 133, 0.08);
+  --redBorder: rgba(251, 113, 133, 0.20);
+  --orange: #fb923c;
+  --orangeDim: rgba(251, 146, 60, 0.10);
+  --orangeBorder: rgba(251, 146, 60, 0.22);
+  --cyan: #22d3ee;
+  --cyanDim: rgba(34, 211, 238, 0.10);
+  --cyanBorder: rgba(34, 211, 238, 0.22);
+
+  --tierBronze: #cd7f44;
+  --tierSilver: #c4cdd6;
+  --tierGold: #f5c542;
+  --tierPlatinum: #6fe3d2;
+  --tierDiamond: #7cc4ff;
+
+  --background: 318 40% 6%;
+  --foreground: 330 60% 96%;
+  --card: 320 38% 9%;
+  --card-foreground: 330 60% 96%;
+  --popover: 320 38% 11%;
+  --popover-foreground: 330 60% 96%;
+  --primary: 330 81% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 320 30% 15%;
+  --secondary-foreground: 330 40% 82%;
+  --muted: 320 30% 12%;
+  --muted-foreground: 326 20% 60%;
+  --accent-hsl: 330 81% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 350 70% 35%;
+  --destructive-foreground: 0 0% 98%;
+  --border-hsl: 320 26% 18%;
+  --input: 320 26% 20%;
+  --ring: 330 81% 60%;
+  --stage: 318 42% 4%;
+  --trackTextL: 88%;
+  --trackIconL: 74%;
+  --trackTextDimL: 70%;
+  --timelineBg: #1a0c16;
+  --rulerBg: #150a12;
+  --scrollThumb: hsl(320 22% 26%);
+  --scrollThumbHover: hsl(320 24% 36%);
+}
+
+/* ── Blush — light pink ──────────────────────────────────────────────────── */
+[data-theme="blush"] {
+  --bg: #fdf1f6;
+  --bgRgb: 253, 241, 246;
+  --surface: #ffffff;
+  --surfaceHover: #fff7fb;
+
+  --lift: 66, 20, 44;
+  --shade: 66, 20, 44;
+  --shadeK: 0.28;
+  --onSolid: #ffffff;
+
+  --border: rgba(66, 20, 44, 0.11);
+  --borderHover: rgba(66, 20, 44, 0.22);
+
+  --text: #2a1020;
+  --textSecondary: rgba(42, 16, 32, 0.62);
+  --textTertiary: rgba(42, 16, 32, 0.44);
+  --textMuted: rgba(42, 16, 32, 0.26);
+  --labelStrong: rgba(42, 16, 32, 0.74);
+
+  --accent: #db2777;
+  --accentLight: #be185d;
+  --accentDim: rgba(219, 39, 119, 0.10);
+  --accentBorder: rgba(219, 39, 119, 0.28);
+  --accentGlow: rgba(219, 39, 119, 0.05);
+
+  --green: #0d9463;
+  --greenDim: rgba(13, 148, 99, 0.10);
+  --greenBorder: rgba(13, 148, 99, 0.26);
+  --yellow: #b45309;
+  --yellowDim: rgba(180, 83, 9, 0.10);
+  --yellowBorder: rgba(180, 83, 9, 0.24);
+  --red: #dc2626;
+  --redDim: rgba(220, 38, 38, 0.08);
+  --redBorder: rgba(220, 38, 38, 0.20);
+  --orange: #ea580c;
+  --orangeDim: rgba(234, 88, 12, 0.10);
+  --orangeBorder: rgba(234, 88, 12, 0.24);
+  --cyan: #0e7490;
+  --cyanDim: rgba(14, 116, 144, 0.10);
+  --cyanBorder: rgba(14, 116, 144, 0.24);
+
+  --tierBronze: #a1622f;
+  --tierSilver: #7b8794;
+  --tierGold: #b8860b;
+  --tierPlatinum: #0f9b8a;
+  --tierDiamond: #2b7fd4;
+
+  --background: 336 60% 97%;
+  --foreground: 326 46% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 326 46% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 326 46% 12%;
+  --primary: 333 71% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 336 40% 94%;
+  --secondary-foreground: 326 30% 26%;
+  --muted: 336 40% 96%;
+  --muted-foreground: 326 12% 44%;
+  --accent-hsl: 333 71% 51%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border-hsl: 336 28% 89%;
+  --input: 336 28% 85%;
+  --ring: 333 71% 51%;
+  --stage: 336 45% 92%;
+  --trackTextL: 32%;
+  --trackIconL: 38%;
+  --trackTextDimL: 40%;
+  --timelineBg: #ffffff;
+  --rulerBg: #f8e8f0;
+  --scrollThumb: hsl(336 22% 82%);
+  --scrollThumbHover: hsl(336 22% 68%);
+}

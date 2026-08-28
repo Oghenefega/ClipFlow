@@ -20,6 +20,9 @@ class AppErrorBoundary extends React.Component {
     if (this.state.error) {
       // Minimal inline render — no external dependencies, no font assumptions
       return (
+        // #328: deliberately NOT themed. This renders when React has already
+        // died; a crash screen that depends on the theme substrate loading is
+        // a crash screen that can fail to draw. Midnight values, hardcoded.
         <div style={{ padding: 48, color: "#ff6b6b", background: "#0a0b10", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "monospace, sans-serif", textAlign: "center" }}>
           <h1 style={{ fontSize: 24, marginBottom: 12, fontWeight: 700 }}>Something went wrong</h1>
           <p style={{ fontSize: 14, color: "#888", marginBottom: 24, maxWidth: 480 }}>

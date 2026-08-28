@@ -13,6 +13,9 @@
 module.exports = [
   {
     version: "unreleased",
+    added: [
+      "Corva has themes. Settings has a new Appearance section with four of them: Midnight (the look you already had, still the default), Daylight for bright rooms, Neon Rose (dark, hot pink) and Blush (light pink). Pick one and the whole app repaints instantly — including the editor — and it stays that way next time you open Corva.",
+    ],
     changed: [
       "Settings is a real desktop page now, not a phone one. The six stacked dropdowns are gone — sections live in a list down the left side, one click each, and the section you're in stays on screen while you scroll. Nothing moved out of Settings; it's only laid out differently.",
       "Settings has a search box. Type \"youtube\" and you get both the account connection and the API keys, from two different sections, with a button that takes you straight to either one.",

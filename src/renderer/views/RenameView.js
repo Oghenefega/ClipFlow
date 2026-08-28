@@ -66,7 +66,7 @@ const BAR_SHELL = {
 const BAR_GLASS = {
   padding: "9px 12px", borderRadius: T.radius.lg,
   background: "rgba(22,23,31,0.92)", backdropFilter: "blur(14px)",
-  border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(0,0,0,0.5)",
+  border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
 };
 const BAR_BTN = { fontFamily: T.font, fontSize: 12, fontWeight: 700, borderRadius: 9, padding: "8px 16px", cursor: "pointer", border: "1px solid transparent", whiteSpace: "nowrap" };
 
@@ -106,7 +106,7 @@ function HoverScrubThumb({ frames, loading, durationSeconds }) {
 
   const containerStyle = {
     width, height: THUMB_H, borderRadius: 6, overflow: "hidden",
-    background: "#0d0e14", border: `1px solid ${T.border}`,
+    background: "rgba(var(--lift),0.06)", border: `1px solid ${T.border}`,
     flexShrink: 0, position: "relative", cursor: "pointer",
   };
 
@@ -151,15 +151,15 @@ function HoverScrubThumb({ frames, loading, durationSeconds }) {
         />
       ))}
       {/* position tick */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: "rgba(255,255,255,0.12)" }}>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: "rgba(var(--lift),0.12)" }}>
         <div style={{ height: "100%", width: "25%", background: T.accentLight, transform: `translateX(${frac * 300}%)`, transition: "transform 0.05s linear" }} />
       </div>
       {/* full-size peek pop-out (flips left near the screen edge) */}
       {hover && peekPos && (
-        <div style={{ position: "fixed", left: peekPos.left, top: peekPos.top, width: PEEK_W, height: peekH, zIndex: 95, borderRadius: 12, border: `1px solid ${T.borderHover}`, boxShadow: "0 14px 44px rgba(0,0,0,0.65)", overflow: "hidden", pointerEvents: "none", background: "#0d0e14" }}>
+        <div style={{ position: "fixed", left: peekPos.left, top: peekPos.top, width: PEEK_W, height: peekH, zIndex: 95, borderRadius: 12, border: `1px solid ${T.borderHover}`, boxShadow: "0 14px 44px rgba(var(--shade),calc(0.65 * var(--shadeK)))", overflow: "hidden", pointerEvents: "none", background: "rgba(var(--lift),0.06)" }}>
           <img src={toFileUrl(frames[idx].path)} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           <span style={{ position: "absolute", right: 8, top: 8, fontSize: 10.5, fontWeight: 700, background: "rgba(0,0,0,0.55)", borderRadius: 5, padding: "2px 7px", color: "#fff" }}>{fmtClock(ts)}</span>
-          <div style={{ position: "absolute", left: 10, right: 10, bottom: 8, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.18)" }}>
+          <div style={{ position: "absolute", left: 10, right: 10, bottom: 8, height: 3, borderRadius: 2, background: "rgba(var(--lift),0.18)" }}>
             <div style={{ height: "100%", width: "25%", borderRadius: 2, background: T.accentLight, transform: `translateX(${frac * 300}%)` }} />
           </div>
         </div>
@@ -208,7 +208,7 @@ function SessionPresetPicker({ presetId, onChange }) {
     <div ref={menuRef} style={{
       position: "fixed", top: rect.bottom + 6, right: window.innerWidth - rect.right, zIndex: 1000, width: "max-content",
       background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-      boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 300, overflowY: "auto",
+      boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", padding: 4, maxHeight: 300, overflowY: "auto",
     }}>
       {PRESET_LIST.map((p) => {
         const isActive = presetId === p.id;
@@ -218,10 +218,10 @@ function SessionPresetPicker({ presetId, onChange }) {
             onClick={() => { onChange(p.id); setOpen(false); }}
             style={{
               padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-              background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+              background: isActive ? "rgba(var(--lift),0.06)" : "transparent",
               marginBottom: 2,
             }}
-            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(var(--lift),0.04)"; }}
             onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
           >
             <div style={{ color: isActive ? T.accentLight : T.text, fontSize: 13, fontWeight: 600 }}>{p.label}</div>
@@ -282,7 +282,7 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
     <div ref={menuRef} style={{
       position: "fixed", top: rect.bottom + 6, left: rect.left, zIndex: 1000, width: "max-content",
       background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-      boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 300, overflowY: "auto",
+      boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", padding: 4, maxHeight: 300, overflowY: "auto",
     }}>
       {presets.map((p) => {
         const previewR = { ...rename, preset: p.id };
@@ -294,10 +294,10 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
             onClick={() => { onPresetChange(p.id); setOpen(false); }}
             style={{
               padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-              background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+              background: isActive ? "rgba(var(--lift),0.06)" : "transparent",
               marginBottom: 2,
             }}
-            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(var(--lift),0.04)"; }}
             onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
           >
             <div style={{ color: isActive ? c : T.text, fontSize: 13, fontWeight: 600, fontFamily: T.mono }}>{previewName}</div>
@@ -1774,7 +1774,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         .cfr-row:hover .cfr-acts, .cfr-row.rowsel .cfr-acts { opacity: 1; }
         .cfr-check { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity 0.13s ease, width 0.13s ease, margin 0.13s ease; }
         .cfr-row:hover .cfr-check, .cfr-shead:hover .cfr-check, .cfr-selecting .cfr-check { width: 16px; opacity: 1; margin-left: 0; }
-        .cfr-iconbt { width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: rgba(255,255,255,0.32); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
+        .cfr-iconbt { width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: rgba(var(--lift),0.32); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
         .cfr-iconbt:hover { color: ${T.text}; background: ${T.surfaceHover}; border-color: ${T.border}; }
         .cfr-iconbt:disabled { opacity: 0.35; cursor: default; }
       `}</style>
@@ -1799,7 +1799,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       {importing && (
         <div style={{ padding: "10px 16px", borderRadius: T.radius.md, background: T.accentDim, border: `1px solid ${T.accentBorder}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
-          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
             <div style={{ height: "100%", borderRadius: 2, background: T.accent, width: `${importing.pct}%`, transition: "width 0.3s ease" }} />
           </div>
         </div>
@@ -1819,11 +1819,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             ))}
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
+            <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(var(--lift),0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
             <button onClick={() => onAddGame("game")} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(255,255,255,0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={watchDetail}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(var(--lift),0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={watchDetail}>
           {watchStatus.state === "watching"
             ? <PulseDot size={8} />
             : <span style={{ width: 8, height: 8, borderRadius: "50%", background: watchTone, boxShadow: `0 0 6px ${watchTone}`, flexShrink: 0 }} />}
@@ -1865,7 +1865,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                   return (
                     <div key={grp.key} style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.lg, background: T.surface, overflow: "hidden" }}>
                       {/* session header — owns everything the parts share */}
-                      <div className="cfr-shead" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+                      <div className="cfr-shead" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
                         <span className="cfr-check"><LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" /></span>
                         <span style={{ fontSize: 13.5, fontWeight: 800, color: T.text, whiteSpace: "nowrap" }}>{fmtSessionDate(grp.date)}</span>
                         <GroupedSelect
@@ -1938,7 +1938,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                                       placeholder="custom-label"
                                       title={labelInvalid ? "Labels can't contain special characters" : undefined}
                                       style={{
-                                        width: "100%", background: "rgba(255,255,255,0.04)",
+                                        width: "100%", background: "rgba(var(--lift),0.04)",
                                         border: `1px solid ${labelInvalid ? T.red : T.border}`,
                                         borderRadius: 7, padding: "5px 9px",
                                         color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none",
@@ -1949,7 +1949,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                                       <div style={{
                                         position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
                                         background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-                                        boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 999, padding: 4,
+                                        boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 999, padding: 4,
                                         maxHeight: 180, overflowY: "auto",
                                       }}>
                                         {labelSuggestions.map((s) => (
@@ -1961,7 +1961,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                                               color: T.text, fontSize: 13, fontFamily: T.mono,
                                               display: "flex", justifyContent: "space-between", alignItems: "center",
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(var(--lift),0.06)"}
                                             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                                           >
                                             <span>{s.label}</span>
@@ -1984,7 +1984,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                               </div>
                               {/* game-switch scrubber still expands full-width under its row */}
                               {scrubberOpen[r.id] && r.filePath && (
-                                <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 14px", background: "rgba(255,255,255,0.015)" }}>
+                                <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 14px", background: "rgba(var(--lift),0.015)" }}>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                                     <span style={{ color: T.accentLight, fontSize: 12, fontWeight: 600 }}>Mark where games change in this recording</span>
                                     <button
@@ -2092,7 +2092,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                 <SectionLabel>Subfolder</SectionLabel>
                 <Select value={manageFolder} onChange={(v) => { setManageFolder(v); setManageSelected(new Set()); }} options={folders.map((f) => ({ value: f, label: f }))} style={{ padding: "8px 12px", fontSize: 13 }} />
               </div>
-              <button onClick={selectAllM} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{manageSelected.size === folderFiles.length && folderFiles.length > 0 ? "NONE" : "ALL"}</button>
+              <button onClick={selectAllM} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{manageSelected.size === folderFiles.length && folderFiles.length > 0 ? "NONE" : "ALL"}</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
@@ -2115,7 +2115,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                 <div style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{manageSelected.size} file{manageSelected.size > 1 ? "s" : ""} selected</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {["part", "day", "tag"].map((a) => (
-                    <button key={a} onClick={() => { setBatchAction(a); setBatchValue(""); }} style={{ padding: "10px 18px", borderRadius: 8, border: batchAction === a ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`, background: batchAction === a ? T.accentDim : "rgba(255,255,255,0.03)", color: batchAction === a ? T.accentLight : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, textTransform: "uppercase" }}>Change {a}</button>
+                    <button key={a} onClick={() => { setBatchAction(a); setBatchValue(""); }} style={{ padding: "10px 18px", borderRadius: 8, border: batchAction === a ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`, background: batchAction === a ? T.accentDim : "rgba(var(--lift),0.03)", color: batchAction === a ? T.accentLight : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, textTransform: "uppercase" }}>Change {a}</button>
                   ))}
                 </div>
                 {batchAction && (
@@ -2123,9 +2123,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                     {batchAction === "tag" ? (
                       <Select value={batchValue} onChange={setBatchValue} options={[{ value: "", label: "Select game..." }, ...gamesDb.map((g) => ({ value: g.tag, label: `${g.tag} (${g.name})` }))]} style={{ flex: 1, padding: "10px 14px", fontSize: 13 }} />
                     ) : (
-                      <input value={batchValue} onChange={(e) => setBatchValue(e.target.value.replace(/\D/g, ""))} placeholder={batchAction === "part" ? "Starting part #" : `New ${batchAction} #`} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 14, fontFamily: T.mono, outline: "none" }} />
+                      <input value={batchValue} onChange={(e) => setBatchValue(e.target.value.replace(/\D/g, ""))} placeholder={batchAction === "part" ? "Starting part #" : `New ${batchAction} #`} style={{ flex: 1, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 14, fontFamily: T.mono, outline: "none" }} />
                     )}
-                    <button onClick={applyBatch} disabled={!batchValue} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: batchValue ? T.accent : "rgba(255,255,255,0.04)", color: batchValue ? "#fff" : T.textMuted, fontSize: 13, fontWeight: 700, cursor: batchValue ? "pointer" : "default", fontFamily: T.font }}>Apply</button>
+                    <button onClick={applyBatch} disabled={!batchValue} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: batchValue ? T.accent : "rgba(var(--lift),0.04)", color: batchValue ? "#fff" : T.textMuted, fontSize: 13, fontWeight: 700, cursor: batchValue ? "pointer" : "default", fontFamily: T.font }}>Apply</button>
                   </div>
                 )}
               </Card>
@@ -2145,7 +2145,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
               // Standing alone it carries its own lift: the purple glow is
               // PrimaryButton's (the treatment this button had before #172), and
               // the dark shadow replaces the one the shell used to cast.
-              style={{ ...BAR_BTN, padding: "11px 22px", fontSize: 13, borderRadius: T.radius.md, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer", boxShadow: renaming ? "none" : "0 4px 24px rgba(139,92,246,0.35), 0 6px 18px rgba(0,0,0,0.45)" }}
+              style={{ ...BAR_BTN, padding: "11px 22px", fontSize: 13, borderRadius: T.radius.md, background: renaming ? "rgba(var(--lift),0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer", boxShadow: renaming ? "none" : "0 4px 24px rgba(139,92,246,0.35), 0 6px 18px rgba(var(--shade),calc(0.45 * var(--shadeK)))" }}
             >{renaming ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename All ${pendingRenames.length} File${pendingRenames.length === 1 ? "" : "s"}`}</button>
           ) : (
             <>
@@ -2153,7 +2153,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
               <div ref={gameMenuRef} style={{ position: "relative" }}>
                 <button onClick={() => setGameMenuOpen((v) => !v)} disabled={renaming} style={{ ...BAR_BTN, background: gameMenuOpen ? T.surfaceHover : "transparent", borderColor: T.border, color: T.textSecondary }}>Set Game ▾</button>
                 {gameMenuOpen && (
-                  <div style={{ position: "absolute", bottom: "calc(100% + 10px)", left: "50%", transform: "translateX(-50%)", background: "rgba(22,23,31,0.97)", border: `1px solid ${T.borderHover}`, borderRadius: 12, boxShadow: "0 10px 32px rgba(0,0,0,0.55)", padding: 5, minWidth: 210, maxHeight: 320, overflowY: "auto" }}>
+                  <div style={{ position: "absolute", bottom: "calc(100% + 10px)", left: "50%", transform: "translateX(-50%)", background: "rgba(22,23,31,0.97)", border: `1px solid ${T.borderHover}`, borderRadius: 12, boxShadow: "0 10px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: 5, minWidth: 210, maxHeight: 320, overflowY: "auto" }}>
                     {gameOptions.map((o) => o.isHeader ? (
                       <div key={o.value} style={{ padding: "7px 12px 3px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{o.label}</div>
                     ) : (
@@ -2175,7 +2175,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
               <button
                 onClick={() => renameFiles(pendingRenames.filter((r) => selectedIds.has(r.id)))}
                 disabled={renaming}
-                style={{ ...BAR_BTN, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
+                style={{ ...BAR_BTN, background: renaming ? "rgba(var(--lift),0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
               >{renaming ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename ${selectedIds.size} Selected`}</button>
             </>
           )}
@@ -2225,7 +2225,7 @@ function GroupedSelect({ value, onChange, options, style: x, renderOption, rende
   const selected = options.find((o) => o.value === value && !o.isHeader);
 
   const menu = open && rect ? createPortal(
-    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, maxHeight: 300, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 1000, padding: 4 }}>
+    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, maxHeight: 300, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 1000, padding: 4 }}>
       {options.map((o, i) => {
         if (o.isHeader) {
           return (
@@ -2235,7 +2235,7 @@ function GroupedSelect({ value, onChange, options, style: x, renderOption, rende
           );
         }
         return (
-          <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
+          <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(var(--lift),0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
             {renderOption ? renderOption(o) : o.label}
           </div>
         );

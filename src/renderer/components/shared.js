@@ -35,7 +35,7 @@ export const GamePill = ({ tag, color, size = "md", variant }) => {
   // tint used across Rename/Settings.
   if (variant === "solid") {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py + 1}px ${s.px + 2}px`, borderRadius: 6, fontSize: s.fs, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1, background: `linear-gradient(150deg, ${color}, ${color}99 70%, ${color}55)`, textShadow: "0 1px 3px rgba(0,0,0,0.55)", boxShadow: `0 0 10px ${color}33` }}>
+      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py + 1}px ${s.px + 2}px`, borderRadius: 6, fontSize: s.fs, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1, background: `linear-gradient(150deg, ${color}, ${color}99 70%, ${color}55)`, textShadow: "0 1px 3px rgba(var(--shade),calc(0.55 * var(--shadeK)))", boxShadow: `0 0 10px ${color}33` }}>
         {tag}
       </span>
     );
@@ -124,18 +124,18 @@ export const PageHeader = ({ title, subtitle, backAction, children }) => (
 );
 
 export const PrimaryButton = ({ onClick, disabled, children }) => (
-  <button onClick={onClick} disabled={disabled} style={{ width: "100%", padding: "16px 24px", borderRadius: T.radius.md, border: "none", background: disabled ? "rgba(255,255,255,0.04)" : `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: disabled ? T.textMuted : "#fff", fontSize: 15, fontWeight: 700, fontFamily: T.font, cursor: disabled ? "default" : "pointer", boxShadow: disabled ? "none" : "0 4px 24px rgba(139,92,246,0.3)" }}>
+  <button onClick={onClick} disabled={disabled} style={{ width: "100%", padding: "16px 24px", borderRadius: T.radius.md, border: "none", background: disabled ? "rgba(var(--lift),0.04)" : `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: disabled ? T.textMuted : "#fff", fontSize: 15, fontWeight: 700, fontFamily: T.font, cursor: disabled ? "default" : "pointer", boxShadow: disabled ? "none" : "0 4px 24px rgba(139,92,246,0.3)" }}>
     {children}
   </button>
 );
 
 export const TabBar = ({ tabs, active, onChange }) => (
-  <div style={{ display: "flex", gap: 2, background: "rgba(255,255,255,0.03)", borderRadius: T.radius.md, padding: 4 }}>
+  <div style={{ display: "flex", gap: 2, background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: 4 }}>
     {tabs.map((t) => (
-      <button key={t.id} onClick={() => onChange(t.id)} style={{ padding: "10px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: active === t.id ? "rgba(255,255,255,0.07)" : "transparent", color: active === t.id ? T.text : T.textTertiary, fontSize: 13, fontWeight: 600, fontFamily: T.font, display: "flex", alignItems: "center", gap: 8 }}>
+      <button key={t.id} onClick={() => onChange(t.id)} style={{ padding: "10px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: active === t.id ? "rgba(var(--lift),0.07)" : "transparent", color: active === t.id ? T.text : T.textTertiary, fontSize: 13, fontWeight: 600, fontFamily: T.font, display: "flex", alignItems: "center", gap: 8 }}>
         {t.label}
         {t.count !== undefined && (
-          <span style={{ background: active === t.id ? T.accentDim : "rgba(255,255,255,0.04)", color: active === t.id ? T.accentLight : T.textTertiary, padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700 }}>
+          <span style={{ background: active === t.id ? T.accentDim : "rgba(var(--lift),0.04)", color: active === t.id ? T.accentLight : T.textTertiary, padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700 }}>
             {t.count}
           </span>
         )}
@@ -182,11 +182,11 @@ export const Select = ({ value, onChange, options, style: x, renderOption, rende
   const selected = parsed.find((o) => o.value === value);
 
   const menu = open && rect ? createPortal(
-    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, width: "max-content", maxWidth: Math.max(rect.width, window.innerWidth - rect.left - 12), maxHeight: 240, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 10000, padding: 4 }}>
+    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, width: "max-content", maxWidth: Math.max(rect.width, window.innerWidth - rect.left - 12), maxHeight: 240, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 10000, padding: 4 }}>
       {/* An option with isHeader is a group label (#322 game-scope pickers):
           it must not select, close the menu, or invite a click. */}
       {parsed.map((o, i) => (
-        <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { if (o.isHeader) return; onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: o.isHeader ? "default" : "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i && !o.isHeader ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
+        <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { if (o.isHeader) return; onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: o.isHeader ? "default" : "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i && !o.isHeader ? "rgba(var(--lift),0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
           {renderOption ? renderOption(o) : o.label}
         </div>
       ))}
@@ -211,7 +211,7 @@ export const ViralBar = ({ score }) => {
   const c = score >= 8.5 ? T.green : score >= 7 ? T.yellow : T.red;
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: score >= 8.5 ? T.greenDim : score >= 7 ? T.yellowDim : T.redDim, padding: "4px 12px 4px 8px", borderRadius: 20 }}>
-      <div style={{ width: 36, height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+      <div style={{ width: 36, height: 3, background: "rgba(var(--lift),0.06)", borderRadius: 2, overflow: "hidden" }}>
         <div style={{ width: `${(score / 10) * 100}%`, height: "100%", background: c, borderRadius: 2 }} />
       </div>
       <span style={{ fontSize: 12, fontWeight: 700, color: c, fontFamily: T.mono }}>{score}</span>
@@ -243,14 +243,14 @@ export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label, compac
   const valWidth = compact ? 28 : 36;
   const valFont = compact ? 13 : 14;
   const editWidth = compact ? 34 : 42;
-  const bs = { width: btnSize, height: btnSize, borderRadius: compact ? 4 : 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: btnFont, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, userSelect: "none" };
+  const bs = { width: btnSize, height: btnSize, borderRadius: compact ? 4 : 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: btnFont, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, userSelect: "none" };
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: compact ? 2 : 4 }}>
       {label && <span style={{ color: compact ? T.textSecondary : T.textTertiary, fontSize: 11, fontWeight: 600, marginRight: compact ? 2 : 4 }}>{label}</span>}
       <button onMouseDown={() => startHold(-1)} onMouseUp={stopHold} onMouseLeave={stopHold} style={bs}>−</button>
       {editing ? (
-        <input value={editVal} onChange={(e) => setEditVal(e.target.value.replace(/\D/g, ""))} onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()} autoFocus style={{ width: editWidth, textAlign: "center", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: compact ? 4 : 6, padding: compact ? 2 : 4, color: T.text, fontSize: valFont, fontWeight: 700, fontFamily: T.mono, outline: "none" }} />
+        <input value={editVal} onChange={(e) => setEditVal(e.target.value.replace(/\D/g, ""))} onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()} autoFocus style={{ width: editWidth, textAlign: "center", background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: compact ? 4 : 6, padding: compact ? 2 : 4, color: T.text, fontSize: valFont, fontWeight: 700, fontFamily: T.mono, outline: "none" }} />
       ) : (
         <div onClick={() => { setEditing(true); setEditVal(String(value)); }} style={{ width: valWidth, textAlign: "center", color: T.text, fontSize: valFont, fontWeight: 700, fontFamily: T.mono, cursor: "text", padding: compact ? "2px 0" : "4px 0" }}>
           {value}
@@ -350,12 +350,12 @@ export const ColorPicker = ({ value, onChange }) => {
         <button onClick={() => setShowWheel(!showWheel)} style={{ width: 32, height: 32, borderRadius: 8, background: "conic-gradient(red,yellow,lime,cyan,blue,magenta,red)", border: showWheel ? "3px solid #fff" : "2px solid transparent", cursor: "pointer" }} />
       </div>
       {showWheel && (
-        <div style={{ marginTop: 12, padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: T.radius.md, border: `1px solid ${T.border}` }}>
+        <div style={{ marginTop: 12, padding: 14, background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, border: `1px solid ${T.border}` }}>
           <SectionLabel>Hue</SectionLabel>
           <input type="range" min="0" max="360" value={hue} onChange={(e) => { setHue(e.target.value); const c = hslToHex(parseInt(e.target.value, 10), 80, 55); onChange(c); setHex(c); }} style={{ width: "100%", cursor: "pointer", marginTop: 8, marginBottom: 12 }} />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <SectionLabel>Hex</SectionLabel>
-            <input value={hex} onChange={(e) => setHex(e.target.value)} onBlur={commitHex} onKeyDown={(e) => e.key === "Enter" && commitHex()} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none" }} />
+            <input value={hex} onChange={(e) => setHex(e.target.value)} onBlur={commitHex} onKeyDown={(e) => e.key === "Enter" && commitHex()} style={{ flex: 1, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none" }} />
             <div style={{ width: 32, height: 32, borderRadius: 8, background: value, border: `1px solid ${T.border}`, flexShrink: 0 }} />
           </div>
         </div>

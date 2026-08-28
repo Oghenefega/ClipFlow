@@ -14,8 +14,8 @@ const PLATFORMS = [
 
 // Matches the queue card's label voice (#325) — small, uppercase, wide-tracked.
 const LBL = { fontSize: 10, fontWeight: 800, letterSpacing: 0.7, color: T.labelStrong, textTransform: "uppercase" };
-const BTN = { padding: "4px 10px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font };
-const FIELD = { width: "100%", background: "rgba(255,255,255,0.05)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", boxSizing: "border-box" };
+const BTN = { padding: "4px 10px", borderRadius: 6, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font };
+const FIELD = { width: "100%", background: "rgba(var(--lift),0.05)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", boxSizing: "border-box" };
 
 /**
  * #324: Captions & Descriptions, as the Queue tab's right-hand panel.
@@ -106,7 +106,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
       {activeGame ? (
         <>
           {/* Which game this panel is showing, and why */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 15px", borderBottom: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 15px", borderBottom: `1px solid ${T.border}`, background: "rgba(var(--lift),0.02)" }}>
             <GamePill tag={activeMeta.tag} color={activeMeta.color} variant="solid" />
             <span style={{ fontSize: 10.5, color: T.textTertiary }}>
               {pinned ? "opened by hand" : "from the selected clip"}
@@ -129,7 +129,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                       onClick={handleSave}
                       disabled={tagsOver}
                       title={tagsOver ? "Tags are over YouTube's 500-character limit" : ""}
-                      style={{ ...BTN, background: tagsOver ? "rgba(255,255,255,0.06)" : T.green, border: "none", color: tagsOver ? T.textMuted : "#fff", cursor: tagsOver ? "not-allowed" : "pointer" }}
+                      style={{ ...BTN, background: tagsOver ? "rgba(var(--lift),0.06)" : T.green, border: "none", color: tagsOver ? T.textMuted : "#fff", cursor: tagsOver ? "not-allowed" : "pointer" }}
                     >Save</button>
                   </>
                 ) : hasEntry ? (
@@ -183,7 +183,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
             ) : hasEntry ? (
               <div style={{ padding: "0 15px 12px" }}>
                 <div style={{ ...LBL, margin: "10px 0 5px" }}>Title</div>
-                <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(255,255,255,0.03)", padding: "7px 10px", fontSize: 12.5, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(var(--lift),0.03)", padding: "7px 10px", fontSize: 12.5, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {data.ytTitle || activeGame + " Shorts"}
                 </div>
 
@@ -191,7 +191,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                   <div style={LBL}>Description</div>
                   <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary }}>{(data.desc || "").length} chars</span>
                 </div>
-                <div style={{ position: "relative", border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(255,255,255,0.03)", padding: "9px 11px", fontSize: 12, color: T.textSecondary, lineHeight: 1.6, maxHeight: 118, overflow: "hidden", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                <div style={{ position: "relative", border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(var(--lift),0.03)", padding: "9px 11px", fontSize: 12, color: T.textSecondary, lineHeight: 1.6, maxHeight: 118, overflow: "hidden", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                   {data.desc || <span style={{ color: T.textMuted, fontStyle: "italic" }}>Empty</span>}
                   {/* Fade instead of a scrollbar — the panel is a reference view;
                       Edit is where the whole thing is readable. */}
@@ -210,7 +210,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                   <div style={{ position: "relative", maxHeight: 74, overflow: "hidden" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                       {data.tags.map((t) => (
-                        <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px" }}>{t}</span>
+                        <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px" }}>{t}</span>
                       ))}
                     </div>
                     <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: `linear-gradient(180deg, rgba(17,18,24,0), ${T.surface})`, pointerEvents: "none" }} />
@@ -236,7 +236,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
           <div style={{ padding: "11px 15px", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
               <span style={LBL}>Other platforms</span>
-              <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, padding: "1px 8px", borderRadius: 20, border: `1px solid ${T.border}`, color: T.textTertiary, background: "rgba(255,255,255,0.03)" }}>
+              <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, padding: "1px 8px", borderRadius: 20, border: `1px solid ${T.border}`, color: T.textTertiary, background: "rgba(var(--lift),0.03)" }}>
                 GLOBAL &middot; ALL GAMES
               </span>
             </div>
@@ -285,7 +285,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                     <button
                       key={value}
                       onClick={() => setPlatformOptions?.((p) => ({ ...p, tiktokPostMode: value }))}
-                      style={{ ...BTN, padding: "3px 10px", fontSize: 10.5, background: isActive ? T.green : "rgba(255,255,255,0.04)", border: `1px solid ${isActive ? T.green : T.border}`, color: isActive ? "#fff" : T.textSecondary }}
+                      style={{ ...BTN, padding: "3px 10px", fontSize: 10.5, background: isActive ? T.green : "rgba(var(--lift),0.04)", border: `1px solid ${isActive ? T.green : T.border}`, color: isActive ? "#fff" : T.textSecondary }}
                     >{label}</button>
                   );
                 })}
@@ -310,11 +310,11 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
       {/* ---- Every other game, one click away ---- */}
       <button
         onClick={() => setShowOthers((v) => !v)}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "11px 15px", border: "none", borderTop: `1px solid ${T.border}`, background: "rgba(255,255,255,0.015)", color: T.textSecondary, fontFamily: T.font, fontSize: 11.5, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "11px 15px", border: "none", borderTop: `1px solid ${T.border}`, background: "rgba(var(--lift),0.015)", color: T.textSecondary, fontFamily: T.font, fontSize: 11.5, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
       >
         <span style={{ display: "inline-block", fontSize: 9, color: T.textTertiary, transform: othersOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>{"▶"}</span>
         {activeGame ? "Other games" : "All games"}
-        <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 800, color: T.textTertiary, background: "rgba(255,255,255,0.05)", borderRadius: 20, padding: "1px 8px" }}>{otherGames.length}</span>
+        <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 800, color: T.textTertiary, background: "rgba(var(--lift),0.05)", borderRadius: 20, padding: "1px 8px" }}>{otherGames.length}</span>
       </button>
 
       {othersOpen && (
@@ -329,7 +329,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                 key={g}
                 onClick={() => openGame(g)}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 15px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.025)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.025)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
                 <span style={{ fontSize: 12, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g}</span>

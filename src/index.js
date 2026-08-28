@@ -4,6 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./globals.css";
 import App from "./renderer/App";
+import { applyTheme } from "./renderer/styles/theme";
 import AppErrorBoundary from "./renderer/components/AppErrorBoundary";
 
 Sentry.init({
@@ -70,6 +71,12 @@ if (window.clipflow?.storeGet) {
     console.warn("[PostHog] Failed to load analytics config:", err);
   });
 }
+
+// #328: the preload already stamped <html data-theme> at document-start (that
+// is what prevents a flash of the wrong theme). This second, non-persisting
+// pass exists only to bring <meta name="theme-color"> in line with it — the
+// tag ships as Midnight because the CSP forbids an inline boot script.
+applyTheme(window.clipflow?.theme, { persist: false });
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import posthog from "posthog-js";
-import T from "../styles/theme";
+import T, { THEMES, applyTheme } from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot, Select } from "../components/shared";
 import { GameEditModal } from "../components/modals";
 import AudioCalibrationModal from "../components/AudioCalibrationModal";
@@ -8,9 +8,9 @@ import { trackLabelText } from "../audioTrackLabels";
 
 // Shared button styles used across all settings sections
 const BTN = { padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: T.font };
-const btnSecondary = { ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary };
+const btnSecondary = { ...BTN, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary };
 const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700 };
-const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
+const inputStyle = { width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 // #322: the game a media folder is scoped to. "All games" (empty value) is the
 // default, and the value stored is the game's short tag — the same key clips
 // carry, so the editor can match a folder's media to the clip it's editing.
@@ -398,6 +398,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "folders",     icon: "📁", label: "Folders",      blurb: "Where Corva reads recordings and writes finished clips." },
     { id: "pipeline",    icon: "🎞️", label: "Pipeline", blurb: "How recordings get split, transcribed and framed." },
     { id: "games",       icon: "🎮", label: "Games",        blurb: "Your game library, content types, and file naming." },
+    { id: "appearance",  icon: "🎨", label: "Appearance",   blurb: "How Corva looks. Applies everywhere, editor included." },
     { id: "ai",          icon: "✨", label: "AI & Style",   blurb: "What the AI knows about your voice before it writes." },
     { id: "publishing",  icon: "📤", label: "Publishing",   blurb: "Connected accounts, your schedule, and how the Queue fills." },
     { id: "tools",       icon: "🔑", label: "Tools & Keys", blurb: "Local engines and the API credentials Corva talks to." },
@@ -420,6 +421,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     // Content Types shares the Games card — two names, one place to land.
     { id: "set-games",     section: "games",       title: "Content Types",               kw: "non-game category podcast irl" },
     { id: "set-naming",    section: "games",       title: "Default Naming Preset",       kw: "rename pattern filename date day part" },
+    { id: "set-theme",     section: "appearance",  title: "Theme",                       kw: "colour color dark light mode pink appearance skin look" },
     { id: "set-guide",     section: "ai",          title: "Title & Caption Style Guide", kw: "voice rules titling prompt context" },
     { id: "set-aiprefs",   section: "ai",          title: "AI Preferences",              kw: "creator profile content vibe moment priorities style description" },
     { id: "set-platforms", section: "publishing",  title: "Connected Platforms",         kw: "accounts youtube tiktok instagram facebook x kick oauth connect reconnect token" },
@@ -433,6 +435,12 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "set-report",    section: "diagnostics", title: "Report an Issue",             kw: "bug feedback send diagnostics screenshot github" },
     { id: "set-subs",      section: "diagnostics", title: "Subtitle Debug Log",          kw: "word timestamps whisper repair segmentation" },
   ];
+
+  // #328: seeded from the bridge, which the preload resolved synchronously at
+  // boot — no async round trip, so the picker never renders the wrong card as
+  // selected for a frame. Local state only tracks what the user clicks here;
+  // <html data-theme> is the actual source of truth for the paint.
+  const [theme, setTheme] = useState(window.clipflow?.theme || "midnight");
 
   const [query, setQuery] = useState("");
   const [flashId, setFlashId] = useState(null);
@@ -479,7 +487,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search settings…"
-              style={{ width: "100%", background: searching ? T.accentGlow : "rgba(255,255,255,0.04)", border: `1px solid ${searching ? T.accentBorder : T.border}`, borderRadius: T.radius.sm, padding: "8px 26px 8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", background: searching ? T.accentGlow : "rgba(var(--lift),0.04)", border: `1px solid ${searching ? T.accentBorder : T.border}`, borderRadius: T.radius.sm, padding: "8px 26px 8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", boxSizing: "border-box" }}
             />
             {searching && (
               <button onClick={() => setQuery("")} title="Clear" style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: T.textTertiary, cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "2px 5px", fontFamily: T.font }}>{"\u2715"}</button>
@@ -649,7 +657,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   title={folder.enabled === false ? "Turn this folder back on" : "Stop using this folder for now"}
                   style={{
                     padding: "3px 10px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
-                    background: folder.enabled === false ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.15)",
+                    background: folder.enabled === false ? "rgba(var(--lift),0.04)" : "rgba(34,197,94,0.15)",
                     border: `1px solid ${folder.enabled === false ? T.border : "rgba(34,197,94,0.4)"}`,
                     color: folder.enabled === false ? T.textTertiary : T.green,
                   }}>
@@ -708,7 +716,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   title={folder.enabled === false ? "Turn this folder back on" : "Stop using this folder for now"}
                   style={{
                     padding: "3px 10px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
-                    background: folder.enabled === false ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.15)",
+                    background: folder.enabled === false ? "rgba(var(--lift),0.04)" : "rgba(34,197,94,0.15)",
                     border: `1px solid ${folder.enabled === false ? T.border : "rgba(34,197,94,0.4)"}`,
                     color: folder.enabled === false ? T.textTertiary : T.green,
                   }}>
@@ -763,7 +771,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             }}
             style={{
               ...BTN,
-              background: autoSplitEnabled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              background: autoSplitEnabled ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
               border: `1px solid ${autoSplitEnabled ? "rgba(34,197,94,0.4)" : T.border}`,
               color: autoSplitEnabled ? T.green : T.textTertiary,
               fontWeight: 700,
@@ -811,7 +819,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             }}
             style={{
               ...BTN,
-              background: splitSourceRetention === "keep" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              background: splitSourceRetention === "keep" ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
               border: `1px solid ${splitSourceRetention === "keep" ? "rgba(34,197,94,0.4)" : T.border}`,
               color: splitSourceRetention === "keep" ? T.green : T.textTertiary,
               fontWeight: 700,
@@ -841,7 +849,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             }}
             style={{
               ...BTN,
-              background: strictMode ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              background: strictMode ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
               border: `1px solid ${strictMode ? "rgba(34,197,94,0.4)" : T.border}`,
               color: strictMode ? T.green : T.textTertiary,
               fontWeight: 700,
@@ -865,7 +873,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             }}
             style={{
               ...BTN,
-              background: yamnetSilenceSkip ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              background: yamnetSilenceSkip ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
               border: `1px solid ${yamnetSilenceSkip ? "rgba(34,197,94,0.4)" : T.border}`,
               color: yamnetSilenceSkip ? T.green : T.textTertiary,
               fontWeight: 700,
@@ -898,7 +906,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   style={{
                     ...BTN,
                     padding: "6px 12px",
-                    background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+                    background: active ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
                     border: `1px solid ${active ? "rgba(34,197,94,0.4)" : T.border}`,
                     color: active ? T.green : T.textTertiary,
                     fontWeight: 700,
@@ -945,7 +953,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                     ...BTN,
                     padding: "6px 10px",
                     minWidth: 32,
-                    background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+                    background: active ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
                     border: `1px solid ${active ? "rgba(34,197,94,0.4)" : T.border}`,
                     color: active ? T.green : T.textTertiary,
                     fontWeight: 700,
@@ -990,7 +998,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         {showAddMain && nonPool.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
             {nonPool.map((g) => (
-              <button key={g.name} onClick={() => { setMainPool((p) => [...p, g.name]); setShowAddMain(false); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: T.textSecondary, fontSize: 12, fontFamily: T.font }}>
+              <button key={g.name} onClick={() => { setMainPool((p) => [...p, g.name]); setShowAddMain(false); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.02)", cursor: "pointer", color: T.textSecondary, fontSize: 12, fontFamily: T.font }}>
                 <GamePill tag={g.tag} color={g.color} size="sm" />{g.name}
               </button>
             ))}
@@ -1009,7 +1017,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           {gamesDb.filter((g) => g.entryType !== "content").map((g) => {
             const isSel = selGameLib === g.name;
             return (
-              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
+              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(var(--lift),0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
                 <GamePill tag={g.tag} color={g.color} size="sm" />
                 <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
                 {g.active === false && <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 600, fontStyle: "italic" }}>inactive</span>}
@@ -1031,7 +1039,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           {gamesDb.filter((g) => g.entryType === "content").map((g) => {
             const isSel = selGameLib === g.name;
             return (
-              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
+              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(var(--lift),0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
                 <GamePill tag={g.tag} color={g.color} size="sm" />
                 <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
                 {g.active === false && <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 600, fontStyle: "italic" }}>inactive</span>}
@@ -1070,7 +1078,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
                   borderRadius: T.radius.md, cursor: "pointer",
                   border: `1px solid ${isSel ? T.accentBorder : T.border}`,
-                  background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)",
+                  background: isSel ? T.accentGlow : "rgba(var(--lift),0.02)",
                 }}
               >
                 <div style={{ width: 16, height: 16, borderRadius: 8, border: `2px solid ${isSel ? T.accent : T.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1081,6 +1089,56 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 </div>
                 <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono }}>{p.example}.mp4</div>
               </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      </>}
+
+      {!searching && activeSection === "appearance" && <>
+      <SectionHead id="appearance" />
+
+      {/* #328: Theme. The picker writes <html data-theme>, which is what
+          actually repaints both styling systems — the store call behind
+          applyTheme only makes the choice survive a restart. `theme` is read
+          from the bridge rather than the store because the preload already
+          resolved it synchronously at boot to avoid a flash. */}
+      <Card {...cardProps("set-theme")} style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Theme</div>
+        <div style={{ fontSize: 12, color: T.textTertiary, marginBottom: 16 }}>
+          Changes apply instantly and are remembered next time you open Corva.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+          {THEMES.map((t) => {
+            const on = theme === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTheme(applyTheme(t.id))}
+                style={{
+                  border: `1px solid ${on ? T.accentBorder : T.border}`, borderRadius: T.radius.md,
+                  padding: 10, background: on ? T.accentDim : "rgba(var(--lift),0.02)",
+                  cursor: "pointer", textAlign: "left", fontFamily: T.font,
+                }}
+              >
+                {/* Painted from the theme's own colours, not the active one, so
+                    each card previews what picking it would look like. */}
+                <div style={{
+                  height: 46, borderRadius: 7, marginBottom: 8, padding: 6, overflow: "hidden",
+                  display: "flex", alignItems: "flex-end", gap: 4,
+                  background: t.swatch.bg, border: `1px solid ${T.border}`,
+                }}>
+                  {[t.swatch.surface, t.swatch.accent, t.swatch.alt, t.swatch.text].map((c, i) => (
+                    <span key={i} style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
+                  ))}
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: T.text, display: "flex", alignItems: "center", gap: 6 }}>
+                  {t.name}
+                  {on && <span style={{ fontSize: 10, fontWeight: 800, color: T.accentLight }}>{"✓"}</span>}
+                </div>
+                <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 2 }}>{t.blurb}</div>
+              </button>
             );
           })}
         </div>
@@ -1201,7 +1259,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {disconnectTarget && (() => {
         const targetAccount = platforms.find((p) => p.key === disconnectTarget);
         return (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)" }} onClick={() => setDisconnectTarget(null)}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(var(--shade),calc(0.6 * var(--shadeK)))" }} onClick={() => setDisconnectTarget(null)}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 32, maxWidth: 400, width: "90%" }}>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Disconnect Account?</div>
               <p style={{ color: T.textSecondary, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>
@@ -1258,7 +1316,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             onClick={() => setRequireHashtagInTitle(!requireHashtagInTitle)}
             style={{
               width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer",
-              background: requireHashtagInTitle ? T.green : "rgba(255,255,255,0.12)",
+              background: requireHashtagInTitle ? T.green : "rgba(var(--lift),0.12)",
               position: "relative", transition: "background 0.2s", flexShrink: 0,
             }}
           >
@@ -1267,7 +1325,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               position: "absolute", top: 3,
               left: requireHashtagInTitle ? 21 : 3,
               transition: "left 0.2s",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              boxShadow: "0 1px 3px rgba(var(--shade),calc(0.3 * var(--shadeK)))",
             }} />
           </button>
         </div>
@@ -1340,7 +1398,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   style={{
                     padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.mono, cursor: "pointer",
                     border: isActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                    background: isActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                    background: isActive ? T.accentDim : "rgba(var(--lift),0.03)",
                     color: isActive ? T.accentLight : T.textSecondary,
                   }}>{m}</button>
               );
@@ -1364,7 +1422,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   style={{
                     padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
                     border: isActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                    background: isActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                    background: isActive ? T.accentDim : "rgba(var(--lift),0.03)",
                     color: isActive ? T.accentLight : T.textSecondary,
                   }}>{label}</button>
               );
@@ -1405,7 +1463,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   style={{
                     padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
                     border: offActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                    background: offActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                    background: offActive ? T.accentDim : "rgba(var(--lift),0.03)",
                     color: offActive ? T.accentLight : T.textSecondary,
                   }}>Off</button>
               );
@@ -1425,7 +1483,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                     padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font,
                     cursor: isVoiceTrack ? "default" : "pointer", opacity: isVoiceTrack ? 0.35 : 1,
                     border: isSelected ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                    background: isSelected ? T.accentDim : "rgba(255,255,255,0.03)",
+                    background: isSelected ? T.accentDim : "rgba(var(--lift),0.03)",
                     color: isSelected ? T.accentLight : T.textSecondary,
                   }}>{label}</button>
               );
@@ -1467,7 +1525,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md,
                   border: `1px solid ${isSel ? T.accentBorder : T.border}`,
-                  background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)",
+                  background: isSel ? T.accentGlow : "rgba(var(--lift),0.02)",
                   cursor: isEditing ? "default" : "pointer", transition: "all 0.15s",
                 }}>
                 <PulseDot color={svc.configured ? T.green : T.red} size={6} />
@@ -1940,7 +1998,7 @@ function RecordingLayoutSection() {
           {layouts.map((l) => {
             const isDefault = l.id === defaultId;
             return (
-              <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: T.radius.md, border: `1px solid ${isDefault ? T.yellowBorder : T.border}`, background: isDefault ? T.yellowDim : "rgba(255,255,255,0.02)" }}>
+              <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: T.radius.md, border: `1px solid ${isDefault ? T.yellowBorder : T.border}`, background: isDefault ? T.yellowDim : "rgba(var(--lift),0.02)" }}>
                 <button
                   onClick={() => !isDefault && setDefault(l.id)}
                   disabled={isDefault}
@@ -2016,7 +2074,7 @@ function AnalyticsToggle() {
           onClick={toggle}
           style={{
             width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-            background: enabled ? T.green : "rgba(255,255,255,0.1)",
+            background: enabled ? T.green : "rgba(var(--lift),0.1)",
             position: "relative", transition: "background 0.2s ease", flexShrink: 0, marginLeft: 16,
           }}
         >
@@ -2138,7 +2196,7 @@ function AIPreferencesSection() {
                 style={{
                   padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
                   cursor: "pointer", fontFamily: T.font, transition: "all 0.15s",
-                  background: sel ? `${a.color}18` : "rgba(255,255,255,0.04)",
+                  background: sel ? `${a.color}18` : "rgba(var(--lift),0.04)",
                   color: sel ? a.color : T.textTertiary,
                   border: sel ? `1px solid ${a.color}44` : `1px solid ${T.border}`,
                 }}
@@ -2154,7 +2212,7 @@ function AIPreferencesSection() {
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <SectionLabel>Moment Priorities</SectionLabel>
-          <button onClick={resetMomentsToArchetype} style={{ ...BTN, fontSize: 10, padding: "3px 8px", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
+          <button onClick={resetMomentsToArchetype} style={{ ...BTN, fontSize: 10, padding: "3px 8px", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
             Reset to default
           </button>
         </div>
@@ -2169,7 +2227,7 @@ function AIPreferencesSection() {
               }}>
                 <span style={{
                   width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                  background: i === 0 ? T.accentDim : "rgba(255,255,255,0.04)",
+                  background: i === 0 ? T.accentDim : "rgba(var(--lift),0.04)",
                   border: `1px solid ${i === 0 ? T.accentBorder : T.border}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 10, fontWeight: 700, color: i === 0 ? T.accent : T.textTertiary, fontFamily: T.mono,
@@ -2316,7 +2374,7 @@ function SubtitleDebugSection() {
             </div>
             {expanded === idx && (
               <pre style={{
-                background: "#0a0b10", color: "#a78bfa", fontSize: 11, padding: "10px 14px", margin: 0,
+                background: T.bg, color: T.accentLight, fontSize: 11, padding: "10px 14px", margin: 0,
                 borderTop: `1px solid ${T.border}`, maxHeight: 300, overflow: "auto",
                 fontFamily: "'DM Sans', -apple-system, sans-serif", whiteSpace: "pre-wrap", wordBreak: "break-all",
               }}>
@@ -2426,7 +2484,7 @@ function PipelineLogsSection() {
   // Styles
   const cbxStyle = (checked) => ({
     width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
-    border: `1.5px solid ${checked ? T.accent : "rgba(255,255,255,0.2)"}`,
+    border: `1.5px solid ${checked ? T.accent : "rgba(var(--lift),0.2)"}`,
     background: checked ? T.accent : "transparent",
     display: "flex", alignItems: "center", justifyContent: "center",
   });
@@ -2445,7 +2503,7 @@ function PipelineLogsSection() {
               Delete {selected.size} Selected
             </button>
           )}
-          <button onClick={handleDeleteOld} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
+          <button onClick={handleDeleteOld} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
             Delete Old (30d)
           </button>
         </div>
@@ -2455,7 +2513,7 @@ function PipelineLogsSection() {
       <input
         value={filterGame} onChange={(e) => setFilterGame(e.target.value)}
         placeholder="Filter by video name..."
-        style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none", marginBottom: 12, boxSizing: "border-box" }}
+        style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none", marginBottom: 12, boxSizing: "border-box" }}
       />
 
       {loading ? (
@@ -2482,7 +2540,7 @@ function PipelineLogsSection() {
                       onClick={() => toggleGroup(groupKey)}
                       style={{
                         display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", cursor: "pointer",
-                        background: "rgba(255,255,255,0.03)",
+                        background: "rgba(var(--lift),0.03)",
                       }}
                     >
                       <div onClick={(e) => selectAllInGroup(groupKey, e)} style={cbxStyle(allSel)}>
@@ -2527,7 +2585,7 @@ function PipelineLogsSection() {
                                 background: isActive ? T.accentDim : "transparent",
                                 transition: "background 0.15s",
                               }}
-                              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(var(--lift),0.03)"; }}
                               onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                             >
                               <div onClick={(e) => toggleSelect(log.path, e)} style={cbxStyle(isChecked)}>
@@ -2566,14 +2624,14 @@ function PipelineLogsSection() {
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selectedLog.videoName}</span>
-                <button onClick={handleCopy} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
+                <button onClick={handleCopy} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
                   Copy to Clipboard
                 </button>
               </div>
               <pre style={{
                 flex: 1, overflowY: "auto", overflowX: "auto",
                 padding: 14, borderRadius: 8,
-                background: "rgba(0,0,0,0.3)", border: `1px solid ${T.border}`,
+                background: "rgba(var(--shade),calc(0.3 * var(--shadeK)))", border: `1px solid ${T.border}`,
                 color: T.textSecondary, fontSize: 11, fontFamily: T.mono,
                 lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap",
                 maxHeight: 420,
@@ -2652,7 +2710,7 @@ function ReportIssueSection() {
 
   const cbxStyle = (checked) => ({
     width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
-    border: `1.5px solid ${checked ? T.accent : "rgba(255,255,255,0.2)"}`,
+    border: `1.5px solid ${checked ? T.accent : "rgba(var(--lift),0.2)"}`,
     background: checked ? T.accent : "transparent",
     display: "flex", alignItems: "center", justifyContent: "center",
     transition: "all 0.15s",
@@ -2660,7 +2718,7 @@ function ReportIssueSection() {
 
   const radioStyle = (active) => ({
     width: 16, height: 16, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
-    border: `2px solid ${active ? T.accent : "rgba(255,255,255,0.2)"}`,
+    border: `2px solid ${active ? T.accent : "rgba(var(--lift),0.2)"}`,
     background: "transparent",
     display: "flex", alignItems: "center", justifyContent: "center",
     transition: "all 0.15s",
@@ -2710,7 +2768,7 @@ function ReportIssueSection() {
                 style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "6px 12px", borderRadius: 6, cursor: "pointer",
-                  background: isSelected ? T.accentDim : "rgba(255,255,255,0.03)",
+                  background: isSelected ? T.accentDim : "rgba(var(--lift),0.03)",
                   border: `1px solid ${isSelected ? T.accentBorder : T.border}`,
                   transition: "all 0.15s",
                 }}
@@ -2740,7 +2798,7 @@ function ReportIssueSection() {
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                  background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                  background: isActive ? "rgba(var(--lift),0.04)" : "transparent",
                   border: `1px solid ${isActive ? T.borderHover : "transparent"}`,
                   transition: "all 0.15s",
                 }}
@@ -2985,7 +3043,7 @@ function DevDashboard() {
           {activeTab === "providers" && providerInfo && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* LLM Provider */}
-              <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: 16 }}>
+              <div style={{ background: "rgba(var(--lift),0.02)", borderRadius: 8, padding: 16 }}>
                 <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>LLM Provider</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                   {providerInfo.llm.available.map((p) => (
@@ -2994,7 +3052,7 @@ function DevDashboard() {
                       onClick={() => setLlmProvider(p)}
                       style={{
                         padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.mono,
-                        background: llmProvider === p ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.04)",
+                        background: llmProvider === p ? "rgba(139,92,246,0.15)" : "rgba(var(--lift),0.04)",
                         color: llmProvider === p ? T.accentLight : T.textTertiary,
                         border: llmProvider === p ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
                       }}
@@ -3031,7 +3089,7 @@ function DevDashboard() {
 
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button onClick={handleSaveLLMProvider} style={{ ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700, fontSize: 11 }}>Save</button>
-                  <button onClick={handleTestConnection} disabled={testing} style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11 }}>
+                  <button onClick={handleTestConnection} disabled={testing} style={{ ...BTN, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11 }}>
                     {testing ? "Testing..." : "Test Connection"}
                   </button>
                   {testResult && (
@@ -3048,7 +3106,7 @@ function DevDashboard() {
               </div>
 
               {/* Transcription Provider */}
-              <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: 16 }}>
+              <div style={{ background: "rgba(var(--lift),0.02)", borderRadius: 8, padding: 16 }}>
                 <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Transcription Provider</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {providerInfo.transcription.available.map((p) => (
@@ -3057,7 +3115,7 @@ function DevDashboard() {
                       onClick={async () => { await window.clipflow?.devSetTranscriptionProvider?.(p); await loadProviderInfo(); }}
                       style={{
                         padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.mono,
-                        background: providerInfo.transcription.active === p ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.04)",
+                        background: providerInfo.transcription.active === p ? "rgba(52,211,153,0.12)" : "rgba(var(--lift),0.04)",
                         color: providerInfo.transcription.active === p ? T.green : T.textTertiary,
                         border: providerInfo.transcription.active === p ? `1px solid ${T.greenBorder}` : `1px solid ${T.border}`,
                       }}
@@ -3086,7 +3144,7 @@ function DevDashboard() {
                 {filteredKeys.map(([key, info]) => (
                   <div key={key} style={{
                     borderBottom: `1px solid ${T.border}`, padding: "8px 12px",
-                    background: expandedKey === key ? "rgba(255,255,255,0.03)" : "transparent",
+                    background: expandedKey === key ? "rgba(var(--lift),0.03)" : "transparent",
                   }}>
                     <div
                       onClick={() => setExpandedKey(expandedKey === key ? null : key)}
@@ -3096,7 +3154,7 @@ function DevDashboard() {
                         <span style={{ color: T.text, fontSize: 11, fontFamily: T.mono, fontWeight: 600 }}>{key}</span>
                         <span style={{
                           fontSize: 9, padding: "1px 5px", borderRadius: 3, fontFamily: T.mono,
-                          background: "rgba(255,255,255,0.06)", color: T.textMuted,
+                          background: "rgba(var(--lift),0.06)", color: T.textMuted,
                         }}>{info.type}</span>
                       </div>
                       <span style={{ color: T.textMuted, fontSize: 10, fontFamily: T.mono, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -3115,14 +3173,14 @@ function DevDashboard() {
                             />
                             <div style={{ display: "flex", gap: 6 }}>
                               <button onClick={() => handleSaveStoreKey(key)} style={{ ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700, fontSize: 10 }}>Save</button>
-                              <button onClick={() => setEditingKey(null)} style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 10 }}>Cancel</button>
+                              <button onClick={() => setEditingKey(null)} style={{ ...BTN, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 10 }}>Cancel</button>
                             </div>
                           </div>
                         ) : (
                           <div>
                             <pre style={{
                               fontSize: 10, fontFamily: T.mono, color: T.textTertiary,
-                              background: "rgba(0,0,0,0.2)", borderRadius: 4, padding: 8, margin: "4px 0",
+                              background: "rgba(var(--shade),calc(0.2 * var(--shadeK)))", borderRadius: 4, padding: 8, margin: "4px 0",
                               maxHeight: 200, overflow: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all",
                             }}>
                               {typeof info.value === "string" ? info.value : JSON.stringify(info.value, null, 2)}
@@ -3130,7 +3188,7 @@ function DevDashboard() {
                             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                               <button
                                 onClick={() => { setEditingKey(key); setEditValue(typeof info.value === "string" ? info.value : JSON.stringify(info.value, null, 2)); }}
-                                style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 10 }}
+                                style={{ ...BTN, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 10 }}
                               >Edit</button>
                               <button
                                 onClick={() => handleDeleteStoreKey(key)}
@@ -3157,11 +3215,11 @@ function DevDashboard() {
                 <div>
                   <button
                     onClick={() => { setSelectedLog(null); setLogContent(""); }}
-                    style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11, marginBottom: 8 }}
+                    style={{ ...BTN, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11, marginBottom: 8 }}
                   >Back</button>
                   <pre style={{
                     fontSize: 10, fontFamily: T.mono, color: T.textTertiary,
-                    background: "rgba(0,0,0,0.2)", borderRadius: 6, padding: 12,
+                    background: "rgba(var(--shade),calc(0.2 * var(--shadeK)))", borderRadius: 6, padding: 12,
                     maxHeight: 400, overflow: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all",
                     border: `1px solid ${T.border}`,
                   }}>{logContent}</pre>
@@ -3180,7 +3238,7 @@ function DevDashboard() {
                           borderBottom: `1px solid ${T.border}`, cursor: "pointer",
                           background: "transparent", transition: "background 0.1s",
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(var(--lift),0.03)"}
                         onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                       >
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

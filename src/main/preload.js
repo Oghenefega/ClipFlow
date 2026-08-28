@@ -4,9 +4,47 @@ try { require("@sentry/electron/preload"); } catch (_) {}
 
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
+// ── Theme, applied before the first stylesheet (#328) ────────────────────
+// index.html ships data-theme="midnight" statically so the markup is never
+// attribute-less; this overwrites it with the saved theme at document-start.
+//
+// It has to happen HERE rather than in React. The CSP has no 'unsafe-inline'
+// for scripts, so index.html cannot carry a boot script of its own, and by the
+// time React mounts the page has already painted — a Daylight user would see
+// Midnight flash first. The preload is the only code that runs early enough.
+//
+// sendSync blocks for one IPC round trip. That is the point: an async read
+// resolves after the first paint, which is the flash we are avoiding.
+const bootTheme = (() => {
+  try { return ipcRenderer.sendSync("theme:getSync") || "midnight"; } catch (_) { return "midnight"; }
+})();
+
+function stampTheme(id) {
+  document.documentElement.setAttribute("data-theme", id);
+}
+
+if (document.documentElement) {
+  stampTheme(bootTheme);
+} else {
+  // Preload can run before the parser has created <html>. This observer fires
+  // the moment it exists — still ahead of <head>'s stylesheets, so no repaint.
+  const obs = new MutationObserver(() => {
+    if (!document.documentElement) return;
+    stampTheme(bootTheme);
+    obs.disconnect();
+  });
+  obs.observe(document, { childList: true });
+}
+
 contextBridge.exposeInMainWorld("clipflow", {
   // Profile (#80) — "dev" or "prod"
   profile: process.env.CLIPFLOW_PROFILE === "dev" ? "dev" : "prod",
+
+  // #328: the theme this launch booted with, already stamped on <html> above.
+  // The renderer reads it to render the picker's selected state without an
+  // async round trip; setTheme persists the change and repaints native chrome.
+  theme: bootTheme,
+  setTheme: (id) => ipcRenderer.invoke("theme:set", id),
 
   // #73: one-way boot signal — fired once after App.js's initial hydration
   // commits. Main reveals the hidden window and closes the splash on it.

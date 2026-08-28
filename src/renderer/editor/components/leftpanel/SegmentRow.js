@@ -93,9 +93,9 @@ function TimecodePopover({ segment, children }) {
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="dark w-[280px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" side="bottom" align="start" sideOffset={4} collisionPadding={12}>
-        <div className="px-3 py-2.5 border-b border-[hsl(240_4%_20%)]">
-          <span className="text-sm font-semibold text-white">Adjust start and end time</span>
+      <PopoverContent className="w-[280px] p-0 bg-popover border-border" side="bottom" align="start" sideOffset={4} collisionPadding={12}>
+        <div className="px-3 py-2.5 border-b border-border">
+          <span className="text-sm font-semibold text-foreground">Adjust start and end time</span>
         </div>
         <div className="px-3 py-3 space-y-3">
           {/* Dual-thumb range slider */}
@@ -116,22 +116,22 @@ function TimecodePopover({ segment, children }) {
                 const tl = parseTime(e.target.value);
                 if (!isNaN(tl)) handleRangeChange([toSource(tl), localEnd]);
               }}
-              className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
+              className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
             />
-            <span className="text-[hsl(240_5%_50%)] text-xs">–</span>
+            <span className="text-muted-foreground text-xs">–</span>
             <input
               value={fmtTime(toTimeline(localEnd))}
               onChange={(e) => {
                 const tl = parseTime(e.target.value);
                 if (!isNaN(tl)) handleRangeChange([localStart, toSource(tl)]);
               }}
-              className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
+              className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
             />
           </div>
 
           {/* Cancel / Apply */}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" className="h-8 px-3 text-sm text-[hsl(240_5%_65%)] hover:text-white" onClick={() => setOpen(false)}>
+            <Button variant="ghost" size="sm" className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button size="sm" className="h-8 px-4 text-sm bg-primary text-white hover:bg-primary/90" onClick={handleApply}>
@@ -430,7 +430,7 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
                 <Trash2 className="h-3 w-3" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="dark w-[200px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" side="bottom" align="end" sideOffset={4}>
+            <PopoverContent className="w-[200px] p-0 bg-popover border-border" side="bottom" align="end" sideOffset={4}>
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
                 onClick={(e) => {
@@ -512,7 +512,7 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
       {/* Right-click word menu — split/merge where the words live */}
       {wordMenu && (
         <div
-          className="fixed z-[100] w-[200px] py-1 rounded-md bg-[hsl(240_6%_10%)] border border-[hsl(240_4%_20%)] shadow-xl"
+          className="fixed z-[100] w-[200px] py-1 rounded-md bg-popover border border-border shadow-xl"
           style={{ left: wordMenu.x, top: wordMenu.y }}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}

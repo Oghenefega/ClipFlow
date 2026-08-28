@@ -200,8 +200,8 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
       ? "hsl(25 90% 55% / 0.04)"
       : "hsl(25 90% 55% / 0.02)";
   const shadow = selected
-    ? "0 0 0 1px hsl(25 90% 60% / 0.25), inset 0 1px 0 rgba(255,255,255,0.06)"
-    : "inset 0 1px 0 rgba(255,255,255,0.03)";
+    ? "0 0 0 1px hsl(25 90% 60% / 0.25), inset 0 1px 0 rgba(var(--lift),0.06)"
+    : "inset 0 1px 0 rgba(var(--lift),0.03)";
 
   return (
     <div
@@ -238,7 +238,7 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
           style={{
             left: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
             width: 4, height: 16,
-            background: "rgba(255,255,255,0.55)",
+            background: "rgba(var(--lift),0.55)",
             opacity: showHandles ? 1 : 0,
           }}
         />
@@ -254,7 +254,7 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
           style={{
             right: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
             width: 4, height: 16,
-            background: "rgba(255,255,255,0.55)",
+            background: "rgba(var(--lift),0.55)",
             opacity: showHandles ? 1 : 0,
           }}
         />

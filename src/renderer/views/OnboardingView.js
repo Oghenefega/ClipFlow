@@ -31,7 +31,7 @@ const ARCHETYPE_MOMENT_ORDER = {
 // ── Shared styles ──
 const stepDot = (active) => ({
   width: 8, height: 8, borderRadius: "50%",
-  background: active ? T.accent : "rgba(255,255,255,0.15)",
+  background: active ? T.accent : "rgba(var(--lift),0.15)",
   transition: "background 0.2s",
 });
 
@@ -46,7 +46,7 @@ const navBtn = (variant) => ({
   cursor: "pointer", fontFamily: T.font, border: "none", transition: "all 0.15s",
   ...(variant === "primary"
     ? { background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", boxShadow: "0 2px 12px rgba(139,92,246,0.3)" }
-    : { background: "rgba(255,255,255,0.06)", color: T.textSecondary }),
+    : { background: "rgba(var(--lift),0.06)", color: T.textSecondary }),
 });
 
 export default function OnboardingView({ onComplete }) {
@@ -269,7 +269,7 @@ function MomentsStep({ moments, onMove }) {
             {/* Rank number */}
             <div style={{
               width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-              background: i === 0 ? T.accentDim : "rgba(255,255,255,0.04)",
+              background: i === 0 ? T.accentDim : "rgba(var(--lift),0.04)",
               border: `1px solid ${i === 0 ? T.accentBorder : T.border}`,
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 12, fontWeight: 700, color: i === 0 ? T.accent : T.textSecondary,
@@ -315,7 +315,7 @@ function PersonalityStep({ description, setDescription }) {
           placeholder="e.g., I play shooters terribly on purpose and scream a lot, or I do chill commentary and explain what is going on"
           style={{
             width: "100%", minHeight: 100, resize: "vertical", boxSizing: "border-box",
-            background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+            background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`,
             borderRadius: T.radius.md, padding: "12px 14px", color: T.text,
             fontSize: 13, fontFamily: T.font, lineHeight: 1.5, outline: "none",
           }}

@@ -128,7 +128,7 @@ export default function EngineSetupView({ onClose }) {
       <img src={clipflowMark} alt="" style={{
         position: "relative", width: 104, height: 104, objectFit: "contain",
         filter: interrupted
-          ? "grayscale(1) brightness(.72) drop-shadow(0 7px 18px rgba(0,0,0,.4))"
+          ? "grayscale(1) brightness(.72) drop-shadow(0 7px 18px rgba(var(--shade),calc(.4 * var(--shadeK))))"
           : "drop-shadow(0 7px 18px rgba(10,30,70,.55))",
       }} />
     </div>
@@ -186,6 +186,8 @@ export default function EngineSetupView({ onClose }) {
     fontFamily: T.font, fontSize: 14, fontWeight: 700, color: "#fff", border: "none", cursor: "pointer",
     padding: "11px 30px", borderRadius: 11,
     background: `linear-gradient(180deg, #3aa9ef, ${BLU_DEEP})`,
+    // #328: literal white on purpose — the inner top edge of a blue gradient
+    // button, not a tint of the canvas. Must not follow the theme.
     boxShadow: "0 4px 18px rgba(36,105,227,.38), inset 0 1px 0 rgba(255,255,255,.22)",
   };
   const ghostStyle = { fontSize: 12.5, color: T.textTertiary, background: "none", border: "none", cursor: "pointer", fontFamily: T.font };

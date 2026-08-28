@@ -284,7 +284,7 @@ export default function AudioPanel() {
             onClick={(e) => { e.stopPropagation(); setTagFilter((cur) => (cur === t ? null : t)); }}
             title={tags.join(", ")}
             className={`h-[15px] px-1.5 rounded text-[9.5px] font-medium truncate max-w-[68px] transition-colors ${
-              tagFilter === t ? "bg-primary/25 text-violet-200" : "bg-white/[0.07] text-muted-foreground hover:text-foreground"
+              tagFilter === t ? "bg-primary/25 text-primary" : "bg-foreground/[0.07] text-muted-foreground hover:text-foreground"
             }`}
           >
             {t}

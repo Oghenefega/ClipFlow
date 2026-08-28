@@ -977,9 +977,9 @@ export default function App() {
   const showClipBrowser = view === "clips" && !!selProj;
 
   return (
-    <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8 }}>
+    <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex", flexDirection: "column", border: "1px solid rgba(var(--lift),0.08)", borderRadius: 8 }}>
       {/* Draggable title bar with logo */}
-      <div className="titlebar-drag" style={{ height: 36, flexShrink: 0, background: "rgba(10,11,16,0.8)", borderRadius: "8px 8px 0 0", display: "flex", alignItems: "center", paddingLeft: 16 }}>
+      <div className="titlebar-drag" style={{ height: 36, flexShrink: 0, background: "rgba(var(--bgRgb),0.8)", borderRadius: "8px 8px 0 0", display: "flex", alignItems: "center", paddingLeft: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
           <img src={clipflowMark} alt="" width={20} height={20} style={{ display: "block" }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, letterSpacing: "-0.2px" }}>Corva</span>
@@ -1242,13 +1242,13 @@ export default function App() {
           the editor, so outside the editor this is the only progress/cancel
           surface. Inside the editor the topbar pill covers it. */}
       {renderJob && view !== "editor" && (
-        <div style={{ position: "fixed", bottom: 20, right: 24, zIndex: 950, display: "flex", alignItems: "center", gap: 10, padding: "9px 12px 9px 14px", borderRadius: 10, background: renderJob.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", boxShadow: "0 8px 24px rgba(0,0,0,0.45)", fontFamily: T.font, color: "#fff" }}>
+        <div style={{ position: "fixed", bottom: 20, right: 24, zIndex: 950, display: "flex", alignItems: "center", gap: 10, padding: "9px 12px 9px 14px", borderRadius: 10, background: renderJob.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", boxShadow: "0 8px 24px rgba(var(--shade),calc(0.45 * var(--shadeK)))", fontFamily: T.font, color: "#fff" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}>
             <span style={{ fontSize: 12, fontWeight: 700, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {renderJob.error ? "Render failed" : renderJob.canceling ? "Canceling…" : renderJob.done ? "Rendered!" : `Rendering${renderJob.clipTitle ? ` “${renderJob.clipTitle}”` : ""} ${renderJob.pct || 0}%`}
             </span>
             {!renderJob.done && !renderJob.canceling && (
-              <div style={{ width: "100%", height: 4, background: "rgba(0,0,0,0.3)", borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ width: "100%", height: 4, background: "rgba(var(--shade),calc(0.3 * var(--shadeK)))", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${renderJob.pct || 0}%`, background: "#fff", borderRadius: 999, transition: "width 0.3s" }} />
               </div>
             )}
@@ -1289,7 +1289,7 @@ export default function App() {
       <FeedbackBubble view={view} />
       {/* #246: transient toast — sits above the render pill when both show */}
       {toast && (
-        <div style={{ position: "fixed", bottom: renderJob && view !== "editor" ? 92 : 20, right: 24, zIndex: 951, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 10, background: T.surface, border: `1px solid ${T.greenBorder}`, boxShadow: "0 8px 24px rgba(0,0,0,0.45)", color: T.text, fontSize: 12.5, fontWeight: 600, fontFamily: T.font }}>
+        <div style={{ position: "fixed", bottom: renderJob && view !== "editor" ? 92 : 20, right: 24, zIndex: 951, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 10, background: T.surface, border: `1px solid ${T.greenBorder}`, boxShadow: "0 8px 24px rgba(var(--shade),calc(0.45 * var(--shadeK)))", color: T.text, fontSize: 12.5, fontWeight: 600, fontFamily: T.font }}>
           <span style={{ width: 7, height: 7, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}`, flexShrink: 0 }} />
           {toast}
         </div>
@@ -1304,15 +1304,15 @@ export default function App() {
         />
       )}
       {degradeAsk && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 520, width: "90%", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.65 * var(--shadeK)))", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 520, width: "90%", boxShadow: "0 12px 40px rgba(var(--shade),calc(0.6 * var(--shadeK)))" }}>
             <div style={{ color: T.text, fontSize: 16, fontWeight: 700, marginBottom: 10 }}>
               ⚠️ Signal extraction failed
             </div>
             <div style={{ color: T.textSecondary, fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
               {degradeAsk.failed.length} of 5 signal{degradeAsk.failed.length === 1 ? "" : "s"} failed during extraction. Generating clips now will rely on the surviving signals only — quality may degrade.
             </div>
-            <div style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, fontFamily: T.mono, color: T.textTertiary, maxHeight: 140, overflowY: "auto" }}>
+            <div style={{ background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, fontFamily: T.mono, color: T.textTertiary, maxHeight: 140, overflowY: "auto" }}>
               {degradeAsk.failed.map((f, i) => (
                 <div key={i} style={{ padding: "2px 0" }}>
                   <span style={{ color: T.red }}>❌</span>{" "}

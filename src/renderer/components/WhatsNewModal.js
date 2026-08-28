@@ -30,7 +30,7 @@ export default function WhatsNewModal() {
   };
 
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.85 * var(--shadeK)))", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
       <div style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 520, width: "100%", maxHeight: "80vh", border: `1px solid ${T.accentBorder}`, boxShadow: "0 24px 80px rgba(139,92,246,0.2)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ background: T.accentGlow, padding: "22px 28px 18px", borderBottom: `1px solid ${T.accentBorder}`, flexShrink: 0 }}>
           <div style={{ color: T.accentLight, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Corva updated</div>

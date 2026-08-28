@@ -233,8 +233,8 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 640, width: "94%", maxHeight: "94vh", overflowY: "auto", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.72 * var(--shadeK)))", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 640, width: "94%", maxHeight: "94vh", overflowY: "auto", boxShadow: "0 12px 40px rgba(var(--shade),calc(0.6 * var(--shadeK)))" }}>
         <div style={{ color: T.text, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
           🎧 Identify your audio tracks
         </div>
@@ -254,7 +254,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
             playsInline
             style={{ display: "block", width: "100%", height: 200, objectFit: "contain", background: "#000" }}
           />
-          <div style={{ position: "absolute", top: 6, left: 10, right: 10, color: T.textTertiary, fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }} title={fileName}>{fileName}</div>
+          <div style={{ position: "absolute", top: 6, left: 10, right: 10, color: T.textTertiary, fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 3px rgba(var(--shade),calc(0.9 * var(--shadeK)))" }} title={fileName}>{fileName}</div>
           <div style={{ position: "absolute", bottom: 8, left: 10, color: T.accentLight, fontSize: 11, fontWeight: 600, background: "rgba(17,18,24,0.85)", border: `1px solid ${T.accentBorder}`, borderRadius: 999, padding: "3px 10px" }}>
             Soloing Track {current + 1}
           </div>
@@ -294,7 +294,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
                 style={{
                   display: "grid", gridTemplateColumns: `${INFO_COL}px 1fr`, cursor: "pointer",
                   borderBottom: i < trackCount - 1 ? `1px solid ${T.border}` : "none",
-                  background: isCurrent ? T.accentDim : done ? "rgba(52,211,153,0.04)" : "rgba(255,255,255,0.01)",
+                  background: isCurrent ? T.accentDim : done ? "rgba(52,211,153,0.04)" : "rgba(var(--lift),0.01)",
                 }}
               >
                 <div style={{ padding: "6px 12px", borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -318,7 +318,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
                         const scale = laneMax >= 0.001 ? 1 / laneMax : 1;
                         return s.peaks.map((v, j) => {
                           const h = Math.max(2, Math.min(1, v * scale) * 92);
-                          return <rect key={j} x={j * 3} y={50 - h / 2} width={2} height={h} rx={1} fill="rgba(255,255,255,0.30)" />;
+                          return <rect key={j} x={j * 3} y={50 - h / 2} width={2} height={h} rx={1} fill="rgba(var(--lift),0.30)" />;
                         });
                       })()}
                     </svg>
@@ -349,7 +349,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
                 style={{
                   padding: "6px 14px", borderRadius: T.radius?.sm || 6, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
                   border: isActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                  background: isActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                  background: isActive ? T.accentDim : "rgba(var(--lift),0.03)",
                   color: isActive ? T.accentLight : T.textSecondary,
                 }}
               >
@@ -369,7 +369,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
               placeholder="Name this track (e.g. Spotify, TeamSpeak)"
               onChange={(e) => setCustomDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") commitCustomName(); }}
-              style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, color: T.text, fontFamily: T.font, fontSize: 12.5, padding: "7px 10px", width: 230, outline: "none" }}
+              style={{ background: "rgba(var(--lift),0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, color: T.text, fontFamily: T.font, fontSize: 12.5, padding: "7px 10px", width: 230, outline: "none" }}
             />
             <button
               onClick={commitCustomName}
@@ -395,7 +395,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
             {voiceIndex !== undefined && !allLabeled && (
               <button
                 onClick={finish}
-                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", color: T.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.05)", color: T.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
               >
                 Skip the rest — Mic is found
               </button>
@@ -406,7 +406,7 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
               style={{
                 padding: "8px 18px", borderRadius: 6, fontSize: 12, fontWeight: 700, fontFamily: T.font,
                 border: `1px solid ${T.accentBorder}`,
-                background: voiceIndex !== undefined && allLabeled ? T.accentDim : "rgba(255,255,255,0.04)",
+                background: voiceIndex !== undefined && allLabeled ? T.accentDim : "rgba(var(--lift),0.04)",
                 color: voiceIndex !== undefined && allLabeled ? T.accentLight : T.textTertiary,
                 cursor: voiceIndex !== undefined && allLabeled ? "pointer" : "default",
               }}

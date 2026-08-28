@@ -254,6 +254,25 @@ function libraryRoot() {
   return store.get("projectsRoot") || store.get("watchFolder");
 }
 
+// #328: the launch theme set. The palettes themselves live in ONE place —
+// src/renderer/styles/themes.css — and adding a theme is adding a block there
+// plus an entry in the renderer's THEMES list. Main only needs the two chrome
+// colours it paints itself, before any HTML exists:
+//   bg     — BrowserWindow backgroundColor, the very first pixel drawn. This
+//            is what makes a light-theme launch light instead of flashing the
+//            dark canvas while the renderer boots.
+//   symbol — the Windows titleBarOverlay caption glyphs. Dark glyphs on a
+//            light bar, light glyphs on a dark one, or they vanish.
+// Keep the ids and the bg values identical to themes.css --bg.
+const THEME_CHROME = {
+  midnight: { bg: "#0a0b10", symbol: "#edeef2" },
+  daylight: { bg: "#f3f4f7", symbol: "#14151c" },
+  rose:     { bg: "#120810", symbol: "#fdeef6" },
+  blush:    { bg: "#fdf1f6", symbol: "#2a1020" },
+};
+const DEFAULT_THEME = "midnight";
+const themeChrome = (id) => THEME_CHROME[id] || THEME_CHROME[DEFAULT_THEME];
+
 const STORE_DEFAULTS = {
   // #251: empty until the user picks a folder (Settings / onboarding). The
   // renderer never starts a watcher on "" (#167 guard in RenameView). Installs
@@ -383,6 +402,12 @@ const STORE_DEFAULTS = {
     momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
   },
   onboardingComplete: false,
+  // #328: the app's colour theme. One of THEME_IDS below; the id is written
+  // straight onto <html data-theme> and every colour in both styling systems
+  // (the T object and the editor's shadcn tokens) resolves from it.
+  // "midnight" is the look the app has always had — existing installs that
+  // have never seen this key land on it and see no change.
+  theme: "midnight",
   // Video splitting
   splitThresholdMinutes: 30,
   autoSplitEnabled: true,
@@ -427,6 +452,21 @@ const STORE_DEFAULTS = {
 };
 
 function runStoreMigrations(store) {
+  // ── Migration (#328): the persisted theme must be one this build ships ──
+  // Nothing to backfill on upgrade — an install that has never seen the key
+  // gets "midnight" from the defaults, which IS the look it already had. What
+  // this guards is the other direction: a theme that was renamed or dropped
+  // between versions would otherwise leave <html data-theme="gone"> matching
+  // no token block at all, i.e. an unstyled app with no way back to Settings.
+  // Anything unrecognised falls back to the default.
+  const savedTheme = store.get("theme");
+  if (!THEME_CHROME[savedTheme]) {
+    store.set("theme", DEFAULT_THEME);
+    if (savedTheme !== undefined) {
+      logger.info(logger.MODULES.system, `Reset unknown theme "${savedTheme}" to ${DEFAULT_THEME}`);
+    }
+  }
+
   // ── Migration (#251): watchFolder default is no longer Fega's W:\ path ──
   // Installs that relied on the old default (never explicitly saved a value)
   // keep working: if the store has no watchFolder and the old default exists
@@ -847,6 +887,10 @@ function revealMainWindow(trigger) {
 ipcMain.on("app:renderer-ready", () => revealMainWindow("renderer-ready"));
 
 function createWindow({ holdUntilReady = false } = {}) {
+  // #328: the saved theme's canvas is the compositor background, so the very
+  // first pixel Windows draws already matches. Without this a Daylight user
+  // gets a black rectangle for the frame or two before the page paints.
+  const chrome = themeChrome(store?.get("theme"));
   mainWindow = new BrowserWindow({
     title: CLIPFLOW_PROFILE === "dev" ? "Corva [DEV]" : "Corva",
     width: 1280,
@@ -856,11 +900,11 @@ function createWindow({ holdUntilReady = false } = {}) {
     // #73: created hidden. The boot path holds it until the renderer reports
     // hydration (splash covers the wait); any other caller shows it right away.
     show: false,
-    backgroundColor: "#0a0b10",
+    backgroundColor: chrome.bg,
     titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: "#0a0b10",
-      symbolColor: "#edeef2",
+      color: chrome.bg,
+      symbolColor: chrome.symbol,
       height: 36,
     },
     webPreferences: {
@@ -3269,6 +3313,36 @@ ipcMain.handle("store:set", (_, key, value) => {
 
 ipcMain.handle("store:getAll", () => {
   return store.store;
+});
+
+// ============ THEME (#328) ============
+
+// Synchronous on purpose. The preload calls this at document-start to stamp
+// <html data-theme> BEFORE the first stylesheet is applied — an async read
+// would resolve a frame or two later and every non-default theme would boot
+// with a visible flash of Midnight. One blocking IPC round trip per launch.
+ipcMain.on("theme:getSync", (event) => {
+  const id = store?.get("theme");
+  event.returnValue = THEME_CHROME[id] ? id : DEFAULT_THEME;
+});
+
+// Persist + repaint the parts of the window CSS cannot reach: the compositor
+// background behind the page (next launch's first pixel) and the Windows
+// caption buttons, whose glyphs are drawn by the OS, not by us.
+ipcMain.handle("theme:set", (_, id) => {
+  if (!THEME_CHROME[id]) return { success: false, error: `Unknown theme "${id}"` };
+  store.set("theme", id);
+  const { bg, symbol } = themeChrome(id);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setBackgroundColor(bg);
+    try {
+      mainWindow.setTitleBarOverlay({ color: bg, symbolColor: symbol, height: 36 });
+    } catch (err) {
+      // Non-Windows or no overlay on this window — the page still themes fine.
+      logger.warn(logger.MODULES.system, `Title bar overlay not repainted: ${err.message}`);
+    }
+  }
+  return { success: true };
 });
 
 // #301: the renderer decides whether AI is available and what Settings shows,

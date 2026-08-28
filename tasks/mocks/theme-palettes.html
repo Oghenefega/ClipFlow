@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+<meta charset="utf-8" />
+<title>Corva — theme palettes (#328)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   THIS IS THE SHIPPING TOKEN SHAPE.
+   Every value below becomes one entry in src/renderer/styles/themes.css.
+   T (theme.js) keeps its exact key names — its values become var(--x).
+   ────────────────────────────────────────────────────────────────
+   --lift  : polarity of every subtle surface tint in the app.
+             Dark themes = white. Light themes = near-black.
+             This is what turns 227 hardcoded rgba(255,255,255,0.04)
+             into one mechanical find/replace: rgba(var(--lift),0.04)
+   --shade : shadow / scrim colour        --shadeK : their strength
+   --bgRgb : the canvas as raw channels, for translucent bars
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="midnight"]{
+  --bg:#0a0b10; --bgRgb:10,11,16; --surface:#111218; --surfaceHover:#16171f;
+  --lift:255,255,255; --shade:0,0,0; --shadeK:1;
+  --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+  --text:#edeef2; --textSecondary:rgba(255,255,255,0.55); --textTertiary:rgba(255,255,255,0.32);
+  --textMuted:rgba(255,255,255,0.16); --labelStrong:rgba(255,255,255,0.68);
+  --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12);
+  --accentBorder:rgba(139,92,246,0.25); --accentGlow:rgba(139,92,246,0.06);
+  --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBorder:rgba(52,211,153,0.22);
+  --yellow:#fbbf24; --yellowDim:rgba(251,191,36,0.10); --yellowBorder:rgba(251,191,36,0.22);
+  --red:#f87171; --redDim:rgba(248,113,113,0.08); --redBorder:rgba(248,113,113,0.18);
+  --orange:#f97316; --orangeDim:rgba(249,115,22,0.10); --orangeBorder:rgba(249,115,22,0.22);
+  --cyan:#22d3ee; --cyanDim:rgba(34,211,238,0.10); --cyanBorder:rgba(34,211,238,0.22);
+  --onSolid:#0a0b10;   /* text sitting ON a full-strength green / accent fill */
+  /* editor (shadcn) — same palette, hsl channels */
+  --background:240 8% 4%; --foreground:240 5% 96%; --card:240 6% 7%;
+  --popover:240 6% 9%; --primary:263 70% 58%; --secondary:240 5% 12%;
+  --muted:240 5% 10%; --muted-foreground:240 4% 55%; --e-border:240 4% 14%;
+}
+
+[data-theme="daylight"]{
+  --bg:#f3f4f7; --bgRgb:243,244,247; --surface:#ffffff; --surfaceHover:#f7f8fb;
+  --lift:17,19,28; --shade:17,19,28; --shadeK:0.30;
+  --border:rgba(17,19,28,0.10); --borderHover:rgba(17,19,28,0.20);
+  --text:#14151c; --textSecondary:rgba(17,19,28,0.62); --textTertiary:rgba(17,19,28,0.44);
+  --textMuted:rgba(17,19,28,0.26); --labelStrong:rgba(17,19,28,0.74);
+  --accent:#7c3aed; --accentLight:#6d28d9; --accentDim:rgba(124,58,237,0.10);
+  --accentBorder:rgba(124,58,237,0.28); --accentGlow:rgba(124,58,237,0.05);
+  --green:#0d9463; --greenDim:rgba(13,148,99,0.10); --greenBorder:rgba(13,148,99,0.26);
+  --yellow:#b45309; --yellowDim:rgba(180,83,9,0.10); --yellowBorder:rgba(180,83,9,0.24);
+  --red:#dc2626; --redDim:rgba(220,38,38,0.08); --redBorder:rgba(220,38,38,0.20);
+  --orange:#ea580c; --orangeDim:rgba(234,88,12,0.10); --orangeBorder:rgba(234,88,12,0.24);
+  --cyan:#0e7490; --cyanDim:rgba(14,116,144,0.10); --cyanBorder:rgba(14,116,144,0.24);
+  --onSolid:#ffffff;
+  --background:240 20% 97%; --foreground:240 12% 10%; --card:0 0% 100%;
+  --popover:0 0% 100%; --primary:263 70% 51%; --secondary:240 10% 94%;
+  --muted:240 12% 95%; --muted-foreground:240 6% 42%; --e-border:240 8% 88%;
+}
+
+[data-theme="rose"]{
+  --bg:#120810; --bgRgb:18,8,16; --surface:#1c0d18; --surfaceHover:#26131f;
+  --lift:255,232,244; --shade:0,0,0; --shadeK:1;
+  --border:rgba(255,232,244,0.08); --borderHover:rgba(255,232,244,0.15);
+  --text:#fdeef6; --textSecondary:rgba(255,232,244,0.58); --textTertiary:rgba(255,232,244,0.34);
+  --textMuted:rgba(255,232,244,0.18); --labelStrong:rgba(255,232,244,0.70);
+  --accent:#ec4899; --accentLight:#f9a8d4; --accentDim:rgba(236,72,153,0.14);
+  --accentBorder:rgba(236,72,153,0.32); --accentGlow:rgba(236,72,153,0.07);
+  --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBorder:rgba(52,211,153,0.22);
+  --yellow:#fbbf24; --yellowDim:rgba(251,191,36,0.10); --yellowBorder:rgba(251,191,36,0.22);
+  --red:#fb7185; --redDim:rgba(251,113,133,0.08); --redBorder:rgba(251,113,133,0.20);
+  --orange:#fb923c; --orangeDim:rgba(251,146,60,0.10); --orangeBorder:rgba(251,146,60,0.22);
+  --cyan:#22d3ee; --cyanDim:rgba(34,211,238,0.10); --cyanBorder:rgba(34,211,238,0.22);
+  --onSolid:#12080f;
+  --background:318 40% 6%; --foreground:330 60% 96%; --card:320 38% 9%;
+  --popover:320 38% 11%; --primary:330 81% 60%; --secondary:320 30% 15%;
+  --muted:320 30% 12%; --muted-foreground:326 20% 60%; --e-border:320 26% 18%;
+}
+
+[data-theme="blush"]{
+  --bg:#fdf1f6; --bgRgb:253,241,246; --surface:#ffffff; --surfaceHover:#fff7fb;
+  --lift:66,20,44; --shade:66,20,44; --shadeK:0.28;
+  --border:rgba(66,20,44,0.11); --borderHover:rgba(66,20,44,0.22);
+  --text:#2a1020; --textSecondary:rgba(42,16,32,0.62); --textTertiary:rgba(42,16,32,0.44);
+  --textMuted:rgba(42,16,32,0.26); --labelStrong:rgba(42,16,32,0.74);
+  --accent:#db2777; --accentLight:#be185d; --accentDim:rgba(219,39,119,0.10);
+  --accentBorder:rgba(219,39,119,0.28); --accentGlow:rgba(219,39,119,0.05);
+  --green:#0d9463; --greenDim:rgba(13,148,99,0.10); --greenBorder:rgba(13,148,99,0.26);
+  --yellow:#b45309; --yellowDim:rgba(180,83,9,0.10); --yellowBorder:rgba(180,83,9,0.24);
+  --red:#dc2626; --redDim:rgba(220,38,38,0.08); --redBorder:rgba(220,38,38,0.20);
+  --orange:#ea580c; --orangeDim:rgba(234,88,12,0.10); --orangeBorder:rgba(234,88,12,0.24);
+  --cyan:#0e7490; --cyanDim:rgba(14,116,144,0.10); --cyanBorder:rgba(14,116,144,0.24);
+  --onSolid:#ffffff;
+  --background:336 60% 97%; --foreground:326 46% 12%; --card:0 0% 100%;
+  --popover:0 0% 100%; --primary:333 71% 51%; --secondary:336 40% 94%;
+  --muted:336 40% 96%; --muted-foreground:326 12% 44%; --e-border:336 28% 89%;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;
+     padding:22px 26px 60px;transition:background .18s,color .18s}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(var(--lift),0.16);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ── switcher ── */
+.switch{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.switch b{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--textTertiary);margin-right:4px}
+.sw{display:flex;align-items:center;gap:8px;padding:7px 13px 7px 8px;border-radius:9px;cursor:pointer;
+    font:700 12.5px 'DM Sans';border:1px solid var(--border);background:var(--surface);color:var(--textSecondary)}
+.sw[aria-pressed="true"]{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight)}
+.dot{width:22px;height:22px;border-radius:6px;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.hint{font-size:11.5px;color:var(--textTertiary);margin:10px 0 22px;line-height:1.6}
+kbd{font:700 11px 'DM Sans';background:rgba(var(--lift),0.06);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+
+/* ── app chrome ── */
+.app{border:1px solid rgba(var(--lift),0.08);border-radius:8px;overflow:hidden;background:var(--bg);
+     box-shadow:0 18px 60px rgba(var(--shade),calc(0.55*var(--shadeK)))}
+.titlebar{height:36px;background:rgba(var(--bgRgb),0.8);display:flex;align-items:center;padding-left:16px;gap:8px}
+.mark{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accentLight))}
+.titlebar span{font-size:12px;font-weight:700;color:var(--textSecondary);letter-spacing:-.2px}
+.body{padding:26px 30px 30px;display:flex;flex-direction:column;gap:30px}
+.nav{height:56px;border-top:1px solid var(--border);background:rgba(var(--bgRgb),0.92);
+     display:flex;align-items:center;justify-content:space-around;padding:0 12px}
+.nav button{flex:1;max-width:80px;display:flex;flex-direction:column;align-items:center;gap:3px;
+     padding:6px 0 8px;border:0;background:transparent;cursor:pointer;position:relative;
+     font:500 10px 'DM Sans';color:var(--textTertiary);letter-spacing:.2px}
+.nav button i{font-style:normal;font-size:18px;line-height:1}
+.nav button.on{color:var(--accentLight);font-weight:700}
+.nav button.on::before{content:"";position:absolute;top:0;width:24px;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
+.nav .badge{position:absolute;top:4px;right:50%;transform:translateX(16px);background:var(--accent);color:#fff;
+     font:700 9px 'DM Sans';padding:1px 5px;border-radius:7px;min-width:14px;text-align:center;line-height:14px}
+
+/* ── shared ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px}
+h2.page{font-size:26px;font-weight:800;letter-spacing:-.6px;color:var(--text)}
+.sub{color:var(--textSecondary);font-size:13.5px;margin-top:5px}
+.slabel{color:var(--textSecondary);font:700 11px 'DM Sans';text-transform:uppercase;letter-spacing:.6px}
+.pill{padding:3px 9px;border-radius:20px;font:700 9px 'DM Sans';white-space:nowrap}
+.gp{display:inline-block;padding:3px 8px;border-radius:6px;font:800 10px 'DM Sans';letter-spacing:.4px;color:#fff}
+.btn{padding:6px 12px;border-radius:6px;font:700 11px 'DM Sans';cursor:pointer;border:1px solid var(--border);
+     background:rgba(var(--lift),0.04);color:var(--textSecondary)}
+.btn.pri{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight)}
+.btn.go{background:var(--green);border:0;color:var(--onSolid);padding:5px 12px;font-size:10px}
+
+/* ── queue ── */
+.qhead{display:grid;grid-template-columns:28px 48px 1fr 70px 110px 90px 150px;gap:0;padding:9px 14px;
+     border-bottom:1px solid var(--border);background:rgba(var(--lift),0.02)}
+.qhead div{font:700 9.5px 'DM Sans';text-transform:uppercase;letter-spacing:.06em;color:var(--textMuted)}
+.qrow{display:grid;grid-template-columns:28px 48px 1fr 70px 110px 90px 150px;gap:0;padding:10px 14px;
+     align-items:center;border-bottom:1px solid var(--border)}
+.thumb{width:34px;height:60px;border-radius:6px;background:rgba(var(--lift),0.04);display:flex;
+     align-items:center;justify-content:center;font-size:16px;color:var(--textMuted);overflow:hidden}
+.qtitle{color:var(--text);font:700 13px 'DM Sans';letter-spacing:-.1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qsub{color:var(--textTertiary);font-size:10px;margin-top:2px}
+.pico{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+     font:800 8.5px 'DM Sans';color:#fff}
+.grip{color:var(--textMuted);font-size:14px;cursor:grab}
+
+/* ── settings ── */
+.rail{width:196px;flex:0 0 auto;display:flex;flex-direction:column;gap:10px}
+.rail input{width:100%;background:rgba(var(--lift),0.04);border:1px solid var(--border);border-radius:6px;
+     padding:8px 10px;color:var(--text);font:400 12.5px 'DM Sans';outline:none}
+.rail input::placeholder{color:var(--textTertiary)}
+.rl{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:1px solid transparent;
+     background:transparent;color:var(--textSecondary);font:600 13px 'DM Sans';cursor:pointer;text-align:left;width:100%}
+.rl.on{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight);font-weight:700}
+.rl i{font-style:normal;font-size:13px;width:16px;text-align:center}
+.rl span.n{margin-left:auto;font:700 10.5px 'DM Sans';color:var(--textMuted)}
+.rl.on span.n{color:var(--accentLight)}
+.sechead{display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:14px;border-bottom:1px solid var(--border)}
+.sechead h3{font-size:17px;font-weight:800;letter-spacing:-.2px}
+.sechead em{font-style:normal;font-size:12px;color:var(--textTertiary)}
+.path{background:rgba(var(--lift),0.04);border:1px solid var(--border);border-radius:6px;padding:9px 11px;
+     font-size:12px;color:var(--textSecondary);word-break:break-all}
+
+/* ── theme cards (the actual picker) ── */
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tcard{border:1px solid var(--border);border-radius:10px;padding:10px;background:rgba(var(--lift),0.02);cursor:pointer;text-align:left}
+.tcard.on{border-color:var(--accentBorder);background:var(--accentDim)}
+.swatch{height:44px;border-radius:7px;display:flex;align-items:flex-end;gap:4px;padding:6px;margin-bottom:8px;overflow:hidden}
+.chip{width:12px;height:12px;border-radius:3px}
+.tname{font:700 12.5px 'DM Sans';color:var(--text)}
+.tdesc{font-size:10.5px;color:var(--textTertiary);margin-top:2px}
+
+/* ── editor strip (shadcn tokens) ── */
+.ed{border-radius:10px;overflow:hidden;border:1px solid hsl(var(--e-border));background:hsl(var(--background));color:hsl(var(--foreground))}
+.edbar{display:flex;align-items:center;gap:10px;padding:9px 12px;background:hsl(var(--card));border-bottom:1px solid hsl(var(--e-border))}
+.edbar .t{font:700 12px 'DM Sans'}
+.edbar .m{font-size:11px;color:hsl(var(--muted-foreground));margin-left:auto}
+.edmain{display:flex;gap:10px;padding:10px}
+.edseg{flex:1;background:hsl(var(--muted));border:1px solid hsl(var(--e-border));border-radius:8px;padding:9px 11px}
+.edseg .w{font-size:11.5px;line-height:1.7}
+.edseg .w b{background:hsl(var(--primary));color:#fff;border-radius:3px;padding:1px 4px;font-weight:700}
+.edstage{width:118px;aspect-ratio:9/16;border-radius:8px;background:hsl(var(--secondary));border:1px solid hsl(var(--e-border));
+     display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px}
+.edstage span{font:800 11px 'DM Sans';color:hsl(var(--foreground))}
+.edtl{height:44px;margin:0 10px 10px;border-radius:8px;background:hsl(var(--card));border:1px solid hsl(var(--e-border));
+     display:flex;align-items:center;padding:0 8px;gap:4px}
+.edtl .clip{height:26px;border-radius:5px;background:hsl(var(--primary));flex:3}
+.edtl .gap{height:26px;border-radius:5px;background:hsl(var(--secondary));flex:1}
+
+.note{font-size:11.5px;color:var(--textTertiary);line-height:1.65;margin-top:10px}
+.note b{color:var(--textSecondary)}
+.note code{background:rgba(var(--lift),0.06);border-radius:3px;padding:1px 4px;font-family:'DM Sans'}
+h4.sec{font:800 11px 'DM Sans';text-transform:uppercase;letter-spacing:.8px;color:var(--textTertiary);margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div class="switch">
+  <b>Theme</b>
+  <button class="sw" data-t="midnight" aria-pressed="true"><span class="dot" style="background:linear-gradient(135deg,#0a0b10 48%,#8b5cf6 48%)"></span>Midnight <small style="opacity:.6;font-weight:600">(today &middot; default)</small></button>
+  <button class="sw" data-t="daylight" aria-pressed="false"><span class="dot" style="background:linear-gradient(135deg,#f3f4f7 48%,#7c3aed 48%)"></span>Daylight</button>
+  <button class="sw" data-t="rose" aria-pressed="false"><span class="dot" style="background:linear-gradient(135deg,#120810 48%,#ec4899 48%)"></span>Neon Rose</button>
+  <button class="sw" data-t="blush" aria-pressed="false"><span class="dot" style="background:linear-gradient(135deg,#fdf1f6 48%,#db2777 48%)"></span>Blush</button>
+</div>
+<p class="hint">Click a theme &mdash; everything below repaints, editor strip included. <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> also work.<br>
+<b style="color:var(--textSecondary)">Two of these are pink, and I need you to pick.</b> <b style="color:var(--textSecondary)">Neon Rose</b> keeps the dark app and swaps violet for hot pink. <b style="color:var(--textSecondary)">Blush</b> is a light pink. Either can be "Pink" &mdash; or we launch with all four, since after this session a new theme is one small file.</p>
+
+<div class="app">
+  <div class="titlebar"><div class="mark"></div><span>Corva</span></div>
+
+  <div class="body">
+
+    <!-- ═══ QUEUE ═══ -->
+    <div>
+      <h4 class="sec">Queue tab</h4>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px">
+        <div><h2 class="page">Queue</h2><p class="sub">6 clips ready &middot; 2 scheduled</p></div>
+        <div style="display:flex;gap:6px"><button class="btn">Filter</button><button class="btn pri">Schedule all</button></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div class="card" style="padding:14px 16px"><div class="slabel">Ready</div><div style="font:800 22px 'DM Sans';margin-top:4px">6</div></div>
+        <div class="card" style="padding:14px 16px"><div class="slabel">Scheduled</div><div style="font:800 22px 'DM Sans';margin-top:4px;color:var(--yellow)">2</div></div>
+        <div class="card" style="padding:14px 16px"><div class="slabel">Published</div><div style="font:800 22px 'DM Sans';margin-top:4px;color:var(--green)">31</div></div>
+        <div class="card" style="padding:14px 16px"><div class="slabel">Failed</div><div style="font:800 22px 'DM Sans';margin-top:4px;color:var(--red)">1</div></div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="qhead"><div></div><div></div><div>Title</div><div>Game</div><div>Platforms</div><div>Status</div><div></div></div>
+
+        <div class="qrow" id="row1">
+          <div class="grip">&#9776;</div>
+          <div class="thumb">&#127916;</div>
+          <div style="min-width:0;padding-right:8px"><div class="qtitle">Sniped him mid-air</div><div class="qsub">0:38 &middot; Egging On &mdash; Aug 24</div></div>
+          <div><span class="gp" style="background:#4f9cf9">EO</span></div>
+          <div style="display:flex;gap:3px">
+            <span class="pico" style="background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);color:#25f4ee">TT</span>
+            <span class="pico" style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)">IG</span>
+            <span class="pico" style="background:#1877f2">FB</span>
+            <span class="pico" style="background:#c4302b">YT</span>
+          </div>
+          <div><span class="pill" style="background:var(--greenDim);color:var(--green)">READY</span></div>
+          <div style="display:flex;justify-content:flex-end;gap:5px"><button class="btn" style="padding:5px 9px">Edit</button><button class="btn go">Publish</button></div>
+        </div>
+
+        <div class="qrow" id="row2">
+          <div class="grip">&#9776;</div>
+          <div class="thumb">&#127916;</div>
+          <div style="min-width:0;padding-right:8px"><div class="qtitle">Deadline delivery gone very wrong</div><div class="qsub">0:52 &middot; Deadline Delivery &mdash; Aug 25</div></div>
+          <div><span class="gp" style="background:#e0793a">DD</span></div>
+          <div style="display:flex;gap:3px">
+            <span class="pico" style="background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);color:#25f4ee">TT</span>
+            <span class="pico" style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)">IG</span>
+            <span class="pico" style="background:#1877f2;opacity:.25">FB</span>
+            <span class="pico" style="background:#c4302b">YT</span>
+          </div>
+          <div><span class="pill" style="background:var(--yellowDim);color:var(--yellow)">SCHEDULED</span></div>
+          <div style="display:flex;justify-content:flex-end;gap:5px"><button class="btn" style="padding:5px 9px">Edit</button><button class="btn" style="padding:5px 9px">Reschedule</button></div>
+        </div>
+
+        <div class="qrow" id="row3" style="border-bottom:0">
+          <div class="grip">&#9776;</div>
+          <div class="thumb">&#127916;</div>
+          <div style="min-width:0;padding-right:8px"><div class="qtitle">Chameleon ate the whole lobby</div><div class="qsub">0:44 &middot; Meccha Chameleon &mdash; Aug 26</div></div>
+          <div><span class="gp" style="background:#37c98b">MC</span></div>
+          <div style="display:flex;gap:3px">
+            <span class="pico" style="background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);color:#25f4ee">TT</span>
+            <span class="pico" style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)">IG</span>
+            <span class="pico" style="background:#1877f2">FB</span>
+            <span class="pico" style="background:#c4302b">YT</span>
+          </div>
+          <div><span class="pill" style="background:var(--redDim);color:var(--red)">FAILED</span></div>
+          <div style="display:flex;justify-content:flex-end;gap:5px"><button class="btn" style="padding:5px 9px">Details</button><button class="btn pri" style="padding:5px 9px">Retry</button></div>
+        </div>
+      </div>
+      <p class="note"><b>Platform colours never change.</b> TikTok cyan, Instagram gradient, Facebook blue, YouTube red are brand identity (<code>platformBrand.js</code>) &mdash; brand-true in all four themes. So are your game colours (EO / DD / MC) and the per-row game wash behind each row: that is your data, not a theme token.</p>
+    </div>
+
+    <!-- ═══ SETTINGS ═══ -->
+    <div>
+      <h4 class="sec">Settings tab &mdash; with the new Appearance section</h4>
+      <div style="display:flex;gap:22px;align-items:flex-start">
+        <div class="rail">
+          <input placeholder="Search settings…">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <button class="rl"><i>&#128193;</i><span style="flex:1">Files &amp; Folders</span><span class="n">5</span></button>
+            <button class="rl"><i>&#9881;</i><span style="flex:1">Pipeline</span><span class="n">3</span></button>
+            <button class="rl"><i>&#127918;</i><span style="flex:1">Games</span><span class="n">3</span></button>
+            <button class="rl on"><i>&#127912;</i><span style="flex:1">Appearance</span><span class="n">1</span></button>
+            <button class="rl"><i>&#10024;</i><span style="flex:1">AI &amp; Style</span><span class="n">2</span></button>
+            <button class="rl"><i>&#128228;</i><span style="flex:1">Publishing</span><span class="n">3</span></button>
+            <button class="rl"><i>&#128273;</i><span style="flex:1">Tools &amp; Keys</span><span class="n">3</span></button>
+            <button class="rl"><i>&#128270;</i><span style="flex:1">Diagnostics</span><span class="n">4</span></button>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0">
+          <div class="sechead"><h3>Appearance</h3><em>How Corva looks. Applies everywhere, editor included.</em></div>
+
+          <div class="card" style="padding:22px;margin-bottom:14px">
+            <div style="color:var(--textSecondary);font:700 14px 'DM Sans';margin-bottom:4px">Theme</div>
+            <div style="font-size:12px;color:var(--textTertiary);margin-bottom:14px">Changes apply instantly and are remembered next time you open Corva.</div>
+            <div class="tgrid">
+              <button class="tcard" data-t="midnight">
+                <div class="swatch" style="background:#0a0b10;border:1px solid rgba(255,255,255,.08)">
+                  <span class="chip" style="background:#111218"></span><span class="chip" style="background:#8b5cf6"></span><span class="chip" style="background:#34d399"></span><span class="chip" style="background:#edeef2"></span>
+                </div><div class="tname">Midnight</div><div class="tdesc">The original. Default.</div>
+              </button>
+              <button class="tcard" data-t="daylight">
+                <div class="swatch" style="background:#f3f4f7;border:1px solid rgba(0,0,0,.08)">
+                  <span class="chip" style="background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.1)"></span><span class="chip" style="background:#7c3aed"></span><span class="chip" style="background:#0d9463"></span><span class="chip" style="background:#14151c"></span>
+                </div><div class="tname">Daylight</div><div class="tdesc">Light, for bright rooms.</div>
+              </button>
+              <button class="tcard" data-t="rose">
+                <div class="swatch" style="background:#120810;border:1px solid rgba(255,255,255,.08)">
+                  <span class="chip" style="background:#1c0d18"></span><span class="chip" style="background:#ec4899"></span><span class="chip" style="background:#f9a8d4"></span><span class="chip" style="background:#fdeef6"></span>
+                </div><div class="tname">Neon Rose</div><div class="tdesc">Dark, hot pink.</div>
+              </button>
+              <button class="tcard" data-t="blush">
+                <div class="swatch" style="background:#fdf1f6;border:1px solid rgba(0,0,0,.08)">
+                  <span class="chip" style="background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.08)"></span><span class="chip" style="background:#db2777"></span><span class="chip" style="background:#be185d"></span><span class="chip" style="background:#2a1020"></span>
+                </div><div class="tname">Blush</div><div class="tdesc">Light pink.</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="card" style="padding:22px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="color:var(--textSecondary);font:700 14px 'DM Sans'">Watch Folder</div>
+              <div style="display:flex;gap:6px"><button class="btn pri">Browse</button><button class="btn">Edit</button></div>
+            </div>
+            <div class="path" id="wf"></div>
+            <div style="margin-top:14px;padding:13px 16px;border-radius:10px;background:var(--accentGlow);border:1px solid var(--accentBorder)">
+              <p style="color:var(--accent);font-size:13px;line-height:1.6;margin:0">&#128161; An ordinary settings card, drawn only from tokens &mdash; this is what all 24 existing cards inherit for free.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EDITOR ═══ -->
+    <div>
+      <h4 class="sec">Editor &mdash; the second styling system, driven by the same palette</h4>
+      <div class="ed">
+        <div class="edbar"><span class="t">Sniped him mid-air</span><span class="btn pri" style="padding:4px 10px">Ready to Share</span><span class="m">00:38 &middot; 9:16</span></div>
+        <div class="edmain">
+          <div class="edseg">
+            <div style="font:700 10px 'DM Sans';text-transform:uppercase;letter-spacing:.6px;color:hsl(var(--muted-foreground));margin-bottom:6px">Segment 3</div>
+            <div class="w">and then he just <b>launched</b> off the ramp and I did not expect that at all</div>
+          </div>
+          <div class="edstage"><span>LAUNCHED</span></div>
+        </div>
+        <div class="edtl"><span class="gap"></span><span class="clip"></span><span class="gap"></span><span class="clip" style="flex:2"></span><span class="gap"></span></div>
+      </div>
+      <p class="note">The editor is Tailwind + shadcn (<code>hsl(var(--background))</code>), not the <code>T</code> object &mdash; today it hardcodes <code>.dark</code> in six places. Both systems read the same palette, so one switch moves them together. No second picker, no drift.</p>
+    </div>
+
+  </div>
+
+  <div class="nav">
+    <button><i>&#128229;</i>Rename</button>
+    <button><i>&#127902;</i>Recordings</button>
+    <button class="on"><i>&#128228;</i>Queue<span class="badge">6</span></button>
+    <button><i>&#128202;</i>Tracker</button>
+    <button><i>&#9881;</i>Settings</button>
+  </div>
+</div>
+
+<script>
+document.getElementById('wf').textContent =
+  'W:' + String.fromCharCode(92) + 'YouTube Gaming Recordings Onward' +
+  String.fromCharCode(92) + 'Vertical Recordings Onwards';
+
+const rowTint = (gc, sel) =>
+  'radial-gradient(90% 160% at 100% 0%, ' + gc + (sel ? '33' : '1f') + ' 0%, transparent 55%),' +
+  'linear-gradient(100deg, ' + gc + (sel ? '2b' : '1a') + ' 0%, ' + gc + (sel ? '0d' : '06') +
+  ' 40%, rgba(var(--lift),0.02) 65%)';
+
+const rows = [['row1', '#4f9cf9'], ['row2', '#e0793a'], ['row3', '#37c98b']];
+function paint() { rows.forEach(function (r) { document.getElementById(r[0]).style.background = rowTint(r[1], false); }); }
+
+function set(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.sw').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.t === t)); });
+  document.querySelectorAll('.tcard').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+  paint();
+}
+document.querySelectorAll('[data-t]').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+const order = ['midnight', 'daylight', 'rose', 'blush'];
+addEventListener('keydown', function (e) { const i = Number(e.key) - 1; if (order[i]) set(order[i]); });
+set('midnight');
+</script>
+</body>
+</html>

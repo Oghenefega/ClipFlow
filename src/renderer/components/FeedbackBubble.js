@@ -498,7 +498,7 @@ export default function FeedbackBubble({ view }) {
     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
     height: PILL_HEIGHT, padding: "0 15px 0 6px", borderRadius: 20,
     background: T.surfaceHover, border: `1px solid ${T.accentBorder}`,
-    boxShadow: `0 0 14px ${T.accentGlow}, 0 4px 14px rgba(0,0,0,.4)`,
+    boxShadow: `0 0 14px ${T.accentGlow}, 0 4px 14px rgba(var(--shade),calc(.4 * var(--shadeK)))`,
     cursor: "pointer", fontFamily: T.font, userSelect: "none", touchAction: "none",
     transition: `transform .18s ${EASE}, box-shadow .18s ${EASE}, border-color .18s ${EASE}`,
     transform: pillActive ? "scale(.97)" : pillHover ? "scale(1.06)" : "none",
@@ -522,7 +522,7 @@ export default function FeedbackBubble({ view }) {
   const panelStyle = {
     position: "fixed", right: 18, bottom: panelBottom, width: 318, zIndex: 942,
     background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: 14,
-    padding: 16, boxShadow: "0 20px 50px rgba(0,0,0,.55)", fontFamily: T.font,
+    padding: 16, boxShadow: "0 20px 50px rgba(var(--shade),calc(.55 * var(--shadeK)))", fontFamily: T.font,
     opacity: panelOpen ? 1 : 0,
     transform: panelOpen ? "translateY(0)" : "translateY(8px)",
     pointerEvents: panelOpen ? "auto" : "none",

@@ -120,7 +120,7 @@ function ToggleSwitch({ value, onChange, size = "default" }) {
   const on = size === "sm" ? "left-[16px]" : "left-[18px]";
   return (
     <button onClick={() => onChange(!value)} className={`relative ${w} rounded-full transition-colors duration-200 cursor-pointer shrink-0 ${value ? "bg-primary" : "bg-secondary"}`}>
-      <span className={`absolute top-0.5 ${dot} rounded-full bg-white shadow-sm transition-transform duration-200 ${value ? on : off}`} />
+      <span className={`absolute top-0.5 ${dot} rounded-full shadow-sm transition-transform duration-200 ${value ? `bg-white ${on}` : `bg-muted-foreground ${off}`}`} />
     </button>
   );
 }
@@ -285,7 +285,7 @@ function ColorPickerPopover({ color, onChange, children }) {
   const swatch = (c, key) => (
     <button key={key} onClick={() => handlePaletteClick(c)} title={c}
       className={`w-6 h-6 rounded-full border cursor-pointer transition-transform hover:scale-110 ${hex.toLowerCase() === c ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : ""}`}
-      style={{ background: c, borderColor: needsOutline(c) ? "hsl(240 4% 30%)" : "transparent" }}
+      style={{ background: c, borderColor: needsOutline(c) ? "hsl(var(--border-hsl))" : "transparent" }}
     />
   );
 
@@ -2127,7 +2127,7 @@ function LayoutPanel() {
           <div
             className="rounded-lg overflow-hidden mx-auto"
             style={{
-              width: "100%", maxWidth: 240, aspectRatio: "9 / 16", background: "#000", boxShadow: "0 0 0 1px hsl(240 4% 20%)",
+              width: "100%", maxWidth: 240, aspectRatio: "9 / 16", background: "#000", boxShadow: "0 0 0 1px hsl(var(--border-hsl))",
               touchAction: "none", cursor: resultDragging ? "grabbing" : "grab",
             }}
             onPointerDown={handleResultPointerDown}

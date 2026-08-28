@@ -61,8 +61,13 @@ const rgba = (c, a) => {
     const n = parseInt(c.slice(1), 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
   }
-  return `rgba(255,255,255,${a})`;
+  return `rgba(var(--lift),${a})`;
 };
+
+// #328: the remaining literal "#0a0b10"s in this file are dark text sitting on
+// a GAME colour (g.color / gd.color / gameColor). Game colours are the user's
+// data and identical in every theme, so the text on them is too — do not swap
+// those for T.onSolid, which flips to white and would vanish on a pale tag.
 
 // The card already wears the game's tag pill and colour, so the title's trailing
 // #rocketleague is pure noise at 10px. Keep the raw title if it was ONLY hashtags.
@@ -812,7 +817,7 @@ export default function TrackerView({
           ) : (
             <div style={{
               display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999,
-              background: outcome === "hit" ? T.greenDim : outcome === "missed" ? T.redDim : "rgba(255,255,255,0.04)",
+              background: outcome === "hit" ? T.greenDim : outcome === "missed" ? T.redDim : "rgba(var(--lift),0.04)",
               border: `1px solid ${outcome === "hit" ? T.greenBorder : outcome === "missed" ? T.redBorder : T.border}`,
               color: outcome === "hit" ? T.green : outcome === "missed" ? T.red : viewMode === "future" ? T.yellow : T.textTertiary,
             }}>
@@ -826,7 +831,7 @@ export default function TrackerView({
             </div>
           )}
           {viewMode === "current" && <button onClick={() => setShowRundown(true)} style={{
-            display: "flex", alignItems: "center", gap: 7, background: T.text, color: "#0a0b10", border: "none",
+            display: "flex", alignItems: "center", gap: 7, background: T.text, color: T.onSolid, border: "none",
             fontFamily: T.font, fontSize: 12, fontWeight: 700, padding: "7px 14px", borderRadius: T.radius.md, cursor: "pointer",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
@@ -852,16 +857,16 @@ export default function TrackerView({
         style={{
           position: "relative", borderRadius: T.radius.lg, overflow: "hidden",
           display: "flex", alignItems: "stretch", gap: 0, padding: 0,
-          background: `radial-gradient(90% 160% at 100% 0%, ${gameColor}1f 0%, transparent 55%), linear-gradient(100deg, ${gameColor}1a 0%, ${gameColor}06 42%, rgba(255,255,255,0.02) 68%), ${T.surface}`,
+          background: `radial-gradient(90% 160% at 100% 0%, ${gameColor}1f 0%, transparent 55%), linear-gradient(100deg, ${gameColor}1a 0%, ${gameColor}06 42%, rgba(var(--lift),0.02) 68%), ${T.surface}`,
           border: `1px solid ${npHover ? `${gameColor}70` : `${gameColor}3d`}`,
-          boxShadow: npHover ? "0 2px 4px rgba(0,0,0,.5), 0 24px 56px -22px rgba(0,0,0,.85)" : "none",
+          boxShadow: npHover ? "0 2px 4px rgba(var(--shade),calc(.5 * var(--shadeK))), 0 24px 56px -22px rgba(var(--shade),calc(.85 * var(--shadeK)))" : "none",
           transform: npHover ? "translateY(-1px)" : "none",
           transition: "border-color .18s ease, box-shadow .18s ease, transform .18s ease",
         }}>
         {pickerOpen && pickerPos && (
           <div ref={pickerRef} style={{
             position: "fixed", top: pickerPos.top, right: pickerPos.right, zIndex: 20, width: 300, maxHeight: 340, overflowY: "auto",
-            background: "#0d0e15", border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 10, boxShadow: "0 18px 50px rgba(0,0,0,0.6)",
+            background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 10, boxShadow: "0 18px 50px rgba(var(--shade),calc(0.6 * var(--shadeK)))",
           }}>
             <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.textTertiary, fontWeight: 600, padding: "4px 6px 9px" }}>What are you playing this week</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
@@ -905,7 +910,7 @@ export default function TrackerView({
           )}
           {/* vignette + a fade into the card so the poster reads as part of the surface
               rather than a photo pasted onto it */}
-          <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,0.45)), linear-gradient(90deg, transparent 58%, rgba(17,18,24,0.8) 100%)" }} />
+          <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(var(--shade),calc(0.45 * var(--shadeK)))), linear-gradient(90deg, transparent 58%, rgba(17,18,24,0.8) 100%)" }} />
         </div>
 
         <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", padding: "16px 16px 16px 15px" }}>
@@ -914,7 +919,7 @@ export default function TrackerView({
           {viewMode === "current" && (
             <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
               position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5,
-              background: "rgba(10,11,16,0.55)", border: `1px solid ${T.borderHover}`,
+              background: "rgba(var(--bgRgb),0.55)", border: `1px solid ${T.borderHover}`,
               color: T.text, fontFamily: T.font, fontSize: 10, fontWeight: 600, padding: "4px 9px", borderRadius: 999, cursor: "pointer",
               opacity: npHover || pickerOpen ? 1 : 0, transition: "opacity .15s ease",
             }}>
@@ -963,7 +968,7 @@ export default function TrackerView({
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
               <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: "rotate(-90deg)" }}>
-                <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
+                <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(var(--lift),0.06)" strokeWidth="7" />
                 <circle cx="44" cy="44" r={R} fill="none" stroke={paceColor} strokeWidth="7" strokeLinecap="round"
                   strokeDasharray={C.toFixed(1)} strokeDashoffset={dashOffset.toFixed(1)}
                   style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1), stroke 0.4s" }} />
@@ -993,9 +998,9 @@ export default function TrackerView({
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.textTertiary }} />Variety <span style={{ fontFamily: T.mono, marginLeft: 2 }}>{varietyCount}</span>
                   </span>
                 </div>
-                <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden", display: "flex" }}>
+                <div style={{ height: 6, borderRadius: 3, background: "rgba(var(--lift),0.06)", overflow: "hidden", display: "flex" }}>
                   <div style={{ height: "100%", background: gameColor, width: ringReady && posted ? `${Math.round((mainCount / posted) * 100)}%` : "0%", transition: "width 0.6s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
-                  <div style={{ height: "100%", background: "rgba(255,255,255,0.22)", width: ringReady && posted ? `${Math.round((varietyCount / posted) * 100)}%` : "0%", transition: "width 0.6s cubic-bezier(.4,0,.2,1)" }} />
+                  <div style={{ height: "100%", background: "rgba(var(--lift),0.22)", width: ringReady && posted ? `${Math.round((varietyCount / posted) * 100)}%` : "0%", transition: "width 0.6s cubic-bezier(.4,0,.2,1)" }} />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 500 }}>
@@ -1034,7 +1039,7 @@ export default function TrackerView({
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, position: "relative" }}>
             <div style={{ width: 38, height: 38, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
               <span style={{ position: "absolute", inset: 0, borderRadius: 10, border: `1px solid ${T.tiers[rank.tier]}`, opacity: 0.35 }} />
-              <span style={{ width: 24, height: 24, borderRadius: 6, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(0,0,0,0.4)", background: T.tiers[rank.tier] }} />
+              <span style={{ width: 24, height: 24, borderRadius: 6, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(var(--shade),calc(0.4 * var(--shadeK)))", background: T.tiers[rank.tier] }} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: T.tiers[rank.tier] }}>{rank.name}</div>
@@ -1048,7 +1053,7 @@ export default function TrackerView({
               <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>To next tier</span>
               <span style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, fontFamily: T.mono }}>{rank.top ? "Top tier reached" : `${fmtNum(rank.toNextXp)} XP to ${rank.nextName}`}</span>
             </div>
-            <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ height: 6, borderRadius: 4, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
               <div style={{ height: "100%", borderRadius: 4, background: T.tiers[rank.tier], width: ringReady ? `${Math.round(rank.frac * 100)}%` : "0%", transition: "width 0.8s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
             </div>
             {viewMode !== "future" && (
@@ -1203,12 +1208,12 @@ export default function TrackerView({
                             <span style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.red, background: T.redDim, border: `1px solid ${rgba(T.red, 0.35)}` }}>RETRY</span>
                           )}
                           <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(item.time)}</span>
-                          <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `${T.cyan}88` : "rgba(255,255,255,0.35)")}` }} />
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `${T.cyan}88` : "rgba(var(--lift),0.35)")}` }} />
                         </div>
                         {item.title && (
                           <div style={{
                             position: "relative", fontSize: 10, lineHeight: 1.35, fontWeight: 500,
-                            color: "rgba(255,255,255,0.78)", display: "-webkit-box", WebkitLineClamp: 2,
+                            color: "rgba(var(--lift),0.78)", display: "-webkit-box", WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word",
                           }}>{cleanTitle(item.title)}</div>
                         )}
@@ -1224,7 +1229,7 @@ export default function TrackerView({
                   const slotIso = slotDateTime(d.iso, row.time);
                   const droppable = viewMode !== "past" && !!slotIso && new Date(slotIso).getTime() > now.getTime();
                   const resetSlot = (el) => {
-                    el.style.borderColor = "rgba(255,255,255,0.08)"; el.style.borderStyle = "dashed";
+                    el.style.borderColor = "rgba(var(--lift),0.08)"; el.style.borderStyle = "dashed";
                     el.style.color = T.textMuted; el.style.background = "transparent"; el.style.boxShadow = "none";
                   };
                   return (
@@ -1241,7 +1246,7 @@ export default function TrackerView({
                       } : undefined}
                       onDragLeave={droppable ? (ev) => resetSlot(ev.currentTarget) : undefined}
                       onDrop={droppable ? (ev) => { ev.preventDefault(); resetSlot(ev.currentTarget); dropOnSlot(d.iso, d.dayName, row.time); } : undefined}
-                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22 }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(var(--lift),0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22 }}
                       onMouseEnter={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; } : undefined}
                       onMouseLeave={slotInteractive ? (ev) => resetSlot(ev.currentTarget) : undefined}
                     >
@@ -1263,7 +1268,7 @@ export default function TrackerView({
               <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Manual
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.text, boxShadow: "0 0 5px rgba(var(--lift),0.35)" }} /> Manual
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled
@@ -1294,7 +1299,7 @@ export default function TrackerView({
             display: "flex", alignItems: "center", justifyContent: "center",
             background: edgeDir === dir
               ? `linear-gradient(${dir < 0 ? 90 : 270}deg, ${T.accent}59, transparent)`
-              : `linear-gradient(${dir < 0 ? 90 : 270}deg, rgba(255,255,255,0.05), transparent)`,
+              : `linear-gradient(${dir < 0 ? 90 : 270}deg, rgba(var(--lift),0.05), transparent)`,
             color: edgeDir === dir ? T.accentLight : T.textMuted,
             fontSize: 20, fontWeight: 700, lineHeight: 1,
             transition: "background .18s ease, color .18s ease",
@@ -1308,7 +1313,7 @@ export default function TrackerView({
         <div ref={popoverRef} onClick={(e) => e.stopPropagation()} style={{
           position: "fixed", left: popPos ? popPos.left : -9999, top: popPos ? popPos.top : -9999,
           visibility: popPos ? "visible" : "hidden", width: 248, zIndex: 2000,
-          background: "#0d0e15", borderRadius: T.radius.lg, padding: 14, border: `1px solid ${T.borderHover}`, boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+          background: T.surface, borderRadius: T.radius.lg, padding: 14, border: `1px solid ${T.borderHover}`, boxShadow: "0 20px 60px rgba(var(--shade),calc(0.7 * var(--shadeK)))",
         }}>
           {popover.type === "log" ? (
             <>
@@ -1394,13 +1399,13 @@ export default function TrackerView({
                             background: T.accentDim, border: `1px solid ${T.accentBorder}`,
                           }}>
                             <PlatformIcon platform={row.platform} size={16} />
-                            <span style={{ position: "absolute", bottom: -3, right: -3, width: 12, height: 12, borderRadius: "50%", background: "#0d0e15", color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
+                            <span style={{ position: "absolute", bottom: -3, right: -3, width: 12, height: 12, borderRadius: "50%", background: T.surface, color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
                           </span>
                         ) : (
                           <span key={i} title={label} style={{
                             display: "flex", alignItems: "center", justifyContent: "center",
                             width: 30, height: 30, borderRadius: 8, opacity: 0.6,
-                            background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+                            background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`,
                           }}>
                             <PlatformIcon platform={row.platform} size={16} />
                           </span>
@@ -1411,7 +1416,7 @@ export default function TrackerView({
                     <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 10 }}>{entry.platforms}</div>
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(255,255,255,0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(255,255,255,0.2)") }} />
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(var(--lift),0.2)") }} />
                     <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
                   </div>
                   {(link?.projectId || link?.renderPath) && (
@@ -1422,7 +1427,7 @@ export default function TrackerView({
                         </button>
                       )}
                       {link.renderPath && (
-                        <button title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder?.(link.renderPath)} style={{ ...popBtn(T.border, "rgba(255,255,255,0.04)", T.textSecondary), flex: "0 0 34px", padding: "8px 0" }}>
+                        <button title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder?.(link.renderPath)} style={{ ...popBtn(T.border, "rgba(var(--lift),0.04)", T.textSecondary), flex: "0 0 34px", padding: "8px 0" }}>
                           {"📁"}
                         </button>
                       )}
@@ -1475,7 +1480,7 @@ export default function TrackerView({
       {showTemplateEditor && (
         <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div onClick={() => setShowTemplateEditor(false)} style={{ position: "absolute", inset: 0, background: "rgba(5,6,10,0.6)" }} />
-          <div style={{ position: "relative", width: 360, maxHeight: "80vh", overflowY: "auto", background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 18, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}>
+          <div style={{ position: "relative", width: 360, maxHeight: "80vh", overflowY: "auto", background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 18, boxShadow: "0 20px 60px rgba(var(--shade),calc(0.7 * var(--shadeK)))" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Edit this week's slots</span>
               <button onClick={() => setShowTemplateEditor(false)} style={{ background: "none", border: "none", color: T.textTertiary, fontSize: 16, cursor: "pointer", lineHeight: 1 }}>{"×"}</button>
@@ -1483,12 +1488,12 @@ export default function TrackerView({
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
               {effectiveTemplate.timeSlots.map((slot, si) => (
-                <div key={si} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
+                <div key={si} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "rgba(var(--lift),0.03)", border: `1px solid ${T.border}` }}>
                   {editingTimeSlot === si ? (
                     <input value={timeSlotVal} onChange={(e) => setTimeSlotVal(e.target.value)}
                       onBlur={() => editTimeSlot(si, timeSlotVal)}
                       onKeyDown={(e) => { if (e.key === "Enter") editTimeSlot(si, timeSlotVal); if (e.key === "Escape") setEditingTimeSlot(null); }}
-                      autoFocus style={{ flex: 1, padding: "3px 6px", borderRadius: 4, border: `1px solid ${T.accentBorder}`, background: "rgba(255,255,255,0.06)", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none" }} />
+                      autoFocus style={{ flex: 1, padding: "3px 6px", borderRadius: 4, border: `1px solid ${T.accentBorder}`, background: "rgba(var(--lift),0.06)", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none" }} />
                   ) : (
                     <span onClick={() => { setEditingTimeSlot(si); setTimeSlotVal(slot); }} style={{ flex: 1, fontSize: 12, fontFamily: T.mono, color: T.text, cursor: "pointer" }}>{slot}</span>
                   )}
@@ -1502,7 +1507,7 @@ export default function TrackerView({
                 <input value={newSlotVal} onChange={(e) => setNewSlotVal(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") addTimeSlot(newSlotVal); if (e.key === "Escape") { setShowAddSlot(false); setNewSlotVal(""); } }}
                   placeholder="e.g. 10:30 AM" autoFocus
-                  style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none" }} />
+                  style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: "rgba(var(--lift),0.04)", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none" }} />
                 <button onClick={() => addTimeSlot(newSlotVal)} style={{ padding: "5px 10px", borderRadius: 6, border: "none", background: T.green, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Add</button>
               </div>
             ) : (
@@ -1513,7 +1518,7 @@ export default function TrackerView({
               {showSaveAs ? (
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <input value={presetName} onChange={(e) => setPresetName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && savePreset()} placeholder="Preset name..." autoFocus
-                    style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 12, fontFamily: T.font, outline: "none" }} />
+                    style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: "rgba(var(--lift),0.04)", color: T.text, fontSize: 12, fontFamily: T.font, outline: "none" }} />
                   <button onClick={savePreset} style={{ padding: "5px 10px", borderRadius: 6, border: "none", background: T.green, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
                   <button onClick={() => setShowSaveAs(false)} style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                 </div>
@@ -1524,7 +1529,7 @@ export default function TrackerView({
                       {currentPresetName} <span style={{ fontSize: 8, marginLeft: 2 }}>{"▼"}</span>
                     </button>
                     {showPresetDrop && (
-                      <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, padding: 4, minWidth: 160, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                      <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, padding: 4, minWidth: 160, boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 100 }}>
                         <button onClick={clearOverride} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "none", background: currentPresetName === "Default" ? "rgba(139,92,246,0.1)" : "transparent", color: T.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, textAlign: "left", display: "flex", justifyContent: "space-between" }}>
                           Default {currentPresetName === "Default" && <span style={{ color: T.green }}>{"✓"}</span>}
                         </button>
@@ -1539,8 +1544,8 @@ export default function TrackerView({
                       </div>
                     )}
                   </div>
-                  <button onClick={() => setShowSaveAs(true)} style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save as{"…"}</button>
-                  <button onClick={setAsDefault} style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Set as default</button>
+                  <button onClick={() => setShowSaveAs(true)} style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save as{"…"}</button>
+                  <button onClick={setAsDefault} style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Set as default</button>
                 </div>
               )}
             </div>
@@ -1551,14 +1556,14 @@ export default function TrackerView({
       {/* ---- ClipFlow Rundown modal (preview first, download on click) ---- */}
       {showRundown && (
         <div onClick={() => setShowRundown(false)} style={{
-          position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.72)",
+          position: "fixed", inset: 0, zIndex: 3000, background: "rgba(var(--shade),calc(0.72 * var(--shadeK)))",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
             position: "relative", width: 380, maxWidth: "92vw", border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg,
             overflow: "hidden", padding: "24px 24px 22px", display: "flex", flexDirection: "column", gap: 16,
             background: `radial-gradient(110% 130% at 92% 100%, ${gameColor}29 0%, transparent 58%), linear-gradient(115deg, ${gameColor}38 0%, ${gameColor}0a 50%, transparent 78%), ${T.surface}`,
-            boxShadow: "0 30px 90px rgba(0,0,0,0.7)",
+            boxShadow: "0 30px 90px rgba(var(--shade),calc(0.7 * var(--shadeK)))",
           }}>
             <span onClick={() => setShowRundown(false)} title="Close" style={{
               position: "absolute", top: 12, right: 14, color: T.textTertiary, fontSize: 15, cursor: "pointer", lineHeight: 1, padding: 4,
@@ -1579,15 +1584,15 @@ export default function TrackerView({
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.textSecondary, letterSpacing: "0.02em" }}>
-              <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
+              <span style={{ width: 16, height: 16, borderRadius: 5, background: `linear-gradient(135deg, ${T.accentLight}, ${T.accent})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={T.onSolid} strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
               </span>
               Corva
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {PLATFORM_KEYS.map((key) => (
-                <div key={key} style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 14px" }}>
+                <div key={key} style={{ background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 14px" }}>
                   <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
                     <PlatformIcon platform={key} size={14} />{PLATFORM_LABELS[key]}
                   </div>
@@ -1605,7 +1610,7 @@ export default function TrackerView({
             <button onClick={handleShare} disabled={shareState === "saving"} style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%",
               background: shareState === "copied" || shareState === "saved" ? T.green : T.text,
-              color: shareState === "copied" || shareState === "saved" ? "#06281b" : "#0a0b10",
+              color: shareState === "copied" || shareState === "saved" ? "#06281b" : T.onSolid,
               border: "none", fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: "11px 18px", borderRadius: T.radius.md,
               cursor: shareState === "saving" ? "default" : "pointer", transition: "background 0.18s",
             }}>
@@ -1623,8 +1628,8 @@ export default function TrackerView({
       {/* ---- Toast ---- */}
       <div style={{
         position: "fixed", bottom: 26, left: "50%", transform: `translateX(-50%) translateY(${toastMsg ? 0 : 10}px)`,
-        background: "#0d0e15", border: `1px solid ${T.borderHover}`, color: T.text, fontSize: 12, fontWeight: 500,
-        padding: "11px 18px", borderRadius: T.radius.md, boxShadow: "0 14px 40px rgba(0,0,0,0.6)",
+        background: T.surface, border: `1px solid ${T.borderHover}`, color: T.text, fontSize: 12, fontWeight: 500,
+        padding: "11px 18px", borderRadius: T.radius.md, boxShadow: "0 14px 40px rgba(var(--shade),calc(0.6 * var(--shadeK)))",
         opacity: toastMsg ? 1 : 0, pointerEvents: "none", transition: "opacity 0.25s, transform 0.25s",
         zIndex: 4000, display: "flex", alignItems: "center", gap: 9,
       }}>
@@ -1645,7 +1650,7 @@ function SectionLbl({ children }) {
 
 function Pill({ children }) {
   return (
-    <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.text, padding: "6px 12px", borderRadius: 999, background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}` }}>
+    <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.text, padding: "6px 12px", borderRadius: 999, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}` }}>
       {children}
     </span>
   );
@@ -1752,17 +1757,17 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
 
 // #281: the Projects tab's panel treatment — a whisper of a top highlight over the
 // surface colour, so a flat card catches light at its top edge (ProjectsView.js:842).
-const PANEL_BG = `linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0)), ${T.surface}`;
+const PANEL_BG = `linear-gradient(180deg, rgba(var(--lift),0.022), rgba(var(--lift),0)), ${T.surface}`;
 
 // #276 week nav arrows — square ghost buttons flanking the week label.
 const weekNavBtnStyle = {
   width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center",
-  borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
+  borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)",
   color: T.textSecondary, fontSize: 14, lineHeight: 1, cursor: "pointer", fontFamily: T.font, fontWeight: 700, padding: 0,
 };
 
 const ghostBtnStyle = {
-  padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
+  padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)",
   color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
 };
 

@@ -31,7 +31,13 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 ### 4. CSS/Layout Sanity
 - [ ] ResizablePanel `defaultSize` values sum to exactly 100%
 - [ ] No `flex-1` on elements that should have fixed/auto width
-- [ ] Dark theme: Radix portals have explicit `dark` class + hardcoded dark HSL
+- [ ] Themes: NO `dark` class anywhere and no hardcoded neutral HSL — since
+      #328 both styling systems read `[data-theme]` on `<html>`, which Radix
+      portals inherit via `<body>`. Use `bg-popover` / `border-border`, not
+      `bg-[hsl(240_6%_10%)]`.
+- [ ] Any new colour checked in a LIGHT theme (Daylight/Blush), not just Midnight
+- [ ] No `var(--…)` reachable from a `<canvas>` 2D context, the main process, or
+      the subtitle-overlay window — none of the three resolve CSS variables
 - [ ] Text minimum: 12px labels, 14px body
 
 ### 5. No Regressions

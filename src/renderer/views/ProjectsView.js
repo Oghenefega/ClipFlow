@@ -65,6 +65,8 @@ const DOT_GLASS = {
 
 // Glass-orb dot style: white specular highlight top-left over a color sphere
 // that darkens toward the bottom edge, plus a soft outer glow.
+// #328: the white and the black here are lighting on a coloured sphere, not
+// canvas tints — both stay literal in every theme.
 const glassDot = (g) => ({
   background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.3) 16%, transparent 42%), radial-gradient(circle at 50% 58%, ${g.hi} 0%, ${g.core} 52%, ${g.dk} 100%)`,
   boxShadow: `0 0 9px ${g.glow}, inset 0 -1px 2px rgba(0,0,0,0.35)`,
@@ -506,12 +508,13 @@ function ClipVideoPlayer({ clip, project, template }) {
             style={{
               position: "absolute", inset: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "rgba(0,0,0,0.3)",
+              background: "rgba(var(--shade),calc(0.3 * var(--shadeK)))",
               transition: "opacity 0.2s",
             }}
           >
             <div style={{
               width: 44, height: 44, borderRadius: "50%",
+              // #328: literal — a white play button over video frames, not a surface tint.
               background: "rgba(255,255,255,0.9)", display: "flex",
               alignItems: "center", justifyContent: "center",
               boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
@@ -526,7 +529,7 @@ function ClipVideoPlayer({ clip, project, template }) {
         {/* Duration badge */}
         <div style={{
           position: "absolute", bottom: 8, right: 8,
-          background: "rgba(0,0,0,0.75)", borderRadius: 4,
+          background: "rgba(var(--shade),calc(0.75 * var(--shadeK)))", borderRadius: 4,
           padding: "2px 6px", fontSize: 11, fontWeight: 700,
           fontFamily: T.mono, color: "#fff",
           backdropFilter: "blur(4px)",
@@ -563,7 +566,7 @@ function ClipVideoPlayer({ clip, project, template }) {
           {/* Track */}
           <div style={{
             width: "100%", height: (isBarHovered || isSeeking) ? 6 : 4,
-            background: "rgba(255,255,255,0.12)",
+            background: "rgba(var(--lift),0.12)",
             borderRadius: 999, overflow: "hidden",
             transition: "height 120ms ease",
           }}>
@@ -583,7 +586,7 @@ function ClipVideoPlayer({ clip, project, template }) {
               width: 12, height: 12,
               borderRadius: "50%",
               background: "#fff",
-              boxShadow: `0 0 8px ${T.accent}cc, 0 1px 4px rgba(0,0,0,0.4)`,
+              boxShadow: `0 0 8px ${T.accent}cc, 0 1px 4px rgba(var(--shade),calc(0.4 * var(--shadeK)))`,
               pointerEvents: "none",
             }} />
           )}
@@ -738,7 +741,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
           color: sel ? T.accentLight : T.text,
           background: sel ? T.accentDim : "transparent",
         }}
-        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "rgba(var(--lift),0.06)"; }}
         onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}
       >
         <span>{g.name}</span>
@@ -769,7 +772,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
         <div style={{
           position: "absolute", left: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 190,
           background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: 10,
-          boxShadow: "0 12px 34px -8px rgba(0,0,0,0.8)", padding: 5,
+          boxShadow: "0 12px 34px -8px rgba(var(--shade),calc(0.8 * var(--shadeK)))", padding: 5,
         }}>
           {games.length > 0 && groupLabel("Games")}
           {games.map(renderItem)}
@@ -831,15 +834,15 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
   if (clip.confidence > 0) metaItems.push(<span style={{ color: T.textSecondary }}>{(clip.confidence * 100).toFixed(0)}% confidence</span>);
   metaItems.push(<span style={{ color: T.textTertiary }}>{fmtTime(clip.startTime)} → {fmtTime(clip.endTime)}</span>);
 
-  const shadowCard = "0 1px 2px rgba(0,0,0,0.5), 0 14px 34px -16px rgba(0,0,0,0.7)";
-  const shadowLift = `0 2px 4px rgba(0,0,0,0.5), 0 26px 60px -22px rgba(0,0,0,0.85), 0 0 0 1px ${T.accentBorder}`;
+  const shadowCard = "0 1px 2px rgba(var(--shade),calc(0.5 * var(--shadeK))), 0 14px 34px -16px rgba(var(--shade),calc(0.7 * var(--shadeK)))";
+  const shadowLift = `0 2px 4px rgba(var(--shade),calc(0.5 * var(--shadeK))), 0 26px 60px -22px rgba(var(--shade),calc(0.85 * var(--shadeK))), 0 0 0 1px ${T.accentBorder}`;
 
   return (
     <div
       style={{
         display: "flex", gap: 18, padding: 14,
         borderRadius: T.radius.xl,
-        background: `linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0)), ${T.surface}`,
+        background: `linear-gradient(180deg, rgba(var(--lift),0.022), rgba(var(--lift),0)), ${T.surface}`,
         border: `1px solid ${T.border}`,
         boxShadow: shadowCard,
         // #198: rejected cards dim per-region (preview, title, meta, transcript)
@@ -885,7 +888,7 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
                   }}
                   autoFocus
                   style={{
-                    flex: 1, background: "rgba(255,255,255,0.04)",
+                    flex: 1, background: "rgba(var(--lift),0.04)",
                     border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.sm,
                     padding: "6px 10px", color: T.text, fontSize: 15, fontWeight: 600,
                     fontFamily: T.font, outline: "none",
@@ -981,7 +984,7 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
           )}
           {ca && <Badge color={T.green}>Approved</Badge>}
           {rej && <Badge color={T.red}>Rejected</Badge>}
-          {clip.status === "dequeued" && <Badge color={T.textSecondary} bg="rgba(255,255,255,0.05)">Removed from queue</Badge>}
+          {clip.status === "dequeued" && <Badge color={T.textSecondary} bg="rgba(var(--lift),0.05)">Removed from queue</Badge>}
           {clip.renderStatus === "rendered" && <Badge color={T.orange} bg={T.orangeDim}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
           {pub?.isScheduled(clip) && <Badge color={T.yellow}>{`Scheduled · ${fmtScheduledAt(clip.scheduledAt)}`}</Badge>}
@@ -993,7 +996,7 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
           <div style={{
             flex: 1,
             padding: "12px 14px", borderRadius: T.radius.md,
-            background: "rgba(255,255,255,0.022)",
+            background: "rgba(var(--lift),0.022)",
             fontSize: 13.5, lineHeight: 1.62, color: T.textSecondary,
             maxWidth: "68ch",
             display: "-webkit-box", WebkitLineClamp: 8, WebkitBoxOrient: "vertical", overflow: "hidden",
@@ -1403,7 +1406,7 @@ export function ProjectsListView({
     <div>
       <style>{`
         .pl-row { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
-        .pl-row.openable:hover { border-color: ${T.borderHover} !important; box-shadow: 0 2px 4px rgba(0,0,0,.5), 0 24px 56px -22px rgba(0,0,0,.85); transform: translateY(-1px); }
+        .pl-row.openable:hover { border-color: ${T.borderHover} !important; box-shadow: 0 2px 4px rgba(var(--shade),calc(.5 * var(--shadeK))), 0 24px 56px -22px rgba(var(--shade),calc(.85 * var(--shadeK))); transform: translateY(-1px); }
         .pl-chk { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity .13s ease, width .13s ease, margin .13s ease; }
         .pl-row:hover .pl-chk, .pl-list.selecting .pl-chk, .pl-row.sel .pl-chk { width: 18px; opacity: 1; margin-left: 0; }
         .pl-open, .pl-trash { opacity: 0; transition: opacity .15s ease; }
@@ -1431,7 +1434,7 @@ export function ProjectsListView({
             <span style={{ fontSize: 9, color: T.textMuted }}>{"▾"}</span>
           </button>
           {sortOpen && (
-            <div data-menu style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 190, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 5, zIndex: 50 }}>
+            <div data-menu style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 190, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", padding: 5, zIndex: 50 }}>
               {PROJECT_SORTS.map((s) => (
                 <div
                   key={s.id}
@@ -1549,7 +1552,7 @@ export function ProjectsListView({
                   cursor: openable ? "pointer" : "default",
                   background: isSel
                     ? T.accentDim
-                    : `radial-gradient(90% 160% at 100% 0%, ${pColor}1f 0%, transparent 55%), linear-gradient(100deg, ${pColor}1a 0%, ${pColor}06 40%, rgba(255,255,255,0.02) 65%)`,
+                    : `radial-gradient(90% 160% at 100% 0%, ${pColor}1f 0%, transparent 55%), linear-gradient(100deg, ${pColor}1a 0%, ${pColor}06 40%, rgba(var(--lift),0.02) 65%)`,
                   border: `1px solid ${isSel ? T.accentBorder : st === "error" ? T.redBorder : `${pColor}3d`}`,
                   opacity: st === "processing" ? 0.75 : st === "error" ? 0.6 : 1,
                 }}
@@ -1569,9 +1572,9 @@ export function ProjectsListView({
                       ) : (
                         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${pColor}, ${pColor}55 65%, ${pColor}22)`, opacity: openable ? 0.9 : 0.5 }} />
                       )}
-                      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,.5))" }} />
+                      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(var(--shade),calc(.5 * var(--shadeK))))" }} />
                       {!art && (
-                        <span style={{ position: "relative", zIndex: 1, fontSize: 12, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(0,0,0,.6)" }}>
+                        <span style={{ position: "relative", zIndex: 1, fontSize: 12, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(var(--shade),calc(.6 * var(--shadeK)))" }}>
                           {p.gameTag && p.gameTag !== "?" ? p.gameTag : ""}
                         </span>
                       )}
@@ -1668,8 +1671,8 @@ export function ProjectsListView({
                           const ember = leftToReview === 0 && c.status === "rejected";
                           return <span key={i} style={{
                             width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
-                            ...(g ? glassDot(g) : { background: "rgba(255,255,255,0.10)", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.07)" }),
-                            ...(ember ? { opacity: 0.22, boxShadow: "inset 0 -1px 2px rgba(0,0,0,0.35)" } : {}),
+                            ...(g ? glassDot(g) : { background: "rgba(var(--lift),0.10)", boxShadow: "inset 0 1px 1px rgba(var(--lift),0.07)" }),
+                            ...(ember ? { opacity: 0.22, boxShadow: "inset 0 -1px 2px rgba(var(--shade),calc(0.35 * var(--shadeK)))" } : {}),
                           }} />;
                         })}
                       </div>
@@ -1704,7 +1707,7 @@ export function ProjectsListView({
           marginTop: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "center",
           padding: "12px 20px", borderRadius: T.radius.md,
           background: T.surface, border: `1px solid ${T.border}`,
-          boxShadow: "0 -4px 20px rgba(0,0,0,0.3)",
+          boxShadow: "0 -4px 20px rgba(var(--shade),calc(0.3 * var(--shadeK)))",
         }}>
           <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selCount} selected</span>
 
@@ -1741,7 +1744,7 @@ export function ProjectsListView({
           style={{
             position: "fixed", left: contextMenu.x, top: contextMenu.y,
             background: T.surface, border: `1px solid ${T.border}`,
-            borderRadius: T.radius.sm, minWidth: 160, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            borderRadius: T.radius.sm, minWidth: 160, boxShadow: "0 8px 24px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
             zIndex: 200,
           }}
         >
@@ -1774,7 +1777,7 @@ export function ProjectsListView({
                   background: T.surface, border: `1px solid ${T.border}`,
                   borderRadius: T.radius.sm, padding: 8,
                   display: "flex", gap: 6, flexWrap: "wrap", width: 100,
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.5)", zIndex: 201,
+                  boxShadow: "0 8px 24px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 201,
                 }}
               >
                 {FOLDER_COLORS.map((c) => (
@@ -1812,7 +1815,7 @@ export function ProjectsListView({
           style={{
             position: "fixed", left: projectContextMenu.x, top: projectContextMenu.y,
             background: T.surface, border: `1px solid ${T.border}`,
-            borderRadius: T.radius.sm, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            borderRadius: T.radius.sm, minWidth: 180, boxShadow: "0 8px 24px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
             zIndex: 200,
           }}
         >
@@ -1863,7 +1866,7 @@ export function ProjectsListView({
       {orbTip && (() => {
         const item = (g, n, label) => (
           <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, ...(g ? { ...glassDot(g), boxShadow: "none" } : { background: "rgba(255,255,255,0.18)" }) }} />
+            <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, ...(g ? { ...glassDot(g), boxShadow: "none" } : { background: "rgba(var(--lift),0.18)" }) }} />
             <span><b style={{ color: T.text, fontWeight: 700 }}>{n}</b> {label}</span>
           </span>
         );
@@ -1884,8 +1887,8 @@ export function ProjectsListView({
           <div style={{
             position: "fixed", left: orbTip.x, top: orbTip.y - 10, transform: "translateY(-100%)",
             zIndex: 220, pointerEvents: "none",
-            background: T.surfaceHover, border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10,
-            padding: "9px 13px", boxShadow: "0 12px 32px rgba(0,0,0,0.55)", whiteSpace: "nowrap",
+            background: T.surfaceHover, border: "1px solid rgba(var(--lift),0.12)", borderRadius: 10,
+            padding: "9px 13px", boxShadow: "0 12px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", whiteSpace: "nowrap",
           }}>
             <div style={rowStyle}>{joined(row1)}</div>
             {row2.length > 0 && <div style={rowStyle}>{joined(row2)}</div>}
@@ -1896,7 +1899,7 @@ export function ProjectsListView({
       {/* ── Delete Folder Confirmation Dialog ── */}
       {deletingFolder && (
         <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+          position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.6 * var(--shadeK)))",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
         }}
           onClick={() => setDeletingFolder(null)}
@@ -1906,7 +1909,7 @@ export function ProjectsListView({
             style={{
               background: T.surface, border: `1px solid ${T.border}`,
               borderRadius: T.radius.lg, padding: "24px 28px",
-              maxWidth: 380, width: "100%", boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+              maxWidth: 380, width: "100%", boxShadow: "0 16px 48px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 12 }}>
@@ -1945,7 +1948,7 @@ export function ProjectsListView({
       {/* #152: permanent, so name what is being lost before doing it. */}
       {deletingProject && (
         <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+          position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.6 * var(--shadeK)))",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
         }}
           onClick={() => setDeletingProject(null)}
@@ -1955,7 +1958,7 @@ export function ProjectsListView({
             style={{
               background: T.surface, border: `1px solid ${T.border}`,
               borderRadius: T.radius.lg, padding: "24px 28px",
-              maxWidth: 380, width: "100%", boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+              maxWidth: 380, width: "100%", boxShadow: "0 16px 48px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 12 }}>
@@ -2002,7 +2005,7 @@ export function ProjectsListView({
           background: T.surface, border: `1px solid ${T.border}`,
           borderRadius: T.radius.md, padding: "10px 18px",
           display: "flex", alignItems: "center", gap: 12,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)", zIndex: 400,
+          boxShadow: "0 8px 24px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 400,
         }}>
           <span style={{ color: T.textSecondary, fontSize: 13 }}>{undoAction.message}</span>
           <button
@@ -2135,7 +2138,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
             {batchRendering ? `⏳ ${batchProgress.pct}%` : `Render All (${renderableApproved})`}
           </button>
         )}
-        <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
+        <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
       </PageHeader>
 
       <TabBar tabs={[{ id: "all", label: "All", count: clips.length }, { id: "pending", label: "Pending", count: pending }, { id: "approved", label: "Approved", count: approved }]} active={filter} onChange={setFilter} />

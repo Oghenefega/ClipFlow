@@ -1,3 +1,6 @@
+/* #328: every palette. Must stay first — @import has to precede other rules. */
+@import "./renderer/styles/themes.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -52,53 +55,12 @@
   font-style: italic;
 }
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
-  }
-
-  /* ClipFlow dark theme — matched to Vizard structure with dark palette */
-  .dark {
-    --background: 240 8% 4%;
-    --foreground: 240 5% 96%;
-    --card: 240 6% 7%;
-    --card-foreground: 240 5% 96%;
-    --popover: 240 6% 9%;
-    --popover-foreground: 240 5% 96%;
-    --primary: 263 70% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 12%;
-    --secondary-foreground: 240 5% 80%;
-    --muted: 240 5% 10%;
-    --muted-foreground: 240 4% 55%;
-    --accent: 263 70% 58%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 4% 14%;
-    --input: 240 4% 16%;
-    --ring: 263 70% 58%;
-  }
-}
+/* #328: the shadcn token sets that used to sit in `:root` (light, dead code)
+   and `.dark` (the only one ever applied) now live in themes.css alongside the
+   T-object tokens, keyed on [data-theme] at the root. One palette feeds both
+   styling systems, and the editor no longer needs a `.dark` class to find its
+   colours — which is why the static one on EditorLayout and the four Radix
+   popovers that re-applied it are gone. */
 
 @layer base {
   * {
@@ -108,26 +70,27 @@
 
 /* ── Editor-specific utilities ── */
 
-/* Scrollbars in dark editor */
-.dark ::-webkit-scrollbar {
+/* Editor scrollbars. Was `.dark ::-webkit-scrollbar` — the class is gone, and
+   the thumb colour is a per-theme token so a light theme gets a light thumb. */
+.editor-scope ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-.dark ::-webkit-scrollbar-track {
+.editor-scope ::-webkit-scrollbar-track {
   background: transparent;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: hsl(240 4% 22%);
+.editor-scope ::-webkit-scrollbar-thumb {
+  background: var(--scrollThumb);
   border-radius: 3px;
 }
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(240 4% 30%);
+.editor-scope ::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollThumbHover);
 }
 
 /* Resizable handle hover — purple highlight on drag */
-.dark [data-resize-handle]:hover,
-.dark [data-resize-handle][data-resize-handle-active] {
-  background-color: hsl(263 70% 58% / 0.4) !important;
+.editor-scope [data-resize-handle]:hover,
+.editor-scope [data-resize-handle][data-resize-handle-active] {
+  background-color: hsl(var(--primary) / 0.4) !important;
   transition: background-color 0.15s;
 }
 
@@ -155,7 +118,7 @@ body.cf-picking, body.cf-picking * {
 }
 
 .cf-feedback-textarea::placeholder {
-  color: rgba(255,255,255,0.32);
+  color: var(--textTertiary);
 }
 
 /* Snapshot privacy: applied to <body> for the frames a Settings-view region

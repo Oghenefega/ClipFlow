@@ -261,7 +261,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
   const btnBase = { padding: "8px 18px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={phase === "importing" ? undefined : onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.75 * var(--shadeK)))", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={phase === "importing" ? undefined : onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, width: "min(1060px, 94vw)", maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
@@ -315,7 +315,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
                   <div onClick={() => toggleChecked(row.fingerprint)} style={{ cursor: "pointer" }}>
                     <Checkbox checked={checked.has(row.fingerprint)} size={16} />
                   </div>
-                  <div style={{ width: 34, height: 60, borderRadius: 5, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 34, height: 60, borderRadius: 5, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {row.thumbPath
                       ? <img src={toFileUrl(row.thumbPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <span style={{ fontSize: 14 }}>{"🎬"}</span>}
@@ -326,7 +326,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
                         value={row.title}
                         disabled={row.skipped || phase === "importing"}
                         onChange={(e) => patchRow(row.fingerprint, { title: e.target.value })}
-                        style={{ flex: 1, minWidth: 0, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontWeight: 600, fontFamily: T.font, outline: "none" }}
+                        style={{ flex: 1, minWidth: 0, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontWeight: 600, fontFamily: T.font, outline: "none" }}
                       />
                       {(row.aiStatus === "pending" || row.aiStatus === "generating") && (
                         <span style={{ fontSize: 10, color: T.yellow, fontWeight: 700, flexShrink: 0 }}>AI…</span>
@@ -343,7 +343,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
                       was: {row.base} · {Math.round(row.duration)}s
                     </div>
                     {row.copyPct != null && phase === "importing" && (
-                      <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.06)", marginTop: 4, overflow: "hidden" }}>
+                      <div style={{ height: 3, borderRadius: 2, background: "rgba(var(--lift),0.06)", marginTop: 4, overflow: "hidden" }}>
                         <div style={{ width: `${row.copyPct}%`, height: "100%", background: T.green }} />
                       </div>
                     )}
@@ -394,7 +394,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
               onChange={(e) => setNewGameName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") commitNewGame(); if (e.key === "Escape") setNewGameAsk(null); }}
               placeholder="e.g. Baby Steps"
-              style={{ flex: 1, maxWidth: 280, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.font, outline: "none" }}
+              style={{ flex: 1, maxWidth: 280, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.font, outline: "none" }}
             />
             <button onClick={commitNewGame} style={{ ...btnBase, padding: "6px 14px", border: "none", background: T.accent, color: "#fff" }}>Add</button>
             <button onClick={() => setNewGameAsk(null)} style={{ ...btnBase, padding: "6px 14px", border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary }}>Cancel</button>
@@ -417,7 +417,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
           <button
             onClick={confirmImport}
             disabled={phase === "importing" || importable.length === 0}
-            style={{ ...btnBase, padding: "8px 22px", border: "none", background: phase === "importing" || importable.length === 0 ? "rgba(255,255,255,0.04)" : T.green, color: phase === "importing" || importable.length === 0 ? T.textMuted : "#0a0b10" }}
+            style={{ ...btnBase, padding: "8px 22px", border: "none", background: phase === "importing" || importable.length === 0 ? "rgba(var(--lift),0.04)" : T.green, color: phase === "importing" || importable.length === 0 ? T.textMuted : T.onSolid }}
           >
             {phase === "importing" ? "Importing…" : `Import ${importable.length} clip${importable.length !== 1 ? "s" : ""}`}
           </button>

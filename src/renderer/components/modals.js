@@ -25,7 +25,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
   const advance = () => { setStep(3); timerRef.current = setTimeout(() => setStep(4), 2000); };
 
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.85 * var(--shadeK)))", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
       <div style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 460, width: "100%", border: `1px solid ${T.accentBorder}`, boxShadow: "0 24px 80px rgba(139,92,246,0.2)", overflow: "hidden" }}>
         {/* Header */}
         <div style={{ background: T.accentGlow, padding: "24px 28px 20px", borderBottom: `1px solid ${T.accentBorder}` }}>
@@ -44,17 +44,17 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
             <>
               <div style={{ marginBottom: 18 }}>
                 <SectionLabel>{isContent ? "Content Type Name" : "Game Name"}</SectionLabel>
-                <input value={gameName} onChange={(e) => setGameName(e.target.value)} placeholder={isContent ? "e.g. Just Chatting" : "e.g. Subway Surfers"} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 16, fontWeight: 600, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
+                <input value={gameName} onChange={(e) => setGameName(e.target.value)} placeholder={isContent ? "e.g. Just Chatting" : "e.g. Subway Surfers"} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 16, fontWeight: 600, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
                 <div>
                   <SectionLabel>Tag</SectionLabel>
-                  <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+                  <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
                 </div>
                 <div>
                   <SectionLabel>Hashtag</SectionLabel>
-                  <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, marginTop: 8, overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, marginTop: 8, overflow: "hidden" }}>
                     <span style={{ padding: "12px 0 12px 12px", color: T.textTertiary }}>#</span>
                     <input value={hashtag} onChange={(e) => setHashtag(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} style={{ flex: 1, background: "transparent", border: "none", padding: "12px 12px 12px 4px", color: T.text, fontSize: 14, fontFamily: T.mono, outline: "none" }} />
                   </div>
@@ -97,7 +97,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
                 onChange={(e) => setPlayStyle(e.target.value)}
                 autoFocus
                 placeholder={"e.g. \"I'm grinding ranked, trying to hit Diamond. Very competitive but I rage in a funny way.\""}
-                style={{ width: "100%", minHeight: 110, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 14, marginBottom: 18, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
+                style={{ width: "100%", minHeight: 110, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 14, marginBottom: 18, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
               />
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => { setPlayStyle(""); advance(); }} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Skip for now</button>
@@ -223,29 +223,29 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
   };
 
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.8 * var(--shadeK)))", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, borderRadius: T.radius.xl, padding: 28, maxWidth: 480, width: "100%", border: `1px solid ${T.borderHover}`, maxHeight: "85vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: 0 }}>Edit {game.name}</h3>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: T.textTertiary, cursor: "pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background: "rgba(var(--lift),0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: T.textTertiary, cursor: "pointer" }}>✕</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
           <div>
             <SectionLabel>Tag</SectionLabel>
             {(() => { const dup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name); return (<>
-              <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+              <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
               {dup && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Tag already in use by another entry</div>}
             </>); })()}
           </div>
           <div>
             <SectionLabel>Last Day #</SectionLabel>
-            <input type="number" min="0" value={dayCount} onChange={(e) => setDayCount(Math.max(0, parseInt(e.target.value) || 0))} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.yellow, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
+            <input type="number" min="0" value={dayCount} onChange={(e) => setDayCount(Math.max(0, parseInt(e.target.value) || 0))} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.yellow, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
             <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Next file = Day {(dayCount || 0) + 1}</div>
           </div>
         </div>
         <div style={{ marginBottom: 16 }}>
           <SectionLabel>Hashtag</SectionLabel>
-          <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, marginTop: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, marginTop: 8, overflow: "hidden" }}>
             <span style={{ padding: "12px 0 12px 12px", color: T.textTertiary }}>#</span>
             <input value={hashtag} onChange={(e) => setHashtag(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} style={{ flex: 1, background: "transparent", border: "none", padding: "12px 12px 12px 4px", color: T.text, fontSize: 14, fontFamily: T.mono, outline: "none" }} />
           </div>
@@ -267,7 +267,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                 <button onClick={artFetch} disabled={artBusy} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, opacity: artBusy ? 0.6 : 1, whiteSpace: "nowrap" }}>
                   {artBusy ? "Searching..." : artPath ? "Refresh from Steam" : "Find on Steam"}
                 </button>
-                <button onClick={artChoose} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>
+                <button onClick={artChoose} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>
                   Choose image…
                 </button>
                 {artPath && (
@@ -287,7 +287,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
           <SectionLabel>Linked Program</SectionLabel>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {exeList.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.greenBorder}`, borderRadius: T.radius.md, padding: "7px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.greenBorder}`, borderRadius: T.radius.md, padding: "7px 12px" }}>
                 <span style={{ width: 7, height: 7, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}`, flexShrink: 0 }} />
                 <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono }}>{exeList[0]}</span>
                 <button onClick={() => setExeList([])} style={{ background: "none", border: "none", color: T.textTertiary, cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>✕</button>
@@ -298,7 +298,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
             </button>
           </div>
           {pickerApps && (
-            <div style={{ marginTop: 8, maxHeight: 160, overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: "rgba(255,255,255,0.02)" }}>
+            <div style={{ marginTop: 8, maxHeight: 160, overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: "rgba(var(--lift),0.02)" }}>
               {pickerApps.length === 0 ? (
                 <div style={{ padding: "12px 16px", color: T.textTertiary, fontSize: 12 }}>No running apps found — launch the game, then try again.</div>
               ) : pickerApps.map((a) => (
@@ -342,7 +342,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                   value={aiPlayStyle}
                   onChange={(e) => setAiPlayStyle(e.target.value)}
                   placeholder={"How do you play this game?\ne.g. \"I'm grinding ranked, trying to hit Diamond. Very competitive but I rage in a funny way.\""}
-                  style={{ width: "100%", minHeight: 80, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
+                  style={{ width: "100%", minHeight: 80, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
                 />
                 <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Included in AI title/caption generation for this game</div>
               </div>
@@ -366,7 +366,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                   <div style={{ color: T.red, fontSize: 11, marginBottom: 6 }}>{researchError}</div>
                 )}
                 {aiAutoContext ? (
-                  <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: T.radius.md, padding: "12px 16px", color: T.textSecondary, fontSize: 12, lineHeight: 1.6, maxHeight: 120, overflowY: "auto", whiteSpace: "pre-wrap" }}>
+                  <div style={{ background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: "12px 16px", color: T.textSecondary, fontSize: 12, lineHeight: 1.6, maxHeight: 120, overflowY: "auto", whiteSpace: "pre-wrap" }}>
                     {aiAutoContext}
                     {aiResearchedAt && (
                       <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 8, borderTop: `1px solid ${T.border}`, paddingTop: 6 }}>
@@ -375,34 +375,34 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                     )}
                   </div>
                 ) : (
-                  <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: T.radius.md, padding: "16px", color: T.textTertiary, fontSize: 12, textAlign: "center" }}>
+                  <div style={{ background: "rgba(var(--lift),0.02)", borderRadius: T.radius.md, padding: "16px", color: T.textTertiary, fontSize: 12, textAlign: "center" }}>
                     No game knowledge yet. Click "Research Game" to auto-generate.
                   </div>
                 )}
               </div>
 
               {/* Auto-update threshold stepper */}
-              <div style={{ marginBottom: 14, background: "rgba(255,255,255,0.02)", borderRadius: T.radius.md, padding: "14px 16px" }}>
+              <div style={{ marginBottom: 14, background: "rgba(var(--lift),0.02)", borderRadius: T.radius.md, padding: "14px 16px" }}>
                 <SectionLabel>Play Style Auto-Update</SectionLabel>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
                   <span style={{ color: T.textSecondary, fontSize: 12, whiteSpace: "nowrap" }}>Update after every</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                     <button
                       onClick={() => setUpdateThreshold(Math.max(3, updateThreshold - 1))}
-                      style={{ width: 28, height: 28, borderRadius: "6px 0 0 6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: updateThreshold <= 3 ? T.textTertiary : T.text, fontSize: 16, cursor: updateThreshold <= 3 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font }}
+                      style={{ width: 28, height: 28, borderRadius: "6px 0 0 6px", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: updateThreshold <= 3 ? T.textTertiary : T.text, fontSize: 16, cursor: updateThreshold <= 3 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font }}
                     >−</button>
-                    <div style={{ width: 36, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.06)", borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, color: T.accentLight, fontSize: 14, fontWeight: 700, fontFamily: T.mono }}>
+                    <div style={{ width: 36, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(var(--lift),0.06)", borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, color: T.accentLight, fontSize: 14, fontWeight: 700, fontFamily: T.mono }}>
                       {updateThreshold}
                     </div>
                     <button
                       onClick={() => setUpdateThreshold(Math.min(20, updateThreshold + 1))}
-                      style={{ width: 28, height: 28, borderRadius: "0 6px 6px 0", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: updateThreshold >= 20 ? T.textTertiary : T.text, fontSize: 16, cursor: updateThreshold >= 20 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font }}
+                      style={{ width: 28, height: 28, borderRadius: "0 6px 6px 0", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: updateThreshold >= 20 ? T.textTertiary : T.text, fontSize: 16, cursor: updateThreshold >= 20 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font }}
                     >+</button>
                   </div>
                   <span style={{ color: T.textSecondary, fontSize: 12, whiteSpace: "nowrap" }}>sessions</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-                  <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(100, (sessionCount / updateThreshold) * 100)}%`, height: "100%", borderRadius: 2, background: sessionCount >= updateThreshold ? T.green : T.accent, transition: "width 0.3s" }} />
                   </div>
                   <span style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, whiteSpace: "nowrap" }}>
@@ -427,7 +427,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
               window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);
             }
             onSave({ ...game, tag, hashtag, color, dayCount, active, exe: exeList, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
-          }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(255,255,255,0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
+          }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(var(--lift),0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
         </div>
       </div>
     </div>
@@ -493,7 +493,7 @@ function ProfilePane({ label, dotColor, tint, text, onChange, otherText, highlig
             if (el.scrollHeight > el.clientHeight) el.style.height = el.scrollHeight + 2 + "px";
           }}
           onBlur={() => setEditing(false)}
-          style={{ width: "100%", minHeight: 160, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "14px 16px", color: T.text, fontSize: 12, lineHeight: 1.7, fontFamily: T.font, outline: "none", resize: "vertical" }}
+          style={{ width: "100%", minHeight: 160, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "14px 16px", color: T.text, fontSize: 12, lineHeight: 1.7, fontFamily: T.font, outline: "none", resize: "vertical" }}
         />
       ) : (
         <div
@@ -565,7 +565,7 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
   const curEdited = curText !== (oldProfile || "");
 
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.85 * var(--shadeK)))", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
       <div style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 720, width: "100%", border: `1px solid ${T.accentBorder}`, boxShadow: "0 24px 80px rgba(139,92,246,0.2)", overflow: "hidden", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
         {/* Header */}
         <div style={{ background: T.accentGlow, padding: "20px 24px", borderBottom: `1px solid ${T.accentBorder}`, flexShrink: 0 }}>
@@ -621,16 +621,16 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
 export const TranscriptModal = ({ clip, onClose }) => {
   if (!clip) return null;
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.8 * var(--shadeK)))", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 540, width: "100%", border: `1px solid ${T.borderHover}`, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "28px 28px 0 28px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
             <h3 style={{ color: T.text, fontSize: 18, fontWeight: 700, margin: 0, flex: 1, marginRight: 16 }}>{clip.title}</h3>
-            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: T.textTertiary, cursor: "pointer" }}>✕</button>
+            <button onClick={onClose} style={{ background: "rgba(var(--lift),0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: T.textTertiary, cursor: "pointer" }}>✕</button>
           </div>
         </div>
         <div style={{ flex: 1, overflow: "auto", padding: "0 28px 28px 28px" }}>
-          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: T.radius.md, padding: 20, color: T.textSecondary, fontSize: 15, lineHeight: 1.9, fontFamily: T.mono, whiteSpace: "pre-wrap" }}>
+          <div style={{ background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: 20, color: T.textSecondary, fontSize: 15, lineHeight: 1.9, fontFamily: T.mono, whiteSpace: "pre-wrap" }}>
             {clip.transcript}
           </div>
         </div>

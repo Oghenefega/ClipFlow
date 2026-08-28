@@ -17,7 +17,7 @@ export const LP_GHOST_W = 20;
 
 // ============ SURFACE/BORDER HELPERS ============
 export const S2 = T.surfaceHover;
-export const S3 = "rgba(255,255,255,0.06)";
+export const S3 = "rgba(var(--lift),0.06)";
 export const BD = T.border;
 export const BDH = T.borderHover;
 

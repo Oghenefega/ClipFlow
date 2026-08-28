@@ -112,7 +112,7 @@ function SubtitleSettingsPopover() {
           <Settings2 className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="dark w-[280px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" align="end" sideOffset={6}>
+      <PopoverContent className="w-[280px] p-0 bg-popover border-border" align="end" sideOffset={6}>
         <div className="px-3 py-2.5 border-b border-border">
           <span className="text-sm font-semibold text-foreground">Subtitle settings</span>
         </div>
@@ -123,7 +123,7 @@ function SubtitleSettingsPopover() {
               onClick={() => setShowSubs(!showSubs)}
               className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer ${showSubs ? "bg-primary" : "bg-secondary"}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showSubs ? "left-[22px]" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-transform duration-200 ${showSubs ? "bg-white left-[22px]" : "bg-muted-foreground left-0.5"}`} />
             </button>
           </div>
 
@@ -184,7 +184,7 @@ function SegmentModeDropdown() {
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="dark w-[160px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" align="start" sideOffset={4}>
+      <PopoverContent className="w-[160px] p-0 bg-popover border-border" align="start" sideOffset={4}>
         <div className="py-1">
           {SEGMENT_MODES.map((m) => (
             <button

@@ -20,7 +20,12 @@ module.exports = {
         mono: ["'DM Sans'", "-apple-system", "sans-serif"],
       },
       colors: {
-        border: "hsl(var(--border))",
+        // #328: `border` and `accent` are the two names where the editor's
+        // shadcn tokens collided with the T object's — T.border is an rgba
+        // hairline, shadcn's --border is hsl channels, and both now live on
+        // the same root element. The shadcn pair carries the -hsl suffix
+        // (see src/renderer/styles/themes.css); every other name is unique.
+        border: "hsl(var(--border-hsl))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -42,7 +47,7 @@ module.exports = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "hsl(var(--accent-hsl))",
           foreground: "hsl(var(--accent-foreground))",
         },
         popover: {

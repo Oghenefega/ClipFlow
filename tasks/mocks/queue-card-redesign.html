@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClipFlow — Queue card redesign mock</title>
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32); --textMuted:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.28); --accentGlow:rgba(139,92,246,0.07);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.12); --greenBorder:rgba(52,211,153,0.30);
+    --yellow:#fbbf24;
+    /* PROPOSED brighter label tone */
+    --labelStrong:rgba(255,255,255,0.68);
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono','SF Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:28px 22px 80px;}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0 0 4px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 22px}
+  .wrap{max-width:1120px;margin:0 auto}
+
+  /* legend mapping complaints -> fixes */
+  .legend{border:1px solid var(--accentBorder);background:var(--accentGlow);border-radius:12px;padding:14px 18px;margin-bottom:24px}
+  .legend b{color:var(--accentLight)}
+  .legend ul{margin:8px 0 0;padding-left:18px}
+  .legend li{font-size:12.5px;color:var(--text2);line-height:1.7}
+  .legend li strong{color:var(--text)}
+  .tag-pill{display:inline-block;font-size:10px;font-weight:800;color:var(--accent);background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:20px;padding:1px 8px;margin-right:4px;vertical-align:middle}
+
+  .label{font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:none}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+  .toolbar button{font-family:var(--font);font-size:12px;font-weight:700;border-radius:8px;padding:7px 14px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2)}
+  .toolbar button.active{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight)}
+
+  /* ---- card ---- */
+  .card{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:22px 24px}
+  .row{display:flex;gap:24px}
+  .thumb{width:128px;flex:0 0 128px}
+  .thumb .ph{aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#3a2a55,#1a2740 60%,#10202e);display:flex;align-items:flex-end;justify-content:center;position:relative}
+  .thumb .ph::after{content:"🎮";font-size:30px;position:absolute;top:42%;opacity:.5}
+  .detail{flex:1;min-width:0}
+
+  .title{font-size:17px;font-weight:800;letter-spacing:-.2px;margin-bottom:7px}
+  .meta{display:flex;gap:12px;align-items:center;font-size:12.5px;color:var(--text2);margin-bottom:16px}
+  .meta .dur{font-family:var(--mono)}
+  .badge-tag{font-family:var(--font);font-size:11px;font-weight:800;letter-spacing:.6px;padding:2px 8px;border-radius:5px;background:var(--greenDim);color:var(--green);border:1px solid var(--greenBorder)}
+
+  .plat-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .plat-row .pl{font-size:11.5px;color:var(--labelStrong);font-weight:600;margin-right:2px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid var(--borderHover);background:rgba(255,255,255,0.06);font-size:12px;font-weight:600;color:var(--text)}
+  .pill.off{opacity:.4;border-color:var(--border);background:transparent;color:var(--text3)}
+  .dot{width:16px;height:16px;border-radius:5px;display:inline-block}
+  .dot.fb{background:#1877f2}.dot.yt{background:#ff0033}.dot.ig{background:linear-gradient(45deg,#feda75,#d62976,#962fbf)}.dot.tt{background:#000;border:1px solid #333;position:relative}
+  .dot.tt::after{content:"♪";color:#25f4ee;font-size:11px;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+
+  /* platform caption card (TikTok) */
+  .pcard{border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.02);overflow:hidden}
+  .pcard .hd{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border)}
+  .pcard .hd .lf{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800}
+  .pcard .hd .cc{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text3)}
+
+  .sect{padding:11px 14px;border-bottom:1px solid var(--border)}
+  .sect:last-child{border-bottom:none}
+  .ld{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--labelStrong);text-transform:uppercase;margin-bottom:7px}
+  .ldrow{display:flex;align-items:center;gap:10px}
+  .ldrow .ld{margin-bottom:0;min-width:74px}
+  .val{font-size:13px;color:var(--text);font-weight:600}
+  .val .at{font-family:var(--mono);color:var(--text2);font-weight:500}
+
+  /* CAPTION — now an obvious editable field, moved to top of the card */
+  .capwrap{padding:12px 14px;border-bottom:1px solid var(--border)}
+  .caphead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .capfield{border:1px solid var(--borderHover);border-radius:8px;background:rgba(255,255,255,0.045);padding:10px 12px;font-size:13px;line-height:1.55;color:var(--text);cursor:text;position:relative}
+  .capfield:hover{border-color:var(--accentBorder)}
+  .capfield .hash{color:var(--accentLight)}
+  .capedit{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text3)}
+  .capfoot{display:flex;align-items:center;gap:12px;margin-top:7px}
+  .link{font-size:11px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;text-underline-offset:2px}
+  .link:hover{color:var(--accentLight)}
+  .customtag{font-size:9.5px;font-weight:800;letter-spacing:.4px;color:var(--accent);background:var(--accentDim);padding:1px 7px;border-radius:5px}
+
+  .selectbox{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid var(--borderHover);border-radius:7px;padding:6px 12px;font-size:13px;color:var(--text);min-width:160px;justify-content:space-between}
+  .selectbox .car{color:var(--text3);font-size:10px}
+
+  .toggles{display:flex;gap:8px;flex-wrap:wrap}
+  .tg{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text2);background:transparent;line-height:1}
+  .tg.on{border-color:var(--greenBorder);background:var(--greenDim);color:var(--green)}
+  /* every child is its OWN centered flex box (line-height:1) so the tiny
+     LOCKED text can't baseline-shift above the label — all share one midline */
+  .tg>*{display:inline-flex;align-items:center;line-height:1}
+  .tg .lock svg{display:block}
+  .tg .lk{font-size:9px;font-weight:800;letter-spacing:.5px;opacity:.85}
+  .tg .lbl{font-size:12px;font-weight:700}
+
+  .legalline{font-size:12px;color:var(--text2);line-height:1.55}
+  .legalline a{color:var(--accentLight);text-decoration:underline;text-underline-offset:2px}
+
+  .disc{display:flex;align-items:center;gap:9px;cursor:pointer}
+  .cb{width:17px;height:17px;border-radius:5px;border:1px solid var(--accentBorder);background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+  .disc .t{font-size:13px;font-weight:600}
+  .subs{margin:9px 0 0 26px;display:flex;flex-direction:column;gap:8px}
+  .sub-opt{display:flex;align-items:center;gap:9px}
+  .radio{width:15px;height:15px;border-radius:50%;border:1px solid var(--borderHover)}
+  .sub-opt .nm{font-size:12.5px;color:var(--text);font-weight:600}
+  .sub-opt .hint{font-size:11.5px;color:var(--text2)}
+  .req{margin-top:4px;font-size:11.5px;color:#f87171;font-weight:700}
+
+  .actions{display:flex;gap:10px;align-items:center;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+  .btn{font-family:var(--font);font-size:12px;font-weight:700;border-radius:8px;padding:8px 16px;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}
+  .btn.sched{background:rgba(255,255,255,0.06);border:1px solid var(--borderHover);color:var(--text)}
+  .btn.test{background:transparent;border:1px solid var(--yellow);color:var(--yellow)}
+  .spacer{flex:1}
+
+  /* callout markers */
+  .mk{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;margin-left:6px;vertical-align:middle}
+
+  .note{font-size:11.5px;color:var(--text3);margin-top:10px;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Queue card — proposed redesign</h1>
+  <p class="sub">Faithful to ClipFlow's real theme tokens. This is the expanded TikTok clip card. Nothing built yet — react to this first.</p>
+
+  <div class="legend">
+    Your 5 points → what changes <span style="color:var(--text3);font-size:11px">(markers <span class="mk">1</span>–<span class="mk">5</span> on the card)</span>
+    <ul>
+      <li><span class="tag-pill">1</span><strong>Text size + dead space.</strong> Labels go 10px→11–12px and the bland 0.32 grey → a readable 0.68 tone; the page column widens from <strong>860px → ~1120px</strong> so the fullscreen window stops wasting its sides. <em>(Note: the width is a global setting — it widens every tab, so you'd eyeball the others too.)</em></li>
+      <li><span class="tag-pill">2</span><strong>(LOCKED) alignment.</strong> Replaced the floating "(LOCKED)" text with a small lock icon + "LOCKED" baseline-aligned to the label.</li>
+      <li><span class="tag-pill">3</span><strong>Caption looks like a caption + moves up.</strong> Now a bordered, tinted, obviously-editable field right under the platform header (not buried at the bottom), with a visible Edit affordance and a always-available <strong>Reset to template</strong> link.</li>
+      <li><span class="tag-pill">4</span><strong>Tag casing.</strong> Game tag renders <strong>UPPERCASE</strong> ("RL") to match Rename/Recordings — display-only, logic stays lowercase.</li>
+      <li><span class="tag-pill">5</span><strong>Label vibrance.</strong> "Posting as / Privacy / Interactions" and the Music-Usage line are brighter and a touch larger.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="thumb"><div class="ph"></div></div>
+      <div class="detail">
+        <div class="title">Clip 1</div>
+        <div class="meta">
+          <span class="dur">0:19</span>
+          <span class="badge-tag">RL</span><span class="mk">4</span>
+          <span>RL 2026-10-15 Day9 Pt1</span>
+        </div>
+
+        <div class="plat-row">
+          <span class="pl">Platforms</span>
+          <span class="pill off"><span class="dot fb"></span>Facebook</span>
+          <span class="pill off"><span class="dot yt"></span>YouTube</span>
+          <span class="pill off"><span class="dot ig"></span>Instagram</span>
+          <span class="pill"><span class="dot tt"></span>TikTok</span>
+        </div>
+
+        <div class="pcard">
+          <div class="hd">
+            <div class="lf"><span class="dot tt"></span> TikTok</div>
+            <div class="cc">45 / 2200</div>
+          </div>
+
+          <!-- CAPTION moved to top, now an editable field -->
+          <div class="capwrap">
+            <div class="caphead">
+              <span class="ld" style="margin-bottom:0">Caption <span class="mk">3</span></span>
+              <span class="customtag">CUSTOM</span>
+            </div>
+            <div class="capfield">
+              Clip 1 <span class="hash">#fyp #gamingontiktok #fega #fegagaming</span>
+              <span class="capedit">✎ Edit</span>
+            </div>
+            <div class="capfoot">
+              <button class="link">Reset to template</button>
+            </div>
+          </div>
+
+          <div class="sect ldrow">
+            <span class="ld">Posting as <span class="mk">5</span></span>
+            <span class="val">Fega <span class="at">@fega</span></span>
+          </div>
+
+          <div class="sect ldrow">
+            <span class="ld">Privacy</span>
+            <span class="selectbox">Only me <span class="car">▾</span></span>
+          </div>
+
+          <div class="sect">
+            <div class="ld">Interactions <span class="mk">2</span></div>
+            <div class="toggles">
+              <span class="tg on">
+                <span class="lock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+                <span class="lk">LOCKED</span><span class="lbl">Disable Duet</span>
+              </span>
+              <span class="tg on">
+                <span class="lock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+                <span class="lk">LOCKED</span><span class="lbl">Disable Stitch</span>
+              </span>
+              <span class="tg"><span class="lbl">Disable Comment</span></span>
+            </div>
+          </div>
+
+          <div class="sect">
+            <div class="legalline">By posting, you agree to TikTok's <a href="#">Music Usage Confirmation</a>.</div>
+          </div>
+
+          <div class="sect">
+            <div class="disc"><span class="cb">✓</span><span class="t">Disclose commercial content</span></div>
+            <div class="subs">
+              <div class="sub-opt"><span class="radio"></span><span class="nm">Your Brand</span><span class="hint">— you're promoting yourself or your own product</span></div>
+              <div class="sub-opt"><span class="radio"></span><span class="nm">Branded Content</span><span class="hint">— paid partnership with a third party</span></div>
+              <div class="req">Required — pick at least one sub-option above.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn ghost">Remove</button>
+          <span class="spacer"></span>
+          <button class="btn sched">Schedule</button>
+          <button class="btn test">TEST</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">Density is intentionally kept tight — this raises contrast/size and fixes structure, it doesn't bloat the card. Spacing/sizes are tunable once you approve the direction.</p>
+  </div>
+</div>
+</body>
+</html>

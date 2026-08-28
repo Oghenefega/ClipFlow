@@ -19,7 +19,7 @@ export default React.memo(function Ruler({ duration, clipContentWidth, leftOffse
   return (
     <div
       className="flex items-stretch"
-      style={{ height: RULER_H, borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      style={{ height: RULER_H, borderBottom: "1px solid rgba(var(--lift),0.06)" }}
       onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -47,7 +47,7 @@ export default React.memo(function Ruler({ duration, clipContentWidth, leftOffse
                   }
                 </span>
               )}
-              <div style={{ width: 1, height: tick.major ? 8 : 4, background: "rgba(255,255,255,0.15)" }} />
+              <div style={{ width: 1, height: tick.major ? 8 : 4, background: "rgba(var(--lift),0.15)" }} />
             </div>
           );
         })}

@@ -177,7 +177,7 @@ function MediaBlock({
             ? <Film className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />
             : <ImageIcon className="h-3 w-3 shrink-0" style={{ color: MEDIA_COLORS.icon }} />}
         {!labelHidden && (
-          <span className="text-[10px] truncate" style={{ color: MEDIA_COLORS.text, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+          <span className="text-[10px] truncate" style={{ color: MEDIA_COLORS.text, textShadow: "0 1px 2px rgba(var(--shade),calc(0.6 * var(--shadeK)))" }}>
             {p.name}
           </span>
         )}
@@ -193,7 +193,7 @@ function MediaBlock({
             className="absolute top-1/2 -translate-y-1/2 rounded-full"
             style={{
               [side]: 2, width: 3, height: Math.min(14, height - 6),
-              background: "rgba(255,255,255,0.7)",
+              background: "rgba(var(--lift),0.7)",
             }}
           />
         </div>

@@ -240,7 +240,7 @@ function InlineColorPicker({ color, onChange, onClose }) {
       key={key}
       title={c}
       className={`w-6 h-6 rounded-full border transition-transform hover:scale-110 ${String(color || "").toLowerCase() === c ? "ring-2 ring-primary ring-offset-1 ring-offset-popover" : ""}`}
-      style={{ background: c, borderColor: needsOutline(c) ? "hsl(240 4% 30%)" : "transparent" }}
+      style={{ background: c, borderColor: needsOutline(c) ? "hsl(var(--border-hsl))" : "transparent" }}
       onClick={() => { pushRecentColor(c); onChange(c); onClose(); }}
     />
   );
@@ -643,7 +643,7 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
               width: r.w * scale,
               height: r.h * scale,
               border: `1.5px solid ${isSelected ? color : color + "80"}`,
-              boxShadow: "0 0 0 1px rgba(0,0,0,0.55)",
+              boxShadow: "0 0 0 1px rgba(var(--shade),calc(0.55 * var(--shadeK)))",
               cursor: isSelected ? "grab" : "pointer",
               zIndex: isSelected ? 30 : 29,
               touchAction: "none",
@@ -2093,6 +2093,10 @@ export default function PreviewPanelNew() {
       drawVideoHQ(fctx, video, game.x, game.y, game.w, game.h, 0, 0, W, gh, hqScratch);
       fctx.globalCompositeOperation = "destination-out";
       const fadeGrad = fctx.createLinearGradient(0, gh - F, 0, gh);
+      // #328: literal, NOT theme tokens. A <canvas> gradient stop is parsed by
+      // the 2D context, which has no CSS custom properties to resolve — a
+      // var() here throws. These two are an alpha ramp for a destination-out
+      // mask anyway; the colour never shows.
       fadeGrad.addColorStop(0, "rgba(0,0,0,0)");
       fadeGrad.addColorStop(1, "rgba(0,0,0,1)");
       fctx.fillStyle = fadeGrad;
@@ -2208,7 +2212,7 @@ export default function PreviewPanelNew() {
     <div
       ref={containerRef}
       className="flex flex-col h-full w-full overflow-hidden relative select-none"
-      style={{ background: "hsl(240 8% 3%)" }}
+      style={{ background: "hsl(var(--stage))" }}
     >
       {/* Top controls overlay */}
       <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
@@ -2329,8 +2333,8 @@ export default function PreviewPanelNew() {
             ...(fitSize
               ? { width: `${fitSize.w * scaleOf(zoom)}px`, height: `${fitSize.h * scaleOf(zoom)}px` }
               : { height: "100%", aspectRatio: "9 / 16" }),
-            background: "hsl(240 6% 6%)",
-            border: "1px solid hsl(240 4% 14% / 0.4)",
+            background: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border-hsl) / 0.4)",
             willChange: "transform",
           }}
           onClick={onCanvasClick}

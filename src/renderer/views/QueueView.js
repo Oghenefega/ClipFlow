@@ -59,7 +59,7 @@ const setRowActions = (e, shown) => {
 function RowActions({ clip, onOpenInEditor }) {
   const hover = (e, on) => {
     e.currentTarget.style.color = on ? T.text : T.textTertiary;
-    e.currentTarget.style.background = on ? "rgba(255,255,255,0.07)" : "transparent";
+    e.currentTarget.style.background = on ? "rgba(var(--lift),0.07)" : "transparent";
   };
   return (
     <div data-rowacts style={ROW_ACTS_HIDDEN}>
@@ -252,7 +252,7 @@ const PLATFORM_KEYS = ["tiktok", "instagram", "facebook", "youtube"];
 // `bg`/`border` describe the solid brand chip; the spread adds the block dressing
 // (#325) — name colour, 2px top edge, border and header wash. See platformBrand.js.
 const PLATFORM_META = {
-  tiktok:    { label: "TikTok",    abbr: "TT", bg: "#000",     border: "rgba(255,255,255,0.15)", ...PLATFORM_BRAND.tiktok },
+  tiktok:    { label: "TikTok",    abbr: "TT", bg: "#000",     border: "rgba(var(--lift),0.15)", ...PLATFORM_BRAND.tiktok },
   instagram: { label: "Instagram", abbr: "IG", bg: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)", border: "none", ...PLATFORM_BRAND.instagram },
   facebook:  { label: "Facebook",  abbr: "FB", bg: "#1877f2",  border: "none", ...PLATFORM_BRAND.facebook },
   youtube:   { label: "YouTube",   abbr: "YT", bg: "#c4302b",  border: "none", ...PLATFORM_BRAND.youtube },
@@ -292,7 +292,7 @@ const ReadOnlyField = ({ label, value, multiline }) => (
       <div style={FIELD_LABEL}>{label}</div>
       {!!value && <CopyIconButton value={value} title={`Copy ${label.toLowerCase()}`} />}
     </div>
-    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(255,255,255,0.03)", padding: "8px 11px", fontSize: 13, color: T.textSecondary, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: multiline ? 200 : undefined, overflowY: multiline ? "auto" : undefined }}>
+    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(var(--lift),0.03)", padding: "8px 11px", fontSize: 13, color: T.textSecondary, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: multiline ? 200 : undefined, overflowY: multiline ? "auto" : undefined }}>
       {value || <span style={{ color: T.textMuted, fontStyle: "italic" }}>Empty</span>}
     </div>
   </div>
@@ -2050,7 +2050,7 @@ export default function QueueView({
         />
       )}
       {importReview?.error && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setImportReview(null)}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.7 * var(--shadeK)))", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setImportReview(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: "20px 24px", maxWidth: 440 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 8 }}>Can't import yet</div>
             <div style={{ fontSize: 12, color: T.textSecondary, lineHeight: 1.5, marginBottom: 14 }}>{importReview.error}</div>
@@ -2123,13 +2123,13 @@ export default function QueueView({
         if (!clip) return null;
         const enabledKeys = getEnabledPlatforms(clip);
         return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={cancelConfirm}>
+          <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.7 * var(--shadeK)))", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={cancelConfirm}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "24px 28px", maxWidth: 480, width: "90%", maxHeight: "80vh", overflow: "auto" }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 16 }}>Confirm Publish</div>
               {/* Clip summary */}
               <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
                 <div style={{ width: 60, flexShrink: 0 }}>
-                  <div style={{ aspectRatio: "9/16", borderRadius: 8, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ aspectRatio: "9/16", borderRadius: 8, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 20 }}>{"\uD83C\uDFAC"}</span>}
                   </div>
                 </div>
@@ -2146,7 +2146,7 @@ export default function QueueView({
                   const caption = getEffectiveCaption(clip, pk);
                   const isYt = pk === "youtube";
                   return (
-                    <div key={pk} style={{ borderRadius: 6, border: `1px solid ${T.border}`, padding: "8px 12px", background: "rgba(255,255,255,0.02)" }}>
+                    <div key={pk} style={{ borderRadius: 6, border: `1px solid ${T.border}`, padding: "8px 12px", background: "rgba(var(--lift),0.02)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                         <PlatformIcon platform={pk} size={14} />
                         <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{meta.label}</span>
@@ -2176,7 +2176,7 @@ export default function QueueView({
                   onClick={confirmPublish}
                   disabled={isClipTest(clip)}
                   title={isClipTest(clip) ? "Test clip — publishing blocked." : undefined}
-                  style={{ padding: "8px 22px", borderRadius: 7, border: "none", background: isClipTest(clip) ? "rgba(255,255,255,0.04)" : T.green, color: isClipTest(clip) ? T.textMuted : "#0a0b10", fontSize: 12, fontWeight: 700, cursor: isClipTest(clip) ? "not-allowed" : "pointer", fontFamily: T.font }}
+                  style={{ padding: "8px 22px", borderRadius: 7, border: "none", background: isClipTest(clip) ? "rgba(var(--lift),0.04)" : T.green, color: isClipTest(clip) ? T.textMuted : T.onSolid, fontSize: 12, fontWeight: 700, cursor: isClipTest(clip) ? "not-allowed" : "pointer", fontFamily: T.font }}
                 >{isClipTest(clip) ? "Blocked (Test)" : "Publish"}</button>
               </div>
             </div>
@@ -2189,12 +2189,12 @@ export default function QueueView({
       {deleteAsk && (
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: "fixed", left: deleteAsk.x, top: deleteAsk.y, zIndex: 10001, width: 240, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,0.55)", padding: 6, fontFamily: T.font }}
+          style={{ position: "fixed", left: deleteAsk.x, top: deleteAsk.y, zIndex: 10001, width: 240, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, boxShadow: "0 12px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: 6, fontFamily: T.font }}
         >
           <button
             onClick={() => { dequeueClip(deleteAsk.clip); setDeleteAsk(null); }}
             style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.05)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>Remove from queue</div>
@@ -2228,7 +2228,7 @@ export default function QueueView({
       {showUnscheduled && (
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
         {/* Section header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.accentLight }}>Unscheduled</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted }}>{filteredUnscheduled.length} clip{filteredUnscheduled.length !== 1 ? "s" : ""}</span>
@@ -2272,11 +2272,11 @@ export default function QueueView({
           const badge = statusBadge(clip);
           // Game-hue row wash — same recipe as the Projects launch-pad rows.
           const gc = gameColorFor(clip);
-          const rowBg = `radial-gradient(90% 160% at 100% 0%, ${gc}1f 0%, transparent 55%), linear-gradient(100deg, ${gc}1a 0%, ${gc}06 40%, rgba(255,255,255,0.02) 65%)`;
-          const rowBgHover = `linear-gradient(rgba(255,255,255,0.025), rgba(255,255,255,0.025)), ${rowBg}`;
+          const rowBg = `radial-gradient(90% 160% at 100% 0%, ${gc}1f 0%, transparent 55%), linear-gradient(100deg, ${gc}1a 0%, ${gc}06 40%, rgba(var(--lift),0.02) 65%)`;
+          const rowBgHover = `linear-gradient(rgba(var(--lift),0.025), rgba(var(--lift),0.025)), ${rowBg}`;
           // Selected keeps the game hue (stronger wash) instead of snapping to
           // the purple accent; the expanded settings panel stays neutral.
-          const rowBgSel = `radial-gradient(90% 160% at 100% 0%, ${gc}33 0%, transparent 55%), linear-gradient(100deg, ${gc}2b 0%, ${gc}0d 40%, rgba(255,255,255,0.03) 65%)`;
+          const rowBgSel = `radial-gradient(90% 160% at 100% 0%, ${gc}33 0%, transparent 55%), linear-gradient(100deg, ${gc}2b 0%, ${gc}0d 40%, rgba(var(--lift),0.03) 65%)`;
 
           return (
             <SortableRow key={clip.id} id={clip.id}>
@@ -2292,7 +2292,7 @@ export default function QueueView({
                     {/* Drag handle */}
                     <div {...listeners} onClick={(e) => e.stopPropagation()} style={{ cursor: "grab", color: T.textMuted, fontSize: 14 }}>{"\u2630"}</div>
                     {/* Thumbnail */}
-                    <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {clip.thumbnailPath ? (
                         <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
@@ -2331,7 +2331,7 @@ export default function QueueView({
                               onClick={(e) => { e.stopPropagation(); if (!tikBlock) pubNow(clip.id); }}
                               disabled={!!tikBlock}
                               title={tikBlock || undefined}
-                              style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(255,255,255,0.04)" : T.green, color: tikBlock ? T.textMuted : "#0a0b10", fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
+                              style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(var(--lift),0.04)" : T.green, color: tikBlock ? T.textMuted : T.onSolid, fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
                             >Publish</button>
                           );
                         })()
@@ -2350,11 +2350,11 @@ export default function QueueView({
 
                   {/* Expanded detail panel */}
                   {isSel && (
-                    <div style={{ padding: "20px 24px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+                    <div style={{ padding: "20px 24px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
                       <div style={{ display: "flex", gap: 24 }}>
                         {/* Large thumbnail */}
                         <div style={{ width: 120, flexShrink: 0 }}>
-                          <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             {clip.thumbnailPath ? (
                               <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             ) : (
@@ -2372,7 +2372,7 @@ export default function QueueView({
                               onChange={(e) => setEditTitleValue(e.target.value)}
                               onBlur={() => saveTitle(clip)}
                               onKeyDown={(e) => { if (e.key === "Enter") saveTitle(clip); if (e.key === "Escape") setEditingTitle(null); }}
-                              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 20, fontWeight: 800, letterSpacing: "-0.45px", fontFamily: T.font, outline: "none", marginBottom: 8 }}
+                              style={{ width: "100%", background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 20, fontWeight: 800, letterSpacing: "-0.45px", fontFamily: T.font, outline: "none", marginBottom: 8 }}
                             />
                           ) : (
                             <div
@@ -2415,8 +2415,8 @@ export default function QueueView({
                                   onClick={(e) => { e.stopPropagation(); togglePlatform(clip, pk); }}
                                   style={{
                                     display: "flex", alignItems: "center", gap: 5, padding: "4px 10px 4px 6px",
-                                    borderRadius: 20, border: `1px solid ${isOn ? "rgba(255,255,255,0.12)" : T.border}`,
-                                    background: isOn ? "rgba(255,255,255,0.06)" : "transparent",
+                                    borderRadius: 20, border: `1px solid ${isOn ? "rgba(var(--lift),0.12)" : T.border}`,
+                                    background: isOn ? "rgba(var(--lift),0.06)" : "transparent",
                                     opacity: isOn ? 1 : 0.4, cursor: "pointer", transition: "all 0.15s", fontFamily: T.font,
                                   }}
                                 >
@@ -2450,7 +2450,7 @@ export default function QueueView({
                                   // #325: brand identity comes from the header wash, the block's
                                   // border and a 2px top edge — deliberately not a left-edge colour bar.
                                   return (
-                                    <div key={pk} style={{ borderRadius: 8, border: `1px solid ${meta.edge}`, boxShadow: `inset 0 2px 0 ${meta.bar}`, background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
+                                    <div key={pk} style={{ borderRadius: 8, border: `1px solid ${meta.edge}`, boxShadow: `inset 0 2px 0 ${meta.bar}`, background: "rgba(var(--lift),0.02)", overflow: "hidden" }}>
                                       {/* Caption card header */}
                                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}`, background: meta.band }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2475,7 +2475,7 @@ export default function QueueView({
                                               onBlur={() => saveYoutubeTitle(clip, editYtTitleValue)}
                                               onKeyDown={(e) => { if (e.key === "Enter") saveYoutubeTitle(clip, editYtTitleValue); if (e.key === "Escape") setEditingYtTitle(null); }}
                                               maxLength={100}
-                                              style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 4, padding: "4px 8px", color: T.text, fontSize: 11, fontFamily: T.font, outline: "none" }}
+                                              style={{ flex: 1, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 4, padding: "4px 8px", color: T.text, fontSize: 11, fontFamily: T.font, outline: "none" }}
                                             />
                                           ) : (
                                             <div
@@ -2545,14 +2545,14 @@ export default function QueueView({
                                             // Click anywhere outside the box = save. Escape unmounts the
                                             // textarea without firing blur, so it still cancels cleanly.
                                             onBlur={() => saveCaptionOverride(clip, pk, editCaptionValue)}
-                                            style={{ width: "100%", minHeight: 120, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
+                                            style={{ width: "100%", minHeight: 120, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
                                           />
                                         ) : (
                                           <div
                                             onClick={(e) => { e.stopPropagation(); setEditingCaption({ clipId: clip.id, platform: pk }); setEditCaptionValue(caption); }}
                                             onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
                                             onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
-                                            style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(255,255,255,0.045)", padding: "10px 54px 10px 12px", fontSize: 13, color: T.text, lineHeight: 1.55, cursor: "text", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflow: "hidden", transition: "border-color 0.15s" }}
+                                            style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "10px 54px 10px 12px", fontSize: 13, color: T.text, lineHeight: 1.55, cursor: "text", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflow: "hidden", transition: "border-color 0.15s" }}
                                             title="Click to edit"
                                           >
                                             {caption || <span style={{ color: T.textMuted, fontStyle: "italic" }}>No caption — click to add</span>}
@@ -2627,20 +2627,20 @@ export default function QueueView({
                                                 onKeyDown={(e) => { if (e.key === "Escape") { setEditingYtTags(null); setYtTagsError(null); } }}
                                                 onBlur={() => saveYoutubeTags(clip, editYtTagsValue)}
                                                 placeholder="rocket league, rocket league clips, gaming shorts"
-                                                style={{ width: "100%", minHeight: 56, background: "rgba(255,255,255,0.06)", border: `1px solid ${over ? T.red : T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }}
+                                                style={{ width: "100%", minHeight: 56, background: "rgba(var(--lift),0.06)", border: `1px solid ${over ? T.red : T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }}
                                               />
                                             ) : (
                                               <div
                                                 onClick={(e) => { e.stopPropagation(); setYtTagsError(null); setEditingYtTags(clip.id); setEditYtTagsValue(tagsToText(tags)); }}
                                                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
                                                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
-                                                style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(255,255,255,0.045)", padding: "8px 54px 8px 10px", minHeight: 20, cursor: "text", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", transition: "border-color 0.15s" }}
+                                                style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "8px 54px 8px 10px", minHeight: 20, cursor: "text", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", transition: "border-color 0.15s" }}
                                                 title="Click to edit"
                                               >
                                                 {tags.length === 0 ? (
                                                   <span style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>No tags — click to add</span>
                                                 ) : tags.map((t) => (
-                                                  <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>{t}</span>
+                                                  <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>{t}</span>
                                                 ))}
                                                 <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
                                                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
@@ -2778,7 +2778,7 @@ export default function QueueView({
                             )}
                             <div style={{ flex: 1 }} />
                             {schedAction !== "schedule" && !clip.scheduledAt && (
-                              <button onClick={() => { setSchedAction("schedule"); const sug = autoSuggestSlot(); if (sug) { setSchedDate(sug.date); setSchedHour(sug.hour); setSchedMin(sug.min); } }} disabled={!hasVideoId} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: hasVideoId ? T.textSecondary : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Schedule</button>
+                              <button onClick={() => { setSchedAction("schedule"); const sug = autoSuggestSlot(); if (sug) { setSchedDate(sug.date); setSchedHour(sug.hour); setSchedMin(sug.min); } }} disabled={!hasVideoId} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: hasVideoId ? T.textSecondary : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Schedule</button>
                             )}
                             {!isPub && !isPublishing && (
                               isClipTest(clip) ? (
@@ -2791,7 +2791,7 @@ export default function QueueView({
                                     onClick={() => { if (canPub) pubNow(clip.id); }}
                                     disabled={!canPub}
                                     title={tikBlock || (!hasVideoId ? "Render the clip before publishing." : undefined)}
-                                    style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(255,255,255,0.04)", color: canPub ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
+                                    style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(var(--lift),0.04)", color: canPub ? T.onSolid : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
                                   >Publish Now</button>
                                 );
                               })()
@@ -2811,7 +2811,7 @@ export default function QueueView({
                               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                                 <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "8px 12px", fontSize: 12 }} />
                                 <TimeWheel hour={schedHour} min={schedMin} onHour={setSchedHour} onMin={setSchedMin} date={schedDate} />
-                                <button onClick={() => { if (canSave) scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!canSave} title={schedPast ? "That time has already passed" : undefined} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: canSave ? T.accent : "rgba(255,255,255,0.04)", color: canSave ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
+                                <button onClick={() => { if (canSave) scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!canSave} title={schedPast ? "That time has already passed" : undefined} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: canSave ? T.accent : "rgba(var(--lift),0.04)", color: canSave ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
                                 <button onClick={() => setSchedAction(null)} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                               </div>
                               {schedPast && <div style={{ fontSize: 10, color: T.red, marginTop: 6 }}>That time has already passed — pick a future time.</div>}
@@ -2862,11 +2862,11 @@ export default function QueueView({
           const badge = statusBadge(clip);
           // Game-hue row wash — same recipe as the Projects launch-pad rows.
           const gc = gameColorFor(clip);
-          const rowBg = `radial-gradient(90% 160% at 100% 0%, ${gc}1f 0%, transparent 55%), linear-gradient(100deg, ${gc}1a 0%, ${gc}06 40%, rgba(255,255,255,0.02) 65%)`;
-          const rowBgHover = `linear-gradient(rgba(255,255,255,0.025), rgba(255,255,255,0.025)), ${rowBg}`;
+          const rowBg = `radial-gradient(90% 160% at 100% 0%, ${gc}1f 0%, transparent 55%), linear-gradient(100deg, ${gc}1a 0%, ${gc}06 40%, rgba(var(--lift),0.02) 65%)`;
+          const rowBgHover = `linear-gradient(rgba(var(--lift),0.025), rgba(var(--lift),0.025)), ${rowBg}`;
           // Selected keeps the game hue (stronger wash) instead of snapping to
           // the purple accent; the expanded settings panel stays neutral.
-          const rowBgSel = `radial-gradient(90% 160% at 100% 0%, ${gc}33 0%, transparent 55%), linear-gradient(100deg, ${gc}2b 0%, ${gc}0d 40%, rgba(255,255,255,0.03) 65%)`;
+          const rowBgSel = `radial-gradient(90% 160% at 100% 0%, ${gc}33 0%, transparent 55%), linear-gradient(100deg, ${gc}2b 0%, ${gc}0d 40%, rgba(var(--lift),0.03) 65%)`;
 
           return (
             <div key={clip.id}>
@@ -2877,7 +2877,7 @@ export default function QueueView({
                 onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; setRowActions(e, false); }}
               >
                 {/* Thumbnail */}
-                <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 16 }}>{"\uD83C\uDFAC"}</span>}
                 </div>
                 {/* Title */}
@@ -2900,7 +2900,7 @@ export default function QueueView({
                         onClick={(e) => { e.stopPropagation(); if (!tikBlock) pubNow(clip.id); }}
                         disabled={!!tikBlock}
                         title={tikBlock || undefined}
-                        style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(255,255,255,0.04)" : T.green, color: tikBlock ? T.textMuted : "#0a0b10", fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
+                        style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(var(--lift),0.04)" : T.green, color: tikBlock ? T.textMuted : T.onSolid, fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
                       >Publish</button>
                     );
                   })()}
@@ -2918,10 +2918,10 @@ export default function QueueView({
 
               {/* Expanded detail — reuse same panel structure */}
               {isSel && (
-                <div style={{ padding: "20px 24px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ padding: "20px 24px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
                   <div style={{ display: "flex", gap: 24 }}>
                     <div style={{ width: 120, flexShrink: 0 }}>
-                      <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>}
                       </div>
                     </div>
@@ -2941,7 +2941,7 @@ export default function QueueView({
                           const isOn = (clip.platformToggles || {})[pk] !== false;
                           return (
                             <button key={p.key} onClick={(e) => { e.stopPropagation(); togglePlatform(clip, pk); }}
-                              style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px 4px 6px", borderRadius: 20, border: `1px solid ${isOn ? "rgba(255,255,255,0.12)" : T.border}`, background: isOn ? "rgba(255,255,255,0.06)" : "transparent", opacity: isOn ? 1 : 0.4, cursor: "pointer", transition: "all 0.15s", fontFamily: T.font }}>
+                              style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px 4px 6px", borderRadius: 20, border: `1px solid ${isOn ? "rgba(var(--lift),0.12)" : T.border}`, background: isOn ? "rgba(var(--lift),0.06)" : "transparent", opacity: isOn ? 1 : 0.4, cursor: "pointer", transition: "all 0.15s", fontFamily: T.font }}>
                               <PlatformIcon platform={pk} size={18} />
                               <span style={{ fontSize: 11, fontWeight: 600, color: isOn ? T.text : T.textTertiary }}>{meta.label}</span>
                             </button>
@@ -2966,7 +2966,7 @@ export default function QueueView({
                               onClick={() => { if (canPub) pubNow(clip.id); }}
                               disabled={!canPub}
                               title={tikBlock || (!hasVideoId ? "Render the clip before publishing." : undefined)}
-                              style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(255,255,255,0.04)", color: canPub ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
+                              style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(var(--lift),0.04)", color: canPub ? T.onSolid : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
                             >Publish Now</button>
                           );
                         })()}
@@ -3003,7 +3003,7 @@ export default function QueueView({
               <span style={{ fontSize: 11, fontWeight: 800, fontFamily: T.mono, color: T.green, background: "rgba(52,211,153,0.1)", padding: "1px 7px", borderRadius: 5 }}>{filteredPublished.length}</span>
               <span style={{ fontSize: 11, color: T.textTertiary }}>read-only — copy settings onto a new clip</span>
               <div style={{ flex: 1 }} />
-              <span style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700 }}>{expanded ? "Hide" : "Show"}</span>
+              <span style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700 }}>{expanded ? "Hide" : "Show"}</span>
             </div>
 
             {expanded && (
@@ -3028,7 +3028,7 @@ export default function QueueView({
                   // Noon, not midnight — t.date is a local ISO day and parsing it bare
                   // would land on UTC midnight and read as the day before in EST.
                   const when = t.date ? new Date(`${t.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
-                  const rowBg = `linear-gradient(100deg, ${gc}14 0%, ${gc}05 40%, rgba(255,255,255,0.015) 65%)`;
+                  const rowBg = `linear-gradient(100deg, ${gc}14 0%, ${gc}05 40%, rgba(var(--lift),0.015) 65%)`;
 
                   return (
                     <div key={clip.id} style={{ border: `1px solid ${isOpen ? T.borderHover : T.border}`, borderRadius: 9, background: rowBg, overflow: "hidden" }}>
@@ -3036,7 +3036,7 @@ export default function QueueView({
                         onClick={() => setSelPublished(isOpen ? null : clip.id)}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 12px", cursor: "pointer" }}
                       >
-                        <div style={{ width: 17, flexShrink: 0, aspectRatio: "9/16", borderRadius: 3, overflow: "hidden", background: "rgba(255,255,255,0.04)" }}>
+                        <div style={{ width: 17, flexShrink: 0, aspectRatio: "9/16", borderRadius: 3, overflow: "hidden", background: "rgba(var(--lift),0.04)" }}>
                           {clip.thumbnailPath && (
                             <img src={toFileUrl(clip.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                           )}
@@ -3049,7 +3049,7 @@ export default function QueueView({
                               <PlatformIcon platform={row.platform} size={12} />
                             </span>
                           ) : (
-                            <span key={i} title={row.platform} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 6, opacity: 0.55, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>
+                            <span key={i} title={row.platform} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 6, opacity: 0.55, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}` }}>
                               <PlatformIcon platform={row.platform} size={12} />
                             </span>
                           )
@@ -3067,7 +3067,7 @@ export default function QueueView({
                       )}
 
                       {isOpen && (
-                        <div style={{ borderTop: `1px solid ${T.border}`, background: "rgba(0,0,0,0.16)" }}>
+                        <div style={{ borderTop: `1px solid ${T.border}`, background: "rgba(var(--shade),calc(0.16 * var(--shadeK)))" }}>
                           {/* Provenance, once, for all three blocks below. A recomputed
                               view drifts the moment the game's lists are edited. */}
                           <div style={{ padding: "7px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 10.5, fontWeight: 600, color: snap ? T.green : T.yellow }}>
@@ -3092,7 +3092,7 @@ export default function QueueView({
                             ) : (
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                                 {tags.map((tag) => (
-                                  <span key={tag} style={{ fontSize: 11, color: T.textSecondary, background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px" }}>{tag}</span>
+                                  <span key={tag} style={{ fontSize: 11, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px" }}>{tag}</span>
                                 ))}
                               </div>
                             )}
@@ -3112,7 +3112,7 @@ export default function QueueView({
       <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <SectionLabel>Publish Log</SectionLabel>
-          <button onClick={() => { setShowLogs(!showLogs); if (!showLogs) loadPublishLogs(); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{showLogs ? "Hide" : `Show (${publishLogs.length})`}</button>
+          <button onClick={() => { setShowLogs(!showLogs); if (!showLogs) loadPublishLogs(); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{showLogs ? "Hide" : `Show (${publishLogs.length})`}</button>
         </div>
         {showLogs && (
           <div style={{ marginTop: 12, maxHeight: 300, overflowY: "auto" }}>
@@ -3121,7 +3121,7 @@ export default function QueueView({
               const statusColor = log.status === "success" ? T.green : log.status === "failed" ? T.red : log.status === "uploading" || log.status === "started" ? T.yellow : T.textMuted;
               const time = new Date(log.timestamp).toLocaleString();
               return (
-                <div key={i} style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, marginBottom: 6 }}>
+                <div key={i} style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(var(--lift),0.02)", border: `1px solid ${T.border}`, marginBottom: 6 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                     <span style={{ color: T.text, fontSize: 12, fontWeight: 600, maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.clipTitle || "Unknown clip"}</span>
                     <span style={{ color: statusColor, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>{log.status}</span>

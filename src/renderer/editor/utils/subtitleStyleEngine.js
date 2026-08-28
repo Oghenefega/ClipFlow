@@ -194,6 +194,11 @@ function buildCaptionShadowString(c, scaleFactor) {
     shadow: { on: c.shadowOn, color: c.shadowColor, opacity: c.shadowOpacity, blur: c.shadowBlur, offX: c.shadowOffsetX, offY: c.shadowOffsetY },
     order: c.effectOrder,
   });
+  // #328: literal black, NOT a theme token. This string is also built by
+  // src/main/subtitle-overlay-preload.js, which runs in the overlay window —
+  // a separate document with no [data-theme] root, so var() would resolve to
+  // nothing and the drop shadow would vanish. It is a shadow on caption text
+  // over video anyway; it does not follow the app's chrome.
   return allShadows || `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
 }
 

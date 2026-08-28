@@ -802,7 +802,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
 
         {/* Debug note input popover */}
         {debugNoteOpen && (
-          <div className="absolute top-full right-0 mt-1 bg-[#1a1b26] border border-[#2a2b3a] rounded-lg shadow-xl p-3 z-50" style={{ width: 340 }}>
+          <div className="absolute top-full right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl p-3 z-50" style={{ width: 340 }}>
             <p className="text-xs text-muted-foreground mb-2">
               {debugNoteOpen === "good" ? "What's good about the subtitles?" : "What's wrong with the subtitles?"}
             </p>
@@ -818,7 +818,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
                   <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                     debugChecks[check.id]
                       ? debugNoteOpen === "bad" ? "bg-red-500/30 border-red-500/60" : "bg-green-500/30 border-green-500/60"
-                      : "border-[#2a2b3a] group-hover:border-[#3a3b4a]"
+                      : "border-border group-hover:border-muted-foreground"
                   }`}>
                     {debugChecks[check.id] && <Check className="h-2.5 w-2.5 text-white" />}
                   </div>
@@ -840,7 +840,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onDebugNoteSubmit(); } if (e.key === "Escape") setDebugNoteOpen(false); }}
               placeholder={debugNoteOpen === "bad" ? "Additional notes (optional)..." : "Any extra comments (optional)..."}
               rows={1}
-              className="w-full min-h-[32px] px-3 py-2 text-xs bg-[#0a0b10] border border-[#2a2b3a] rounded-md text-white placeholder:text-muted-foreground/50 focus:outline-none focus:border-purple-500 resize-none overflow-hidden"
+              className="w-full min-h-[32px] px-3 py-2 text-xs bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-purple-500 resize-none overflow-hidden"
             />
             <div className="flex gap-2 mt-2 justify-end">
               <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-muted-foreground" onClick={() => setDebugNoteOpen(false)}>Cancel</Button>
@@ -895,7 +895,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span className="text-[11px] truncate">Not saved — {saveError}</span>
             <button
-              className="text-[11px] font-semibold underline shrink-0 hover:text-white"
+              className="text-[11px] font-semibold underline shrink-0 hover:text-foreground"
               onClick={onSave}
             >
               Retry
@@ -1074,7 +1074,7 @@ function MiniPlayerBar({ onShowTimeline }) {
   return (
     <div
       className="shrink-0 flex items-center h-9 px-3 gap-2 select-none"
-      style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "#131419" }}
+      style={{ borderTop: "1px solid rgba(var(--lift),0.06)", background: "hsl(var(--card))" }}
     >
       {/* Play/Pause */}
       <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground shrink-0" onClick={togglePlay}>
@@ -1178,7 +1178,7 @@ export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = 
   }, []);
 
   return (
-    <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
+    <div className="editor-scope flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
       {/* Top toolbar */}
       <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} renderJob={renderJob} onCancelRenderJob={onCancelRenderJob} onShowShortcuts={showShortcuts} />
@@ -1217,7 +1217,7 @@ export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = 
             className="shrink-0"
             style={{
               height: timelineHeight,
-              borderTop: "1px solid rgba(255,255,255,0.06)",
+              borderTop: "1px solid rgba(var(--lift),0.06)",
             }}
           >
             <TimelinePanelNew />

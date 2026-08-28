@@ -1,51 +1,67 @@
 // ClipFlow Design System — single source of truth
+//
+// #328: the KEYS here are unchanged and the ~23 files that spread them into
+// inline `style={{}}` objects are untouched. What changed is the values: each
+// is now a CSS custom property, resolved from whichever palette is active on
+// <html data-theme>. `var(--x)` is legal anywhere a colour is, inline styles
+// included, so `style={{ color: T.text }}` just works and re-resolves the
+// instant the theme attribute changes — no re-render, no context, no props.
+//
+// The palettes themselves live in ONE file: src/renderer/styles/themes.css.
+// Add a theme there, add its id to THEMES below, add its canvas colour to
+// THEME_CHROME in main.js. Nothing else.
 const theme = {
-  bg: "#0a0b10",
-  surface: "#111218",
-  surfaceHover: "#16171f",
-  border: "rgba(255,255,255,0.06)",
-  borderHover: "rgba(255,255,255,0.12)",
+  bg: "var(--bg)",
+  surface: "var(--surface)",
+  surfaceHover: "var(--surfaceHover)",
+  border: "var(--border)",
+  borderHover: "var(--borderHover)",
 
-  text: "#edeef2",
-  textSecondary: "rgba(255,255,255,0.55)",
-  textTertiary: "rgba(255,255,255,0.32)",
-  textMuted: "rgba(255,255,255,0.16)",
-  labelStrong: "rgba(255,255,255,0.68)",
+  text: "var(--text)",
+  textSecondary: "var(--textSecondary)",
+  textTertiary: "var(--textTertiary)",
+  textMuted: "var(--textMuted)",
+  labelStrong: "var(--labelStrong)",
 
-  accent: "#8b5cf6",
-  accentLight: "#a78bfa",
-  accentDim: "rgba(139,92,246,0.12)",
-  accentBorder: "rgba(139,92,246,0.25)",
-  accentGlow: "rgba(139,92,246,0.06)",
+  accent: "var(--accent)",
+  accentLight: "var(--accentLight)",
+  accentDim: "var(--accentDim)",
+  accentBorder: "var(--accentBorder)",
+  accentGlow: "var(--accentGlow)",
 
-  green: "#34d399",
-  greenDim: "rgba(52,211,153,0.10)",
-  greenBorder: "rgba(52,211,153,0.22)",
+  green: "var(--green)",
+  greenDim: "var(--greenDim)",
+  greenBorder: "var(--greenBorder)",
 
-  yellow: "#fbbf24",
-  yellowDim: "rgba(251,191,36,0.10)",
-  yellowBorder: "rgba(251,191,36,0.22)",
+  yellow: "var(--yellow)",
+  yellowDim: "var(--yellowDim)",
+  yellowBorder: "var(--yellowBorder)",
 
-  red: "#f87171",
-  redDim: "rgba(248,113,113,0.08)",
-  redBorder: "rgba(248,113,113,0.18)",
+  red: "var(--red)",
+  redDim: "var(--redDim)",
+  redBorder: "var(--redBorder)",
 
   // Clip-ladder "rendered / waiting in queue" stage. Deep orange on purpose —
   // at 14x6px dash size a soft orange is indistinguishable from yellow.
-  orange: "#f97316",
-  orangeDim: "rgba(249,115,22,0.10)",
-  orangeBorder: "rgba(249,115,22,0.22)",
+  orange: "var(--orange)",
+  orangeDim: "var(--orangeDim)",
+  orangeBorder: "var(--orangeBorder)",
 
-  cyan: "#22d3ee",
-  cyanDim: "rgba(34,211,238,0.10)",
-  cyanBorder: "rgba(34,211,238,0.22)",
+  cyan: "var(--cyan)",
+  cyanDim: "var(--cyanDim)",
+  cyanBorder: "var(--cyanBorder)",
+
+  // #328: text sitting ON a full-strength accent/green fill (the Queue's
+  // Publish button). NOT the same as T.text — it is the opposite value, so a
+  // light theme's white-on-green stays readable where T.text would vanish.
+  onSolid: "var(--onSolid)",
 
   tiers: {
-    Bronze: "#cd7f44",
-    Silver: "#c4cdd6",
-    Gold: "#f5c542",
-    Platinum: "#6fe3d2",
-    Diamond: "#7cc4ff",
+    Bronze: "var(--tierBronze)",
+    Silver: "var(--tierSilver)",
+    Gold: "var(--tierGold)",
+    Platinum: "var(--tierPlatinum)",
+    Diamond: "var(--tierDiamond)",
   },
 
   radius: {
@@ -60,5 +76,59 @@ const theme = {
   // (dotted zero). Token kept so existing T.mono call sites need no changes.
   mono: "'DM Sans', -apple-system, sans-serif",
 };
+
+// #328: the themes this build ships, in picker order. `blurb` is what the user
+// reads under the swatch in Settings. `swatch` is a preview only — the real
+// colours come from themes.css, and these five are copied from it so a card
+// can paint a theme it is not currently wearing.
+export const THEMES = [
+  {
+    id: "midnight",
+    name: "Midnight",
+    blurb: "The original. Default.",
+    swatch: { bg: "#0a0b10", surface: "#111218", accent: "#8b5cf6", alt: "#34d399", text: "#edeef2" },
+  },
+  {
+    id: "daylight",
+    name: "Daylight",
+    blurb: "Light, for bright rooms.",
+    swatch: { bg: "#f3f4f7", surface: "#ffffff", accent: "#7c3aed", alt: "#0d9463", text: "#14151c" },
+  },
+  {
+    id: "rose",
+    name: "Neon Rose",
+    blurb: "Dark, hot pink.",
+    swatch: { bg: "#120810", surface: "#1c0d18", accent: "#ec4899", alt: "#f9a8d4", text: "#fdeef6" },
+  },
+  {
+    id: "blush",
+    name: "Blush",
+    blurb: "Light pink.",
+    swatch: { bg: "#fdf1f6", surface: "#ffffff", accent: "#db2777", alt: "#be185d", text: "#2a1020" },
+  },
+];
+
+export const DEFAULT_THEME = "midnight";
+
+// The one function that changes the app's theme. Writing the attribute is what
+// repaints every colour in both styling systems; the store call only makes it
+// survive a restart and repaints the native window chrome (see theme:set).
+// `persist: false` is the boot call. The preload has already stamped
+// <html data-theme> from the store, so re-writing it is a no-op — what the
+// boot call is actually for is the <meta name="theme-color">, which ships as
+// Midnight in index.html and would otherwise disagree with the screen until
+// the user opened the picker. Persisting on boot would also mean an IPC write
+// and a native-chrome repaint on every single launch, for nothing.
+export function applyTheme(id, { persist = true } = {}) {
+  const picked = THEMES.find((t) => t.id === id) || THEMES.find((t) => t.id === DEFAULT_THEME);
+  document.documentElement.setAttribute("data-theme", picked.id);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", picked.swatch.bg);
+  if (persist) {
+    // Persists the choice and repaints the native window chrome (the compositor
+    // background and the Windows caption glyphs) — see theme:set in main.js.
+    window.clipflow?.setTheme?.(picked.id);
+  }
+  return picked.id;
+}
 
 export default theme;

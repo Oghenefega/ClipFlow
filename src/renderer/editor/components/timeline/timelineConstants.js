@@ -4,13 +4,18 @@ export const SPEED_OPTIONS = ["0.25x", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "
 
 // ── Professional color palette (DaVinci/Premiere-inspired) ──
 // Caption = blue, Subtitle = lime green, Audio = warm amber/orange
+// #328: the HUES are track identity and are the same in every theme. Only the
+// lightness of text/icons printed on them is a token (--trackTextL /
+// --trackIconL) — an 88%-light label reads on Midnight and disappears on
+// Daylight. The bg/border/selected/hover values are alphas over the canvas,
+// so they already land correctly either way.
 export const TRACK_COLORS = {
   cap: {
     bg: "hsl(217 70% 55% / 0.16)",
     border: "hsl(217 70% 55% / 0.50)",
     selected: "hsl(217 70% 55% / 0.32)",
     hover: "hsl(217 70% 55% / 0.24)",
-    text: "hsl(217 70% 85%)",
+    text: "hsl(217 70% var(--trackTextL))",
     ring: "hsl(217 70% 65%)",
     badge: "hsl(217 70% 50%)",
   },
@@ -19,7 +24,7 @@ export const TRACK_COLORS = {
     border: "hsl(82 75% 45% / 0.45)",
     selected: "hsl(82 75% 45% / 0.28)",
     hover: "hsl(82 75% 45% / 0.20)",
-    text: "hsl(82 75% 82%)",
+    text: "hsl(82 75% var(--trackTextL))",
     ring: "hsl(82 75% 55%)",
     badge: "hsl(82 75% 38%)",
   },
@@ -28,7 +33,7 @@ export const TRACK_COLORS = {
     border: "hsl(25 90% 55% / 0.22)",
     selected: "hsl(25 90% 55% / 0.15)",
     hover: "hsl(25 90% 55% / 0.10)",
-    text: "hsl(25 90% 70%)",
+    text: "hsl(25 90% var(--trackTextDimL))",
     ring: "hsl(25 90% 60% / 0.7)",
     badge: "hsl(25 90% 50%)",
   },
@@ -42,16 +47,16 @@ export const SOUND_COLORS = {
     border: "rgba(20,184,166,0.55)",
     ring: "rgba(45,212,191,0.9)",
     wave: "rgba(94,234,212,0.55)",
-    icon: "hsl(172 66% 70%)",
-    text: "hsl(172 60% 90%)",
+    icon: "hsl(172 66% var(--trackIconL))",
+    text: "hsl(172 60% var(--trackTextL))",
   },
   sfx: {
     bg: "rgba(139,92,246,0.28)",
     border: "rgba(139,92,246,0.65)",
     ring: "rgba(167,139,250,0.95)",
     wave: "rgba(196,181,253,0.6)",
-    icon: "hsl(258 90% 80%)",
-    text: "hsl(258 70% 93%)",
+    icon: "hsl(258 90% var(--trackIconL))",
+    text: "hsl(258 70% var(--trackTextL))",
   },
 };
 
@@ -61,8 +66,8 @@ export const MEDIA_COLORS = {
   bg: "rgba(244,63,94,0.26)",
   border: "rgba(244,63,94,0.6)",
   ring: "rgba(251,113,133,0.95)",
-  icon: "hsl(350 90% 82%)",
-  text: "hsl(350 80% 94%)",
+  icon: "hsl(350 90% var(--trackIconL))",
+  text: "hsl(350 80% var(--trackTextL))",
 };
 
 // ── Playhead & guides ──
@@ -70,10 +75,13 @@ export const PLAYHEAD_COLOR = "#9ca3af";
 export const SNAP_GUIDE_COLOR = "#22d3ee";
 
 // ── Surface colors ──
-export const TIMELINE_BG = "#131419";
-export const RULER_BG = "#0f1014";
-export const RULER_TEXT = "rgba(255,255,255,0.35)";
-export const TRACK_SEPARATOR = "rgba(255,255,255,0.06)";
+// #328: their own tokens rather than --card/--background, so Midnight keeps the
+// exact two values it always had; the ruler stays one step recessed from the
+// track surface in every theme.
+export const TIMELINE_BG = "var(--timelineBg)";
+export const RULER_BG = "var(--rulerBg)";
+export const RULER_TEXT = "rgba(var(--lift),0.35)";
+export const TRACK_SEPARATOR = "rgba(var(--lift),0.06)";
 
 // ── Dimensions ──
 export const RULER_H = 24;

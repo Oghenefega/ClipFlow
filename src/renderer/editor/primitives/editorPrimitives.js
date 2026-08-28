@@ -155,7 +155,7 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
       <span
         onClick={e => { e.stopPropagation(); setOpen(!open); }}
         style={{
-          fontSize: 10, fontFamily: "'DM Sans', -apple-system, sans-serif", color: open ? "#a78bfa" : T.textSecondary,
+          fontSize: 10, fontFamily: "'DM Sans', -apple-system, sans-serif", color: open ? T.accentLight : T.textSecondary,
           padding: "2px 5px", borderRadius: 3, cursor: "pointer",
           background: open ? "rgba(139,92,246,0.1)" : "transparent",
           transition: "background 0.15s",
@@ -171,14 +171,14 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
           position: "absolute", top: "100%", left: -10, zIndex: 50,
           background: "#1a1b22", border: "1px solid rgba(139,92,246,0.4)",
           borderRadius: 6, padding: "8px 10px", minWidth: 180, marginTop: 4,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+          boxShadow: "0 8px 24px rgba(var(--shade),calc(0.6 * var(--shadeK)))",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <input
               value={val}
               onChange={e => { setVal(e.target.value); setSecVal(parseTime(e.target.value)); }}
               style={{
-                width: 60, fontSize: 11, fontFamily: "'DM Sans', -apple-system, sans-serif", color: "#a78bfa",
+                width: 60, fontSize: 11, fontFamily: "'DM Sans', -apple-system, sans-serif", color: T.accentLight,
                 background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)",
                 borderRadius: 3, padding: "3px 5px", outline: "none", textAlign: "center",
               }}
@@ -189,13 +189,13 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
             type="range" min={0} max={(clipDuration || 60) * 10} step={1}
             value={secVal * 10}
             onChange={e => { const s = Number(e.target.value) / 10; setSecVal(s); setVal(fmtTime(s)); }}
-            style={{ width: "100%", height: 3, accentColor: "#a78bfa", cursor: "pointer" }}
+            style={{ width: "100%", height: 3, accentColor: T.accent, cursor: "pointer" }}
           />
           <div style={{ display: "flex", gap: 4, marginTop: 6, justifyContent: "flex-end" }}>
             <button onClick={() => { setOpen(false); setVal(value); }}
               style={{ padding: "3px 8px", fontSize: 10, borderRadius: 3, border: `1px solid ${BD}`, background: "transparent", color: T.textSecondary, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
             <button onClick={() => { setOpen(false); onChange(fmtTime(secVal)); }}
-              style={{ padding: "3px 8px", fontSize: 10, borderRadius: 3, border: "1px solid rgba(139,92,246,0.4)", background: "rgba(139,92,246,0.15)", color: "#a78bfa", cursor: "pointer", fontFamily: T.font }}>Apply</button>
+              style={{ padding: "3px 8px", fontSize: 10, borderRadius: 3, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, cursor: "pointer", fontFamily: T.font }}>Apply</button>
           </div>
         </div>
       )}

@@ -8,7 +8,7 @@ export default function Sidebar({ navItems, activeView, onNavigate }) {
         height: 56,
         flexShrink: 0,
         borderTop: `1px solid ${T.border}`,
-        background: "rgba(10,11,16,0.92)",
+        background: "rgba(var(--bgRgb),0.92)",
         backdropFilter: "blur(12px)",
         display: "flex",
         alignItems: "center",

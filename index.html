@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- #328: data-theme ships on the tag so the markup is never attribute-less.
+     The preload overwrites it with the saved theme at document-start, before
+     the first stylesheet applies — the CSP has no 'unsafe-inline' for scripts,
+     so a boot script here is not an option. -->
+<html lang="en" data-theme="midnight">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0a0b10" />
+    <!-- Kept as the Midnight value; App.js rewrites it whenever the theme changes. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: file: https://*.googleusercontent.com https://yt3.ggpht.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.fbcdn.net https://*.cdninstagram.com https://platform-lookaside.fbsbx.com; media-src 'self' blob: file:; connect-src 'self' file: https://us.i.posthog.com https://us-assets.i.posthog.com https://*.ingest.us.sentry.io; object-src 'none'; base-uri 'self'; form-action 'none';" />
     <link rel="icon" href="./icon.png" />
     <title>Corva</title>
@@ -17,9 +22,16 @@
         box-sizing: border-box;
       }
 
+      /* Both painted from tokens. Until themes.css lands these resolve to
+         nothing and the window's own backgroundColor (set per-theme in
+         main.js) shows through — which is the correct colour already. */
+      html {
+        background: var(--bg);
+      }
+
       body {
-        background: #0a0b10;
-        color: #edeef2;
+        background: var(--bg);
+        color: var(--text);
         font-family: 'DM Sans', -apple-system, sans-serif;
         overflow: hidden;
         -webkit-app-region: no-drag;
@@ -35,11 +47,11 @@
         margin: 4px 0;
       }
       *::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(var(--lift), 0.14);
         border-radius: 3px;
       }
       *::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(var(--lift), 0.26);
       }
       *::-webkit-scrollbar-corner {
         background: transparent;
@@ -52,7 +64,7 @@
       }
 
       /* Scrollbar (Firefox) */
-      * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+      * { scrollbar-width: thin; scrollbar-color: rgba(var(--lift),0.14) transparent; }
 
       /* Disable text selection on UI elements */
       button, [role="button"] {

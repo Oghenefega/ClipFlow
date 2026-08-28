@@ -5,7 +5,14 @@ paths:
 
 # Visual Design Standards
 
-Dark theme. Key tokens in `src/renderer/styles/theme.js`.
+Four themes since #328 — Midnight (dark, default), Daylight (light), Neon Rose
+(dark pink), Blush (light pink). Tokens: `src/renderer/styles/theme.js` for the
+`T` object, whose values are CSS variables resolved from
+`src/renderer/styles/themes.css`. Never hardcode a colour that means "surface",
+"border" or "text" — use `T`, or `rgba(var(--lift), a)` for a subtle tint, which
+flips polarity so one alpha works on both dark and light. Literal colours are
+only for things that are NOT chrome: platform brand, the user's game colours,
+subtitle/caption styling, and anything painted over video frames.
 
 | Element | Standard |
 |---------|----------|
