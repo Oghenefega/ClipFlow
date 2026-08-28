@@ -49,6 +49,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 ## Build & Launch Protocol
 
 After passing the checklist:
+0. **Before ANY dev-profile boot: confirm `%APPDATA%\clipflow-dev\clipflow-tokens.json` is `{}`.** Dev shares the real projectsRoot and the Queue's publish tick fires within a minute of boot — with tokens present, a routine verification boot posts Fega's overdue scheduled clips to his REAL accounts (s214: two clips went out at 1 AM). `dev:seed` re-copies tokens; re-empty after every seed.
 1. `npm run build:renderer` — must complete with zero errors
 2. `npm start` — app must launch (run in background)
 3. Commit with descriptive message
