@@ -27,6 +27,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Notes
 - Verified on the built bundle under the dev profile, not the Vite dev server: all four themes driven through the real Settings picker, a real clip opened in the editor via CDP under each, a restart proving the choice persisted (store read back as `blush`, then `midnight` after a round trip), and screenshots per theme. Dev tokens confirmed as an empty accounts map before every boot.
 - The 42 files edited by scripted sweeps were rewritten in bytes mode to restore CRLF line endings, per the session-215 lesson; `git diff` is unchanged at 742 insertions / 481 deletions.
+- Docs that contradicted the code were corrected: `.claude/rules/ui-standards.md` no longer opens with "Dark theme", and the `clipflow-code-review` checklist's "Radix portals need an explicit `dark` class + hardcoded dark HSL" line — now the opposite of the truth — became a themes check, a light-theme check, and a rule about `var(--...)` never reaching a canvas, the main process or the subtitle-overlay window. Two self-caught lessons distilled into `tasks/lessons.md`.
 
 ## [Unreleased] — 2026-08-28 (session 216) — Settings revamp: a section rail, a search box, and seven sections instead of six
 
