@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.10] — 2026-08-28 (session 219) — alpha.10: streaming mode, themes, and the Settings revamp
+
+### Changed
+- **Version bumped to 0.4.0-alpha.10 and an installer cut.** Promotes everything since alpha.9: the publish scheduler moving into the main process plus streaming mode (#329), so scheduled clips go out with no window open and closing Corva can leave a tray-resident process behind; the theme system (#328) with four themes on a CSS-variable substrate and an Appearance section to pick one; and the Settings revamp (#331) — a section rail, cross-section search, and seven sections instead of six stacked dropdowns.
+
 ## [Unreleased] — 2026-08-28 (session 218) — Lightweight publish mode: the scheduler moves into the main process
 
 ### Added

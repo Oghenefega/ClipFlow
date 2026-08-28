@@ -12,7 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
+    version: "0.4.0-alpha.10",
+    date: "2026-08-28",
     added: [
       "Corva can now keep publishing while you stream. Turn on \"Keep publishing while I stream\" in Settings → Publishing, and closing Corva tucks it into the system tray instead of quitting — your scheduled clips still go out on time, on their own. The window closes for real, so Corva stops holding onto memory and your graphics card while you play. Right-click the tray icon to bring it back, or to quit properly. Leave the setting off and closing Corva quits it, exactly like before.",
       "Corva has themes. Settings has a new Appearance section with four of them: Midnight (the look you already had, still the default), Daylight for bright rooms, Neon Rose (dark, hot pink) and Blush (light pink). Pick one and the whole app repaints instantly — including the editor — and it stays that way next time you open Corva.",
