@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    fixed: [
+      "A batch of colour touches that quietly went missing when themes arrived are back: the yellow and red warning banners have their tint again, the update banner has its purple wash, and the Tracker's auto-posted dots glow like they used to.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.10",
     date: "2026-08-28",
     added: [
