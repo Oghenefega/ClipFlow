@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corva — Queue redesign mock (#325 platform identity + hierarchy, #324 side panel)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32); --textMuted:rgba(255,255,255,0.16);
+    --labelStrong:rgba(255,255,255,0.68);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.25); --accentGlow:rgba(139,92,246,0.06);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBorder:rgba(52,211,153,0.22);
+    --yellow:#fbbf24; --yellowDim:rgba(251,191,36,0.10);
+    --red:#f87171;
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+
+    /* #325 — platform identity. Brand colours picked to READ on the dark theme.
+       TikTok's brand is black (invisible here) so its cyan accent carries it. */
+    --yt:#ff0033;   --ytTint:rgba(255,0,51,0.10);    --ytEdge:rgba(255,0,51,0.30);
+    --tt:#25f4ee;   --ttTint:rgba(37,244,238,0.08);  --ttEdge:rgba(37,244,238,0.26);
+    --ig:#f2588f;   --igTint:rgba(214,41,118,0.10);  --igEdge:rgba(214,41,118,0.30);
+    --fb:#4a9bff;   --fbTint:rgba(24,119,242,0.11);  --fbEdge:rgba(24,119,242,0.32);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:26px 22px 90px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1520px;margin:0 auto}
+  h1{font-size:21px;font-weight:800;letter-spacing:-.4px;margin:0 0 3px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 18px}
+
+  /* ---------- legend / notes ---------- */
+  .legend{border:1px solid var(--accentBorder);background:var(--accentGlow);border-radius:12px;padding:13px 17px;margin-bottom:18px}
+  .legend h3{margin:0 0 7px;font-size:12px;font-weight:800;color:var(--accentLight);letter-spacing:.3px;text-transform:uppercase}
+  .legend ul{margin:0;padding-left:17px}
+  .legend li{font-size:12.5px;color:var(--text2);line-height:1.75}
+  .legend li strong{color:var(--text);font-weight:700}
+  .k{display:inline-block;font-size:10px;font-weight:800;color:var(--accent);background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:20px;padding:1px 8px;margin-right:5px;vertical-align:1px}
+
+  /* ---------- mock controls ---------- */
+  .ctl{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:11px 15px;border:1px dashed var(--borderHover);border-radius:10px;background:rgba(255,255,255,0.015)}
+  .ctl .grp{display:flex;gap:7px;align-items:center}
+  .ctl .cl{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);margin-right:2px}
+  .ctl button{font-family:var(--font);font-size:11.5px;font-weight:700;border-radius:7px;padding:5px 12px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all .15s}
+  .ctl button:hover{border-color:var(--borderHover);color:var(--text)}
+  .ctl button.on{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight)}
+  .ctl .hint{font-size:11px;color:var(--text3);margin-left:auto}
+
+  /* ---------- page grid: queue + right panel (#324) ---------- */
+  .page{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:18px;align-items:start}
+  @media (max-width:1180px){ .page{grid-template-columns:minmax(0,1fr)} .panel{position:static !important} }
+
+  .card{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+  .secLabel{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--text3)}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}
+  .stat{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:11px 14px}
+  .stat .n{font-size:24px;font-weight:800;margin-top:2px;letter-spacing:-.5px}
+
+  /* filter bar */
+  .filters{display:flex;gap:8px;align-items:center;margin-bottom:13px}
+  .sel{font-size:11px;font-weight:600;color:var(--text2);border:1px solid var(--border);background:var(--surface);border-radius:7px;padding:5px 10px}
+
+  /* ---------- queue rows ---------- */
+  .grp-hd{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--border)}
+  .grp-hd .n{font-size:10px;font-weight:800;color:var(--text3);background:rgba(255,255,255,.05);border-radius:20px;padding:1px 8px}
+
+  .row{display:grid;grid-template-columns:22px 40px minmax(0,1fr) 62px 96px 88px 150px;gap:0;padding:9px 14px;align-items:center;border-bottom:1px solid var(--border);cursor:pointer}
+  .row:hover{background:rgba(255,255,255,.02)}
+  .row.sel{background:rgba(139,92,246,.07)}
+  .drag{color:var(--textMuted);font-size:13px}
+  .th{width:30px;height:53px;border-radius:5px;background:linear-gradient(160deg,#3a2a55,#1a2740 60%,#10202e);display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.85}
+  .th.b{background:linear-gradient(160deg,#4a2c1e,#2a1d16 60%,#191013)}
+  .th.c{background:linear-gradient(160deg,#1d3b2a,#132a20 60%,#0f1a15)}
+  /* #325 hierarchy: row title steps up to 13/700, sub-line drops to 10/tertiary */
+  .rt{font-size:13px;font-weight:700;letter-spacing:-.1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rs{font-size:10px;color:var(--text3);margin-top:2px}
+  .gp{font-size:10px;font-weight:800;letter-spacing:.6px;padding:2px 7px;border-radius:5px;white-space:nowrap}
+  .gp.rl{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.28)}
+  .gp.ar{background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.28)}
+  .gp.eo{background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.28)}
+  .icons{display:flex;gap:3px}
+  .badge{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:800;white-space:nowrap}
+  .badge.q{background:var(--accentDim);color:var(--accentLight)}
+  .badge.s{background:var(--yellowDim);color:var(--yellow)}
+  .acts{display:flex;justify-content:flex-end;gap:5px;align-items:center}
+  .btn{font-family:var(--font);font-size:10px;font-weight:800;border-radius:6px;padding:5px 11px;border:none;cursor:pointer}
+  .btn.pub{background:var(--green);color:#0a0b10}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text2);font-weight:700}
+
+  /* ---------- expanded card ---------- */
+  .exp{padding:18px 20px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);display:flex;gap:20px}
+  .bigth{width:104px;flex:0 0 104px;aspect-ratio:9/16;border-radius:10px;background:linear-gradient(160deg,#3a2a55,#1a2740 60%,#10202e);display:flex;align-items:center;justify-content:center;font-size:26px;opacity:.85}
+  .det{flex:1;min-width:0}
+  /* #325 hierarchy step 1: the title is the loudest thing on the card */
+  .ctitle{font-size:20px;font-weight:800;letter-spacing:-.45px;line-height:1.2;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .ctitle .pen{color:var(--text3);flex:0 0 auto}
+  .cmeta{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--text2);margin-bottom:14px}
+  .cmeta .dur{font-weight:700;color:var(--labelStrong)}
+  .cmeta .dot{color:var(--textMuted)}
+
+  .platrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
+  .platrow .pl{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);margin-right:3px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px 4px 6px;border-radius:20px;border:1px solid var(--borderHover);background:rgba(255,255,255,.05);font-size:11.5px;font-weight:700;cursor:pointer}
+  .pill.off{opacity:.35;border-color:var(--border);background:transparent;color:var(--text3)}
+
+  /* platform brand glyphs */
+  .ic{width:17px;height:17px;border-radius:5px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1}
+  .ic.sm{width:15px;height:15px;font-size:9px;border-radius:4px}
+  .ic.yt{background:#ff0033;color:#fff}
+  .ic.tt{background:#000;color:#25f4ee;border:1px solid rgba(255,255,255,.18)}
+  .ic.ig{background:linear-gradient(45deg,#feda75,#d62976 55%,#962fbf);color:#fff}
+  .ic.fb{background:#1877f2;color:#fff}
+
+  /* ---------- #325 platform caption blocks ---------- */
+  .pblocks{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+  .pb{border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.02);overflow:hidden}
+  /* identity = tinted header band + brand-coloured top edge + brand-coloured name.
+     Deliberately NOT a left-edge colour bar. */
+  .pb.yt{border-color:var(--ytEdge);box-shadow:inset 0 2px 0 var(--yt)}
+  .pb.tt{border-color:var(--ttEdge);box-shadow:inset 0 2px 0 var(--tt)}
+  .pb.ig{border-color:var(--igEdge);box-shadow:inset 0 2px 0 #d62976}
+  .pb.fb{border-color:var(--fbEdge);box-shadow:inset 0 2px 0 #1877f2}
+  .pbh{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid var(--border)}
+  .pb.yt .pbh{background:linear-gradient(90deg,var(--ytTint),rgba(255,0,51,0))}
+  .pb.tt .pbh{background:linear-gradient(90deg,var(--ttTint),rgba(37,244,238,0))}
+  .pb.ig .pbh{background:linear-gradient(90deg,rgba(131,58,180,.16),rgba(214,41,118,.11) 45%,rgba(252,176,69,0))}
+  .pb.fb .pbh{background:linear-gradient(90deg,var(--fbTint),rgba(24,119,242,0))}
+  /* #325 hierarchy step 2: the platform name is bold AND brand-coloured */
+  .pbn{font-size:13px;font-weight:800;letter-spacing:-.1px}
+  .pb.yt .pbn{color:var(--yt)} .pb.tt .pbn{color:var(--tt)} .pb.ig .pbn{color:var(--ig)} .pb.fb .pbn{color:var(--fb)}
+  .cust{font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--accent);background:var(--accentDim);padding:1px 7px;border-radius:5px}
+  .cnt{margin-left:auto;font-size:11px;font-weight:700;color:var(--text3)}
+  .cnt.warn{color:var(--yellow)}
+
+  .fld{padding:9px 12px;border-bottom:1px solid var(--border)}
+  .fld:last-child{border-bottom:none}
+  /* #325 hierarchy step 3: labels are small/uppercase/dim — values are big/bright.
+     No more same-size grey wall. */
+  .lbl{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--labelStrong);margin-bottom:5px;display:flex;align-items:center;gap:7px}
+  .lbl .r{margin-left:auto;font-weight:700;letter-spacing:0;text-transform:none;font-size:10.5px;color:var(--text3)}
+  .val{border:1px solid var(--borderHover);border-radius:8px;background:rgba(255,255,255,.045);padding:9px 50px 9px 11px;font-size:13px;color:var(--text);line-height:1.55;position:relative;cursor:text}
+  .val:hover{border-color:var(--accentBorder)}
+  .val .edit{position:absolute;top:7px;right:10px;font-size:10.5px;font-weight:700;color:var(--text3)}
+  .val.oneline{padding:6px 50px 6px 11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inline{display:flex;align-items:center;gap:9px}
+  .inline .lbl{margin-bottom:0;flex:0 0 58px}
+  .tags{display:flex;flex-wrap:wrap;gap:5px}
+  .tag{font-size:11.5px;color:var(--text2);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:5px;padding:2px 7px}
+
+  /* ---------- #324 right panel ---------- */
+  .panel{position:sticky;top:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+  .panel-hd{padding:13px 15px 12px;border-bottom:1px solid var(--border)}
+  .panel-hd h2{margin:0;font-size:14px;font-weight:800;letter-spacing:-.2px}
+  .panel-hd .p2{font-size:11px;color:var(--text3);margin-top:2px}
+  .scope{display:flex;align-items:center;gap:8px;padding:9px 15px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+  .scope .from{font-size:10.5px;color:var(--text3)}
+  .psec{border-bottom:1px solid var(--border)}
+  .psech{display:flex;align-items:center;gap:7px;padding:9px 15px}
+  .psec.yt .psech{background:linear-gradient(90deg,var(--ytTint),rgba(255,0,51,0))}
+  .psech .nm{font-size:12.5px;font-weight:800}
+  .psec.yt .psech .nm{color:var(--yt)}
+  .psech .r{margin-left:auto;display:flex;gap:5px}
+  .pfld{padding:0 15px 11px}
+  .pfld .lbl{margin-bottom:5px}
+  .desc{border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.03);padding:9px 11px;font-size:12px;color:var(--text2);line-height:1.6;max-height:96px;overflow:hidden;position:relative;white-space:pre-wrap}
+  .desc::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(180deg,rgba(17,18,24,0),var(--surface))}
+
+  .otherp{padding:11px 15px}
+  .otherp .hd{display:flex;align-items:center;margin-bottom:9px}
+  .otherp .hd .t{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--labelStrong)}
+  .scopetag{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:.4px;padding:1px 8px;border-radius:20px;border:1px solid var(--border);color:var(--text3);background:rgba(255,255,255,.03)}
+  .tpl{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+  .tpl:last-child{border-bottom:none}
+  .tpl .nm{font-size:11.5px;font-weight:800;flex:0 0 auto}
+  .tpl.tt .nm{color:var(--tt)} .tpl.ig .nm{color:var(--ig)} .tpl.fb .nm{color:var(--fb)}
+  .tpl .tv{font-size:11.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+  .tpl .st{font-size:9px;font-weight:800;letter-spacing:.4px;padding:1px 6px;border-radius:4px;flex:0 0 auto}
+  .st.global{color:var(--text3);background:rgba(255,255,255,.04);border:1px solid var(--border)}
+  .st.custom{color:var(--accent);background:var(--accentDim)}
+  .note{font-size:10.5px;color:var(--text3);line-height:1.55;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+
+  .reveal{width:100%;display:flex;align-items:center;gap:8px;padding:11px 15px;border:none;border-top:1px solid var(--border);background:rgba(255,255,255,.015);color:var(--text2);font-family:var(--font);font-size:11.5px;font-weight:700;cursor:pointer;text-align:left}
+  .reveal:hover{background:rgba(255,255,255,.035);color:var(--text)}
+  .reveal .car{color:var(--text3);font-size:10px;transition:transform .15s}
+  .reveal.open .car{transform:rotate(90deg)}
+  .reveal .c{margin-left:auto;font-size:10px;font-weight:800;color:var(--text3);background:rgba(255,255,255,.05);border-radius:20px;padding:1px 8px}
+  .others{display:none;border-top:1px solid var(--border)}
+  .others.show{display:block}
+  .og{display:flex;align-items:center;gap:8px;padding:9px 15px;border-bottom:1px solid var(--border);cursor:pointer}
+  .og:hover{background:rgba(255,255,255,.025)}
+  .og .meta{font-size:10.5px;color:var(--text3);margin-left:auto}
+  .addg{display:block;width:100%;padding:9px 15px;border:none;background:transparent;color:var(--accentLight);font-family:var(--font);font-size:11.5px;font-weight:700;cursor:pointer;text-align:left}
+
+  .empty{padding:26px 18px;text-align:center}
+  .empty .e1{font-size:12.5px;color:var(--text2);font-weight:600}
+  .empty .e2{font-size:11px;color:var(--text3);margin-top:5px;line-height:1.6}
+
+  .hide{display:none !important}
+  .cmp{margin-top:26px;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:15px 18px}
+  .cmp h3{margin:0 0 9px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--accentLight)}
+  .cmp p{font-size:12.5px;color:var(--text2);line-height:1.7;margin:0 0 9px}
+  .cmp p:last-child{margin-bottom:0}
+  .cmp b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Queue redesign — mock</h1>
+  <p class="sub">#325 platform colour identity + text hierarchy &nbsp;·&nbsp; #324 Captions &amp; Descriptions as a right-side panel scoped to the selected clip's game</p>
+
+  <div class="legend">
+    <h3>What changes</h3>
+    <ul>
+      <li><span class="k">#325</span><strong>Each platform block carries its brand</strong> — tinted header band, brand-coloured top edge and platform name. TikTok uses its cyan (its black is invisible on the dark theme), YouTube red, Instagram magenta-gradient, Facebook blue. <strong>No left-edge colour bars.</strong></li>
+      <li><span class="k">#325</span><strong>Three type levels instead of one</strong> — clip title 20px/800 (was 17), labels 10px uppercase dim, values 13px bright. The row title also steps 12→13/700 so the list scans.</li>
+      <li><span class="k">#324</span><strong>Captions &amp; Descriptions moves to a sticky right panel</strong> — no scrolling past the Publish Log. It follows the selected clip's game; other games sit behind one reveal button.</li>
+      <li><span class="k">density</span>Nothing grew. Row padding 10→9, thumbnails 34→30, blocks keep their existing paddings — the extra weight comes from contrast, not size.</li>
+    </ul>
+  </div>
+
+  <div class="ctl">
+    <div class="grp">
+      <span class="cl">Selected clip</span>
+      <button class="on" data-sel="rl">Rocket League clip</button>
+      <button data-sel="ar">ARC Raiders clip</button>
+      <button data-sel="none">Nothing selected</button>
+    </div>
+    <div class="grp">
+      <span class="cl">TikTok / IG / FB captions</span>
+      <button class="on" data-mode="a">A · stay global</button>
+      <button data-mode="b">B · per-game + fallback</button>
+    </div>
+    <span class="hint">Click through both — the decision is at the bottom of the page.</span>
+  </div>
+
+  <div class="page">
+    <!-- ================= LEFT: queue ================= -->
+    <div>
+      <div class="stats">
+        <div class="stat"><div class="secLabel">Unscheduled</div><div class="n" style="color:var(--accentLight)">6</div></div>
+        <div class="stat"><div class="secLabel">Scheduled</div><div class="n" style="color:var(--yellow)">4</div></div>
+        <div class="stat"><div class="secLabel">Published Today</div><div class="n" style="color:var(--green)">2</div></div>
+        <div class="stat"><div class="secLabel">Failed</div><div class="n" style="color:var(--red)">0</div></div>
+      </div>
+
+      <div class="filters">
+        <span class="secLabel">Filter</span>
+        <span class="sel">All &nbsp;⌄</span>
+        <span class="sel">All games &nbsp;⌄</span>
+      </div>
+
+      <div class="card">
+        <div class="grp-hd"><span class="secLabel">Unscheduled</span><span class="n">6</span></div>
+
+        <!-- collapsed row -->
+        <div class="row">
+          <div class="drag">☰</div>
+          <div class="th b">🎮</div>
+          <div style="min-width:0;padding-right:8px">
+            <div class="rt">Egging On but the physics gave up</div>
+            <div class="rs">0:38 · Stream 08-24</div>
+          </div>
+          <div><span class="gp eo">EO</span></div>
+          <div class="icons"><span class="ic sm yt">▶</span><span class="ic sm tt">♪</span><span class="ic sm ig">◎</span><span class="ic sm fb">f</span></div>
+          <div><span class="badge q">Queued</span></div>
+          <div class="acts"><button class="btn pub">Publish</button></div>
+        </div>
+
+        <!-- ===== SELECTED + EXPANDED (Rocket League) ===== -->
+        <div id="row-rl">
+          <div class="row sel">
+            <div class="drag">☰</div>
+            <div class="th">🎮</div>
+            <div style="min-width:0;padding-right:8px">
+              <div class="rt">This save should not have worked</div>
+              <div class="rs">0:24 · Stream 08-26</div>
+            </div>
+            <div><span class="gp rl">RL</span></div>
+            <div class="icons"><span class="ic sm yt">▶</span><span class="ic sm tt">♪</span><span class="ic sm ig">◎</span><span class="ic sm fb">f</span></div>
+            <div><span class="badge q">Queued</span></div>
+            <div class="acts"><button class="btn pub">Publish</button></div>
+          </div>
+
+          <div class="exp">
+            <div class="bigth">🎮</div>
+            <div class="det">
+              <div class="ctitle">This save should not have worked <span class="pen">✎</span></div>
+              <div class="cmeta">
+                <span class="dur">0:24</span><span class="dot">·</span>
+                <span class="gp rl">ROCKET LEAGUE</span><span class="dot">·</span>
+                <span>Stream 08-26</span>
+              </div>
+
+              <div class="platrow">
+                <span class="pl">Platforms</span>
+                <span class="pill"><span class="ic yt">▶</span>YouTube</span>
+                <span class="pill"><span class="ic tt">♪</span>TikTok</span>
+                <span class="pill"><span class="ic ig">◎</span>Instagram</span>
+                <span class="pill off"><span class="ic fb">f</span>Facebook</span>
+              </div>
+
+              <div class="pblocks">
+                <!-- YouTube -->
+                <div class="pb yt">
+                  <div class="pbh">
+                    <span class="ic yt">▶</span><span class="pbn">YouTube</span>
+                    <span class="cnt">412/5000</span>
+                  </div>
+                  <div class="fld inline">
+                    <div class="lbl">Title</div>
+                    <div class="val oneline" style="flex:1">This save should not have worked <span class="edit">✎ Edit</span></div>
+                    <span class="cnt" style="margin-left:0">32/100</span>
+                  </div>
+                  <div class="fld inline">
+                    <div class="lbl">Privacy</div>
+                    <div style="font-size:12.5px;font-weight:700;color:var(--text)">Public &nbsp;⌄</div>
+                  </div>
+                  <div class="fld">
+                    <div class="lbl">Description</div>
+                    <div class="val">This save should not have worked&#10;&#10;#rocketleague #rocketleagueclips #gaming<span class="edit">✎ Edit</span></div>
+                  </div>
+                  <div class="fld">
+                    <div class="lbl">Tags <span class="r">138/500</span></div>
+                    <div class="tags"><span class="tag">rocket league</span><span class="tag">rocket league clips</span><span class="tag">rl shorts</span><span class="tag">gaming shorts</span></div>
+                  </div>
+                </div>
+
+                <!-- TikTok -->
+                <div class="pb tt">
+                  <div class="pbh">
+                    <span class="ic tt">♪</span><span class="pbn">TikTok</span>
+                    <span class="cust">CUSTOM</span>
+                    <span class="cnt">96/2200</span>
+                  </div>
+                  <div class="fld">
+                    <div class="lbl">Caption</div>
+                    <div class="val">no way this went in 😭 #rocketleague #fyp<span class="edit">✎ Edit</span></div>
+                  </div>
+                  <div class="fld inline">
+                    <div class="lbl">Privacy</div>
+                    <div style="font-size:12.5px;font-weight:700;color:var(--text)">Public &nbsp;⌄</div>
+                  </div>
+                </div>
+
+                <!-- Instagram -->
+                <div class="pb ig">
+                  <div class="pbh">
+                    <span class="ic ig">◎</span><span class="pbn">Instagram</span>
+                    <span class="cnt">88/2200</span>
+                  </div>
+                  <div class="fld">
+                    <div class="lbl">Caption</div>
+                    <div class="val">This save should not have worked #rocketleague #reels<span class="edit">✎ Edit</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:7px">
+                <button class="btn ghost">Schedule</button>
+                <button class="btn pub">Publish now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SELECTED + EXPANDED (ARC Raiders) — swapped by the toolbar ===== -->
+        <div id="row-ar" class="hide">
+          <div class="row sel">
+            <div class="drag">☰</div>
+            <div class="th c">🎮</div>
+            <div style="min-width:0;padding-right:8px">
+              <div class="rt">Third-partied at the extraction point</div>
+              <div class="rs">0:41 · Stream 08-25</div>
+            </div>
+            <div><span class="gp ar">AR</span></div>
+            <div class="icons"><span class="ic sm yt">▶</span><span class="ic sm tt">♪</span><span class="ic sm ig">◎</span><span class="ic sm fb">f</span></div>
+            <div><span class="badge s">Aug 29, 6:00 PM</span></div>
+            <div class="acts"><button class="btn ghost">Reschedule</button></div>
+          </div>
+
+          <div class="exp">
+            <div class="bigth" style="background:linear-gradient(160deg,#4a2c1e,#2a1d16 60%,#191013)">🎮</div>
+            <div class="det">
+              <div class="ctitle">Third-partied at the extraction point <span class="pen">✎</span></div>
+              <div class="cmeta">
+                <span class="dur">0:41</span><span class="dot">·</span>
+                <span class="gp ar">ARC RAIDERS</span><span class="dot">·</span>
+                <span>Stream 08-25</span>
+              </div>
+
+              <div class="platrow">
+                <span class="pl">Platforms</span>
+                <span class="pill"><span class="ic yt">▶</span>YouTube</span>
+                <span class="pill"><span class="ic tt">♪</span>TikTok</span>
+                <span class="pill off"><span class="ic ig">◎</span>Instagram</span>
+                <span class="pill"><span class="ic fb">f</span>Facebook</span>
+              </div>
+
+              <div class="pblocks">
+                <div class="pb yt">
+                  <div class="pbh"><span class="ic yt">▶</span><span class="pbn">YouTube</span><span class="cnt">388/5000</span></div>
+                  <div class="fld inline">
+                    <div class="lbl">Title</div>
+                    <div class="val oneline" style="flex:1">Third-partied at the extraction point <span class="edit">✎ Edit</span></div>
+                    <span class="cnt" style="margin-left:0">36/100</span>
+                  </div>
+                  <div class="fld">
+                    <div class="lbl">Description</div>
+                    <div class="val">Third-partied at the extraction point&#10;&#10;#arcraiders #extractionshooter<span class="edit">✎ Edit</span></div>
+                  </div>
+                  <div class="fld">
+                    <div class="lbl">Tags <span class="r">86/500</span></div>
+                    <div class="tags"><span class="tag">arc raiders</span><span class="tag">arc raiders clips</span><span class="tag">extraction shooter</span></div>
+                  </div>
+                </div>
+
+                <div class="pb tt">
+                  <div class="pbh"><span class="ic tt">♪</span><span class="pbn">TikTok</span><span class="cnt">74/2200</span></div>
+                  <div class="fld">
+                    <div class="lbl">Caption</div>
+                    <div class="val">Third-partied at the extraction point #arcraiders #fyp<span class="edit">✎ Edit</span></div>
+                  </div>
+                </div>
+
+                <div class="pb fb">
+                  <div class="pbh"><span class="ic fb">f</span><span class="pbn">Facebook</span><span class="cnt">37/63206</span></div>
+                  <div class="fld">
+                    <div class="lbl">Caption</div>
+                    <div class="val">Third-partied at the extraction point<span class="edit">✎ Edit</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:7px">
+                <button class="btn ghost">Reschedule</button>
+                <button class="btn pub">Publish now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- another collapsed row -->
+        <div class="row">
+          <div class="drag">☰</div>
+          <div class="th c">🎮</div>
+          <div style="min-width:0;padding-right:8px">
+            <div class="rt">Deadline Delivery, but I deliver nothing</div>
+            <div class="rs">0:52 · Stream 08-23</div>
+          </div>
+          <div><span class="gp ar">DD</span></div>
+          <div class="icons"><span class="ic sm yt">▶</span><span class="ic sm tt">♪</span><span class="ic sm ig">◎</span><span class="ic sm fb">f</span></div>
+          <div><span class="badge q">Queued</span></div>
+          <div class="acts"><button class="btn pub">Publish</button></div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px" class="card">
+        <div class="grp-hd"><span class="secLabel">Publish Log</span><span style="margin-left:auto"><button class="btn ghost">Show (24)</button></span></div>
+      </div>
+    </div>
+
+    <!-- ================= RIGHT: #324 panel ================= -->
+    <div class="panel">
+      <div class="panel-hd">
+        <h2>Captions &amp; Descriptions</h2>
+        <div class="p2">Templates the queue publishes from</div>
+      </div>
+
+      <!-- scoped: RL -->
+      <div id="pan-rl">
+        <div class="scope"><span class="gp rl">ROCKET LEAGUE</span><span class="from">from the selected clip</span></div>
+
+        <div class="psec yt">
+          <div class="psech">
+            <span class="ic yt">▶</span><span class="nm">YouTube</span>
+            <span class="r"><button class="btn ghost">Edit</button><button class="btn ghost">Copy</button></span>
+          </div>
+          <div class="pfld">
+            <div class="lbl">Title</div>
+            <div class="val oneline">Rocket League Shorts</div>
+          </div>
+          <div class="pfld">
+            <div class="lbl">Description <span class="r">412 chars</span></div>
+            <div class="desc">{title}
+
+Rocket League clips from my streams — new Shorts daily.
+
+Live {schedule} on Twitch.
+
+#{gametitle} #rocketleagueclips #gaming #shorts</div>
+          </div>
+          <div class="pfld">
+            <div class="lbl">Tags <span class="r">138/500</span></div>
+            <div class="tags"><span class="tag">rocket league</span><span class="tag">rocket league clips</span><span class="tag">rl shorts</span><span class="tag">gaming shorts</span></div>
+          </div>
+        </div>
+
+        <div class="psec otherp">
+          <div class="hd">
+            <span class="t">Other platforms</span>
+            <span class="scopetag mode-a">GLOBAL · ALL GAMES</span>
+            <span class="scopetag mode-b hide" style="color:var(--accentLight);border-color:var(--accentBorder);background:var(--accentDim)">ROCKET LEAGUE</span>
+          </div>
+          <div class="tpl tt">
+            <span class="ic sm tt">♪</span><span class="nm">TikTok</span>
+            <span class="tv">{title} #fyp #{gametitle}</span>
+            <span class="st global mode-b hide">GLOBAL</span>
+            <button class="btn ghost">Edit</button>
+          </div>
+          <div class="tpl ig">
+            <span class="ic sm ig">◎</span><span class="nm">Instagram</span>
+            <span class="tv">{title} #reels #{gametitle}</span>
+            <span class="st custom mode-b hide">CUSTOM</span>
+            <button class="btn ghost">Edit</button>
+          </div>
+          <div class="tpl fb">
+            <span class="ic sm fb">f</span><span class="nm">Facebook</span>
+            <span class="tv">{title}</span>
+            <span class="st global mode-b hide">GLOBAL</span>
+            <button class="btn ghost">Edit</button>
+          </div>
+          <div class="note mode-a">These three are one template each, shared by every game — <b style="color:var(--text2)">#{gametitle}</b> already fills in the right hashtag per clip.</div>
+          <div class="note mode-b hide">Each game can override these. Anything marked <b style="color:var(--text3)">GLOBAL</b> falls through to the shared template — edit it here and it becomes <b style="color:var(--accentLight)">CUSTOM</b> for Rocket League only.</div>
+        </div>
+      </div>
+
+      <!-- scoped: AR -->
+      <div id="pan-ar" class="hide">
+        <div class="scope"><span class="gp ar">ARC RAIDERS</span><span class="from">from the selected clip</span></div>
+
+        <div class="psec yt">
+          <div class="psech">
+            <span class="ic yt">▶</span><span class="nm">YouTube</span>
+            <span class="r"><button class="btn ghost">Edit</button><button class="btn ghost">Copy</button></span>
+          </div>
+          <div class="pfld">
+            <div class="lbl">Title</div>
+            <div class="val oneline">ARC Raiders Shorts</div>
+          </div>
+          <div class="pfld">
+            <div class="lbl">Description <span class="r">388 chars</span></div>
+            <div class="desc">{title}
+
+ARC Raiders runs from my streams — extractions, robots, regret.
+
+Live {schedule} on Twitch.
+
+#{gametitle} #arcraidersclips #extractionshooter</div>
+          </div>
+          <div class="pfld">
+            <div class="lbl">Tags <span class="r">86/500</span></div>
+            <div class="tags"><span class="tag">arc raiders</span><span class="tag">arc raiders clips</span><span class="tag">extraction shooter</span></div>
+          </div>
+        </div>
+
+        <div class="psec otherp">
+          <div class="hd">
+            <span class="t">Other platforms</span>
+            <span class="scopetag mode-a">GLOBAL · ALL GAMES</span>
+            <span class="scopetag mode-b hide" style="color:var(--accentLight);border-color:var(--accentBorder);background:var(--accentDim)">ARC RAIDERS</span>
+          </div>
+          <div class="tpl tt"><span class="ic sm tt">♪</span><span class="nm">TikTok</span><span class="tv">{title} #fyp #{gametitle}</span><span class="st global mode-b hide">GLOBAL</span><button class="btn ghost">Edit</button></div>
+          <div class="tpl ig"><span class="ic sm ig">◎</span><span class="nm">Instagram</span><span class="tv">{title} #reels #{gametitle}</span><span class="st global mode-b hide">GLOBAL</span><button class="btn ghost">Edit</button></div>
+          <div class="tpl fb"><span class="ic sm fb">f</span><span class="nm">Facebook</span><span class="tv">{title}</span><span class="st global mode-b hide">GLOBAL</span><button class="btn ghost">Edit</button></div>
+          <div class="note mode-a">These three are one template each, shared by every game — <b style="color:var(--text2)">#{gametitle}</b> already fills in the right hashtag per clip.</div>
+          <div class="note mode-b hide">Each game can override these. Anything marked <b style="color:var(--text3)">GLOBAL</b> falls through to the shared template — edit it here and it becomes <b style="color:var(--accentLight)">CUSTOM</b> for ARC Raiders only.</div>
+        </div>
+      </div>
+
+      <!-- nothing selected -->
+      <div id="pan-none" class="hide">
+        <div class="empty">
+          <div class="e1">No clip selected</div>
+          <div class="e2">Pick a clip in the queue and its game's<br>captions land here. Or open any game below.</div>
+        </div>
+      </div>
+
+      <!-- reveal: other games -->
+      <button class="reveal" id="revealBtn"><span class="car">▶</span> Other games <span class="c" id="revealCount">2</span></button>
+      <div class="others" id="others">
+        <div class="og" data-go="rl"><span class="gp rl">RL</span><span style="font-size:12px;font-weight:700">Rocket League</span><span class="meta">4 tags</span></div>
+        <div class="og" data-go="ar"><span class="gp ar">AR</span><span style="font-size:12px;font-weight:700">ARC Raiders</span><span class="meta">3 tags</span></div>
+        <div class="og"><span class="gp eo">EO</span><span style="font-size:12px;font-weight:700">Egging On</span><span class="meta">no tags</span></div>
+        <button class="addg">+ Add a game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= the decision ================= -->
+  <div class="cmp">
+    <h3>The one decision I need from you</h3>
+    <p><b>TikTok, Instagram and Facebook captions are one template each, shared by every game.</b> Only YouTube is stored per game. So when the panel says "Rocket League", those three aren't actually Rocket League's — they're everyone's.</p>
+    <p><b>Option A — leave them global (my recommendation).</b> The panel labels them <b>GLOBAL · ALL GAMES</b> so nothing is pretending. You keep 3 templates instead of 9, and <b>#{gametitle}</b> already swaps the hashtag per clip, so a Rocket League post and an ARC Raiders post already come out different. Nothing in storage changes, nothing can break on old clips. This is a labelling job.</p>
+    <p><b>Option B — make them per-game with a global fallback.</b> Every game can override any of the three; unset ones stay marked GLOBAL and fall through. More power, but it's a storage change (new shape under caption templates + a migration), it touches the publish path, and it turns 3 templates you maintain into up to 12. It also overlaps #290/#287/#291, which are their own untangling.</p>
+    <p>I'd ship <b>A</b> this session and file <b>B</b> as its own issue if you ever hit a game that genuinely needs a different TikTok caption. Say "B" and I'll build B instead — it's roughly one extra session, not one extra hour.</p>
+  </div>
+</div>
+
+<script>
+  var sel = "rl", mode = "a";
+
+  function apply(){
+    ["rl","ar","none"].forEach(function(k){
+      var row = document.getElementById("row-" + k);
+      if (row) row.classList.toggle("hide", k !== sel);
+      document.getElementById("pan-" + k).classList.toggle("hide", k !== sel);
+    });
+    // with nothing selected the reveal opens by itself — every game is one click away
+    var others = document.getElementById("others");
+    var btn = document.getElementById("revealBtn");
+    if (sel === "none") { others.classList.add("show"); btn.classList.add("open"); document.getElementById("revealCount").textContent = "3"; }
+    else { document.getElementById("revealCount").textContent = "2"; }
+
+    document.querySelectorAll(".mode-a").forEach(function(e){ e.classList.toggle("hide", mode !== "a"); });
+    document.querySelectorAll(".mode-b").forEach(function(e){ e.classList.toggle("hide", mode !== "b"); });
+  }
+
+  document.querySelectorAll("[data-sel]").forEach(function(b){
+    b.addEventListener("click", function(){
+      sel = b.dataset.sel;
+      document.querySelectorAll("[data-sel]").forEach(function(x){ x.classList.toggle("on", x === b); });
+      apply();
+    });
+  });
+  document.querySelectorAll("[data-mode]").forEach(function(b){
+    b.addEventListener("click", function(){
+      mode = b.dataset.mode;
+      document.querySelectorAll("[data-mode]").forEach(function(x){ x.classList.toggle("on", x === b); });
+      apply();
+    });
+  });
+  document.getElementById("revealBtn").addEventListener("click", function(){
+    document.getElementById("others").classList.toggle("show");
+    this.classList.toggle("open");
+  });
+  document.querySelectorAll("[data-go]").forEach(function(g){
+    g.addEventListener("click", function(){
+      sel = g.dataset.go;
+      document.querySelectorAll("[data-sel]").forEach(function(x){ x.classList.toggle("on", x.dataset.sel === sel); });
+      apply();
+    });
+  });
+
+  apply();
+</script>
+</body>
+</html>

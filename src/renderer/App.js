@@ -1045,7 +1045,9 @@ export default function App() {
           </div>
         </div>
         <div style={tabPaneStyle(view === "queue")}>
-          <div style={{ padding: "32px 40px", maxWidth: 1120, margin: "0 auto" }}>
+          {/* #324: the Queue is now two columns (list + Captions panel), so it
+              gets a wider ceiling than the 1120 the single column needed. */}
+          <div style={{ padding: "32px 40px", maxWidth: 1520, margin: "0 auto" }}>
             <QueueView
               allClips={allClips}
               localProjects={localProjects}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
+import PLATFORM_BRAND from "../styles/platformBrand";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, CopyIconButton, extractGameTag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
 import ImportReviewModal from "../components/ImportReviewModal";
@@ -248,12 +249,19 @@ function SortableRow({ id, children }) {
 // ── Phase 2: Per-platform control constants ──
 const PLATFORM_CHAR_LIMITS = { tiktok: 2200, instagram: 2200, facebook: 63206, youtube_title: 100, youtube_desc: 5000 };
 const PLATFORM_KEYS = ["tiktok", "instagram", "facebook", "youtube"];
+// `bg`/`border` describe the solid brand chip; the spread adds the block dressing
+// (#325) — name colour, 2px top edge, border and header wash. See platformBrand.js.
 const PLATFORM_META = {
-  tiktok:    { label: "TikTok",    abbr: "TT", bg: "#000",     border: "rgba(255,255,255,0.15)" },
-  instagram: { label: "Instagram", abbr: "IG", bg: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)", border: "none" },
-  facebook:  { label: "Facebook",  abbr: "FB", bg: "#1877f2",  border: "none" },
-  youtube:   { label: "YouTube",   abbr: "YT", bg: "#c4302b",  border: "none" },
+  tiktok:    { label: "TikTok",    abbr: "TT", bg: "#000",     border: "rgba(255,255,255,0.15)", ...PLATFORM_BRAND.tiktok },
+  instagram: { label: "Instagram", abbr: "IG", bg: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)", border: "none", ...PLATFORM_BRAND.instagram },
+  facebook:  { label: "Facebook",  abbr: "FB", bg: "#1877f2",  border: "none", ...PLATFORM_BRAND.facebook },
+  youtube:   { label: "YouTube",   abbr: "YT", bg: "#c4302b",  border: "none", ...PLATFORM_BRAND.youtube },
 };
+
+// #325: the label voice for every field inside a queue card — small, uppercase,
+// wide-tracked, dim. Values carry the brightness instead. One object so a label
+// can never drift back into looking like a value.
+const FIELD_LABEL = { fontSize: 10, fontWeight: 800, letterSpacing: 0.7, color: T.labelStrong, textTransform: "uppercase" };
 
 // Human-friendly labels for TikTok privacy_level enum values returned by creator_info.
 // Used in the per-clip TikTok options panel dropdown.
@@ -281,7 +289,7 @@ const PUBLISHED_LIMIT = 20;
 const ReadOnlyField = ({ label, value, multiline }) => (
   <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>{label}</div>
+      <div style={FIELD_LABEL}>{label}</div>
       {!!value && <CopyIconButton value={value} title={`Copy ${label.toLowerCase()}`} />}
     </div>
     <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(255,255,255,0.03)", padding: "8px 11px", fontSize: 13, color: T.textSecondary, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: multiline ? 200 : undefined, overflowY: multiline ? "auto" : undefined }}>
@@ -1941,6 +1949,24 @@ export default function QueueView({
     return out;
   }, [trackerData, allClips, projectInfo]);
 
+  // #324: the Captions panel follows the selected clip's game. Resolution goes
+  // through resolveYtGameKey — the same match the publish path uses — so the
+  // panel can never show a different game's description than the one that would
+  // actually go out. `name` prefers the ytDescriptions key that exists today and
+  // falls back to the gamesDb display name, which is how a game with no
+  // description yet still gets a scoped (empty) panel instead of a dead one.
+  const scopeGame = useMemo(() => {
+    if (!selClip) return null;
+    const clip = approved.find((c) => c.id === selClip) || publishedClips.find((c) => c.id === selClip);
+    if (!clip) return null;
+    const { gameTag, game, key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
+    const name = key || game?.name || null;
+    if (!name) return null;
+    const tag = (game?.tag || gameTag || name).toUpperCase();
+    return { name, tag, color: gameColorFor(clip) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selClip, approved, publishedClips, ytDescriptions, gamesDb, projectInfo]);
+
   // Phase 5: Collect unique game tags for filter (lowercased — clip.gameTag is canonical)
   const gameTagSet = useMemo(() => {
     const s = new Set();
@@ -2034,6 +2060,13 @@ export default function QueueView({
           </div>
         </div>
       )}
+
+      {/* #324: queue on the left, Captions & Descriptions pinned on the right.
+          `minmax(0,1fr)` (not `1fr`) is load-bearing — the queue rows are full of
+          nowrap/ellipsis text that would otherwise push the track wider than the
+          window and shove the panel off-screen. */}
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 372px", gap: 18, alignItems: "start" }}>
+        <div style={{ minWidth: 0 }}>
 
       {/* Stats bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
@@ -2268,7 +2301,7 @@ export default function QueueView({
                     </div>
                     {/* Title + sub */}
                     <div style={{ minWidth: 0, paddingRight: 8 }}>
-                      <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
+                      <div style={{ color: T.text, fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
                       <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2 }}>{durationStr}{projName ? ` \u00B7 ${projName}` : ""}</div>
                     </div>
                     {/* Game tag */}
@@ -2339,14 +2372,15 @@ export default function QueueView({
                               onChange={(e) => setEditTitleValue(e.target.value)}
                               onBlur={() => saveTitle(clip)}
                               onKeyDown={(e) => { if (e.key === "Enter") saveTitle(clip); if (e.key === "Escape") setEditingTitle(null); }}
-                              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 17, fontWeight: 800, fontFamily: T.font, outline: "none", marginBottom: 8 }}
+                              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 20, fontWeight: 800, letterSpacing: "-0.45px", fontFamily: T.font, outline: "none", marginBottom: 8 }}
                             />
                           ) : (
                             <div
                               onDoubleClick={() => { setEditingTitle(clip.id); setEditTitleValue(clip.title); }}
                               style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}
                             >
-                              <span style={{ color: T.text, fontSize: 17, fontWeight: 800, cursor: "text", lineHeight: 1.3 }} title="Double-click to edit">{clip.title}</span>
+                              {/* #325: the clip title is the loudest thing on the card. */}
+                              <span style={{ color: T.text, fontSize: 20, fontWeight: 800, letterSpacing: "-0.45px", cursor: "text", lineHeight: 1.2 }} title="Double-click to edit">{clip.title}</span>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setEditingTitle(clip.id); setEditTitleValue(clip.title); }}
                                 onMouseEnter={(e) => { e.currentTarget.style.color = T.text; }}
@@ -2361,15 +2395,15 @@ export default function QueueView({
                               </button>
                             </div>
                           )}
-                          <div style={{ display: "flex", gap: 12, fontSize: 12.5, color: T.textSecondary, marginBottom: 16, alignItems: "center" }}>
-                            <span style={{ fontFamily: T.mono }}>{durationStr}</span>
+                          <div style={{ display: "flex", gap: 10, fontSize: 12, color: T.textSecondary, marginBottom: 14, alignItems: "center" }}>
+                            <span style={{ fontFamily: T.mono, fontWeight: 700, color: T.labelStrong }}>{durationStr}</span>
                             {gameTag && <GamePill tag={gameTag.toUpperCase()} color={gameColorFor(clip)} variant="solid" />}
                             {projName && <span>{projName}</span>}
                           </div>
 
                           {/* Phase 2: Platform toggle pills */}
                           <div style={{ display: "flex", gap: 6, marginBottom: 14, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 11.5, color: T.labelStrong, fontWeight: 600, marginRight: 2 }}>Platforms:</span>
+                            <span style={{ ...FIELD_LABEL, color: T.textTertiary, marginRight: 3 }}>Platforms</span>
                             {activePlat.map((p) => {
                               const pk = accountToPlatformKey(p);
                               if (!pk) return null;
@@ -2413,13 +2447,15 @@ export default function QueueView({
                                   const charLimit = isYt ? PLATFORM_CHAR_LIMITS.youtube_desc : PLATFORM_CHAR_LIMITS[pk];
                                   const ytTitleVal = clip.youtubeTitle || clip.title || "";
 
+                                  // #325: brand identity comes from the header wash, the block's
+                                  // border and a 2px top edge — deliberately not a left-edge colour bar.
                                   return (
-                                    <div key={pk} style={{ borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
+                                    <div key={pk} style={{ borderRadius: 8, border: `1px solid ${meta.edge}`, boxShadow: `inset 0 2px 0 ${meta.bar}`, background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
                                       {/* Caption card header */}
-                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}` }}>
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}`, background: meta.band }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                           <PlatformIcon platform={pk} size={16} />
-                                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{meta.label}</span>
+                                          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.1, color: meta.accent }}>{meta.label}</span>
                                           {hasOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
                                         </div>
                                         <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.mono, color: charCountColor(caption.length, charLimit) }}>
@@ -2430,7 +2466,7 @@ export default function QueueView({
                                       {/* YouTube: separate title field */}
                                       {isYt && (
                                         <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-                                          <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, minWidth: 32 }}>Title</span>
+                                          <span style={{ ...FIELD_LABEL, minWidth: 52, flexShrink: 0 }}>Title</span>
                                           {isEditingYtTitleThis ? (
                                             <input
                                               autoFocus
@@ -2444,7 +2480,7 @@ export default function QueueView({
                                           ) : (
                                             <div
                                               onClick={(e) => { e.stopPropagation(); setEditingYtTitle(clip.id); setEditYtTitleValue(ytTitleVal); }}
-                                              style={{ flex: 1, fontSize: 11, color: T.text, cursor: "text", padding: "4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                              style={{ flex: 1, fontSize: 12.5, color: T.text, cursor: "text", padding: "4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                                             >{ytTitleVal}</div>
                                           )}
                                           <span style={{ fontSize: 10, fontFamily: T.mono, color: charCountColor(ytTitleVal.length, PLATFORM_CHAR_LIMITS.youtube_title) }}>{ytTitleVal.length}/100</span>
@@ -2454,7 +2490,7 @@ export default function QueueView({
                                       {/* YouTube: privacy selector */}
                                       {isYt && (
                                         <div style={{ padding: "6px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-                                          <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, minWidth: 32 }}>Privacy</span>
+                                          <span style={{ ...FIELD_LABEL, minWidth: 52, flexShrink: 0 }}>Privacy</span>
                                           {/* Custom Select (not native <select>) — Chromium's native
                                               option popup renders near-unreadable on the dark theme,
                                               same reason the TikTok privacy picker uses it. */}
@@ -2478,7 +2514,7 @@ export default function QueueView({
                                           title), and styled as a clearly editable field. */}
                                       <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>{isYt ? "Description" : "Caption"}</div>
+                                          <div style={FIELD_LABEL}>{isYt ? "Description" : "Caption"}</div>
                                           {captionSavedFlash === `${clip.id}:${pk}` && (
                                             <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
                                               <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
@@ -2561,7 +2597,7 @@ export default function QueueView({
                                         return (
                                           <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>Tags</div>
+                                              <div style={FIELD_LABEL}>Tags</div>
                                               {tags.length > 0 && !isEditingTags && <CopyIconButton value={tagsToText(tags)} title="Copy tags" />}
                                               {hasTagOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
                                               {captionSavedFlash === `${clip.id}:youtube-tags` && (
@@ -2846,7 +2882,7 @@ export default function QueueView({
                 </div>
                 {/* Title */}
                 <div style={{ minWidth: 0, paddingRight: 8 }}>
-                  <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
+                  <div style={{ color: T.text, fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
                 </div>
                 {/* Game */}
                 <div>{gameTag && <GamePill tag={(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()} color={gameColorFor(clip)} size="sm" variant="solid" />}</div>
@@ -3045,7 +3081,7 @@ export default function QueueView({
 
                           <div style={{ padding: "10px 12px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>Tags</div>
+                              <div style={FIELD_LABEL}>Tags</div>
                               {tags.length > 0 && <CopyIconButton value={tagsToText(tags)} title="Copy tags" />}
                               {tagsCustom
                                 ? <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>
@@ -3109,8 +3145,10 @@ export default function QueueView({
         )}
       </Card>
 
-      {/* CAPTIONS & DESCRIPTIONS */}
-      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 28 }}>
+        </div>{/* /left column */}
+
+        {/* #324: Captions & Descriptions. Was a full-width block below the
+            Publish Log — three scrolls down and every game on screen at once. */}
         <CaptionsView
           ytDescriptions={ytDescriptions}
           setYtDescriptions={setYtDescriptions}
@@ -3119,8 +3157,9 @@ export default function QueueView({
           platformOptions={platformOptions}
           setPlatformOptions={setPlatformOptions}
           gamesDb={gamesDb}
+          scopeGame={scopeGame}
         />
-      </div>
+      </div>{/* /queue grid */}
       <div style={{ height: 60 }} />
     </div>
   );
