@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.9] — 2026-08-28 (session 215) — alpha.9: the Queue redesign batch
+
+### Changed
+- **Version bumped to 0.4.0-alpha.9 and an installer cut.** Promotes everything since alpha.8: the Queue tab redesign (#325 platform colour identity + text hierarchy, #324 Captions & Descriptions as a game-scoped side panel) and the session-214 small wins that had not yet reached a build — the What's New screen after updates (#330), exact tracker post times (#327), and the boot splash min-hold + grow (#326). Five changes in one hop, one verification pass.
+
 ## [Unreleased] — 2026-08-28 (session 215) — Queue redesign: platform colour identity, real text hierarchy, and Captions in a side panel
 
 ### Changed

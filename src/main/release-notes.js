@@ -12,12 +12,14 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.4.0-alpha.9",
+    date: "2026-08-28",
     added: [
       "What's New — after every update, Corva now opens with a quick summary of what changed, so you're never left guessing what an update did.",
     ],
     changed: [
+      "Captions & Descriptions moved out of the bottom of the Queue and into a panel beside your clips. It follows whatever clip you've selected and shows only that game's set — pick a Rocket League clip and Rocket League's description is already there. Every other game sits behind one \"Other games\" button.",
+      "The Queue reads properly now instead of as a wall of text. Each platform block wears its own colour — YouTube red, TikTok cyan, Instagram pink, Facebook blue — clip titles are bigger and bolder, and field labels are clearly labels instead of blending into their values.",
       "The startup splash now stays up for a couple of seconds and grows gently instead of pulsing, so fast launches don't flash it away.",
     ],
     fixed: [
