@@ -89,8 +89,9 @@ export const CopyIconButton = ({ value, title = "Copy", size = 13, style: x }) =
   );
 };
 
-export const Card = ({ children, style: x, onClick, borderColor }) => (
-  <div onClick={onClick} style={{ background: T.surface, borderRadius: T.radius.lg, border: `1px solid ${borderColor || T.border}`, cursor: onClick ? "pointer" : "default", ...x }}>
+// `id` exists so Settings search can scroll a specific card into view (#331).
+export const Card = ({ children, style: x, onClick, borderColor, id }) => (
+  <div id={id} onClick={onClick} style={{ background: T.surface, borderRadius: T.radius.lg, border: `1px solid ${borderColor || T.border}`, cursor: onClick ? "pointer" : "default", ...x }}>
     {children}
   </div>
 );

@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Corva — Settings revamp mock (#331)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --textSecondary:rgba(255,255,255,0.55); --textTertiary:rgba(255,255,255,0.32);
+    --textMuted:rgba(255,255,255,0.16); --labelStrong:rgba(255,255,255,0.68);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12);
+    --accentBorder:rgba(139,92,246,0.25); --accentGlow:rgba(139,92,246,0.06);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBorder:rgba(52,211,153,0.22);
+    --yellow:#fbbf24; --yellowDim:rgba(251,191,36,0.10); --yellowBorder:rgba(251,191,36,0.22);
+    --red:#f87171; --redDim:rgba(248,113,113,0.08); --redBorder:rgba(248,113,113,0.18);
+    --cyan:#22d3ee;
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#050609;font-family:var(--font);color:var(--text);
+       display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 18px 40px;min-height:100vh}
+
+  /* ── mock-only chrome (NOT part of the design) ───────────────────── */
+  .mockbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:#0d0e14;border:1px solid var(--border);border-radius:10px;padding:8px 12px}
+  .mockbar b{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--textTertiary);font-weight:800}
+  .mockbar .grp{display:flex;gap:4px;background:rgba(255,255,255,.03);padding:3px;border-radius:8px}
+  .mockbar button{font-family:var(--font);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:6px;
+    border:1px solid transparent;background:transparent;color:var(--textTertiary);cursor:pointer}
+  .mockbar button.on{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight)}
+  .mockbar .note{font-size:11px;color:var(--textTertiary)}
+
+  /* ── fake app window ─────────────────────────────────────────────── */
+  .win{width:1280px;height:860px;background:var(--bg);border:1px solid rgba(255,255,255,.08);
+    border-radius:8px;display:flex;flex-direction:column;overflow:hidden;flex:none;
+    box-shadow:0 24px 70px rgba(0,0,0,.6)}
+  .win.small{width:1100px;height:720px}
+  .titlebar{height:36px;flex:none;background:rgba(10,11,16,.8);display:flex;align-items:center;gap:8px;padding-left:16px}
+  .logo{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#8b5cf6,#22d3ee)}
+  .titlebar span{font-size:12px;font-weight:700;color:var(--textSecondary);letter-spacing:-.2px}
+  .pane{flex:1;overflow:auto;scrollbar-gutter:stable}
+  .pane::-webkit-scrollbar{width:10px}
+  .pane::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:5px}
+  .bottomnav{height:56px;flex:none;border-top:1px solid var(--border);background:rgba(10,11,16,.92);
+    display:flex;align-items:center;justify-content:space-around;padding:0 12px}
+  .bottomnav .nav{flex:1;max-width:80px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:6px 0 8px;color:var(--textTertiary);font-size:10px;position:relative}
+  .bottomnav .nav i{font-style:normal;font-size:18px;line-height:1}
+  .bottomnav .nav.on{color:var(--accentLight);font-weight:700}
+  .bottomnav .nav.on::before{content:"";position:absolute;top:0;width:24px;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
+
+  /* ── settings shell ──────────────────────────────────────────────── */
+  .shell{padding:26px 40px 40px;max-width:1120px;margin:0 auto}
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .pagehead h2{font-size:28px;font-weight:800;margin:0;letter-spacing:-.6px}
+  .pagehead .meta{font-size:11.5px;color:var(--textTertiary);padding-bottom:5px}
+  .pagehead .meta b{color:var(--textSecondary);font-weight:700}
+
+  .layout{display:flex;gap:24px;align-items:flex-start}
+  /* rail */
+  .rail{width:212px;flex:none;position:sticky;top:0;display:flex;flex-direction:column;gap:12px}
+  .search{position:relative}
+  .search input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;
+    padding:8px 26px 8px 30px;color:var(--text);font-size:12.5px;font-family:var(--font);outline:none}
+  .search input:focus{border-color:var(--accentBorder);background:rgba(139,92,246,.06)}
+  .search input::placeholder{color:var(--textMuted)}
+  .search .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--textTertiary);pointer-events:none}
+  .search .clr{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:transparent;
+    color:var(--textTertiary);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;display:none}
+  .search.has .clr{display:block}
+
+  .raillist{display:flex;flex-direction:column;gap:2px}
+  .railitem{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:1px solid transparent;
+    background:transparent;color:var(--textSecondary);font-family:var(--font);font-size:13px;font-weight:600;
+    cursor:pointer;text-align:left;width:100%;transition:background .12s,color .12s}
+  .railitem:hover{background:var(--surfaceHover);color:var(--text)}
+  .railitem.on{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight);font-weight:700}
+  .railitem i{font-style:normal;font-size:13px;width:16px;text-align:center;opacity:.9}
+  .railitem .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .railitem .n{font-size:10.5px;color:var(--textMuted);font-weight:700;font-variant-numeric:tabular-nums}
+  .railitem.on .n{color:var(--accentLight);opacity:.7}
+  .dot{width:6px;height:6px;border-radius:50%;flex:none}
+  .dot.warn{background:var(--yellow);box-shadow:0 0 0 3px var(--yellowDim)}
+  .dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--greenDim)}
+
+  .railfoot{border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+  .railfoot .ver{font-size:10.5px;color:var(--textMuted);padding-left:10px}
+  .ghost{border:1px solid var(--border);background:rgba(255,255,255,.02);color:var(--textTertiary);
+    border-radius:7px;padding:6px 10px;font-size:11.5px;font-family:var(--font);cursor:pointer;text-align:left}
+  .ghost:hover{border-color:var(--borderHover);color:var(--textSecondary)}
+
+  /* content */
+  .content{flex:1;min-width:0}
+  .sechead{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  .sechead h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.2px}
+  .sechead p{margin:0;font-size:12px;color:var(--textTertiary)}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:10px}
+  .card.tight{padding:14px 18px}
+  .card > .ct{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+  .ct .t{font-size:13.5px;font-weight:700;color:var(--labelStrong)}
+  .ct .acts{display:flex;gap:6px}
+  .sub{font-size:11.5px;color:var(--textTertiary);margin:-4px 0 10px;line-height:1.5}
+  .btn{padding:5px 11px;border-radius:6px;font-size:11.5px;font-family:var(--font);cursor:pointer;font-weight:600;
+    background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--textSecondary)}
+  .btn:hover{border-color:var(--borderHover);color:var(--text)}
+  .btn.pri{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight);font-weight:700}
+  .btn.save{background:var(--green);border:none;color:#06231a;font-weight:700}
+  .path{font-size:12px;color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--border);
+    border-radius:8px;padding:7px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row{display:flex;align-items:center;gap:10px}
+  .row + .row{margin-top:7px}
+  .grow{flex:1;min-width:0}
+  .kv{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}
+  .kv + .kv{border-top:1px solid var(--border)}
+  .kv .k{font-size:12.5px;color:var(--text);font-weight:600}
+  .kv .d{font-size:11px;color:var(--textTertiary);margin-top:2px}
+  .lab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--textSecondary);margin-bottom:5px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;
+    border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--textSecondary)}
+  .chip.g{border-color:var(--greenBorder);background:var(--greenDim);color:var(--green)}
+  .chip.y{border-color:var(--yellowBorder);background:var(--yellowDim);color:var(--yellow)}
+  .chip.a{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .gp{display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px}
+  select,input[type=text],textarea{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;
+    padding:7px 10px;color:var(--text);font-size:12.5px;font-family:var(--font);outline:none;width:100%}
+  textarea{resize:vertical;line-height:1.55}
+  .toggle{width:34px;height:19px;border-radius:20px;background:rgba(255,255,255,.10);position:relative;flex:none;cursor:pointer}
+  .toggle::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#8b8f9c;transition:.15s}
+  .toggle.on{background:var(--accentDim);box-shadow:inset 0 0 0 1px var(--accentBorder)}
+  .toggle.on::after{left:17px;background:var(--accentLight)}
+  .pillbar{display:flex;gap:4px;background:rgba(255,255,255,.03);padding:3px;border-radius:9px;margin-bottom:12px;flex-wrap:wrap}
+  .pillbar button{flex:1;min-width:84px;padding:6px 8px;border-radius:6px;border:1px solid transparent;background:transparent;
+    color:var(--textTertiary);font-family:var(--font);font-size:11.5px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  .pillbar button.on{background:var(--surface);border-color:var(--border);color:var(--text)}
+  .secret{font-size:12.5px;color:var(--text);letter-spacing:.4px}
+  .mono{font-variant-numeric:tabular-nums}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:11px;color:var(--textTertiary);line-height:1.5}
+  .warnbox{background:var(--yellowDim);border:1px solid var(--yellowBorder);border-radius:8px;padding:8px 11px;
+    font-size:11px;color:var(--yellow);line-height:1.5;margin-top:10px}
+  .logline{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:11.5px;border-top:1px solid var(--border)}
+  .logline .l{color:var(--textSecondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .logline .r{color:var(--textTertiary);flex:none}
+
+  /* search results */
+  .results{display:flex;flex-direction:column;gap:6px}
+  .res{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font)}
+  .res:hover{border-color:var(--accentBorder);background:var(--surfaceHover)}
+  .res .rt{font-size:13px;font-weight:700;color:var(--text)}
+  .res .rs{font-size:11px;color:var(--textTertiary);margin-top:2px}
+  .res .go{margin-left:auto;font-size:11px;color:var(--accentLight);font-weight:700;white-space:nowrap}
+  .empty{color:var(--textTertiary);font-size:12.5px;padding:18px 2px}
+  mark{background:rgba(139,92,246,.28);color:var(--accentLight);border-radius:3px;padding:0 2px}
+
+  @keyframes flash{0%{box-shadow:0 0 0 0 var(--accentBorder)}30%{box-shadow:0 0 0 3px var(--accentBorder)}100%{box-shadow:0 0 0 0 rgba(139,92,246,0)}}
+  .flash{animation:flash 1.1s ease-out;border-color:var(--accentBorder)!important}
+
+  /* top-pills variant */
+  body.pills .rail{display:none}
+  body.pills .layout{display:block}
+  body.pills .content{max-width:860px;margin:0 auto}
+  body.pills .toprail{display:flex}
+  .toprail{display:none;position:sticky;top:0;z-index:5;background:var(--bg);gap:10px;align-items:center;
+    padding:0 0 12px;margin-bottom:2px;flex-wrap:wrap}
+  .toprail .tp{display:flex;gap:3px;background:rgba(255,255,255,.03);padding:3px;border-radius:9px;flex-wrap:wrap}
+  .toprail .tp button{padding:6px 11px;border-radius:6px;border:1px solid transparent;background:transparent;
+    color:var(--textTertiary);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .toprail .tp button.on{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight)}
+  .toprail .search{flex:1;min-width:170px}
+  body.pills .pagehead{margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div class="mockbar">
+  <b>Mock controls</b>
+  <div class="grp" id="variantGrp">
+    <button data-variant="rail" class="on">Left rail (recommended)</button>
+    <button data-variant="pills">Top pills</button>
+  </div>
+  <div class="grp" id="sizeGrp">
+    <button data-size="big" class="on">1280 &times; 860</button>
+    <button data-size="small">1100 &times; 720 (small window)</button>
+  </div>
+  <span class="note">Rail, search and section switching are live — click around.</span>
+</div>
+
+<div class="win" id="win">
+  <div class="titlebar"><div class="logo"></div><span>Corva</span></div>
+
+  <div class="pane" id="pane">
+    <div class="shell">
+
+      <div class="pagehead">
+        <h2>Settings</h2>
+        <div class="meta"><b>0.4.0-alpha.9</b> &nbsp;·&nbsp; 24 settings across 7 sections</div>
+      </div>
+
+      <!-- top-pills variant rail -->
+      <div class="toprail">
+        <div class="tp" id="topPills"></div>
+        <div class="search" id="searchWrapTop">
+          <span class="ico">&#9906;</span>
+          <input type="text" placeholder="Search settings…" data-search>
+          <button class="clr" title="Clear">&times;</button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <!-- ── LEFT RAIL ─────────────────────────────────────────── -->
+        <div class="rail">
+          <div class="search" id="searchWrapSide">
+            <span class="ico">&#9906;</span>
+            <input type="text" placeholder="Search settings…" data-search>
+            <button class="clr" title="Clear">&times;</button>
+          </div>
+          <div class="raillist" id="railList"></div>
+          <div class="railfoot">
+            <button class="ghost">Open app data folder</button>
+            <button class="ghost">Check for updates</button>
+            <div class="ver">Corva 0.4.0-alpha.9 · up to date</div>
+          </div>
+        </div>
+
+        <!-- ── CONTENT ──────────────────────────────────────────── -->
+        <div class="content" id="content">
+
+          <!-- ══════════ FOLDERS ══════════ -->
+          <section data-sec="folders">
+            <div class="sechead"><h3>Folders</h3><p>Where Corva reads recordings and writes finished clips.</p></div>
+
+            <div class="card" data-card="watch" data-kw="watch folder obs recordings source monitor incoming">
+              <div class="ct"><div class="t">Watch Folder</div>
+                <div class="acts"><span class="chip g"><span class="dot ok"></span>Watching</span><button class="btn pri">Browse</button><button class="btn">Edit</button></div></div>
+              <div class="path">W:&#92;OBS&#92;Vertical Recordings Onwards&#92;Recordings&#92;2026-08</div>
+              <div class="sub" style="margin:8px 0 0">New recordings landing here are picked up automatically. Files are never renamed without your click.</div>
+            </div>
+
+            <div class="card" data-card="test" data-kw="test folder sandbox trial dry run">
+              <div class="ct"><div class="t">Test Folder</div>
+                <div class="acts"><button class="btn pri">Browse</button><button class="btn">Edit</button></div></div>
+              <div class="path">W:&#92;OBS&#92;Test Recordings</div>
+            </div>
+
+            <div class="card" data-card="output" data-kw="output folder render export destination finished clips">
+              <div class="ct"><div class="t">Output Folder</div>
+                <div class="acts"><button class="btn pri">Browse</button></div></div>
+              <div class="path">W:&#92;OBS&#92;Vertical Recordings Onwards&#92;Rendered</div>
+            </div>
+
+            <div class="card" data-card="audio" data-kw="audio folders music sfx sound effects epidemic library">
+              <div class="ct"><div class="t">Audio Folders</div>
+                <div class="acts"><button class="btn">Add folder</button></div></div>
+              <div class="sub">Music and sound effects the editor can pull from. Duration decides which is which.</div>
+              <div class="row"><div class="path grow">V:&#92;AutoSync&#92;Audio&#92;Sound FX</div><span class="chip">All games</span><button class="btn">&times;</button></div>
+              <div class="row"><div class="path grow">V:&#92;AutoSync&#92;Audio&#92;Stingers</div><span class="chip"><span class="gp" style="background:rgba(52,211,153,.16);color:#34d399">EO</span>&nbsp;Egging On</span><button class="btn">&times;</button></div>
+            </div>
+
+            <div class="card" data-card="media" data-kw="media folders overlays images video assets cutouts">
+              <div class="ct"><div class="t">Media Folders</div>
+                <div class="acts"><button class="btn">Add folder</button></div></div>
+              <div class="sub">Overlays, cutouts and stills available inside the editor.</div>
+              <div class="row"><div class="path grow">V:&#92;AutoSync&#92;Cutouts</div><span class="chip">All games</span><button class="btn">&times;</button></div>
+              <div class="row"><div class="path grow">V:&#92;AutoSync&#92;Overlays&#92;Rocket League</div><span class="chip"><span class="gp" style="background:rgba(124,196,255,.16);color:#7cc4ff">RL</span>&nbsp;Rocket League</span><button class="btn">&times;</button></div>
+            </div>
+          </section>
+
+          <!-- ══════════ PIPELINE ══════════ -->
+          <section data-sec="pipeline" hidden>
+            <div class="sechead"><h3>Pipeline</h3><p>How recordings get split, transcribed and framed before you see them.</p></div>
+
+            <div class="card" data-card="splitting" data-kw="video splitting split length chunk long recordings segment">
+              <div class="ct"><div class="t">Video Splitting</div><div class="toggle on"></div></div>
+              <div class="sub">Long recordings are cut into parts before detection runs.</div>
+              <div class="split">
+                <div><div class="lab">Split after</div><select><option>2 hours</option><option>90 minutes</option><option>3 hours</option></select></div>
+                <div><div class="lab">Minimum part length</div><select><option>10 minutes</option><option>5 minutes</option></select></div>
+              </div>
+            </div>
+
+            <div class="card" data-card="quality" data-kw="pipeline quality whisper model transcription accuracy detection frames gpu">
+              <div class="ct"><div class="t">Pipeline Quality</div></div>
+              <div class="split">
+                <div><div class="lab">Transcription model</div><select><option>large-v3 (best)</option><option>medium</option><option>small (fastest)</option></select></div>
+                <div><div class="lab">Detection frames</div><select><option>Standard</option><option>Dense</option></select></div>
+                <div><div class="lab">Render quality</div><select><option>High (CRF 18)</option><option>Balanced (CRF 21)</option></select></div>
+                <div><div class="lab">Hardware encoding</div><select><option>NVENC (GPU)</option><option>x264 (CPU)</option></select></div>
+              </div>
+            </div>
+
+            <div class="card" data-card="layout" data-kw="recording layout reframe vertical crop auto-reframe default layout">
+              <div class="ct"><div class="t">Recording Layout</div></div>
+              <div class="sub">Vertical layouts saved from the editor's Layout panel. The default auto-attaches to new horizontal recordings that match its dimensions.</div>
+              <div class="kv"><div><div class="k">Gameplay + facecam · 2560&times;1440</div><div class="d">Saved 12 Aug · used by 41 clips</div></div><span class="chip y">Default</span></div>
+              <div class="kv"><div><div class="k">Full-bleed gameplay · 1920&times;1080</div><div class="d">Saved 3 Aug</div></div><button class="btn">Make default</button></div>
+            </div>
+          </section>
+
+          <!-- ══════════ GAMES ══════════ -->
+          <section data-sec="games" hidden>
+            <div class="sechead"><h3>Games</h3><p>Your game library, content types, and how new files get named.</p></div>
+
+            <div class="card tight" data-card="maingame" data-kw="main game default primary game">
+              <div class="ct"><div class="t">Main Game</div>
+                <div class="acts"><span class="chip a"><span class="gp" style="background:rgba(52,211,153,.16);color:#34d399">EO</span>&nbsp;Egging On</span><button class="btn">Change</button></div></div>
+            </div>
+
+            <div class="card" data-card="games" data-kw="games library add game tags colours titles descriptions hashtags">
+              <div class="ct"><div class="t">Games</div>
+                <div class="acts"><button class="btn pri">Add game</button></div></div>
+              <div class="chips">
+                <span class="chip"><span class="gp" style="background:rgba(52,211,153,.16);color:#34d399">EO</span>&nbsp;Egging On</span>
+                <span class="chip"><span class="gp" style="background:rgba(124,196,255,.16);color:#7cc4ff">RL</span>&nbsp;Rocket League</span>
+                <span class="chip"><span class="gp" style="background:rgba(251,191,36,.16);color:#fbbf24">DD</span>&nbsp;Deadline Delivery</span>
+                <span class="chip"><span class="gp" style="background:rgba(248,113,113,.16);color:#f87171">MC</span>&nbsp;Meccha Chameleon</span>
+                <span class="chip"><span class="gp" style="background:rgba(34,211,238,.16);color:#22d3ee">GTA</span>&nbsp;GTA VI</span>
+              </div>
+              <div class="sub" style="margin:10px 0 0">Click a game to edit its titles, description template, tags and colour.</div>
+            </div>
+
+            <div class="card" data-card="content" data-kw="content types non-game category vlog irl">
+              <div class="ct"><div class="t">Content Types</div>
+                <div class="acts"><button class="btn">Add type</button></div></div>
+              <div class="chips">
+                <span class="chip"><span class="gp" style="background:rgba(139,92,246,.16);color:#a78bfa">POD</span>&nbsp;Podcast</span>
+                <span class="chip"><span class="gp" style="background:rgba(255,255,255,.10);color:rgba(255,255,255,.6)">IRL</span>&nbsp;IRL</span>
+              </div>
+            </div>
+
+            <div class="card" data-card="naming" data-kw="default naming preset rename pattern filename date day part">
+              <div class="ct"><div class="t">Default Naming Preset</div></div>
+              <div class="sub">Applied when the Rename tab first suggests a name.</div>
+              <select><option>Tag · Date · Day · Part</option><option>Tag · Date · Part</option><option>Game · Date</option></select>
+              <div class="hint" style="margin-top:8px">Preview: <span style="color:var(--textSecondary)">EO-2026-08-28-Thu-P1.mp4</span></div>
+            </div>
+          </section>
+
+          <!-- ══════════ AI & STYLE ══════════ -->
+          <section data-sec="ai" hidden>
+            <div class="sechead"><h3>AI &amp; Style</h3><p>What the AI knows about your voice before it writes anything.</p></div>
+
+            <div class="card" data-card="styleguide" data-kw="title caption style guide voice rules titling ai prompt">
+              <div class="ct"><div class="t">Title &amp; Caption Style Guide</div>
+                <div class="acts"><button class="btn">Edit</button></div></div>
+              <div class="sub">Included as context in every AI generation call.</div>
+              <textarea rows="4" readonly>Short fragments, 3–7 words. Cut the second clause every time.
+No colons, no "here's why". Present tense.
+Never explain the joke in the title — the clip does that.</textarea>
+            </div>
+
+            <div class="card" data-card="aiprefs" data-kw="ai preferences creator profile content vibe moment priorities style description">
+              <div class="ct"><div class="t">AI Preferences</div>
+                <div class="acts"><button class="btn">Collapse</button></div></div>
+              <div class="lab">Content Vibe</div>
+              <div class="chips" style="margin-bottom:14px">
+                <span class="chip a">Chaotic</span><span class="chip a">Funny</span><span class="chip">Chill</span><span class="chip">Skill-focused</span><span class="chip">Story-driven</span>
+              </div>
+              <div class="lab">Moment Priorities</div>
+              <div style="margin-bottom:14px">
+                <div class="kv"><div class="k">1 · Genuine reactions</div><span class="chip a">Highest</span></div>
+                <div class="kv"><div class="k">2 · Fails &amp; chaos</div><span class="chip">High</span></div>
+                <div class="kv"><div class="k">3 · Clutch plays</div><span class="chip">Medium</span></div>
+              </div>
+              <div class="lab">Style Description</div>
+              <textarea rows="3" readonly>Reaction-first. The moment is the punchline, not the setup. Cut before the explanation lands.</textarea>
+            </div>
+          </section>
+
+          <!-- ══════════ PUBLISHING ══════════ -->
+          <section data-sec="publishing" hidden>
+            <div class="sechead"><h3>Publishing</h3><p>Connected accounts, your schedule, and how the Queue fills.</p></div>
+
+            <div class="card" data-card="platforms" data-kw="connected platforms accounts youtube tiktok instagram facebook x kick oauth connect reconnect token">
+              <div class="ct"><div class="t">Connected Platforms</div>
+                <div class="acts"><span class="chip y">1 needs attention</span></div></div>
+              <div class="kv"><div><div class="k">YouTube</div><div class="d">Fega · token expired 25 Aug</div></div><button class="btn pri">Reconnect</button></div>
+              <div class="kv"><div><div class="k">TikTok</div><div class="d">@fega · connected</div></div><button class="btn">Disconnect</button></div>
+              <div class="kv"><div><div class="k">Instagram</div><div class="d">@fega.clips · connected</div></div><button class="btn">Disconnect</button></div>
+              <div class="kv"><div><div class="k">Facebook Pages</div><div class="d">Fega Gaming · connected</div></div><button class="btn">Disconnect</button></div>
+              <div class="kv"><div><div class="k">X (Twitter)</div><div class="d">Not connected</div></div><button class="btn">Connect</button></div>
+              <div class="kv"><div><div class="k">Kick</div><div class="d">Not connected</div></div><button class="btn">Connect</button></div>
+            </div>
+
+            <div class="card" data-card="schedule" data-kw="stream schedule live days template variable">
+              <div class="ct"><div class="t">Stream Schedule</div>
+                <div class="acts"><button class="btn">Edit</button></div></div>
+              <div class="sub">Every caption template that uses <span style="color:var(--accentLight)">{schedule}</span> reads this line.</div>
+              <div class="path">Live Tue / Thu / Sat — 8pm EST</div>
+            </div>
+
+            <div class="card" data-card="queue" data-kw="queue settings slots per day spacing scheduling posting times">
+              <div class="ct"><div class="t">Queue Settings</div></div>
+              <div class="split">
+                <div><div class="lab">Posts per day</div><select><option>2</option><option>1</option><option>3</option></select></div>
+                <div><div class="lab">Minimum gap</div><select><option>4 hours</option><option>2 hours</option><option>6 hours</option></select></div>
+              </div>
+              <div class="kv" style="margin-top:6px"><div><div class="k">Confirm before each publish</div><div class="d">Off means scheduled clips go out unattended.</div></div><div class="toggle on"></div></div>
+            </div>
+          </section>
+
+          <!-- ══════════ TOOLS & KEYS ══════════ -->
+          <section data-sec="tools" hidden>
+            <div class="sechead"><h3>Tools &amp; Keys</h3><p>Local engines and the API credentials Corva talks to.</p></div>
+
+            <div class="card tight" data-card="localtools" data-kw="local tools ffmpeg betterwhisperx whisper version installed engine">
+              <div class="ct"><div class="t">Local Tools</div></div>
+              <div class="row"><span class="dot ok"></span><span class="k" style="font-size:12.5px;font-weight:600">ffmpeg</span><span class="hint mono" style="color:var(--green)">v7.1</span></div>
+              <div class="row"><span class="dot ok"></span><span class="k" style="font-size:12.5px;font-weight:600">BetterWhisperX</span><span class="hint mono" style="color:var(--green)">v1.0.4</span></div>
+            </div>
+
+            <div class="card" data-card="whisperx" data-kw="betterwhisperx configuration python path venv compute type batch size">
+              <div class="ct"><div class="t">BetterWhisperX Configuration</div></div>
+              <div class="lab">Python path (venv)</div>
+              <div class="row"><div class="path grow">C:&#92;BetterWhisperX&#92;.venv&#92;Scripts&#92;python.exe</div><button class="btn">Browse</button></div>
+              <div class="split" style="margin-top:12px">
+                <div><div class="lab">Compute type</div><select><option>float16</option><option>int8</option></select></div>
+                <div><div class="lab">Batch size</div><select><option>16</option><option>8</option><option>4</option></select></div>
+              </div>
+            </div>
+
+            <div class="card" data-card="apikeys" data-kw="api credentials keys anthropic gemini youtube client id secret meta tiktok gateway token">
+              <div class="ct"><div class="t">API Credentials</div>
+                <div class="acts"><span class="chip g">4 of 6 set</span></div></div>
+              <div class="pillbar">
+                <button class="on">Anthropic <span class="dot ok"></span></button>
+                <button>Gemini <span class="dot ok"></span></button>
+                <button>YouTube <span class="dot ok"></span></button>
+                <button>Instagram <span class="dot warn"></span></button>
+                <button>Facebook <span class="dot ok"></span></button>
+                <button>TikTok <span class="dot warn"></span></button>
+              </div>
+              <div class="lab">API Key</div>
+              <div class="row"><div class="path grow"><span class="secret" data-secret>sk-a&bull;&bull;&bull;&bull;9f2c</span></div><button class="btn">Show</button><button class="btn">Edit</button></div>
+              <div class="lab" style="margin-top:12px">Gateway URL</div>
+              <div class="row"><div class="path grow">https://engine.flowve.app</div><button class="btn">Edit</button></div>
+              <div class="lab" style="margin-top:12px">Gateway Auth Token</div>
+              <div class="row"><div class="path grow"><span class="secret" data-secret>bund&bull;&bull;&bull;&bull;e1a7</span></div><button class="btn">Show</button><button class="btn">Edit</button></div>
+              <div class="warnbox">Keys are blurred automatically while a screenshot or issue report is being captured.</div>
+            </div>
+          </section>
+
+          <!-- ══════════ DIAGNOSTICS ══════════ -->
+          <section data-sec="diagnostics" hidden>
+            <div class="sechead"><h3>Diagnostics</h3><p>Logs, costs, and reporting something that went wrong.</p></div>
+
+            <div class="card tight" data-card="analytics" data-kw="analytics opt out telemetry posthog privacy tracking">
+              <div class="ct"><div class="t">Anonymous Usage Analytics</div><div class="toggle on"></div></div>
+              <div class="sub" style="margin:0">Counts of features used. No file names, no clip content, no keys.</div>
+            </div>
+
+            <div class="card" data-card="logs" data-kw="pipeline logs cost tracking runs errors ai spend history">
+              <div class="ct"><div class="t">Pipeline Logs</div>
+                <div class="acts"><span class="chip">$4.82 this month</span><button class="btn">Open log folder</button></div></div>
+              <div class="logline"><span class="l">EO-2026-08-28-Thu-P1 — 9 clips detected</span><span class="r">$0.031 · 2h ago</span></div>
+              <div class="logline"><span class="l">RL-2026-08-27-Wed-P2 — 6 clips detected</span><span class="r">$0.024 · 1d ago</span></div>
+              <div class="logline"><span class="l">GTA-2026-08-26-Tue-P1 — transcription failed</span><span class="r" style="color:var(--red)">error · 2d ago</span></div>
+            </div>
+
+            <div class="card" data-card="report" data-kw="report an issue bug feedback send diagnostics screenshot github">
+              <div class="ct"><div class="t">Report an Issue</div></div>
+              <div class="sub">Sends your last 200 log lines and a screenshot. Keys and paths are blurred first.</div>
+              <textarea rows="3" placeholder="What happened? What did you expect instead?"></textarea>
+              <div class="row" style="margin-top:10px"><span class="chip">Screenshot attached</span><span class="chip">app.log (200 lines)</span><span class="grow"></span><button class="btn save">Send report</button></div>
+            </div>
+
+            <div class="card" data-card="subtitles" data-kw="subtitle debug log word timestamps whisper repair segmentation">
+              <div class="ct"><div class="t">Subtitle Debug Log</div>
+                <div class="acts"><button class="btn">Clear</button></div></div>
+              <div class="logline"><span class="l">wordRepair — 3 timestamps nudged</span><span class="r">clip 41 · 2h ago</span></div>
+              <div class="logline"><span class="l">segmentation — sentence boundary kept</span><span class="r">clip 41 · 2h ago</span></div>
+            </div>
+          </section>
+
+          <!-- search results pane -->
+          <div id="resultsPane" hidden>
+            <div class="sechead"><h3>Search results</h3><p id="resCount"></p></div>
+            <div class="results" id="results"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomnav">
+    <div class="nav"><i>&#9999;</i>Rename</div>
+    <div class="nav"><i>&#11014;</i>Recordings</div>
+    <div class="nav"><i>&#128193;</i>Projects</div>
+    <div class="nav"><i>&#127916;</i>Editor</div>
+    <div class="nav"><i>&#128203;</i>Queue</div>
+    <div class="nav"><i>&#128202;</i>Tracker</div>
+    <div class="nav on"><i>&#9881;</i>Settings</div>
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  { id:"folders",     icon:"\u{1F4C1}", label:"Folders",      n:5 },
+  { id:"pipeline",    icon:"\u{2699}",  label:"Pipeline",     n:3 },
+  { id:"games",       icon:"\u{1F3AE}", label:"Games",        n:4 },
+  { id:"ai",          icon:"\u{2728}",  label:"AI & Style",   n:2 },
+  { id:"publishing",  icon:"\u{1F4E4}", label:"Publishing",   n:3, dot:"warn" },
+  { id:"tools",       icon:"\u{1F511}", label:"Tools & Keys", n:3 },
+  { id:"diagnostics", icon:"\u{1F50E}", label:"Diagnostics",  n:4 },
+];
+
+const railList = document.getElementById("railList");
+const topPills = document.getElementById("topPills");
+const content  = document.getElementById("content");
+const pane     = document.getElementById("pane");
+let active = "folders";
+
+SECTIONS.forEach(s => {
+  const b = document.createElement("button");
+  b.className = "railitem"; b.dataset.sec = s.id;
+  b.innerHTML = `<i>${s.icon}</i><span class="lbl">${s.label}</span>` +
+    (s.dot ? `<span class="dot ${s.dot}"></span>` : `<span class="n">${s.n}</span>`);
+  b.onclick = () => show(s.id);
+  railList.appendChild(b);
+
+  const p = document.createElement("button");
+  p.dataset.sec = s.id; p.textContent = s.label;
+  p.onclick = () => show(s.id);
+  topPills.appendChild(p);
+});
+
+function show(id, cardId){
+  active = id;
+  clearSearch();
+  document.querySelectorAll("[data-sec]").forEach(el => {
+    if (el.tagName === "SECTION") el.hidden = el.dataset.sec !== id;
+    else el.classList.toggle("on", el.dataset.sec === id);
+  });
+  document.getElementById("resultsPane").hidden = true;
+  pane.scrollTop = 0;
+  if (cardId){
+    const card = document.querySelector(`[data-card="${cardId}"]`);
+    if (card){
+      card.scrollIntoView({block:"center"});
+      card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+    }
+  }
+}
+
+/* ── search ─────────────────────────────────────────────────────── */
+const inputs = [...document.querySelectorAll("[data-search]")];
+const results = document.getElementById("results");
+const resCount = document.getElementById("resCount");
+
+const INDEX = [...document.querySelectorAll("[data-card]")].map(el => ({
+  card: el.dataset.card,
+  sec: el.closest("section").dataset.sec,
+  secLabel: SECTIONS.find(s => s.id === el.closest("section").dataset.sec).label,
+  title: el.querySelector(".ct .t").textContent.trim(),
+  kw: el.dataset.kw || "",
+}));
+
+function clearSearch(){
+  inputs.forEach(i => { i.value = ""; i.closest(".search").classList.remove("has"); });
+}
+
+function runSearch(q){
+  const query = q.trim().toLowerCase();
+  inputs.forEach(i => { if (i.value !== q) i.value = q; i.closest(".search").classList.toggle("has", !!query); });
+  const showing = !!query;
+  document.querySelectorAll("section[data-sec]").forEach(s => { s.hidden = showing || s.dataset.sec !== active; });
+  document.getElementById("resultsPane").hidden = !showing;
+  if (!showing) return;
+
+  const hits = INDEX.filter(r => (r.title + " " + r.kw + " " + r.secLabel).toLowerCase().includes(query));
+  resCount.textContent = hits.length
+    ? `${hits.length} setting${hits.length>1?"s":""} match “${q.trim()}” — one click to jump.`
+    : `Nothing matches “${q.trim()}”.`;
+  results.innerHTML = "";
+  if (!hits.length){
+    results.innerHTML = `<div class="empty">Try a folder name, a platform, “key”, “whisper”, or “logs”.</div>`;
+    return;
+  }
+  hits.forEach(h => {
+    const b = document.createElement("button");
+    b.className = "res";
+    const hl = h.title.replace(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`,"ig"), "<mark>$1</mark>");
+    b.innerHTML = `<div><div class="rt">${hl}</div><div class="rs">${h.secLabel}</div></div><span class="go">Go &rarr;</span>`;
+    b.onclick = () => show(h.sec, h.card);
+    results.appendChild(b);
+  });
+}
+
+inputs.forEach(i => {
+  i.addEventListener("input", e => runSearch(e.target.value));
+  i.closest(".search").querySelector(".clr").onclick = () => runSearch("");
+});
+
+/* ── mock-only controls ─────────────────────────────────────────── */
+document.querySelectorAll("#variantGrp button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#variantGrp button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  document.body.classList.toggle("pills", b.dataset.variant === "pills");
+});
+document.querySelectorAll("#sizeGrp button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#sizeGrp button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  document.getElementById("win").classList.toggle("small", b.dataset.size === "small");
+});
+
+show("folders");
+</script>
+</body>
+</html>

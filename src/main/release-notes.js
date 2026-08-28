@@ -12,6 +12,14 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    changed: [
+      "Settings is a real desktop page now, not a phone one. The six stacked dropdowns are gone — sections live in a list down the left side, one click each, and the section you're in stays on screen while you scroll. Nothing moved out of Settings; it's only laid out differently.",
+      "Settings has a search box. Type \"youtube\" and you get both the account connection and the API keys, from two different sections, with a button that takes you straight to either one.",
+      "The old \"Files & Folders\" group was carrying a third of Settings on its own, so the three processing settings inside it — Video Splitting, Pipeline Quality and Recording Layout — now have their own Pipeline section. \"Content Library\" is now \"Games\" and \"Tools & Credentials\" is now \"Tools & Keys\".",
+    ],
+  },
+  {
     version: "0.4.0-alpha.9",
     date: "2026-08-28",
     added: [

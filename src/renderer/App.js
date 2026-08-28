@@ -265,10 +265,10 @@ export default function App() {
   // #309 — folders whose images/GIFs/videos feed the Media tab, same shape
   const [mediaFolders, setMediaFolders] = useState([]);
 
-  // Settings section collapse state — persists across tab switches, resets on app launch
-  const [settingsCollapsed, setSettingsCollapsed] = useState({
-    files: true, content: true, aiStyle: true, publishing: true, tools: true, diagnostics: true,
-  });
+  // #331 — which Settings section the rail is showing. Persists across tab
+  // switches, resets to the first section on app launch (same lifetime the
+  // collapse map it replaced had).
+  const [settingsSection, setSettingsSection] = useState("folders");
 
   // Queue / Tracker
   const [weeklyTemplate, setWeeklyTemplate] = useState(JSON.parse(JSON.stringify(DEFAULT_TEMPLATE)));
@@ -1114,7 +1114,9 @@ export default function App() {
           </div>
         </div>
         <div style={tabPaneStyle(view === "settings")}>
-          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+          {/* #331: wider than the 860 the other tabs use — the section rail sits
+              beside the content pane, so the column itself keeps its old width */}
+          <div style={{ padding: "32px 40px", maxWidth: 1120, margin: "0 auto" }}>
             <SettingsView
               mainGame={mainGame}
               setMainGame={setMainGame}
@@ -1167,8 +1169,8 @@ export default function App() {
               setRequireHashtagInTitle={setRequireHashtagInTitle}
               streamSchedule={streamSchedule}
               setStreamSchedule={setStreamSchedule}
-              collapsedGroups={settingsCollapsed}
-              setCollapsedGroups={setSettingsCollapsed}
+              activeSection={settingsSection}
+              setActiveSection={setSettingsSection}
               isActive={view === "settings"}
             />
           </div>

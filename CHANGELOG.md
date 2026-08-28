@@ -4,6 +4,23 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-28 (session 216) — Settings revamp: a section rail, a search box, and seven sections instead of six
+
+### Changed
+- **Settings' six stacked accordions are gone, replaced by a sticky left rail with one content pane per section (#331).** It behaved like a phone settings page: one long column of collapsible dropdowns where finding anything meant open-a-group, guess-wrong, open-another, and every group defaulted closed. Sections now sit in a 212px rail down the left with a card count each; clicking one swaps the pane beside it. The rail is `position: sticky` inside the tab's scroll container, so the section you're in — and every section you could switch to — stays on screen no matter how far the pane scrolls (verified: scrolled 350px, rail pinned at the same viewport offset). `collapsedGroups`/`setCollapsedGroups` became `activeSection`/`setActiveSection`, still lifted to App.js, so the chosen section survives tab switches exactly as the collapse map did. The Settings tab's max width goes 860 → 1120 to hold the rail; the content column measures 804px at a 1280-wide window and 772px at 1100, wider than the 780 it had before, with no horizontal scrolling at either size.
+- **Settings has a search box, and it crosses section boundaries.** Typing filters a 24-entry index of every card by title, by section name, and by a keyword list holding the words someone would actually type — so "youtube" returns Connected Platforms (Publishing) *and* API Credentials (Tools & Keys), and "whisper" returns four cards across three sections. Each result carries a "Go →" that switches to the owning section, scrolls the card into view and flashes its border accent-purple for 1.4s. That is the ≤2-clicks guarantee for anything you can't place: type, then click once.
+- **Seven sections instead of six, and two renames.** "Files & Folders" was carrying eight cards — a third of Settings on its own — and three of them weren't folders at all, so Video Splitting, Recording Layout and Pipeline Quality moved into a new **Pipeline** section. "Content Library" is now **Games**, "Tools & Credentials" is now **Tools & Keys**. Every section now holds two to five cards: Folders 5, Pipeline 3, Games 3, AI & Style 2, Publishing 3, Tools & Keys 3, Diagnostics 4. Each section header carries a one-line plain-language blurb of what lives there.
+
+### Added
+- **`src/main/release-notes.js` has an "unreleased" entry again.** The alpha.9 cut consumed the previous one by renaming it to the real version, which would have left the next update shipping silently. This block holds the Settings revamp's three user-facing lines until the next cut renames it.
+
+### Fixed
+- **`Card` (`src/renderer/components/shared.js`) now forwards an optional `id`.** Settings search needs a DOM anchor per card to scroll to; the six nested sub-components that render their own Card (Recording Layout, AI Preferences, Analytics, Pipeline Logs, Report an Issue, Subtitle Debug Log) get theirs from a wrapper at the call site instead. All 23 anchors verified present and non-zero-height in the running app. No other Card call site is affected — the prop is optional and every existing use passes nothing.
+
+### Notes
+- **Layout only — no settings data, persistence or props changed.** Every card's internals are byte-identical; the only edit inside the sections is a `{...cardProps(id)}` spread on 17 `<Card>` opening tags. The `[data-secret]` screenshot blur was re-verified end to end in the new layout: expanding a credential service renders 2 masked spans, `body.cf-snapshot-mask` applies `blur(7px)`, and removing it returns `none`.
+- Verified on a dev-profile boot at 1280×860 and 1100×720: all seven sections render with the right headers and counts, all six tabs still render with zero console errors, and the chosen section survives a Settings → Queue → Settings round-trip.
+
 ## [0.4.0-alpha.9] — 2026-08-28 (session 215) — alpha.9: the Queue redesign batch
 
 ### Changed

@@ -42,7 +42,7 @@ const renderGameScopeOption = (o) => (o.isHeader ? (
 
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, collapsedGroups, setCollapsedGroups, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, activeSection, setActiveSection, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -389,40 +389,162 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "tiktok", label: "TikTok", configured: tiktokConfigured },
   ];
 
-  // ── Collapsible group state (lifted to App.js for session persistence) ──
-  const toggleGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  // #331: replaces six stacked accordions. `activeSection` is lifted to App.js
+  // so the chosen section survives tab switches — the same lifetime the collapse
+  // map it replaced had. The old "Files & Folders" group carried eight cards, a
+  // third of Settings, so its three processing cards moved into their own
+  // Pipeline section; every section now holds two to five cards.
+  const rail = [
+    { id: "folders",     icon: "📁", label: "Folders",      blurb: "Where Corva reads recordings and writes finished clips." },
+    { id: "pipeline",    icon: "🎞️", label: "Pipeline", blurb: "How recordings get split, transcribed and framed." },
+    { id: "games",       icon: "🎮", label: "Games",        blurb: "Your game library, content types, and file naming." },
+    { id: "ai",          icon: "✨", label: "AI & Style",   blurb: "What the AI knows about your voice before it writes." },
+    { id: "publishing",  icon: "📤", label: "Publishing",   blurb: "Connected accounts, your schedule, and how the Queue fills." },
+    { id: "tools",       icon: "🔑", label: "Tools & Keys", blurb: "Local engines and the API credentials Corva talks to." },
+    { id: "diagnostics", icon: "🔎", label: "Diagnostics",  blurb: "Logs, costs, and reporting something that went wrong." },
+  ];
 
-  const GroupHeader = ({ groupKey, label, description }) => (
-    <div
-      onClick={() => toggleGroup(groupKey)}
-      style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        cursor: "pointer", userSelect: "none",
-        padding: "10px 0", marginBottom: collapsedGroups[groupKey] ? 8 : 12, marginTop: 20,
-        borderBottom: `1px solid ${T.border}`,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ color: T.textTertiary, fontSize: 10, transition: "transform 0.15s", display: "inline-block", transform: collapsedGroups[groupKey] ? "rotate(-90deg)" : "rotate(0deg)" }}>{"\u25BC"}</span>
-        <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>{label}</span>
-        {description && <span style={{ color: T.textMuted, fontSize: 11 }}>{description}</span>}
+  // Search index. `id` is the DOM id on the matching Card — the words someone
+  // would actually type live in `kw`, not in the visible title.
+  const settingIndex = [
+    { id: "set-watch",     section: "folders",     title: "Watch Folder",                kw: "obs recordings source monitor incoming" },
+    { id: "set-test",      section: "folders",     title: "Test Folder",                 kw: "sandbox trial dry run" },
+    { id: "set-output",    section: "folders",     title: "Output Folder",               kw: "render export destination finished clips" },
+    { id: "set-audio",     section: "folders",     title: "Audio Folders",               kw: "music sfx sound effects epidemic library" },
+    { id: "set-media",     section: "folders",     title: "Media Folders",               kw: "overlays images video assets cutouts" },
+    { id: "set-split",     section: "pipeline",    title: "Video Splitting",             kw: "split length chunk long recordings segment parts" },
+    { id: "set-layout",    section: "pipeline",    title: "Recording Layout",            kw: "reframe vertical crop auto-reframe default" },
+    { id: "set-quality",   section: "pipeline",    title: "Pipeline Quality",            kw: "strict mode silence skip yamnet detection whisper" },
+    { id: "set-maingame",  section: "games",       title: "Main Game",                   kw: "default primary pool" },
+    { id: "set-games",     section: "games",       title: "Games",                       kw: "library add game tags colours titles descriptions hashtags" },
+    // Content Types shares the Games card — two names, one place to land.
+    { id: "set-games",     section: "games",       title: "Content Types",               kw: "non-game category podcast irl" },
+    { id: "set-naming",    section: "games",       title: "Default Naming Preset",       kw: "rename pattern filename date day part" },
+    { id: "set-guide",     section: "ai",          title: "Title & Caption Style Guide", kw: "voice rules titling prompt context" },
+    { id: "set-aiprefs",   section: "ai",          title: "AI Preferences",              kw: "creator profile content vibe moment priorities style description" },
+    { id: "set-platforms", section: "publishing",  title: "Connected Platforms",         kw: "accounts youtube tiktok instagram facebook x kick oauth connect reconnect token" },
+    { id: "set-schedule",  section: "publishing",  title: "Stream Schedule",             kw: "live days template variable" },
+    { id: "set-queue",     section: "publishing",  title: "Queue Settings",              kw: "slots per day spacing scheduling posting times hashtag" },
+    { id: "set-tools",     section: "tools",       title: "Local Tools",                 kw: "ffmpeg betterwhisperx whisper version installed engine" },
+    { id: "set-whisper",   section: "tools",       title: "BetterWhisperX Configuration", kw: "python path venv model transcription calibration" },
+    { id: "set-keys",      section: "tools",       title: "API Credentials",             kw: "keys anthropic gemini youtube client id secret meta tiktok gateway token" },
+    { id: "set-analytics", section: "diagnostics", title: "Anonymous Usage Analytics",   kw: "opt out telemetry posthog privacy tracking" },
+    { id: "set-logs",      section: "diagnostics", title: "Pipeline Logs",               kw: "cost tracking runs errors ai spend history" },
+    { id: "set-report",    section: "diagnostics", title: "Report an Issue",             kw: "bug feedback send diagnostics screenshot github" },
+    { id: "set-subs",      section: "diagnostics", title: "Subtitle Debug Log",          kw: "word timestamps whisper repair segmentation" },
+  ];
+
+  const [query, setQuery] = useState("");
+  const [flashId, setFlashId] = useState(null);
+  const searching = query.trim().length > 0;
+  const hits = searching
+    ? settingIndex.filter((s) => `${s.title} ${s.kw} ${rail.find((r) => r.id === s.section).label}`.toLowerCase().includes(query.trim().toLowerCase()))
+    : [];
+
+  // Jumping from a search result: switch section first, then scroll the card
+  // into view once it has actually mounted.
+  useEffect(() => {
+    if (!flashId) return;
+    document.getElementById(flashId)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const t = setTimeout(() => setFlashId(null), 1400);
+    return () => clearTimeout(t);
+  }, [flashId]);
+
+  const jumpTo = (hit) => { setActiveSection(hit.section); setQuery(""); setFlashId(hit.id); };
+
+  // Every settings Card spreads this — it carries the search anchor and the
+  // brief highlight a jump leaves behind.
+  const cardProps = (id) => ({ id, borderColor: flashId === id ? T.accent : undefined });
+
+  const SectionHead = ({ id }) => {
+    const s = rail.find((r) => r.id === id);
+    return (
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "0 0 14px", paddingBottom: 10, borderBottom: `1px solid ${T.border}` }}>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.2px", color: T.text }}>{s.label}</h3>
+        <span style={{ fontSize: 12, color: T.textTertiary }}>{s.blurb}</span>
       </div>
-      <span style={{ color: T.textMuted, fontSize: 10 }}>{collapsedGroups[groupKey] ? "Show" : "Hide"}</span>
-    </div>
-  );
+    );
+  };
 
   return (
     <div>
       <PageHeader title="Settings" />
 
-      {/* ════════════════════════════════════════ */}
-      {/* GROUP 1: FILES & FOLDERS                */}
-      {/* ════════════════════════════════════════ */}
-      <GroupHeader groupKey="files" label="Files & Folders" />
-      {!collapsedGroups.files && <>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+
+        {/* ── Section rail. Sticky, so the section you are in stays visible ── */}
+        <div style={{ width: 212, flexShrink: 0, position: "sticky", top: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ position: "relative" }}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search settings…"
+              style={{ width: "100%", background: searching ? T.accentGlow : "rgba(255,255,255,0.04)", border: `1px solid ${searching ? T.accentBorder : T.border}`, borderRadius: T.radius.sm, padding: "8px 26px 8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", boxSizing: "border-box" }}
+            />
+            {searching && (
+              <button onClick={() => setQuery("")} title="Clear" style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: T.textTertiary, cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "2px 5px", fontFamily: T.font }}>{"\u2715"}</button>
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {rail.map((s) => {
+              const on = !searching && activeSection === s.id;
+              const count = new Set(settingIndex.filter((i) => i.section === s.id).map((i) => i.id)).size;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => { setQuery(""); setActiveSection(s.id); }}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", borderRadius: T.radius.sm, border: `1px solid ${on ? T.accentBorder : "transparent"}`, background: on ? T.accentDim : "transparent", color: on ? T.accentLight : T.textSecondary, fontFamily: T.font, fontSize: 13, fontWeight: on ? 700 : 600, cursor: "pointer", textAlign: "left", width: "100%" }}
+                >
+                  <span style={{ fontSize: 13, width: 16, textAlign: "center" }}>{s.icon}</span>
+                  <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: on ? T.accentLight : T.textMuted }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Content pane: one section at a time, or the search results ── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+      {searching && (
+        <>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "0 0 14px", paddingBottom: 10, borderBottom: `1px solid ${T.border}` }}>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.2px", color: T.text }}>Search results</h3>
+            <span style={{ fontSize: 12, color: T.textTertiary }}>
+              {hits.length ? `${hits.length} match${hits.length > 1 ? "es" : ""} — one click to jump.` : "No match."}
+            </span>
+          </div>
+          {hits.length === 0 ? (
+            <p style={{ color: T.textTertiary, fontSize: 12.5, padding: "18px 2px", margin: 0 }}>
+              Try a folder name, a platform, “key”, “whisper”, or “logs”.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {hits.map((h) => (
+                <button
+                  key={h.title}
+                  onClick={() => jumpTo(h)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", cursor: "pointer", background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 13px", fontFamily: T.font }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{h.title}</div>
+                    <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 2 }}>{rail.find((r) => r.id === h.section).label}</div>
+                  </div>
+                  <span style={{ marginLeft: "auto", fontSize: 11, color: T.accentLight, fontWeight: 700, whiteSpace: "nowrap" }}>{"Go \u2192"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {!searching && activeSection === "folders" && <>
+      <SectionHead id="folders" />
 
       {/* Watch Folder */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-watch")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Watch Folder</div>
           {!editFolder ? (
@@ -450,7 +572,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Test Folder (dev-mode second watcher) */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-test")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Test Folder</div>
@@ -481,7 +603,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Output Folder */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
+      <Card {...cardProps("set-output")} style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Output Folder</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: outputFolder ? T.text : T.textTertiary }}>
@@ -495,7 +617,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Audio Folders (#208) \u2014 linked in place, never copied */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
+      <Card {...cardProps("set-audio")} style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Audio Folders</div>
           <button
@@ -549,7 +671,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Media Folders (#309) — linked in place, never copied, same rules as audio */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
+      <Card {...cardProps("set-media")} style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Media Folders</div>
           <button
@@ -624,8 +746,13 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
+      </>}
+
+      {!searching && activeSection === "pipeline" && <>
+      <SectionHead id="pipeline" />
+
       {/* Video Splitting */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-split")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Video Splitting</div>
           <button
@@ -697,10 +824,10 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Recording Layout — Auto-Reframe layout library (#164) */}
-      <RecordingLayoutSection />
+      <div id="set-layout"><RecordingLayoutSection /></div>
 
       {/* Pipeline Quality — strict mode + yamnet silence skip (Issue #72 Phases 1 & 3) */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-quality")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Pipeline Quality</div>
 
         {/* Strict mode */}
@@ -838,14 +965,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       </>}
 
-      {/* ════════════════════════════════════════ */}
-      {/* GROUP 2: CONTENT LIBRARY                */}
-      {/* ════════════════════════════════════════ */}
-      <GroupHeader groupKey="content" label="Content Library" />
-      {!collapsedGroups.content && <>
+      {!searching && activeSection === "games" && <>
+      <SectionHead id="games" />
 
       {/* Main Game Pool */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-maingame")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Main Game</div>
           <button onClick={() => setShowAddMain(!showAddMain)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add</button>
@@ -875,7 +999,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Game Library — Games + Content Types */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-games")} style={{ padding: 24, marginBottom: 16 }}>
         {/* Games section */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Games</div>
@@ -922,7 +1046,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Naming Preset */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-naming")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Default Naming Preset</div>
         <div style={{ color: T.textTertiary, fontSize: 12, marginBottom: 14 }}>Controls how renamed files are named. Can be overridden per-file in the Rename tab.</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -964,14 +1088,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       </>}
 
-      {/* ════════════════════════════════════════ */}
-      {/* GROUP 3: AI & STYLE                     */}
-      {/* ════════════════════════════════════════ */}
-      <GroupHeader groupKey="aiStyle" label="AI & Style" />
-      {!collapsedGroups.aiStyle && <>
+      {!searching && activeSection === "ai" && <>
+      <SectionHead id="ai" />
 
       {/* Title & Caption Style Guide */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-guide")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Title & Caption Style Guide</div>
           {!editGuide ? (
@@ -999,18 +1120,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* AI Preferences (Creator Profile) */}
-      <AIPreferencesSection />
+      <div id="set-aiprefs"><AIPreferencesSection /></div>
 
       </>}
 
-      {/* ════════════════════════════════════════ */}
-      {/* GROUP 4: PUBLISHING                     */}
-      {/* ════════════════════════════════════════ */}
-      <GroupHeader groupKey="publishing" label="Publishing" />
-      {!collapsedGroups.publishing && <>
+      {!searching && activeSection === "publishing" && <>
+      <SectionHead id="publishing" />
 
       {/* Connected Platforms */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-platforms")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Connected Platforms</div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -1099,7 +1217,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       })()}
 
       {/* Stream Schedule (#286) — the {schedule} variable's single source */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
+      <Card {...cardProps("set-schedule")} style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Stream Schedule</div>
           {!editSchedule ? (
@@ -1129,7 +1247,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Queue Settings */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
+      <Card {...cardProps("set-queue")} style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Queue Settings</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
@@ -1157,14 +1275,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       </>}
 
-      {/* ════════════════════════════════════════ */}
-      {/* GROUP 5: TOOLS & CREDENTIALS            */}
-      {/* ════════════════════════════════════════ */}
-      <GroupHeader groupKey="tools" label="Tools & Credentials" />
-      {!collapsedGroups.tools && <>
+      {!searching && activeSection === "tools" && <>
+      <SectionHead id="tools" />
 
       {/* Local Tools Status */}
-      <Card style={{ marginBottom: 16, padding: 16 }}>
+      <Card {...cardProps("set-tools")} style={{ marginBottom: 16, padding: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Local Tools</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <PulseDot color={ffmpegStatus?.installed ? T.green : T.red} />
@@ -1191,7 +1306,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* BetterWhisperX Configuration */}
-      <Card style={{ marginBottom: 16, padding: 16 }}>
+      <Card {...cardProps("set-whisper")} style={{ marginBottom: 16, padding: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>BetterWhisperX Configuration</div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Python Path (venv)</div>
@@ -1341,7 +1456,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* API Credentials — Pill Bar */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
+      <Card {...cardProps("set-keys")} style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>API Credentials</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeApi ? 16 : 0 }}>
           {apiServices.map((svc) => {
@@ -1744,25 +1859,25 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       </>}
 
-      {/* ════════════════════════════════════════ */}
-      {/* GROUP 6: DIAGNOSTICS                    */}
-      {/* ════════════════════════════════════════ */}
-      <GroupHeader groupKey="diagnostics" label="Diagnostics" />
-      {!collapsedGroups.diagnostics && <>
+      {!searching && activeSection === "diagnostics" && <>
+      <SectionHead id="diagnostics" />
 
       {/* Analytics Opt-Out */}
-      <AnalyticsToggle />
+      <div id="set-analytics"><AnalyticsToggle /></div>
 
       {/* Pipeline Logs & Cost Tracking */}
-      <PipelineLogsSection />
+      <div id="set-logs"><PipelineLogsSection /></div>
 
       {/* Report an Issue */}
-      <ReportIssueSection />
+      <div id="set-report"><ReportIssueSection /></div>
 
       {/* Subtitle Debug Log */}
-      <SubtitleDebugSection />
+      <div id="set-subs"><SubtitleDebugSection /></div>
 
       </>}
+
+        </div>
+      </div>
 
       {/* Dev Dashboard — hidden behind version click counter */}
       <DevDashboard />
