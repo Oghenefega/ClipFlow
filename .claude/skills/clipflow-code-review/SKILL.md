@@ -127,6 +127,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **An exact twin of the bug gets fixed in the same commit, not filed as a caveat (session 210).** #315's stamp-overwrite and wrong-slot logging lived in `retryFailed` AND, character for character, in `publishClip` beside it. Fixing one and writing the other up as "noted, not changed" ships a known bug and leaves two copies free to drift — which is exactly how #321's UI gate and store check diverged. Before done: grep the module for the same shape (the same variable init, the same derivation, the same guard) and either fix every copy or collapse them into one function. Scope discipline forbids inventing new work; it does not license leaving half of the work you just found. If a twin genuinely must wait, ASK in the same breath — don't file it as a caveat.
 
+- **Source files get edited with Edit/Write — never a text-mode scripted rewrite (session 215).** A Python heredoc using `io.open(p, encoding=...)` to do a 4-occurrence style replacement in QueueView.js silently converted all 3150 lines CRLF → LF, because text mode translates newlines on read and writes plain LF back. `git diff --stat` hid it (the repo normalises to LF), so the usual check was blind to the damage. If a scripted sweep is genuinely warranted (mechanical, multi-file), do it in **bytes** mode — `open(p,'rb')` → replace on bytes → `open(p,'wb')` — and verify afterwards with a byte probe (`d.count(b'\r\n')`), not `git diff`. "Too small to open the Edit tool" is the reasoning this rule exists to overrule.
+
 ## Lesson Capture
 
 After ANY correction from the user:
