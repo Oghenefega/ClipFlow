@@ -3,6 +3,8 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, CopyIconButton, extractGameTag, toFileUrl } from "../components/shared";
+// #329: shared with the main-process publish scheduler — see src/shared/captionResolve.js.
+import { resolveTags, resolveCaption, resolveYtGameKey, getEffectiveCaption as resolveEffectiveCaption, accountToPlatformKey, getEnabledPlatforms as resolveEnabledPlatforms } from "../../shared/captionResolve";
 import CaptionsView from "./CaptionsView";
 import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
@@ -298,85 +300,9 @@ const ReadOnlyField = ({ label, value, multiline }) => (
   </div>
 );
 
-// #285: the per-game YouTube lookup, in one place. ytDescriptions is keyed by
-// display name ("Rocket League") while clips carry the short tag ("RL") or a
-// hashtag slug ("rocketleague"), so descriptions and tags MUST resolve through
-// the same match or they drift apart on the same clip.
-function resolveYtGameKey(clip, ytDescriptions, gamesDb) {
-  const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
-  const game = (gamesDb || []).find((g) =>
-    (g.tag || "").toLowerCase() === gameTag ||
-    (g.hashtag || "").toLowerCase() === gameTag
-  );
-  let key = null;
-  if (game?.name && ytDescriptions?.[game.name]) {
-    key = game.name;
-  } else {
-    // Permissive fallback for legacy entries: match a key whose spaces-stripped lowercase form == gameTag.
-    key = Object.keys(ytDescriptions || {}).find((k) =>
-      k.toLowerCase().replace(/\s+/g, "") === gameTag
-    ) || null;
-  }
-  return { gameTag, game, key };
-}
-
-// #285: YouTube tags for a clip — the per-game list saved beside the description.
-// No tags set (or no matching game) publishes exactly as it did before: an empty list.
-// #291: a per-clip list (edited on the queue card) wins outright, the same way
-// captionOverrides beats the template. An empty array is a real answer — the user
-// stripped the tags off this one clip — so only a missing/non-array value falls
-// through to the game.
-function resolveTags(clip, ytDescriptions, gamesDb) {
-  if (Array.isArray(clip.youtubeTags)) return clip.youtubeTags;
-  const { key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
-  const tags = key ? ytDescriptions?.[key]?.tags : null;
-  return Array.isArray(tags) ? tags : [];
-}
-
-// Resolve caption for a platform using template + clip data, respecting overrides
-function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule = "") {
-  // Prefer clip.gameTag (first-class field, lowercased); fall back to title hashtag for legacy clips.
-  const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
-  // YouTube description comes from ytDescriptions per-game system.
-  // ytDescriptions is keyed by game display name ("Arc Raiders"). Projects store
-  // clip.gameTag as the short abbreviation from gamesDb (e.g. "RL", "AR") OR sometimes
-  // as a hashtag slug ("rocketleague") via title extraction. Resolve via gamesDb by
-  // matching either form to find the display name.
-  if (platformKey === "youtube") {
-    const { game, key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
-    if (key && ytDescriptions[key]?.desc) {
-      // Prefer the gamesDb hashtag for {gametitle} substitution so saved templates
-      // still render "#rocketleague" even when clip.gameTag is the short form ("RL").
-      const hashtagForSub = (game?.hashtag || gameTag || "").toLowerCase();
-      return ytDescriptions[key].desc
-        .replace(/\{title\}/g, clip.title || "")
-        .replace(/#{gametitle}/g, hashtagForSub ? `#${hashtagForSub}` : "")
-        // #286: one Settings field feeds every template — a schedule change is
-        // one edit, not one per game. Unset resolves to "" so a template can
-        // never publish a raw {schedule}.
-        .replace(/\{schedule\}/g, streamSchedule || "");
-    }
-    return clip.title || "";
-  }
-  // TikTok / Instagram / Facebook — use captionTemplates
-  const template = captionTemplates?.[platformKey];
-  if (!template) return clip.title || "";
-  return template
-    .replace(/\{title\}/g, clip.title || "")
-    .replace(/#{gametitle}/g, gameTag ? `#${gameTag}` : "")
-    .replace(/\{schedule\}/g, streamSchedule || "");
-}
-
-// Map connected account to platform key
-function accountToPlatformKey(account) {
-  const p = (account.platform || "").toLowerCase();
-  if (p === "tiktok") return "tiktok";
-  if (p === "instagram") return "instagram";
-  if (p === "facebook") return "facebook";
-  if (p === "youtube") return "youtube";
-  if (p === "meta" && account.igAccountId) return "instagram";
-  return null;
-}
+// #329: resolveYtGameKey / resolveTags / resolveCaption / accountToPlatformKey now
+// live in src/shared/captionResolve.js - the main-process publish scheduler builds
+// the same payload with no renderer, and a second copy here would drift.
 
 // Character count color
 function charCountColor(len, max) {
@@ -695,12 +621,16 @@ function TiktokInteractionToggle({ label, userOn, forceOn, onToggle }) {
   );
 }
 
+// #329: mainGame / setTrackerData / awardXp / onScheduledPublishFailure /
+// refreshOauthAccounts are gone from this list on purpose. The tracker row, its XP and
+// the failure banner are all written or raised by the main process now, so the Queue no
+// longer needs the setters - it reads trackerData, it does not author it.
 export default function QueueView({
-  allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
+  allClips, localProjects, setLocalProjects, mainGameTag, platforms, trackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, streamSchedule,
-  platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor, onCreateGame,
-  onScheduledPublishFailure, refreshOauthAccounts, focusFailedSignal, onRepostClip,
+  platformOptions, setPlatformOptions, gamesDb, streamingMode, onOpenInEditor, onCreateGame,
+  focusFailedSignal, onRepostClip,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -824,115 +754,18 @@ export default function QueueView({
       return next;
     });
   }, [approved]);
-  // ── Auto-fire scheduler ──
-  // Ticks once per minute (plus once on mount) and triggers publishClip for any clip
-  // whose scheduledAt has passed. Firing goes through projectClaimScheduledPublish,
-  // which is the only thing standing between a stale clip list and a duplicate post
-  // — see the claim call below. In-memory guards alone are not enough (#156, #182).
-  // Test-mode clips are skipped (publish is blocked for them anyway).
-  // Limitation: only fires while ClipFlow is running. App closed at scheduled time =
-  // the next tick after reopen catches it (still due because scheduledAt <= now).
-  const autoFiringRef = useRef(new Set());
-  // #244 layer 1: accounts already pre-flighted, keyed accountKey|scheduledAt —
-  // one check (and at most one warning) per account per slot, not one per tick.
-  const preflightedRef = useRef(new Set());
-  const tickRef = useRef();
-  tickRef.current = async () => {
-    if (publishingRef.current) return;
-    const now = Date.now();
-    const due = approved
-      .filter((c) =>
-        c.scheduledAt &&
-        new Date(c.scheduledAt).getTime() <= now &&
-        !autoFiringRef.current.has(c.id) &&
-        !isClipTest(c)
-      )
-      .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
-    for (const clip of due) {
-      if (publishingRef.current) break;
-      autoFiringRef.current.add(clip.id);
-      try {
-        // #156/#182: `due` was computed from this renderer's in-memory clip list,
-        // which goes stale the moment anything else publishes — a second app
-        // instance, or the user hitting Publish now. Claim through the main
-        // process, which re-reads from disk and clears scheduledAt in one
-        // read-modify-write, so only one caller can ever fire a given schedule.
-        const claim = await window.clipflow?.projectClaimScheduledPublish(clip._projectId, clip.id);
-        if (!claim?.claimed) {
-          console.log("[Scheduler] Skipping", clip.title, "—", claim?.reason || "claim unavailable");
-          // Resync our stale copy to whatever disk actually says (undefined when
-          // the clip is gone — leave those alone for the clip list to reconcile).
-          if (claim && "scheduledAt" in claim) {
-            updateClipInState(clip._projectId, clip.id, { scheduledAt: claim.scheduledAt });
-          }
-          continue;
-        }
-        updateClipInState(clip._projectId, clip.id, { scheduledAt: null });
-        console.log("[Scheduler] Firing scheduled publish:", clip.title, "(was scheduled for", clip.scheduledAt + ")");
-        // Publish the clip the claim just re-read from disk, not this renderer's
-        // copy — in-memory state can hold a pre-rename renderPath (#188 renames
-        // the file on disk), and a stale path fails every platform at once.
-        const outcome = await publishClip(clip.id, null, { ...clip, ...claim.clip, _projectId: clip._projectId }, { scheduled: true });
-        // #244 layer 2: a scheduled failure must reach the user who ISN'T
-        // looking — OS toast + persistent app banner, never just a queue card.
-        if (outcome?.failures?.length > 0) {
-          const platNames = [...new Set(outcome.failures.map((f) => f.platform))];
-          window.clipflow?.systemNotify?.({
-            title: "Scheduled publish failed",
-            body: `"${clip.title}" didn't go out on ${platNames.join(", ")}. Open Corva to retry.`,
-          });
-          onScheduledPublishFailure?.({ clipTitle: clip.title, platforms: platNames, at: Date.now() });
-          // A publish-time invalid_grant flags the account in main — pull the
-          // badge into Settings without waiting for an app restart.
-          refreshOauthAccounts?.();
-        }
-      } catch (e) {
-        console.error("[Scheduler] Auto-fire failed for", clip.id, e);
-      } finally {
-        autoFiringRef.current.delete(clip.id);
-      }
-    }
-
-    // #244 layer 1: pre-flight connections for slots coming up within the hour,
-    // so a dead account surfaces as an OS notification BEFORE the slot instead
-    // of a silent failure at post time.
-    const PREFLIGHT_WINDOW_MS = 60 * 60_000;
-    const upcoming = approved.filter((c) => {
-      if (!c.scheduledAt || isClipTest(c)) return false;
-      const t = new Date(c.scheduledAt).getTime();
-      return t > now && t - now <= PREFLIGHT_WINDOW_MS;
-    });
-    for (const clip of upcoming) {
-      const accounts = getEnabledPlatforms(clip)
-        .map((pk) => activePlat.find((p) => accountToPlatformKey(p) === pk))
-        .filter(Boolean);
-      const toCheck = accounts.filter((a) => !preflightedRef.current.has(`${a.key}|${clip.scheduledAt}`));
-      if (toCheck.length === 0) continue;
-      toCheck.forEach((a) => preflightedRef.current.add(`${a.key}|${clip.scheduledAt}`));
-      try {
-        const res = await window.clipflow?.publishPreflight?.({ accountIds: toCheck.map((a) => a.key) });
-        const dead = toCheck.filter((a) => res?.results?.[a.key]?.needsReconnect);
-        if (dead.length > 0) {
-          const when = new Date(clip.scheduledAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-          for (const a of dead) {
-            window.clipflow?.systemNotify?.({
-              title: `${a.platform} needs reconnecting`,
-              body: `Reconnect in Settings before your ${when} post — "${clip.title}" is scheduled.`,
-            });
-          }
-          refreshOauthAccounts?.(); // Settings badge without a restart
-        }
-      } catch (e) {
-        console.error("[Scheduler] Pre-flight failed", e);
-      }
-    }
-  };
-  useEffect(() => {
-    const fire = () => tickRef.current?.();
-    fire();
-    const id = setInterval(fire, 60_000);
-    return () => clearInterval(id);
-  }, []);
+  // #329: the auto-fire scheduler MOVED TO THE MAIN PROCESS (src/main/publish.js).
+  //
+  // It used to be a 60s tick right here, which meant scheduled clips only went out
+  // while this window was open - and Chromium throttles timers on a hidden window, so
+  // even minimising was a risk. Main has every input it needs (settings in the store,
+  // clips on disk, tokens in the token store), keeps ticking with no renderer at all,
+  // and still claims through projectClaimScheduledPublish, so there is exactly one
+  // arbitration point and no double-posts.
+  //
+  // DO NOT reintroduce a tick here. Two schedulers racing is worse than none.
+  // This view now only learns what main did: publish:clipChanged refreshes the card,
+  // tracker:appended lands the row (App.js), publish:failed raises the banner.
   const [scheduled, setScheduled] = useState({});
   const publishingRef = useRef(false);
   // Per-platform publish results captured during this session's publish runs, keyed by
@@ -1229,20 +1062,15 @@ export default function QueueView({
     } catch (e) { console.error("TikTok fields save failed:", e); }
   };
 
+  // #329: the four settings the shared resolvers need, in the shape they expect.
+  // Main reads the same four keys straight out of electron-store.
+  const captionSettings = { captionTemplates, ytDescriptions, gamesDb, streamSchedule };
+
   // Phase 2: Get effective caption for a clip+platform (override or resolved template)
-  const getEffectiveCaption = (clip, platformKey) => {
-    if (clip.captionOverrides?.[platformKey] != null) return clip.captionOverrides[platformKey];
-    return resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule);
-  };
+  const getEffectiveCaption = (clip, platformKey) => resolveEffectiveCaption(clip, platformKey, captionSettings);
 
   // Phase 2: Get which platform keys are enabled for a clip
-  const getEnabledPlatforms = (clip) => {
-    const toggles = clip.platformToggles || {};
-    return activePlat
-      .map((p) => accountToPlatformKey(p))
-      .filter((k) => k && toggles[k] !== false)
-      .filter((v, i, a) => a.indexOf(v) === i); // dedupe
-  };
+  const getEnabledPlatforms = (clip) => resolveEnabledPlatforms(clip, activePlat);
 
   // TikTok Content Posting API audit: returns a human-readable reason string if
   // publishing should be blocked because the clip's TikTok options are incomplete
@@ -1593,58 +1421,30 @@ export default function QueueView({
   // — both are already the truth. This used to snap to the nearest weekly-
   // template slot, which filed a 2:45 PM post as 2:30 PM; TrackerView renders
   // off-slot times as their own rows, so exact times need no snapping.
+  // #329: the row itself is built and written in the MAIN process now.
+  //
+  // Publishing can happen with no renderer at all (streaming mode), so the tracker row
+  // had to stop being a thing only this component knew how to make. Main runs the same
+  // builder either way (src/shared/trackerRow.js) with the same resolvers the upload
+  // just used, so a clip posted during a stream files identically to one posted here.
+  //
+  // It also fixes a quieter hazard: trackerData is persisted from App.js as a
+  // whole-array overwrite, so a row main appended while this window was open used to be
+  // erasable by our next save. Main holds appended rows pending until it sees them come
+  // back, and unions in anything a save dropped - a published clip can never go missing.
+  //
+  // XP and the #183 training row ride along on the same call, with their #240/#306
+  // fences intact. The row arrives back through the tracker:appended listener in App.js.
   const logPost = (clip, date, day, time, isScheduled) => {
     const gt = (clip.gameTag || extractGameTag(clip.title) || "unknown").toLowerCase();
-    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const captured = publishResultsRef.current[clip.id] || {};
-    // Record the platforms that actually succeeded — captured this session or persisted on
-    // clip.publishState across attempts — NOT the currently-enabled toggles. A retry after
-    // toggling the already-posted platforms off must still credit those earlier successes.
-    const state = clip.publishState || {};
-    let posted = activePlat.filter((p) => {
-      const k = accountToPlatformKey(p);
-      return k && (captured[k] || state[p.key] === "success");
-    });
-    if (posted.length === 0) {
-      const toggles = clip.platformToggles || {};
-      posted = activePlat.filter((p) => { const k = accountToPlatformKey(p); return k && toggles[k] !== false; });
-    }
-    const platformResults = posted.map((p) => {
-      const k = accountToPlatformKey(p);
-      return captured[k] || { platform: k, accountId: p.key };
-    });
-    // #293: freeze what actually shipped. resolveTags and getEffectiveCaption both
-    // recompute from the game's CURRENT lists (ytDescriptions), so reading them back
-    // weeks later shows today's values, not this post's — and a clip that used its
-    // game's tag list stores nothing of its own to fall back on. This is the one place
-    // a tracker entry is born, and it runs the same resolvers the publish call just
-    // used, so the record matches the upload. Entries written before this shipped have
-    // no snapshot; the Published card labels those as recomputed rather than faking it.
-    const publishedSnapshot = {
-      youtubeTitle: clip.youtubeTitle || clip.title || "",
-      description: getEffectiveCaption(clip, "youtube"),
-      tags: resolveTags(clip, ytDescriptions, gamesDb),
-      tagsCustom: Array.isArray(clip.youtubeTags),
-    };
-    setTrackerData((p) => [...p, { id, date, day, time, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled, published: publishedSnapshot, ...(clip.repostOf ? { repostOf: clip.repostOf } : {}) }]);
-    // #183: the title/caption that actually shipped is voice training data —
-    // especially when it was hand-written and never matched a suggestion.
-    // Fire-and-forget; a logging failure must never affect the publish result.
-    // #240 fence: imported clips still COUNT for the tracker (that's the point)
-    // but their titles are another era's copy — never voice training data.
-    // #306 extends the fence to reposts: the title already taught the model when the
-    // original went out, and the log is UNIQUE(clip_id), so letting a repost through
-    // would double-weight that title and conflate two posts' view histories.
-    if (clip.source !== "import" && !clip.repostOf) {
-      window.clipflow?.titleCaptionRecordPublish?.({
-        clipId: clip.id,
-        projectId: clip._projectId,
-        game: clip.game || gt,
-        title: clip.title || "",
-        caption: clip.caption || "",
-      }).catch(() => {});
-    }
-    awardXp(`clip:${id}`, 10, "clip", date);
+    window.clipflow?.trackerRecordPublish?.({
+      clip,
+      captured: publishResultsRef.current[clip.id] || {},
+      date, day, time, isScheduled: !!isScheduled,
+      training: (clip.source !== "import" && !clip.repostOf)
+        ? { clipId: clip.id, projectId: clip._projectId, game: clip.game || gt, title: clip.title || "", caption: clip.caption || "" }
+        : null,
+    }).catch(() => {});
     delete publishResultsRef.current[clip.id];
   };
 
@@ -2023,7 +1823,24 @@ export default function QueueView({
 
   return (
     <div onDragEnter={handleImportDragEnter} onDragOver={handleImportDragOver} onDragLeave={handleImportDragLeave} onDrop={handleImportDrop}>
-      <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} />
+      <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`}>
+        {/* #329: "I am about to stream" - drop the UI now rather than hunting for the
+            window close. Only offered when the setting is on, because with it off this
+            would just quit the app. */}
+        {streamingMode && (
+          <button
+            onClick={() => window.clipflow?.streamingEnter?.()}
+            title="Close the window and keep publishing in the background. Corva stays in the system tray."
+            style={{
+              padding: "9px 16px", borderRadius: 8, cursor: "pointer",
+              background: "rgba(var(--lift),0.06)", border: `1px solid ${T.border}`,
+              color: T.textSecondary, fontSize: 12, fontWeight: 700, fontFamily: T.font,
+            }}
+          >
+            Go quiet for streaming
+          </button>
+        )}
+      </PageHeader>
 
       {/* #240: drop-anywhere import target. pointerEvents:none keeps the
           overlay from stealing the drop — the root div handles it. */}

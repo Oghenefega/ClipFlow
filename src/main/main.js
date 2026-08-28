@@ -96,7 +96,7 @@ process.on("uncaughtException", (err) => {
   fatal("Corva hit an unexpected error.", err);
 });
 
-const { BrowserWindow, ipcMain, dialog, shell, Notification } = require("electron");
+const { BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu } = require("electron");
 
 // #244: Windows toast notifications need an AppUserModelID matching the installed
 // shortcut's (electron-builder sets it from build.appId). In dev the toast
@@ -141,6 +141,11 @@ const facebookPublish = require("./oauth/facebook-publish");
 const youtubeOAuth = require("./oauth/youtube");
 const youtubePublish = require("./oauth/youtube-publish");
 const publishLog = require("./publish-log");
+// #329: the scheduled-publish scheduler. Lives in the main process so publishing
+// survives the renderer being destroyed (streaming mode) and is not subject to
+// Chromium timer throttling on a hidden window.
+const publishScheduler = require("./publish");
+const { buildTrackerRow } = require("../shared/trackerRow");
 const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
 if (userDataMigrationOutcome && userDataMigrationOutcome !== "noop") {
@@ -334,6 +339,11 @@ const STORE_DEFAULTS = {
   // as {schedule} so a schedule change is one edit here instead of eleven
   // template edits. Empty = the variable resolves to nothing.
   streamSchedule: "",
+  // #329: "Keep publishing while I stream". OFF by default - with it off, closing
+  // the window quits exactly as it always has (Key Design Decision #2). With it on,
+  // closing destroys the renderer and leaves the main process resident with a tray
+  // icon so the publish scheduler keeps running.
+  streamingMode: false,
   outputFolder: "",
   // Legacy single "Sound Effects Folder". Superseded by audioFolders (#208);
   // kept so the migration below has something to read, blanked once it runs.
@@ -682,6 +692,12 @@ function runStoreMigrations(store) {
   // Existing installs get the safe default; user choice is preserved if set.
   if (!store.has("yamnetSilenceSkip")) store.set("yamnetSilenceSkip", true);
 
+  // ── Migration: streaming mode (#329) ──
+  // Explicitly OFF for every existing install. Key Design Decision #2 ("Close = quit")
+  // still holds by default; only a user who turns this on gets the tray-resident
+  // publish-while-streaming behaviour.
+  if (!store.has("streamingMode")) store.set("streamingMode", false);
+
   // ── Migration: game-audio track signal (#190) ──
   // Default off (null) — game signals only run once the user picks a game
   // track in Settings. Existing installs see zero behavior change.
@@ -765,6 +781,104 @@ function runStoreMigrations(store) {
 }
 
 let mainWindow;
+
+// ============ STREAMING MODE (#329) ============
+
+// Corva keeps publishing while Fega streams, with the UI gone so it stops competing
+// with OBS and the game. The renderer is DESTROYED rather than hidden: hiding stops
+// Chromium painting but leaves the whole renderer resident, and the RAM is the point.
+// The scheduler lives in the main process, so nothing about publishing depends on it.
+//
+// This is the formally amended exception to Key Design Decision #2 ("Close = quit").
+// With the setting OFF - the default - close still quits, teardown and all.
+let tray = null;
+let streamingMode = false;
+let quitRequested = false;
+
+const isStreamingModeEnabled = () => store?.get("streamingMode") === true;
+
+/**
+ * Per-process working set, so the resource win is measured rather than claimed.
+ * Logged on entering and leaving streaming mode and on every scheduler tick while in
+ * it - app.log is the only readout that survives having no window.
+ */
+function logFootprint(label) {
+  try {
+    const byType = {};
+    let total = 0;
+    for (const m of app.getAppMetrics()) {
+      const kb = m.memory?.workingSetSize || 0;
+      byType[m.type] = (byType[m.type] || 0) + kb;
+      total += kb;
+    }
+    const mb = (kb) => Math.round(kb / 1024);
+    const parts = Object.entries(byType).map(([t, kb]) => `${t}=${mb(kb)}MB`).join(" ");
+    logger.info(logger.MODULES.system, `Footprint (${label}): total=${mb(total)}MB ${parts}`);
+  } catch (err) {
+    logger.warn(logger.MODULES.system, `Footprint snapshot failed: ${err.message}`);
+  }
+}
+
+/** Bring the UI back - from the tray, a notification, or a second launch. */
+function showOrCreateWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    return;
+  }
+  streamingMode = false;
+  destroyTray();
+  createWindow();
+  logFootprint("window restored");
+}
+
+function destroyTray() {
+  if (!tray) return;
+  tray.destroy();
+  tray = null;
+}
+
+function ensureTray() {
+  if (tray) return;
+  try {
+    tray = new Tray(path.join(__dirname, "../../build/icon.ico"));
+    tray.setToolTip("Corva - publishing while you stream");
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: "Open Corva", click: () => showOrCreateWindow() },
+      { type: "separator" },
+      { label: "Quit Corva", click: () => { quitRequested = true; app.quit(); } },
+    ]));
+    tray.on("click", () => showOrCreateWindow());
+  } catch (err) {
+    // A tray that fails to create must not strand the user with an invisible app.
+    logger.error(logger.MODULES.system, `Tray creation failed: ${err.message}`);
+    tray = null;
+  }
+}
+
+/**
+ * Drop the UI and keep publishing. Called when the window closes with the setting on,
+ * or from the Queue's explicit "Streaming mode" action.
+ */
+function enterStreamingMode() {
+  if (streamingMode) return;
+  streamingMode = true;
+  ensureTray();
+  // No tray means no way back, so refuse rather than hide the app from the user.
+  if (!tray) { streamingMode = false; return { error: "Could not create the tray icon" }; }
+  logFootprint("before streaming mode");
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+  // A beat for the renderer teardown to settle before the numbers are read.
+  setTimeout(() => logFootprint("streaming mode"), 2000);
+  logger.info(logger.MODULES.system, "Streaming mode on - window destroyed, publish scheduler still running");
+  return { success: true };
+}
+
+ipcMain.handle("streaming:enter", () => {
+  if (!isStreamingModeEnabled()) return { error: "Streaming mode is turned off in Settings" };
+  return enterStreamingMode();
+});
 let watcher = null;
 let testWatcher = null;
 
@@ -785,7 +899,9 @@ const SPLASH_MIN_VISIBLE_MS = 2000;
 // lock check. Surface the window we already have so the launch isn't a silent no-op
 // — from the user's side clicking the icon again should just bring ClipFlow forward.
 app.on("second-instance", () => {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
+  // #329: in streaming mode there IS no window - relaunching Corva is the user asking
+  // for the UI back, so build it rather than no-oping.
+  if (!mainWindow || mainWindow.isDestroyed()) { showOrCreateWindow(); return; }
   // #73: still booting behind the splash — the splash IS the launch feedback;
   // forcing show here would surface the half-hydrated window the gate exists
   // to hide. The reveal (or its 15s fallback) is already on the way.
@@ -1194,6 +1310,36 @@ app.whenReady().then(async () => {
 
   createWindow({ holdUntilReady: true });
 
+  // #329: the publish scheduler. Started AFTER the window so a slow boot never delays
+  // the UI, but deliberately independent of it - it keeps ticking once the renderer is
+  // destroyed, which is the entire point of streaming mode.
+  publishScheduler.startScheduler({
+    store,
+    projects,
+    libraryRoot,
+    tokenStore,
+    logger,
+    isDevProfile: CLIPFLOW_PROFILE === "dev",
+    publishers: {
+      tiktok: publishTikTok,
+      instagram: publishInstagram,
+      facebook: publishFacebook,
+      youtube: publishYouTube,
+    },
+    preflightAccount,
+    notify: showNotification,
+    onPublished: recordPublishedClip,
+    onFailure: (alert) => {
+      // Held until a renderer exists - a failure during a stream still shows its banner
+      // when the window comes back.
+      pendingPublishAlerts.push(alert);
+      mainWindow?.webContents.send("publish:failed", alert);
+    },
+    onClipChanged: (projectId, clipId) => mainWindow?.webContents.send("publish:clipChanged", { projectId, clipId }),
+    onAccountsChanged: () => mainWindow?.webContents.send("oauth:accountsChanged"),
+    onTick: () => { if (streamingMode) logFootprint("streaming mode tick"); },
+  });
+
   // Game-art boot sweep: fetch Steam posters for games that have none yet.
   // Delayed so it never competes with boot I/O; fails soft offline.
   setTimeout(() => {
@@ -1207,15 +1353,33 @@ app.whenReady().then(async () => {
 }).catch((err) => fatal("Corva couldn't finish starting up.", err));
 
 app.on("window-all-closed", () => {
+  // #329: the amended Key Design Decision #2. With "Keep publishing while I stream" on,
+  // closing the window drops the UI but keeps this process alive so the publish
+  // scheduler keeps its slots. Tear NOTHING down here - the scheduler needs the
+  // database and the project tree. Quit Corva from the tray is the real exit.
+  if (!quitRequested && isStreamingModeEnabled()) {
+    enterStreamingMode();
+    return;
+  }
   if (watcher) watcher.close();
   if (testWatcher) testWatcher.close();
+  publishScheduler.stopScheduler();
   database.close();
   // Clean up cached thumbnail directories
   for (const [, cached] of thumbnailCache) {
     ffmpeg.cleanupThumbnailStrip(cached.thumbDir);
   }
   thumbnailCache.clear();
+  destroyTray();
   if (process.platform !== "darwin") app.quit();
+});
+
+// The tray's Quit runs app.quit() directly, which fires before-quit but not
+// window-all-closed when no window exists - the teardown above needs a second door.
+app.on("before-quit", () => {
+  quitRequested = true;
+  publishScheduler.stopScheduler();
+  destroyTray();
 });
 
 app.on("activate", () => {
@@ -3302,11 +3466,127 @@ ipcMain.handle("pipelineLogs:monthlyCost", async () => {
 });
 
 // ============ ELECTRON-STORE: persistent settings ============
+// ============ PUBLISH RECORD-KEEPING (#329) ============
+
+// Entries this process appended to a renderer-owned array that no renderer has echoed
+// back yet.
+//
+// trackerData and xpLedger are both persisted from the renderer as WHOLE-ARRAY overwrites
+// (App.js), so an entry written here while a window is open would be erased by that
+// window's next save — the clip would be live on four platforms and visible nowhere,
+// which is exactly the #315 failure mode. An entry stays pending until a renderer save
+// comes back containing it; any save missing a pending entry gets it unioned back in.
+// Self-clearing, so deleting a tracker row still works: by the time the user can delete
+// it, it is no longer pending.
+//
+// Both keys are guarded, not just trackerData. xpLedger looked safe because the renderer
+// rarely rewrites it — but "rarely" is not "never" (the weekly rollover appends, and it
+// re-evaluates on every trackerData change, which this file now causes), and a silently
+// dropped XP entry is invisible until someone notices their rank is short.
+const PENDING_GUARDED = { trackerData: "id", xpLedger: "key" };
+const pendingStoreRows = { trackerData: new Map(), xpLedger: new Map() };
+
+// #244: failures that happened with no window to show a banner. Drained on renderer ready.
+const pendingPublishAlerts = [];
+
+/**
+ * Append a publish-born tracker row, its XP, and its title/caption training row.
+ *
+ * The ONE place a publish record is written, whether the publish came from the Queue or
+ * from the main-process scheduler with no renderer alive. Both callers hand over the same
+ * inputs and buildTrackerRow shapes them identically.
+ */
+function recordPublishedClip(row, { training } = {}) {
+  const rows = store.get("trackerData") || [];
+  if (!rows.some((r) => r?.id === row.id)) {
+    store.set("trackerData", [...rows, row]);
+    pendingStoreRows.trackerData.set(row.id, row);
+  }
+
+  // XP is append-only and idempotent by key — never double-banked (App.js awardXp).
+  const ledger = store.get("xpLedger") || [];
+  const key = `clip:${row.id}`;
+  const xp = { key, amount: 10, reason: "clip", dateISO: row.date };
+  if (!ledger.some((e) => e?.key === key)) {
+    store.set("xpLedger", [...ledger, xp]);
+    pendingStoreRows.xpLedger.set(key, xp);
+    mainWindow?.webContents.send("xp:appended", xp);
+  }
+
+  // #183: the title that actually shipped is voice training data. Fire-and-forget —
+  // a logging failure must never affect the publish result.
+  if (training) {
+    try {
+      let transcript = "";
+      try {
+        const proj = projects.loadProject(libraryRoot(), training.projectId);
+        const clip = (proj?.clips || []).find((c) => c.id === training.clipId);
+        transcript = (clip?.transcription?.segments || []).map((sg) => sg.text).join(" ").trim();
+      } catch (_) { /* transcript is a nice-to-have, not required */ }
+      titleCaptionLog.recordPublish({ ...training, transcript });
+    } catch (err) {
+      logger.warn(logger.MODULES.system, `Title/caption training row failed: ${err.message}`);
+    }
+  }
+
+  mainWindow?.webContents.send("tracker:appended", row);
+  return row;
+}
+
+// The Queue routes its own publishes through here so the row is built by the same code
+// the scheduler uses — one shape, whether or not a window exists.
+ipcMain.handle("tracker:recordPublish", (_e, { clip, captured, date, day, time, isScheduled, training } = {}) => {
+  try {
+    if (!clip) return { error: "No clip" };
+    const gamesDb = store.get("gamesDb") || [];
+    const mainGame = store.get("mainGame") || "";
+    const row = buildTrackerRow(clip, {
+      connectedAccounts: tokenStore.getAccountsForUI() || [],
+      captured: captured || {},
+      settings: {
+        captionTemplates: store.get("captionTemplates") || {},
+        ytDescriptions: store.get("ytDescriptions") || {},
+        gamesDb,
+        streamSchedule: store.get("streamSchedule") || "",
+        mainGame,
+        mainGameTag: gamesDb.find((g) => g.name === mainGame)?.tag || "",
+      },
+      date, day, time, isScheduled,
+    });
+    return { success: true, row: recordPublishedClip(row, { training }) };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// #244: a scheduled failure that happened while the window was gone still has to reach
+// the user. The OS toast fires immediately; this is the persistent in-app banner, held
+// until a renderer exists to show it.
+ipcMain.handle("publish:drainAlerts", () => {
+  const out = pendingPublishAlerts.splice(0, pendingPublishAlerts.length);
+  return { alerts: out };
+});
 ipcMain.handle("store:get", (_, key) => {
   return store.get(key);
 });
 
 ipcMain.handle("store:set", (_, key, value) => {
+  // #329: a renderer saving one of these arrays is saving a snapshot it took before this
+  // process appended anything. Union any still-pending entries back in, or a publish that
+  // happened during a stream vanishes the moment the window reopens and saves.
+  const idField = PENDING_GUARDED[key];
+  if (idField && Array.isArray(value) && pendingStoreRows[key].size > 0) {
+    const seen = new Set(value.map((r) => r?.[idField]));
+    const missing = [];
+    for (const [id, row] of pendingStoreRows[key]) {
+      if (seen.has(id)) pendingStoreRows[key].delete(id);
+      else missing.push(row);
+    }
+    if (missing.length > 0) {
+      logger.info(logger.MODULES.system, `Re-added ${missing.length} ${key} entr(ies) a renderer save would have dropped`);
+      value = [...value, ...missing];
+    }
+  }
   store.set(key, value);
   return { success: true };
 });
@@ -4269,22 +4549,23 @@ const deadTokenError = (platform) =>
 
 // #244: generic OS toast. Renderer decides when to notify (scheduler owns the
 // aggregation); main just shows it. Clicking focuses the app window.
-ipcMain.handle("system:notify", (_, { title, body } = {}) => {
+// #329: the scheduler notifies with no renderer involved, so the body is a plain
+// function and the IPC handler is one caller of it.
+function showNotification({ title, body } = {}) {
   try {
     if (!Notification.isSupported()) return { ok: false, error: "unsupported" };
     const n = new Notification({ title: String(title || "Corva"), body: String(body || "") });
-    n.on("click", () => {
-      if (!mainWindow) return;
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    });
+    // #329: a scheduled failure can fire with no window in existence (streaming mode),
+    // and "click the toast to fix it" has to work in exactly that case.
+    n.on("click", () => showOrCreateWindow());
     n.show();
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err.message };
   }
-});
+}
+
+ipcMain.handle("system:notify", (_, params = {}) => showNotification(params));
 
 // #244 layer 1: pre-flight connection check ahead of scheduled slots.
 // For YouTube/TikTok the liveness probe IS the token refresh their publish
@@ -4465,7 +4746,10 @@ ipcMain.handle("tiktok:queryCreatorInfo", async (_event, { accountId }) => {
   }
 });
 
-ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields, scheduled }) => {
+// #329: the body is a named function so the main-process publish scheduler can call it
+// directly with no renderer in existence. The IPC handler is now a pass-through;
+// arguments, return shape and publishLog writes are unchanged.
+async function publishTikTok({ accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields, scheduled }) {
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "TikTok", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
@@ -4562,7 +4846,8 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: translateTiktokPublishError(err.message) };
   }
-});
+}
+ipcMain.handle("tiktok:publish", (_event, args = {}) => publishTikTok(args));
 
 // Translate raw TikTok API error messages into user-facing strings. Handles the
 // guideline-mandated A8 (capacity) friendly message plus a few other common
@@ -4684,7 +4969,10 @@ ipcMain.handle("oauth:facebook:connect", async () => {
 
 // ── Instagram Content Publishing ──
 
-ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest, qualityNote, scheduled }) => {
+// #329: the body is a named function so the main-process publish scheduler can call it
+// directly with no renderer in existence. The IPC handler is now a pass-through;
+// arguments, return shape and publishLog writes are unchanged.
+async function publishInstagram({ accountId, videoPath, title, caption, clipId, isTest, qualityNote, scheduled }) {
   // #187: qualityNote records when a lighter copy shipped instead of the render,
   // so a post's actual resolution is answerable later without guessing.
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath, ...(qualityNote ? { qualityNote } : {}), ...(scheduled ? { scheduled: true } : {}) };
@@ -4827,11 +5115,15 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }
-});
+}
+ipcMain.handle("instagram:publish", (_event, args = {}) => publishInstagram(args));
 
 // ── Facebook Page Publishing ──
 
-ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest, scheduled }) => {
+// #329: the body is a named function so the main-process publish scheduler can call it
+// directly with no renderer in existence. The IPC handler is now a pass-through;
+// arguments, return shape and publishLog writes are unchanged.
+async function publishFacebook({ accountId, videoPath, title, caption, clipId, isTest, scheduled }) {
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Facebook", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
@@ -4879,7 +5171,8 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }
-});
+}
+ipcMain.handle("facebook:publish", (_event, args = {}) => publishFacebook(args));
 
 // ── YouTube OAuth ──
 
@@ -4921,7 +5214,10 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 
 // ── YouTube Publishing ──
 
-ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest, scheduled }) => {
+// #329: the body is a named function so the main-process publish scheduler can call it
+// directly with no renderer in existence. The IPC handler is now a pass-through;
+// arguments, return shape and publishLog writes are unchanged.
+async function publishYouTube({ accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest, scheduled }) {
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "YouTube", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
@@ -4999,7 +5295,8 @@ ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, c
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }
-});
+}
+ipcMain.handle("youtube:publish", (_event, args = {}) => publishYouTube(args));
 
 // ── Publish log queries ──
 ipcMain.handle("publishLog:getRecent", async (_, limit) => {

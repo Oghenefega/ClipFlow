@@ -3,7 +3,10 @@ import { createPortal } from "react-dom";
 import T from "../styles/theme";
 
 // ============ UTILITIES ============
-export const extractGameTag = (t) => { const m = t.match(/#(\w+)/); return m ? m[1].toLowerCase() : null; };
+// #329: defined in src/shared/captionResolve.js so the main process can require()
+// the same function — the publish scheduler resolves game tags with no renderer.
+// Re-exported here so existing importers keep their import path.
+export { extractGameTag } from "../../shared/captionResolve";
 export const hasHashtag = (t) => /#\w+/.test(t);
 
 // Convert a Windows file path to a Chromium-safe file:// URL.

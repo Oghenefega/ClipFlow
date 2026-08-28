@@ -1548,3 +1548,28 @@ tokens into dev (`dev:seed` copies them; empty the file right after any seed). F
 adjacent work, repoint dev at a scratch fixture tree first. Applied: dev tokens emptied (backup
 `clipflow-tokens.backup-s214.json`); routed to memory `project_cdp_verification_gotchas` (s214
 incident block) + MEMORY.md index headline.
+
+## S218 — `npm start` is now a publishing action on the prod profile
+
+**What happened:** #329 moved the scheduled-publish tick into the main process. The project's
+non-negotiable verification ritual — "after ANY code change: build + `npm start` to visually
+verify" — runs the PROD profile, which holds Fega's real OAuth tokens. So the ritual now boots
+a live publisher: the scheduler starts, ticks within a minute, and will post any overdue
+scheduled clip to his real accounts. Caught immediately (the log showed `Scheduler: started`
+and nothing else, because the daily driver had already published the one due clip at 16:30),
+and the instance was killed inside a minute — but only because the risk was noticed at launch,
+not because anything prevented it.
+
+**Why it slipped:** the s214 guard was built where the s214 incident happened — the DEV profile
+— and `CLIPFLOW_PROFILE=dev` was treated as "the verification profile". It is not: `npm start`
+is prod, and it is written into CLAUDE.md as a mandatory step after every change. The dev guard
+made the safe path safer and left the mandated path armed.
+
+**Rule:** for any session touching the publish path, verify with `CLIPFLOW_PROFILE=dev` (guarded)
+or the packaged exe against the dev profile — never bare `npm start`. If a prod-profile boot is
+genuinely needed, check `clipflow-settings.json` for clips whose `scheduledAt` is in the past
+BEFORE launching, and kill the instance the moment the boot assertion passes. Open question for
+Fega, deliberately not decided unilaterally: should the scheduler refuse to auto-fire when
+running from source (`!app.isPackaged`), so only the installed daily driver ever publishes?
+That would make the ritual safe permanently, at the cost of his documented `npm start` backup
+path silently not publishing.

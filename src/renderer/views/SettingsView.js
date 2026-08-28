@@ -42,7 +42,7 @@ const renderGameScopeOption = (o) => (o.isHeader ? (
 
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, activeSection, setActiveSection, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamingMode, setStreamingMode, streamSchedule, setStreamSchedule, activeSection, setActiveSection, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -427,6 +427,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "set-platforms", section: "publishing",  title: "Connected Platforms",         kw: "accounts youtube tiktok instagram facebook x kick oauth connect reconnect token" },
     { id: "set-schedule",  section: "publishing",  title: "Stream Schedule",             kw: "live days template variable" },
     { id: "set-queue",     section: "publishing",  title: "Queue Settings",              kw: "slots per day spacing scheduling posting times hashtag" },
+    { id: "set-streaming", section: "publishing",  title: "Streaming Mode",              kw: "stream obs tray background keep publishing minimise close performance ram" },
     { id: "set-tools",     section: "tools",       title: "Local Tools",                 kw: "ffmpeg betterwhisperx whisper version installed engine" },
     { id: "set-whisper",   section: "tools",       title: "BetterWhisperX Configuration", kw: "python path venv model transcription calibration" },
     { id: "set-keys",      section: "tools",       title: "API Credentials",             kw: "keys anthropic gemini youtube client id secret meta tiktok gateway token" },
@@ -1329,6 +1330,42 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             }} />
           </button>
         </div>
+      </Card>
+
+      {/* Streaming Mode (#329) */}
+      <Card {...cardProps("set-streaming")} style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Streaming Mode</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ paddingRight: 16 }}>
+            <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Keep publishing while I stream</div>
+            <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 2, lineHeight: 1.5 }}>
+              Closing Corva puts it in the system tray instead of quitting, and scheduled clips keep going out on time. The window closes for real, so it stops using memory and your graphics card while you play. Right-click the tray icon to bring it back or to quit properly.
+            </div>
+          </div>
+          <button
+            onClick={() => setStreamingMode(!streamingMode)}
+            style={{
+              width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer",
+              background: streamingMode ? T.green : "rgba(var(--lift),0.12)",
+              position: "relative", transition: "background 0.2s", flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: 8, background: "#fff",
+              position: "absolute", top: 3,
+              left: streamingMode ? 21 : 3,
+              transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(var(--shade),calc(0.3 * var(--shadeK)))",
+            }} />
+          </button>
+        </div>
+        {streamingMode && (
+          <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.green}15`, borderRadius: T.radius.sm, border: `1px solid ${T.green}33` }}>
+            <span style={{ color: T.green, fontSize: 11 }}>
+              Corva will not quit when you close the window. Use <strong>Quit Corva</strong> on the tray icon to close it fully.
+            </span>
+          </div>
+        )}
       </Card>
 
       </>}

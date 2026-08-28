@@ -339,6 +339,9 @@ export default function App() {
 
   // Queue settings
   const [requireHashtagInTitle, setRequireHashtagInTitle] = useState(true);
+  // #329: "Keep publishing while I stream". Off by default - Key Design Decision #2
+  // ("Close = quit") still holds unless the user opts in.
+  const [streamingMode, setStreamingMode] = useState(false);
 
   // Captions
   const [platformOptions, setPlatformOptions] = useState({ tiktokPostMode: "direct_post" });
@@ -467,6 +470,7 @@ export default function App() {
         if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
         if (all.requireHashtagInTitle !== undefined) setRequireHashtagInTitle(all.requireHashtagInTitle);
+        if (all.streamingMode !== undefined) setStreamingMode(all.streamingMode);
         if (typeof all.streamSchedule === "string") setStreamSchedule(all.streamSchedule);
         // Onboarding flag
         setOnboardingComplete(!!all.onboardingComplete);
@@ -536,6 +540,48 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("mainGame", mainGame); }, [mainGame]);
   useEffect(() => { if (!hasLoaded.current) return; persist("mainPool", mainPool); }, [mainPool]);
   useEffect(() => { if (!hasLoaded.current) return; persist("gamesDb", gamesDb); }, [gamesDb]);
+  // ── #329: what the main-process publish scheduler did while we were not looking ──
+  //
+  // Scheduled publishing moved into the main process, so these four listeners are how
+  // the UI finds out about a publish it did not perform — including ones that happened
+  // with this window destroyed during a stream.
+  useEffect(() => {
+    // A tracker row main appended. MERGE by id, never replace: our own trackerData is
+    // persisted as a whole array, so dropping this row would erase a real published clip
+    // on the next save (main re-unions anything we miss, but arriving at the right answer
+    // twice is better than relying on the safety net).
+    window.clipflow?.onTrackerAppended?.((row) => {
+      if (!row?.id) return;
+      setTrackerData((prev) => (prev.some((r) => r?.id === row.id) ? prev : [...prev, row]));
+    });
+    // The XP main banked for that clip. Idempotent by key, exactly like awardXp.
+    window.clipflow?.onXpAppended?.((entry) => {
+      if (!entry?.key) return;
+      setXpLedger((prev) => (prev.some((e) => e?.key === entry.key) ? prev : [...prev, entry]));
+    });
+    // #244: a scheduled failure needs the persistent banner, not just an OS toast.
+    window.clipflow?.onPublishFailed?.((alert) => setPublishAlerts((prev) => [...prev, alert]));
+    // A publish-time invalid_grant flags the account main-side — pull the Settings badge
+    // in without waiting for a restart.
+    window.clipflow?.onOauthAccountsChanged?.(() => { refreshOauthAccounts(); });
+    // Main persisted publishState/publishedAt on a clip we hold a stale copy of.
+    window.clipflow?.onPublishClipChanged?.(() => {
+      window.clipflow?.projectList?.().then((list) => {
+        if (list?.projects) setLocalProjects(list.projects);
+      }).catch(() => {});
+    });
+    // Failures raised while no window existed were held for us.
+    window.clipflow?.publishDrainAlerts?.().then((res) => {
+      if (res?.alerts?.length) setPublishAlerts((prev) => [...prev, ...res.alerts]);
+    }).catch(() => {});
+    return () => {
+      window.clipflow?.removeTrackerAppendedListener?.();
+      window.clipflow?.removeXpAppendedListener?.();
+      window.clipflow?.removePublishFailedListener?.();
+      window.clipflow?.removeOauthAccountsChangedListener?.();
+      window.clipflow?.removePublishClipChangedListener?.();
+    };
+  }, []);
   // Day-counter repair (#170) happens in the main process during reconcile —
   // sync it into renderer state, or the next rename would compute from (and
   // persist back) the stale counter this component loaded at boot.
@@ -579,6 +625,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
   useEffect(() => { if (!hasLoaded.current) return; persist("requireHashtagInTitle", requireHashtagInTitle); }, [requireHashtagInTitle]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("streamingMode", streamingMode); }, [streamingMode]);
   useEffect(() => { if (!hasLoaded.current) return; persist("streamSchedule", streamSchedule); }, [streamSchedule]);
 
   // XP ledger append with idempotency — nothing is ever double-banked or removed (rank only climbs).
@@ -1053,11 +1100,9 @@ export default function App() {
               localProjects={localProjects}
               setLocalProjects={setLocalProjects}
               onRepostClip={handleRepostClip}
-              mainGame={mainGame}
               mainGameTag={mainGameTag}
               platforms={platforms}
               trackerData={trackerData}
-              setTrackerData={setTrackerData}
               weeklyTemplate={weeklyTemplate}
               weekTemplateOverrides={weekTemplateOverrides}
               ytDescriptions={ytDescriptions}
@@ -1068,11 +1113,9 @@ export default function App() {
               platformOptions={platformOptions}
               setPlatformOptions={setPlatformOptions}
               gamesDb={gamesDb}
-              awardXp={awardXp}
+              streamingMode={streamingMode}
               onOpenInEditor={handleOpenQueueClipInEditor}
               onCreateGame={handleNewGame}
-              onScheduledPublishFailure={(alert) => setPublishAlerts((prev) => [...prev, alert])}
-              refreshOauthAccounts={refreshOauthAccounts}
               focusFailedSignal={queueFocusFailed}
             />
           </div>
@@ -1166,6 +1209,8 @@ export default function App() {
               styleGuide={styleGuide}
               setStyleGuide={setStyleGuide}
               requireHashtagInTitle={requireHashtagInTitle}
+              streamingMode={streamingMode}
+              setStreamingMode={setStreamingMode}
               setRequireHashtagInTitle={setRequireHashtagInTitle}
               streamSchedule={streamSchedule}
               setStreamSchedule={setStreamSchedule}

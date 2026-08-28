@@ -368,6 +368,49 @@ contextBridge.exposeInMainWorld("clipflow", {
   systemNotify: (params) => ipcRenderer.invoke("system:notify", params),
   publishPreflight: (params) => ipcRenderer.invoke("publish:preflight", params),
 
+  // #329: the scheduled-publish loop now lives in the main process, so these are how
+  // the UI learns what happened while it was not the one doing the publishing.
+  //
+  // trackerRecordPublish is the ONLY way a publish-born tracker row is written, from
+  // either side. Main builds the row so a headless publish and a Queue publish produce
+  // the identical record - see src/shared/trackerRow.js.
+  trackerRecordPublish: (params) => ipcRenderer.invoke("tracker:recordPublish", params),
+  onTrackerAppended: (callback) => {
+    ipcRenderer.on("tracker:appended", (_, row) => callback(row));
+  },
+  removeTrackerAppendedListener: () => {
+    ipcRenderer.removeAllListeners("tracker:appended");
+  },
+  // The XP that rides along with a published clip. Same merge-by-key rule as the row.
+  onXpAppended: (callback) => {
+    ipcRenderer.on("xp:appended", (_, entry) => callback(entry));
+  },
+  removeXpAppendedListener: () => {
+    ipcRenderer.removeAllListeners("xp:appended");
+  },
+  // Failures that happened with no window to show a banner.
+  publishDrainAlerts: () => ipcRenderer.invoke("publish:drainAlerts"),
+  onPublishFailed: (callback) => {
+    ipcRenderer.on("publish:failed", (_, alert) => callback(alert));
+  },
+  removePublishFailedListener: () => {
+    ipcRenderer.removeAllListeners("publish:failed");
+  },
+  onPublishClipChanged: (callback) => {
+    ipcRenderer.on("publish:clipChanged", (_, data) => callback(data));
+  },
+  removePublishClipChangedListener: () => {
+    ipcRenderer.removeAllListeners("publish:clipChanged");
+  },
+  onOauthAccountsChanged: (callback) => {
+    ipcRenderer.on("oauth:accountsChanged", () => callback());
+  },
+  removeOauthAccountsChangedListener: () => {
+    ipcRenderer.removeAllListeners("oauth:accountsChanged");
+  },
+  // Drop the UI and keep publishing (tray-resident).
+  streamingEnter: () => ipcRenderer.invoke("streaming:enter"),
+
   // OAuth — connected accounts
   oauthGetAccounts: () => ipcRenderer.invoke("oauth:getAccounts"),
   oauthRemoveAccount: (accountId) => ipcRenderer.invoke("oauth:removeAccount", accountId),

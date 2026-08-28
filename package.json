@@ -31,6 +31,7 @@
       "build/**/*",
       "src/main/**/*",
       "!src/main/__tests__/**",
+      "src/shared/**/*",
       "src/renderer/editor/models/**/*",
       "!src/renderer/editor/models/__tests__/**",
       "src/renderer/editor/utils/**/*",

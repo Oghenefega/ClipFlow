@@ -99,7 +99,11 @@ The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow 
 ## Key Design Decisions
 
 1. Files are NEVER auto-renamed — user must review and click Rename
-2. Close = quit — no minimize-to-tray
+2. Close = quit **by default**. Amended by #329: with Settings → Publishing → "Keep
+   publishing while I stream" turned ON, closing the window destroys the renderer and
+   leaves the main process resident with a tray icon, so the publish scheduler keeps
+   its slots. "Quit Corva" on the tray is then the only full exit. With the setting
+   OFF — the default, and every existing install — close still quits, teardown and all.
 3. Windows-only (NTFS paths, Windows file behavior)
 4. Fully local pipeline — no cloud deps except Anthropic API for AI generation
 5. Checkbox component is purely visual — parent handles clicks (prevents double-toggle)
