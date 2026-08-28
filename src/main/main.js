@@ -1358,8 +1358,12 @@ app.on("window-all-closed", () => {
   // scheduler keeps its slots. Tear NOTHING down here - the scheduler needs the
   // database and the project tree. Quit Corva from the tray is the real exit.
   if (!quitRequested && isStreamingModeEnabled()) {
-    enterStreamingMode();
-    return;
+    // Only stay resident if the tray actually exists — the window is already
+    // gone here, so a failed tray would strand an invisible process with no way
+    // back. On failure, fall through to the normal quit teardown instead.
+    const entered = enterStreamingMode();
+    if (!entered?.error) return;
+    logger.error(logger.MODULES.system, "Streaming mode unavailable (no tray) — quitting instead");
   }
   if (watcher) watcher.close();
   if (testWatcher) testWatcher.close();
@@ -1380,6 +1384,11 @@ app.on("before-quit", () => {
   quitRequested = true;
   publishScheduler.stopScheduler();
   destroyTray();
+  // Tray-quit only (no windows): window-all-closed already ran or never will,
+  // so close the database here. With windows still open (normal quit), leave it
+  // to window-all-closed — closing early would yank the DB out from under
+  // renderers that are still flushing their last writes. close() is idempotent.
+  if (BrowserWindow.getAllWindows().length === 0) database.close();
 });
 
 app.on("activate", () => {

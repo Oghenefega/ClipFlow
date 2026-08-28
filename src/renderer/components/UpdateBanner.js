@@ -42,7 +42,7 @@ export default function UpdateBanner() {
     <div style={{
       flexShrink: 0,
       padding: "8px 16px",
-      background: `linear-gradient(135deg, ${T.accent}22, ${T.accentLight}22)`,
+      background: `linear-gradient(135deg, color-mix(in srgb, ${T.accent} 13%, transparent), color-mix(in srgb, ${T.accentLight} 13%, transparent))`,
       borderBottom: `1px solid ${T.accentBorder}`,
       display: "flex",
       alignItems: "center",

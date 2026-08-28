@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import posthog from "posthog-js";
 import * as Sentry from "@sentry/electron/renderer";
-import T from "./styles/theme";
+import T, { applyTheme } from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import FeedbackBubble from "./components/FeedbackBubble";
 import UpdateBanner from "./components/UpdateBanner";
@@ -515,6 +515,14 @@ export default function App() {
   useEffect(() => {
     if (loaded) window.clipflow?.appReady?.();
   }, [loaded]);
+
+  // #328: the boot call applyTheme's contract describes. The preload already
+  // stamped <html data-theme>, so re-writing it is a no-op — this exists for the
+  // <meta name="theme-color">, which ships as Midnight in index.html and would
+  // otherwise disagree with a saved non-Midnight theme until the picker is used.
+  useEffect(() => {
+    applyTheme(window.clipflow?.theme || "midnight", { persist: false });
+  }, []);
 
   // #301: does this build carry a gateway token? One boolean, asked once —
   // it decides whether AI counts as available and what Settings shows, with

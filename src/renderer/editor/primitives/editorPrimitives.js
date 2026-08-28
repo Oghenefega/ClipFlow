@@ -157,10 +157,10 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
         style={{
           fontSize: 10, fontFamily: "'DM Sans', -apple-system, sans-serif", color: open ? T.accentLight : T.textSecondary,
           padding: "2px 5px", borderRadius: 3, cursor: "pointer",
-          background: open ? "rgba(139,92,246,0.1)" : "transparent",
+          background: open ? T.accentDim : "transparent",
           transition: "background 0.15s",
         }}
-        onMouseEnter={e => { if (!open) e.currentTarget.style.background = "rgba(139,92,246,0.1)"; }}
+        onMouseEnter={e => { if (!open) e.currentTarget.style.background = T.accentDim; }}
         onMouseLeave={e => { if (!open) e.currentTarget.style.background = "transparent"; }}
         title="Click to adjust timecode"
       >
@@ -169,7 +169,7 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
       {open && (
         <div onClick={e => e.stopPropagation()} style={{
           position: "absolute", top: "100%", left: -10, zIndex: 50,
-          background: "#1a1b22", border: "1px solid rgba(139,92,246,0.4)",
+          background: T.surface, border: `1px solid ${T.accentBorder}`,
           borderRadius: 6, padding: "8px 10px", minWidth: 180, marginTop: 4,
           boxShadow: "0 8px 24px rgba(var(--shade),calc(0.6 * var(--shadeK)))",
         }}>
@@ -179,7 +179,7 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
               onChange={e => { setVal(e.target.value); setSecVal(parseTime(e.target.value)); }}
               style={{
                 width: 60, fontSize: 11, fontFamily: "'DM Sans', -apple-system, sans-serif", color: T.accentLight,
-                background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)",
+                background: T.accentDim, border: `1px solid ${T.accentBorder}`,
                 borderRadius: 3, padding: "3px 5px", outline: "none", textAlign: "center",
               }}
             />

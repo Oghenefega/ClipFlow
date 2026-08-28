@@ -575,7 +575,7 @@ function ClipVideoPlayer({ clip, project, template }) {
               width: `${progress}%`, height: "100%",
               background: `linear-gradient(90deg, ${T.accent} 0%, ${T.accentLight || T.accent} 100%)`,
               borderRadius: 999,
-              boxShadow: `0 0 6px ${T.accent}66`,
+              boxShadow: `0 0 6px color-mix(in srgb, ${T.accent} 40%, transparent)`,
             }} />
           </div>
           {/* Playhead knob — only when hovered/seeking */}
@@ -586,7 +586,7 @@ function ClipVideoPlayer({ clip, project, template }) {
               width: 12, height: 12,
               borderRadius: "50%",
               background: "#fff",
-              boxShadow: `0 0 8px ${T.accent}cc, 0 1px 4px rgba(var(--shade),calc(0.4 * var(--shadeK)))`,
+              boxShadow: `0 0 8px color-mix(in srgb, ${T.accent} 80%, transparent), 0 1px 4px rgba(var(--shade),calc(0.4 * var(--shadeK)))`,
               pointerEvents: "none",
             }} />
           )}
@@ -1084,7 +1084,7 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
                 background: T.accent, color: "#fff",
                 fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
                 display: "flex", alignItems: "center", gap: 8,
-                boxShadow: `0 6px 18px -8px ${T.accent}cc`,
+                boxShadow: `0 6px 18px -8px color-mix(in srgb, ${T.accent} 80%, transparent)`,
                 transition: "all 0.16s ease",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = T.accentLight; e.currentTarget.style.transform = "translateY(-1px)"; }}

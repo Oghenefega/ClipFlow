@@ -1360,7 +1360,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </button>
         </div>
         {streamingMode && (
-          <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.green}15`, borderRadius: T.radius.sm, border: `1px solid ${T.green}33` }}>
+          <div style={{ marginTop: 12, padding: "8px 12px", background: T.greenDim, borderRadius: T.radius.sm, border: `1px solid ${T.greenBorder}` }}>
             <span style={{ color: T.green, fontSize: 11 }}>
               Corva will not quit when you close the window. Use <strong>Quit Corva</strong> on the tray icon to close it fully.
             </span>
@@ -1391,7 +1391,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </span>
         </div>
         {(!ffmpegStatus?.installed || !whisperStatus?.installed) && (
-          <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.yellow}15`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33` }}>
+          <div style={{ marginTop: 12, padding: "8px 12px", background: T.yellowDim, borderRadius: T.radius.sm, border: `1px solid ${T.yellowBorder}` }}>
             <span style={{ color: T.yellow, fontSize: 11 }}>
               {!ffmpegStatus?.installed && "FFmpeg is missing — reinstall Corva (the installer includes it), or install FFmpeg and add it to PATH. "}
               {!whisperStatus?.installed && "Set Python path below (BetterWhisperX venv)."}

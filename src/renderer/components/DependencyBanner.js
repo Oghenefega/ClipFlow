@@ -30,8 +30,8 @@ export default function DependencyBanner({ onFinishSetup }) {
     <div style={{
       flexShrink: 0,
       padding: "10px 16px",
-      background: `${T.yellow}12`,
-      borderBottom: `1px solid ${T.yellow}44`,
+      background: T.yellowDim,
+      borderBottom: `1px solid ${T.yellowBorder}`,
       display: "flex",
       alignItems: "flex-start",
       gap: 12,

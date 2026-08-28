@@ -4,6 +4,24 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-28 (session 220) — Audit of the alpha.10 batch: five commits reviewed, broken colour concats fixed
+
+### Fixed
+- **Eighteen `` `${T.colour}NN` `` hex-alpha concatenations produced invalid CSS everywhere since the theme system landed.** Before #328, appending `12`/`33`/`88` to a `T` colour made a valid 8-digit hex; now every `T` value is a `var(--x)` string, so the result (`var(--yellow)12`) fails at computed-value time and the whole declaration is silently dropped. Casualties: the dependency and publish-failure banner tints, the update banner's gradient wash, the engine-setup warning boxes, the Upload tab's "no clips found" notice, the Tracker's auto-posted glow dots and drag-edge gradient, the Projects video-player glows, and both Settings info boxes (streaming mode, missing tools). Fixed by routing washes/borders through the existing `Dim`/`Border` tokens and exact-alpha glows through `color-mix(in srgb, var(--x) N%, transparent)` — verified resolving to the correct colour in the running app.
+- **The publish scheduler could wedge permanently if its tick-start hook threw.** In `publish.js` `tickOnce`, `deps.onTick?.()` ran after `running = true` but outside the `try/finally` that resets it — one throw and every future tick would return immediately, with nothing publishing until an app restart. The call now sits inside the `try`.
+- **A failed tray creation while entering streaming mode left a headless zombie.** `window-all-closed` called `enterStreamingMode()` and returned unconditionally; if the tray failed to create, the window was already gone, leaving a resident process with no window and no tray. The handler now checks the result and falls through to the normal quit teardown on failure.
+- **Quit-from-tray now closes the database.** The tray's Quit fires `before-quit` but never `window-all-closed`, so `database.close()` was skipped on that path. Harmless in practice (every DB write already `save()`s eagerly), but `before-quit` now closes it when no windows exist — guarded so a normal quit still lets `window-all-closed` do it after the renderers are gone.
+- **The boot `applyTheme` call described in `theme.js`'s own contract now exists.** `App.js` calls `applyTheme(bootTheme, { persist: false })` on mount, so `<meta name="theme-color">` (shipped as Midnight in `index.html`) agrees with a saved non-Midnight theme without the picker being opened.
+- **`EditableTC`'s timecode popover was half-themed** — literal `#1a1b22` dark surface under theme-token text, unreadable on Daylight/Blush. Converted to surface/accent tokens — then discovered `editorPrimitives.js` has **zero importers** (dead file), so the fix is latent; noted on #40 for the hygiene pass.
+
+### Removed
+- **The last three `dark` classNames** (TagPicker, TimelinePanelNew's two sound/media popovers) — #328 removed every `.dark` CSS rule, so they were inert tokens the commit's sweep missed.
+
+### Notes
+- **Scope: a code audit of the five commits live in alpha.10** (#326/#327/#330 small wins, the Queue redesign, the Settings revamp #331, the theme system #328, the scheduler move #329). Everything else held up under review: the claim arbitration, the pending-union anti-clobber guards, the shared caption/tracker-row resolvers, the What's New version walk, the splash min-hold, and the Settings search index all check out against their consumers.
+- **Verified on a dev-profile boot of the built bundle** (tokens confirmed empty first): scheduler correctly refuses on dev, What's New fired for alpha.10 and acked, a real clip opened in the editor with no crash, and a `color-mix` probe plus the Tracker's fixed glow both computed the intended colours.
+- The orphaned dev-store XP entries found during verification (`clip:mtdeiwr9…`/`clip:mtdejch8…` with no matching tracker rows) are session 218's anti-clobber delete test as designed — XP is append-only on purpose, not a leak.
+
 ## [0.4.0-alpha.10] — 2026-08-28 (session 219) — alpha.10: streaming mode, themes, and the Settings revamp
 
 ### Changed

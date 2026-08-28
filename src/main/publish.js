@@ -287,9 +287,11 @@ async function tickOnce() {
   if (!deps || running) return;
   running = true;
   const now = Date.now();
-  // Streaming mode has no UI to read a number off, so the footprint goes to app.log.
-  deps.onTick?.();
   try {
+    // Streaming mode has no UI to read a number off, so the footprint goes to
+    // app.log. Inside the try: a throw here must not leave `running` stuck true,
+    // which would silently kill every future tick until the app restarts.
+    deps.onTick?.();
     for (const clip of dueClips(now)) {
       autoFiring.add(clip.id);
       try {

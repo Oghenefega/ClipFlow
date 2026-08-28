@@ -1208,7 +1208,7 @@ export default function TrackerView({
                             <span style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.red, background: T.redDim, border: `1px solid ${rgba(T.red, 0.35)}` }}>RETRY</span>
                           )}
                           <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(item.time)}</span>
-                          <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `${T.cyan}88` : "rgba(var(--lift),0.35)")}` }} />
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `color-mix(in srgb, ${T.cyan} 53%, transparent)` : "rgba(var(--lift),0.35)")}` }} />
                         </div>
                         {item.title && (
                           <div style={{
@@ -1265,7 +1265,7 @@ export default function TrackerView({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 14px", borderTop: `1px solid ${T.border}`, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` }} /> Auto-posted
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.text, boxShadow: "0 0 5px rgba(var(--lift),0.35)" }} /> Manual
@@ -1298,7 +1298,7 @@ export default function TrackerView({
             pointerEvents: "none", zIndex: 5, borderRadius: dir < 0 ? "14px 0 0 14px" : "0 14px 14px 0",
             display: "flex", alignItems: "center", justifyContent: "center",
             background: edgeDir === dir
-              ? `linear-gradient(${dir < 0 ? 90 : 270}deg, ${T.accent}59, transparent)`
+              ? `linear-gradient(${dir < 0 ? 90 : 270}deg, color-mix(in srgb, ${T.accent} 35%, transparent), transparent)`
               : `linear-gradient(${dir < 0 ? 90 : 270}deg, rgba(var(--lift),0.05), transparent)`,
             color: edgeDir === dir ? T.accentLight : T.textMuted,
             fontSize: 20, fontWeight: 700, lineHeight: 1,
@@ -1416,7 +1416,7 @@ export default function TrackerView({
                     <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 10 }}>{entry.platforms}</div>
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(var(--lift),0.2)") }} />
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` : "0 0 5px rgba(var(--lift),0.2)") }} />
                     <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
                   </div>
                   {(link?.projectId || link?.renderPath) && (

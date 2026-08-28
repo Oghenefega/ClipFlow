@@ -247,7 +247,7 @@ export default function EngineSetupView({ onClose }) {
           </div>
         </div>
         {isCpu && (
-          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: `${T.yellow}1a`, border: `1px solid ${T.yellow}38`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
+          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
             <span style={{ color: T.yellow, fontWeight: 700 }}>⚠</span>
             <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textSecondary, margin: 0 }}>
               <b style={{ color: T.yellow }}>Heads up — this will be slower.</b> Without an NVIDIA card, transcribing runs on your processor: a 2-minute clip takes around 8 minutes. Everything still works, it just takes patience.
@@ -255,13 +255,13 @@ export default function EngineSetupView({ onClose }) {
           </div>
         )}
         {locError && (
-          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: `${T.red}1a`, border: `1px solid ${T.red}38`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
+          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: T.redDim, border: `1px solid ${T.redBorder}`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
             <span style={{ color: T.red, fontWeight: 700 }}>✕</span>
             <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textSecondary, margin: 0 }}>{locError}</p>
           </div>
         )}
         {diskShort && (
-          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: `${T.red}1a`, border: `1px solid ${T.red}38`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
+          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: T.redDim, border: `1px solid ${T.redBorder}`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
             <span style={{ color: T.red, fontWeight: 700 }}>✕</span>
             <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textSecondary, margin: 0 }}>
               <b style={{ color: T.red }}>Not enough disk space on this drive.</b> Hit Change above to install on a different drive, or free up some room and hit Check again.

@@ -1715,7 +1715,7 @@ export default function TimelinePanelNew() {
           <>
             <div className="fixed inset-0 z-40" onPointerDown={() => setSoundPopover(null)} onContextMenu={(e) => { e.preventDefault(); setSoundPopover(null); }} />
             <div
-              className="fixed z-50 w-[260px] rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3 dark"
+              className="fixed z-50 w-[260px] rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3"
               style={{ left: soundPopover.x, top: soundPopover.y, transform: "translateY(-100%)" }}
             >
               <div className="flex items-center gap-1.5">
@@ -1899,7 +1899,7 @@ export default function TimelinePanelNew() {
           <>
             <div className="fixed inset-0 z-40" onPointerDown={() => setMediaPopover(null)} onContextMenu={(e) => { e.preventDefault(); setMediaPopover(null); }} />
             <div
-              className="fixed z-50 w-[260px] rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3 dark"
+              className="fixed z-50 w-[260px] rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3"
               style={{ left: mediaPopover.x, top: mediaPopover.y, transform: "translateY(-100%)" }}
             >
               <div className="flex items-center gap-1.5">

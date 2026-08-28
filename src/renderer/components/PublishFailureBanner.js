@@ -18,8 +18,8 @@ export default function PublishFailureBanner({ alerts, onReview, onDismiss }) {
     <div style={{
       flexShrink: 0,
       padding: "10px 16px",
-      background: `${T.red}12`,
-      borderBottom: `1px solid ${T.red}44`,
+      background: T.redDim,
+      borderBottom: `1px solid ${T.redBorder}`,
       display: "flex",
       alignItems: "center",
       gap: 12,

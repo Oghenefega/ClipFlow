@@ -53,7 +53,7 @@ export default function TagPicker({
     <>
       <div className="fixed inset-0 z-40" onPointerDown={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }} />
       <div
-        className="fixed z-50 w-[248px] rounded-lg border border-border bg-popover shadow-xl p-2.5 dark"
+        className="fixed z-50 w-[248px] rounded-lg border border-border bg-popover shadow-xl p-2.5"
         style={{ left: x, top: y, transform: "translateY(-100%)" }}
       >
         <div className="flex items-center justify-between mb-2">
