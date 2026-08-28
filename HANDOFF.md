@@ -1,90 +1,101 @@
-# HANDOFF — Session 215 (2026-08-28)
+# HANDOFF — Session 216 (2026-08-28)
 
 ## Current State
 
-**Session 2 of the approved 8-request plan is done and shipped: `0.4.0-alpha.9` is live on the
-update feed.** The Queue tab redesign (#325 platform colour identity + text hierarchy, #324
-Captions & Descriptions as a game-scoped right-side panel) was mocked, approved, built, verified
-and closed `status: untested`. The installer promotes five changes in one hop — the two Queue
-issues plus session 214's #330/#327/#326, which had never reached a build.
+**Session 3 of the approved 8-request plan is done: the Settings revamp (#331) is on master in
+`5938b26`.** Six stacked accordions became a sticky left rail with seven sections, a cross-section
+search box, and one content pane at a time. Closed `status: untested`.
 
-**Fega has NOT yet installed or tested alpha.9.** Both issues stay `status: untested` until he
-confirms.
+**It is NOT in an installer.** The live update feed is still `0.4.0-alpha.9`, which does not contain
+this. Fega cannot see the new Settings on his daily driver until the next cut.
 
-**Still outstanding from session 214, and Fega still has not responded to it:** the two GTA 6
-clips the dev profile auto-published for real at ~1:15 AM on 08-28 are **partially published** —
-Facebook/TikTok/Instagram went out, YouTube failed on an expired token. They need a YouTube
-reconnect in Settings then Retry from the Queue. Their tracker entries landed in the DEV store,
-so the prod Tracker will not show them unless a prod-side retry completes them.
+**Fega has still not installed or tested alpha.9.** #325 and #324 remain `status: untested` from
+session 215, and #331 now joins them — three issues waiting on one installer.
+
+**Answered from last session's open question:** the What's New screen (#330) works. The dev boot this
+session opened straight into it with alpha.9's full notes rendered — Added / Changed / Fixed, "Got
+it" dismisses. That was listed as "the bug to chase if it doesn't appear"; it appeared.
+
+**Still outstanding from session 214, still no response from Fega:** the two GTA 6 clips the dev
+profile auto-published are partially published (Facebook/TikTok/Instagram out, YouTube failed on an
+expired token). They need a YouTube reconnect in Settings then Retry from the Queue. Their tracker
+entries are in the DEV store, so the prod Tracker will not show them.
 
 ## Key Decisions
 
-1. **Captions option A — TikTok/IG/FB templates stay global.** The panel labels them
-   `GLOBAL · ALL GAMES` instead of implying per-game ownership. `#{gametitle}` already varies the
-   hashtag per clip, so posts differ per game without turning 3 templates into 12. Option B
-   (per-game with fallback) is a storage change + migration overlapping #290/#287/#291 — file it
-   as its own issue if a game ever genuinely needs a different TikTok caption. Fega chose A.
-2. **Brand colours are tuned for the dark theme, not copied literally.** TikTok's brand black is
-   invisible on `#0a0b10`, so its cyan `#25f4ee` carries the identity; Facebook's blue is lifted
-   for text while the edge keeps the true `#1877f2`. All four live in
-   `src/renderer/styles/platformBrand.js`, shared by QueueView and CaptionsView so they cannot
-   drift. **Flagged to Fega as my call, not his** — if the cyan reads wrong beside the real
-   TikTok icon, the fallback is their red `#fe2c55`.
-3. **The panel's description and tag blocks are height-capped with a fade** — Fega's games carry
-   20+ tags, and uncapped they pushed the platform templates below the fold, which is the exact
-   scrolling #324 exists to end. Also flagged as my call; the alternative is uncapped + scroll.
-4. **Queue tab max width 1120 → 1520** (App.js) to hold the second column. At a 1280-wide window
-   the split measures 798 + 372 with no horizontal scrolling — verified, not assumed.
+1. **Seven sections, not the six the issue described.** "Files & Folders" carried eight cards — a
+   third of Settings — and three of them were not folders, so Video Splitting, Recording Layout and
+   Pipeline Quality became a **Pipeline** section. Presented to Fega with the mock and approved
+   explicitly ("left rail with 7 sections, go"). Also renamed: Content Library → **Games**, Tools &
+   Credentials → **Tools & Keys**.
+2. **Left rail over top pills.** Both were built into the mock behind a toggle so Fega could compare
+   in one click. He chose the rail. It is `position: sticky` inside the tab's scroll container, which
+   is what satisfies the issue's "current section always visible" bar.
+3. **Search indexes keywords, not just titles.** A title-only index would not answer "where do I
+   connect YouTube" — the word appears in no card title. The 24-entry index carries a `kw` string of
+   the words someone would actually type, plus the section name, so "youtube" returns Connected
+   Platforms *and* API Credentials from two different sections.
+4. **`Card` gained an optional `id` prop** (`src/renderer/components/shared.js`) so search can scroll
+   to a specific card. Backward compatible — every existing call site passes nothing. The six nested
+   sub-components that render their own Card get their anchor from a wrapper `<div id>` at the call
+   site instead, since `cardProps` is not in their scope.
+5. **The mock's rail-footer buttons were deliberately NOT built.** "Open app data folder" and "Check
+   for updates" were filler I invented for the mock; making them real is new feature work, not a
+   layout reshuffle. Flagged to Fega in the wrap message. The version number stays where it was —
+   inside the Dev Dashboard's click counter, untouched.
 
 ## Next Steps
 
-1. **Fega installs alpha.9 and tests the Queue tab.** Relaunch → "Update available — 0.4.0-alpha.9"
-   → Install. Then flip #325/#324 off `status: untested` once he confirms.
-2. **Watch for the What's New screen on that first launch.** #330 shipped in alpha.8 but its notes
-   entry was still `"unreleased"`, so it had nothing to show. This cut renames it — alpha.9 is
-   #330's first real-world proof. If the screen does not appear, that is the bug to chase.
-3. **Fega's call on the two half-published GTA clips** (keep or delete), then reconnect YouTube and
+1. **Remaining plan sessions, in order:** #328 (themes), then #329 (publish mode — already decided as
+   option (b), a main-process scheduler; formally amends "Close = quit").
+2. **Cut an installer when the batch justifies it.** Three `status: untested` issues are queued
+   behind one (#325, #324, #331). Two more plan sessions would make it a natural cut point — but
+   don't cut per-fix; wait for the batch or an explicit ask.
+3. **Flip #325/#324/#331 off `status: untested`** once Fega confirms on the installed build.
+4. **Fega's call on the two half-published GTA clips** (keep or delete), then reconnect YouTube and
    Retry to finish their YouTube legs.
-4. **Remaining plan sessions, in order:** #331 (settings), #328 (themes), #329 (publish mode —
-   already decided as option (b), main-process scheduler; formally amends "Close = quit").
 
 ## Watch Out For
 
-- **`src/main/release-notes.js` has NO `"unreleased"` entry any more** — this cut consumed it. The
-  next batch must CREATE one, or the following update ships silent again. (The skill's step 2
-  covers renaming an existing entry; it does not remind you to open a new one.)
-- **The dev tokens file no longer reads literally `{}`** — the app normalised it to
-  `{"accounts":{}}`. That is still empty and still safe. Check for an empty `accounts` map before
-  any dev boot, not the literal string, or you will misread a normalised file as a re-seed.
-- **Scratch-fixture recipe for anything Queue-adjacent** (cost 3 reboots to find): copying real
-  `project.json` files in is NOT enough. QueueView's `approved` filter knocks clips out **by id AND
-  by title** against `trackerData`, and `allClips` only keeps `renderStatus === "rendered"`. A
-  fixture built from published clips loads (the Published shelf fills) while Unscheduled stays 0.
-  Rewrite both `id` and `title`, null `scheduledAt`, keep `status: approved`. Per-platform caption
-  blocks also need `platforms[].connected === true`, so a token-less dev profile shows "All
-  platforms disabled" — seed 4 stub accounts in dev settings (they grant no tokens, so publishing
-  still cannot succeed) and restore the settings file afterwards.
-- **QueueView's left column was wrapped, not re-indented.** The grid wrapper opens just before the
-  Stats bar and closes at `{/* /left column */}` before `<CaptionsView>`; everything between keeps
-  its original indentation on purpose, to keep the diff surgical. Don't "fix" the indentation — it
-  would bury the next real diff in that file under 1000 whitespace lines.
-- **`scopeGame` resolves through `resolveYtGameKey`**, the same lookup the publish path uses. If
-  that resolver is ever changed, the panel and the published description move together — which is
-  the point. Don't give the panel its own game lookup.
+- **`src/main/release-notes.js` has an `"unreleased"` entry again** — this session created it, holding
+  the Settings revamp's three user-facing lines. The next cut RENAMES it to the real version. If a
+  future session cuts an installer and then adds more work, it must open a new one or the following
+  update ships silent (this is exactly what happened after alpha.9).
+- **The dev tokens file reads `{"accounts":{}}`, not literally `{}`.** That is still empty and safe.
+  Check for an empty `accounts` map before any dev boot, not the literal string. Verified empty both
+  before and after this session's boot.
+- **SettingsView's cards were re-parented, not re-indented.** Section fragments open at
+  `{!searching && activeSection === "x" && <>` and close at `</>}`; everything between keeps its
+  original indentation on purpose, exactly as QueueView's left column was handled in s215. Don't
+  "fix" the indentation — it would bury the next real diff under a thousand whitespace lines.
+- **Games and Content Types share one `<Card>`.** Two headings, one box. Both are in the search index
+  pointing at the same anchor id (`set-games`), and the rail count deduplicates by id — which is why
+  Games shows **3**, not 4. If anyone "corrects" that count to 4, they have miscounted the boxes.
+- **The `[data-secret]` blur is global CSS keyed on the attribute** (`src/globals.css:164`), and the
+  spans only render once a credential service pill is expanded — `activeApi` defaults to `null`, so a
+  fresh Settings render legitimately has zero of them. Don't read that as the hook being broken;
+  expand Anthropic first, then count.
+- **The Dev Dashboard renders full-width BELOW the rail/content layout**, outside it. That is
+  deliberate — it is the dev easter egg, not a section. Leave it out of the rail.
 
 ## Logs/Debugging
 
 - **CDP driver** (reusable, no `ws` dependency — Node 24's global WebSocket):
   `<scratchpad>/cdp.mjs`. Usage: `node cdp.mjs <file-with-js-expr> [--shot out.png] [--w 1280] [--h 860]`.
-  It sets `Emulation.setDeviceMetricsOverride` first, so every probe measures at Fega's small-window
-  size by default. Probe scripts `p1.js`–`p16.js` beside it; `p12`/`p14` are the scope-swap and
-  pin/back tests.
+  Sets `Emulation.setDeviceMetricsOverride` first, so probes measure at a chosen window size.
+  Probe scripts `p1.js`–`p5.js` and `s1.js`–`s6.js` beside it.
 - **Boot line:** `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`.
   Kill with `taskkill //F //IM electron.exe`, never TaskStop, or CDP attaches to a zombie on 9222.
-- **The Browser-pane screenshot tool times out when the pane is not displayed** ("not compositing
-  frames"). CDP `Page.captureScreenshot` works regardless — that is what the `--shot` flag uses.
-- Proof screenshots from this session: `shot-eo.png` (EO scoped, all four brand blocks),
-  `shot-rl.png` (RL scoped, capped tags, platform templates visible without scrolling).
-- Dev settings backup from the fixture work: `%APPDATA%\clipflow-dev\clipflow-settings.backup-s215.json`.
-  The live file was restored from it — projectsRoot back on `W:\...\Vertical Recordings Onwards`,
-  `platforms: []`, the probe's test edit to Rocket League's `ytTitle` reverted.
+- **Bottom-nav buttons carry their emoji in `textContent`** ("⚙️Settings", "📋Queue19" with the badge).
+  An anchored regex like `/^Settings/` silently matches nothing and the probe dies on
+  `undefined.click()` two lines later. Use `includes`/unanchored regex. Cost two probe re-runs.
+- **The API Credentials service pills are `<div onClick>`, not `<button>`** — a `querySelectorAll("button")`
+  sweep of that card returns an empty list. Query divs by text and click the nearest
+  `div[style*='cursor']`.
+- **Restructure script:** `<scratchpad>/restructure.py` — the assertion-guarded bytes-mode pass that
+  did the SettingsView surgery. Every anchor asserted before the single write at the end; its first
+  run failed a needle and wrote nothing. Kept as the working template for this shape of edit.
+- Proof screenshots: `shot-folders-1280.png` (Folders at 1280×860), `shot-search-1280.png`
+  (cross-section search results), `shot-tools-1100.png` (Tools & Keys at the small 1100×720 window).
+- Approved mock, committed for reference: `tasks/mocks/settings-revamp.html` — contains both the
+  chosen left rail and the rejected top-pills variant behind a toggle.
