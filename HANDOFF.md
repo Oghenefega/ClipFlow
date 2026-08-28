@@ -1,70 +1,63 @@
-# HANDOFF — Session 213 (2026-08-27)
+# HANDOFF — Session 214 (2026-08-28)
 
 ## Current State
 
-**The whole pending batch review is done and alpha.8 is live on the feed.** All eight commits from
-the s212 list (s210's six, the s211 splash `bc2184a`, #322's `1c010a4`) got the Fable@xhigh
-fresh-eyes pass. Three small defects found, all fixed and pushed: the stale-tag "All games" tick and
-the clickable dropdown headers (`d21d8ae`, #322-side) and the `occupantsFromLane` lane-coercion
-mismatch (`974b573`, #320/#321-side). One rare corner filed as #323 instead of fixed. Installer
-`0.4.0-alpha.8` built, published to `https://engine.flowve.app/updates/` (feed verified serving it,
-alpha.7 pruned), bump committed as `4bdaa48`.
+**The 8-request batch is planned and Session 1 of 5 is built, verified, and pushed (`038262f`).**
+Fega's eight asks are filed as #324–#331; he approved the 5-session grouping (order as numbered)
+and picked **option (b) for #329** (main-process scheduler — recorded on the issue). Session 1
+shipped: #326 (splash ≥2s hold + slow grow, min-hold path live-proven), #327 (tracker logs exact
+post times, verbatim render proven via seeded entry), #330 (What's New modal after updates, full
+loop CDP-verified). All three `status: untested`, riding the next installer cut.
 
-**Everything now waits on Fega's eyes**: #322 game scoping, the boot splash on an installed build,
-and the s210 batch (#315/#318/#319/#320/#321) — all `status: untested`. A machine still on alpha.6
-gets it all in one hop.
+**⚠ INCIDENT: the dev profile published for real.** The two verification boots fired the Queue's
+auto-publish tick on two of Fega's overdue scheduled clips ("GTA 6 gunplay LOOKS INCREDIBLE" and
+"GTA 6 feels like a movie") — both went out to his REAL Facebook, TikTok, and Instagram at
+~1:15–1:17 AM EST (YouTube failed both times: expired token). Cause: shared projectsRoot + live
+OAuth tokens sitting in the dev profile (stale s182 belief said dev had none). Mitigation applied:
+`%APPDATA%\clipflow-dev\clipflow-tokens.json` emptied to `{}` (backup `clipflow-tokens.backup-s214.json`
+beside it) — dev can never publish again. Full lesson in tasks/lessons.md + memory (CDP gotchas,
+s214 block). **Fega has NOT yet seen or responded to this.**
 
 ## Key Decisions
 
-1. **Latent model disagreements get fixed, not just noted** — `occupantsFromLane` judged a lane
-   with `|| 0` while `normalizePlacements` draws with the finite guard; nothing in the app writes a
-   non-number, but #320 itself shipped on the models-must-agree rule, so the same standard applied.
-   Test pins the agreement.
-2. **#323 filed, not fixed inline** — a platform enabled *after* a partial publish is never attempted
-   by Retry, so `everyDone` stays false and the clip can go invisible again after a successful retry.
-   Needs cross-component knowledge (toggles live in QueueView, the derived card in App.js) and a
-   product call on what the card means. Body has the full trace.
-3. **Cosmetic corners deliberately left** (recorded in the s213 review report, no code): first-run
-   full-success logs at end-of-run not the mid-loop stamp (minutes of skew, pre-fix behavior); the
-   Media panel refresh toast counts new files across ALL scopes; the "this clip" hint shows for a
-   project-fallback tag; a folder assigned to a deleted game shows its bare tag in Settings.
+1. **#329 = option (b)**, main-process scheduler; formally amends "Close = quit" when built.
+2. **What's New starts "caught up"** — migration stamps the current version, so the first update
+   AFTER the feature ships is the first to announce itself. Real-world proof is two cuts away.
+3. **Tracker back-fill skipped deliberately** (#327) — old entries keep snapped times; real
+   timestamps survive on clips if ever wanted.
+4. **Release loop now owns notes curation** — at cut time, rename `"unreleased"` in
+   `src/main/release-notes.js` to the real version (step added to clipflow-update-launcher skill).
 
 ## Next Steps
 
-1. **Fega verifies alpha.8** — one pass covers the splash, #322, and the s210 batch; close the
-   `status: untested` issues as he confirms.
-2. **#323** when he prioritizes it (low likelihood, silent failure mode).
-3. **Stale comment cleanup next time someone is in App.js**: line ~114 still claims clip.gameTag is
-   lowercased — the exact misconception the s212 lesson corrected. One-line comment fix, not worth
-   its own session.
-4. **Audio panel scoping** stays the obvious #322 follow-up, still only if Fega asks.
+1. **Fega checks the two 1:15 AM posts** on FB/TikTok/IG — keep or delete is his call. They were
+   his scheduled clips with his captions; only the timing was not his.
+2. Those two clips sit **partially published** (YouTube legs pending) — reconnect YouTube in
+   Settings, then Retry from the Queue. Note: their tracker/training entries landed in the DEV
+   store, so the prod Tracker won't show them unless the retry completes them prod-side.
+3. **Session 2: Queue redesign** (#325 + #324) — HTML mock first (side panel + platform colors +
+   hierarchy), build after Fega's nod. Then settings (#331), themes (#328), publish mode (#329).
+4. Next installer cut batches this session's three fixes (per the ~10-changes rule).
 
 ## Watch Out For
 
-- **Never `.toLowerCase()` a game tag** (s212 rule stands). Editor-path clips carry verbatim tags
-  ("RL", "EO"); queue-import paths lowercase theirs — QueueView normalizes at its own boundaries.
-  MediaPanel matches verbatim by design and verified behavior.
-- **`occupantsFromLane` and `normalizePlacements` must keep agreeing** on how a lane index is
-  judged — a change to either guard changes "who holds this lane" AND "where does this block draw";
-  the new test in audioPlacements.test.js pins them together.
-- **`"universal"` is a stored sentinel; `ALL_GAMES = "__all__"` is UI-only** — don't merge them
-  (s212 rule stands).
-- **`Select` in shared.js now treats `o.isHeader` options as inert labels** — new consumers of
-  header rows get that for free; don't re-add per-callsite guards (SettingsView's onChange guard
-  stays as a second wall).
-- **The everyDone gate in QueueView (~line 1501) only counts platforms that have a publishState
-  entry** — see #323 before touching retry/publish logging.
+- **Dev tokens must STAY `{}`** — any `dev:seed` re-copies them; re-empty immediately after. Check
+  before every dev boot. A scheduled clip in the real library is a loaded gun for any profile.
+- **`release-notes.js` "unreleased" must be renamed at cut time** or the update ships silent
+  (skill step 2 covers it — don't skip).
+- **The two half-published clips + #323**: if a platform gets toggled after this partial publish,
+  #323's invisible-clip corner can bite on retry.
+- QueueView no longer has `snapToSlot`/its own `parseTimeToMinutes` (TrackerView keeps its own
+  copy — untouched, still used there).
 
 ## Logs/Debugging
 
-- **Dev-profile boots here take ~20-35s cold** — I killed one mid-hydration at 18s and briefly read
-  the absent "Main window revealed" line as a possible regression. Gate any boot assertion on the
-  reveal line (`grep "revealed" app.log` for the newest `sess_*`), not on a fixed sleep.
-- **CDP hydration probe**: `%TEMP%\probe.js` (needs repo `ws`) connects to 9222, evaluates
-  root-children/bridge/title in one shot — cheap proof the renderer is alive. Launch with
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`, kill with
-  `taskkill //F //IM electron.exe //T`.
-- **Feed check**: `curl -s https://engine.flowve.app/updates/alpha.yml | head -1` → must read
-  `version: 0.4.0-alpha.8`.
-- Zero errors in the dev `app.log` across all three verification boots this session; model suites
-  135/135 green.
+- Publish evidence: `%APPDATA%\clipflow-dev\clipflow-publish-log.json` tail — FB post ids
+  `1109202255101909`/`1109202925101842`, IG `18026804498902392`/`18097961075373678`, TikTok ok
+  (no ids logged), YouTube "connection expired" both clips.
+- Splash min-hold proof: dev app.log `Main window revealed (renderer-ready+min-hold)` (01:14:38
+  boot A with temp 20s hold; 01:17:38 boot B on the real 2000ms — warm boot beat 2s).
+- CDP probe scripts in the session scratchpad (`1fc199cf…\scratchpad`): `probe-s1.js`,
+  `seed-dev-store.js`. Sidebar nav needs coordinate clicks (leaf `.click()` doesn't nav; visible
+  Tracker span found at ~(998,841) @1280×860; an H1 twin is 0×0 — filter by rect).
+- Seeded `vtest-327` tracker entry removed; dev store's `lastSeenVersion` now stamped alpha.8.
