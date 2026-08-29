@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.11] — 2026-08-29 (session 221) — alpha.11: restored theme colours and the scheduler/tray hardening
+
+### Changed
+- **Version bumped to 0.4.0-alpha.11 and an installer cut.** Promotes the session 220 audit of the alpha.10 batch — the only code commit since the last cut, so this is a stability build rather than a feature one. It carries the eighteen broken hex-alpha colour concatenations restored (the yellow/red warning banner tints, the update banner's purple wash, the engine-setup and Settings info boxes, the Upload tab's empty-state notice, the Tracker's auto-posted glow dots and drag-edge gradient, and the Projects video-player glows), the publish scheduler no longer able to wedge permanently when its tick-start hook throws, a failed tray creation in streaming mode no longer leaving a headless zombie process behind, quit-from-tray closing the database, a boot-time theme apply so the window chrome colour agrees with a saved non-Midnight theme, and the removal of the last three inert `dark` classNames.
+
 ## [Unreleased] — 2026-08-28 (session 220) — Audit of the alpha.10 batch: five commits reviewed, broken colour concats fixed
 
 ### Fixed
