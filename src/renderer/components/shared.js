@@ -187,6 +187,24 @@ export const TagInput = ({
         placeholder={tags.length === 0 ? placeholder : ""}
         style={{ flex: "1 1 90px", minWidth: 90, background: "transparent", border: "none", outline: "none", color: T.text, fontSize: 12.5, fontFamily: T.font, padding: "2px 0" }}
       />
+      {/* Empty the whole list in one click — 20 individual ✕ presses was the
+          only way to start a tag set over. Not a confirm step on purpose:
+          nothing is written until the field is left, so Escape (Queue) or
+          Cancel (Captions) puts the list back untouched. */}
+      {(tags.length > 0 || draft) && (
+        <button
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onClick={(e) => { e.stopPropagation(); onChange?.([], ""); inputRef.current?.focus(); }}
+          title="Clear all tags"
+          tabIndex={-1}
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, marginLeft: "auto", padding: "2px 6px", border: `1px solid ${T.border}`, borderRadius: 5, background: "transparent", color: T.textTertiary, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: T.font, lineHeight: 1.4, flexShrink: 0, transition: "color 0.12s, background 0.12s, border-color 0.12s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; e.currentTarget.style.borderColor = T.redBorder; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = T.textTertiary; e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = T.border; }}
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ display: "block" }}><path d="M18 6 6 18M6 6l12 12" /></svg>
+          Clear all
+        </button>
+      )}
     </div>
   );
 };
