@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import T from "../styles/theme";
+import { parseTags } from "../utils/ytTags";
 
 // ============ UTILITIES ============
 // #329: defined in src/shared/captionResolve.js so the main process can require()
@@ -89,6 +90,104 @@ export const CopyIconButton = ({ value, title = "Copy", size = 13, style: x }) =
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
       )}
     </button>
+  );
+};
+
+// Token editor for a YouTube tag list. Replaces the flat comma-separated text
+// both tag editors used to show while editing — a list you could only unpick
+// with backspace. Comma or Enter commits the typed word; every pill carries an
+// ✕. All the commit rules live here so the Queue's per-clip editor and the
+// per-game editor in Captions & Descriptions can never disagree.
+//
+// FULLY CONTROLLED, including the half-typed word (`draft`). That is deliberate:
+// clicking Save or clicking outside blurs the input in the same event that would
+// read state back, so an internally-held draft would be lost exactly when the
+// user expects it saved. For the same reason `onCommitBlur` is handed the
+// finished list — callers must save from that argument, never from their state.
+export const TagInput = ({
+  tags = [], draft = "", onChange, onCommitBlur, onEscape,
+  invalid, autoFocus, placeholder, minHeight = 56,
+}) => {
+  const inputRef = useRef(null);
+  const boxRef = useRef(null);
+  const skipBlur = useRef(false);
+  useEffect(() => { if (autoFocus) inputRef.current?.focus(); }, [autoFocus]);
+
+  // Fold `text` (one word, or a pasted comma list) into the committed tags.
+  // parseTags applied to the whole concatenation is what drops blanks and
+  // case-insensitive duplicates while keeping the spelling already on screen.
+  const commit = (text) => {
+    const next = parseTags([...tags, text].join(","));
+    onChange?.(next, "");
+    return next;
+  };
+
+  const keyDown = (e) => {
+    if (e.key === "," || e.key === "Enter") { e.preventDefault(); commit(draft); return; }
+    if (e.key === "Escape") { e.preventDefault(); skipBlur.current = true; onEscape?.(); return; }
+    // Only when there is nothing to delete in the box itself, so backspace never
+    // eats a pill while a word is still being typed.
+    if (e.key === "Backspace" && draft === "" && tags.length) { e.preventDefault(); onChange?.(tags.slice(0, -1), ""); }
+  };
+
+  const paste = (e) => {
+    const text = e.clipboardData?.getData("text") || "";
+    // A single word can just land in the box; only a list needs splitting.
+    if (!text.includes(",")) return;
+    e.preventDefault();
+    commit(draft + text);
+  };
+
+  const blur = (e) => {
+    // Escape already tore the editor down — don't also save on the way out.
+    if (skipBlur.current) { skipBlur.current = false; return; }
+    // A click that lands back inside the box is not leaving the field.
+    if (boxRef.current?.contains(e.relatedTarget)) return;
+    onCommitBlur?.(commit(draft));
+  };
+
+  const remove = (t) => onChange?.(tags.filter((x) => x !== t), draft);
+
+  return (
+    <div
+      ref={boxRef}
+      // Any press inside the box that isn't in the text field itself puts the
+      // caret there instead — including on a pill's label, which must not read
+      // as leaving the field and trigger a save. (The ✕ stops propagation and
+      // handles its own preventDefault.)
+      onMouseDown={(e) => { if (e.target !== inputRef.current) { e.preventDefault(); inputRef.current?.focus(); } }}
+      onClick={(e) => e.stopPropagation()}
+      style={{ width: "100%", minHeight, background: "rgba(var(--lift),0.06)", border: `1px solid ${invalid ? T.red : T.accentBorder}`, borderRadius: 8, padding: "7px 9px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, cursor: "text", boxSizing: "border-box" }}
+    >
+      {tags.map((t) => (
+        <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 4px 2px 7px", whiteSpace: "nowrap", maxWidth: "100%" }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t}</span>
+          <button
+            // preventDefault keeps focus in the input, so removing a pill never
+            // reads as leaving the field and never triggers a save.
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onClick={(e) => { e.stopPropagation(); remove(t); }}
+            title={`Remove ${t}`}
+            tabIndex={-1}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, padding: 0, border: "none", borderRadius: 3, background: "transparent", color: T.textTertiary, cursor: "pointer", lineHeight: 0, flexShrink: 0, transition: "color 0.12s, background 0.12s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textTertiary; e.currentTarget.style.background = "transparent"; }}
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </span>
+      ))}
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => onChange?.(tags, e.target.value)}
+        onKeyDown={keyDown}
+        onPaste={paste}
+        onBlur={blur}
+        placeholder={tags.length === 0 ? placeholder : ""}
+        style={{ flex: "1 1 90px", minWidth: 90, background: "transparent", border: "none", outline: "none", color: T.text, fontSize: 12.5, fontFamily: T.font, padding: "2px 0" }}
+      />
+    </div>
   );
 };
 

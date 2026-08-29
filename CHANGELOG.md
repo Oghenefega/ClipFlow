@@ -4,6 +4,18 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-29 (session 221) — YouTube tags edit as pills instead of a comma string
+
+### Changed
+- **Both YouTube tag editors now edit as removable pills, not one flat comma-separated line.** Clicking the Queue's per-clip tags box (and the per-game "YouTube Tags" field in Captions & Descriptions) used to collapse the pill display into a raw `a, b, c` string, so removing one tag meant finding it mid-line and holding backspace. A new shared `TagInput` (`src/renderer/components/shared.js`) keeps the pills while editing: comma or Enter commits the typed word, every pill carries an ✕, backspace on an empty box removes the last one, and pasting a comma list splits it into pills. Duplicates are dropped on commit rather than silently at save time. Both editors import the same component, so their commit rules cannot drift; all tag semantics still come from `src/renderer/utils/ytTags.js` (`parseTags`, `tagsLength`, `TAGS_MAX`) — nothing about the 500-character budget, the dedupe rule, or the matches-the-game-list override-clearing changed.
+- **The editor state for both screens is now a tag list plus the half-typed word, held separately.** `TagInput` is fully controlled on both, which is what makes the character counter price the in-flight word (typing pushes 293/500 to 299/500 before the comma lands) and what stops a word typed immediately before Save or before clicking away from being dropped — the click that leaves the field blurs the input in the same event that would read state back, so `onCommitBlur` hands the caller the finished list to save from instead. The Queue hint now reads "Comma or Enter adds a tag · click outside to save".
+- **The pill ✕ uses `textTertiary` rather than `textMuted`.** At 9px the muted token (16% on dark, 26% on light) was too faint to read as a control; tertiary (32–44%) stays subordinate to the tag label without disappearing.
+
+### Notes
+- **Verified against the built bundle on the dev profile** (tokens confirmed `{}` first, scheduler refused as expected), driving both editors over CDP: comma and Enter commit, ✕ removes exactly one pill without blurring the field, backspace-on-empty removes the last, a pasted `a, b, Fega, c` added three pills and dropped the duplicate, the counter tracked every step, Escape and Cancel discarded without saving, a word typed then immediately clicked away saved (19→20 tags, CUSTOM badge appeared), "Reset to game tags" cleared it again, and a 669/500 list turned the counter and border red and had its save refused with the text kept on screen. Checked on Daylight as well — the `rgba(var(--lift),…)` polarity flip renders the pills dark-on-light correctly.
+- The Queue's per-platform cards only render for a **connected** account (`activePlat = platforms.filter(p => p.connected)`), which the dev profile has none of, so verification needed a credential-free `platforms` entry in the dev settings — not a token. It was removed afterward and the dev profile is back to `platforms: []`, `{"accounts": {}}`, with no test tags left in any game's list.
+- The published-clip receipt lower down the Queue card keeps its plain read-only pills — it is a record of what shipped, not an editor.
+
 ## [0.4.0-alpha.11] — 2026-08-29 (session 221) — alpha.11: restored theme colours and the scheduler/tray hardening
 
 ### Changed

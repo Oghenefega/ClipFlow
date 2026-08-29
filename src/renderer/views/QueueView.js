@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
-import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, CopyIconButton, extractGameTag, toFileUrl } from "../components/shared";
+import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, CopyIconButton, TagInput, extractGameTag, toFileUrl } from "../components/shared";
 // #329: shared with the main-process publish scheduler — see src/shared/captionResolve.js.
 import { resolveTags, resolveCaption, resolveYtGameKey, getEffectiveCaption as resolveEffectiveCaption, accountToPlatformKey, getEnabledPlatforms as resolveEnabledPlatforms } from "../../shared/captionResolve";
 import CaptionsView from "./CaptionsView";
@@ -786,7 +786,10 @@ export default function QueueView({
   // refused for being over YouTube's 500-char budget — the editor stays open so
   // the typed list isn't thrown away.
   const [editingYtTags, setEditingYtTags] = useState(null); // clipId
-  const [editYtTagsValue, setEditYtTagsValue] = useState("");
+  // The committed pills and the word still being typed, held apart so the
+  // character counter can price both (see TagInput in components/shared).
+  const [editYtTags, setEditYtTags] = useState([]);
+  const [editYtTagsDraft, setEditYtTagsDraft] = useState("");
   const [ytTagsError, setYtTagsError] = useState(null); // clipId
   // Phase 3: scheduling state
   const [confirmClipId, setConfirmClipId] = useState(null); // Phase 4: publish confirmation modal
@@ -2407,7 +2410,9 @@ export default function QueueView({
                                         const tags = resolveTags(clip, ytDescriptions, gamesDb);
                                         const hasTagOverride = Array.isArray(clip.youtubeTags);
                                         const isEditingTags = editingYtTags === clip.id;
-                                        const shown = isEditingTags ? parseTags(editYtTagsValue) : tags;
+                                        // Price the half-typed word too, so the counter can't read under
+                                        // budget on a list that is about to be refused.
+                                        const shown = isEditingTags ? parseTags([...editYtTags, editYtTagsDraft].join(",")) : tags;
                                         const len = tagsLength(shown);
                                         const over = len > TAGS_MAX;
                                         const refused = ytTagsError === clip.id;
@@ -2427,28 +2432,21 @@ export default function QueueView({
                                               <span style={{ fontSize: 10, fontFamily: T.mono, color: over ? T.red : T.textTertiary }}>{len}/{TAGS_MAX}</span>
                                             </div>
                                             {isEditingTags ? (
-                                              <textarea
+                                              <TagInput
                                                 autoFocus
-                                                ref={(el) => {
-                                                  if (el && !el.dataset.sized) {
-                                                    el.dataset.sized = "1";
-                                                    el.style.height = Math.max(56, el.scrollHeight + 2) + "px";
-                                                  }
-                                                }}
-                                                value={editYtTagsValue}
-                                                onChange={(e) => {
-                                                  setEditYtTagsValue(e.target.value);
-                                                  const el = e.target;
-                                                  if (el.scrollHeight > el.clientHeight) el.style.height = Math.max(56, el.scrollHeight + 2) + "px";
-                                                }}
-                                                onKeyDown={(e) => { if (e.key === "Escape") { setEditingYtTags(null); setYtTagsError(null); } }}
-                                                onBlur={() => saveYoutubeTags(clip, editYtTagsValue)}
+                                                tags={editYtTags}
+                                                draft={editYtTagsDraft}
+                                                invalid={over}
                                                 placeholder="rocket league, rocket league clips, gaming shorts"
-                                                style={{ width: "100%", minHeight: 56, background: "rgba(var(--lift),0.06)", border: `1px solid ${over ? T.red : T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }}
+                                                onChange={(next, d) => { setEditYtTags(next); setEditYtTagsDraft(d); }}
+                                                onEscape={() => { setEditingYtTags(null); setYtTagsError(null); }}
+                                                // Saved from the argument, not from state: the click that
+                                                // leaves the field commits the last word in the same event.
+                                                onCommitBlur={(finalTags) => saveYoutubeTags(clip, tagsToText(finalTags))}
                                               />
                                             ) : (
                                               <div
-                                                onClick={(e) => { e.stopPropagation(); setYtTagsError(null); setEditingYtTags(clip.id); setEditYtTagsValue(tagsToText(tags)); }}
+                                                onClick={(e) => { e.stopPropagation(); setYtTagsError(null); setEditingYtTags(clip.id); setEditYtTags(tags); setEditYtTagsDraft(""); }}
                                                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
                                                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
                                                 style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "8px 54px 8px 10px", minHeight: 20, cursor: "text", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", transition: "border-color 0.15s" }}
@@ -2473,7 +2471,7 @@ export default function QueueView({
                                                 <span style={{ fontSize: 10.5, color: over ? T.red : T.textTertiary }}>
                                                   {over
                                                     ? `Over YouTube's ${TAGS_MAX}-character limit by ${len - TAGS_MAX}${refused ? " — not saved" : ""}. Shorten the list.`
-                                                    : "Comma-separated · click outside to save"}
+                                                    : "Comma or Enter adds a tag · click outside to save"}
                                                 </span>
                                                 <div style={{ flex: 1 }} />
                                                 <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingYtTags(null); setYtTagsError(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>

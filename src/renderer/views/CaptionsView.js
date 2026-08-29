@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
-import { CopyIconButton, GamePill } from "../components/shared";
+import { CopyIconButton, GamePill, TagInput } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
 import { buildStarterYtDescription } from "../utils/ytDescriptionTemplate";
 import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
@@ -41,7 +41,10 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   const [editingYt, setEditingYt] = useState(false);
   const [editDesc, setEditDesc] = useState("");
   const [editTitle, setEditTitle] = useState("");
-  const [editTags, setEditTags] = useState("");
+  // Committed pills and the word still being typed, held apart so the counter
+  // can price both (see TagInput in components/shared).
+  const [editTags, setEditTags] = useState([]);
+  const [editTagsDraft, setEditTagsDraft] = useState("");
   const [editPlat, setEditPlat] = useState(null);
   const [editTpl, setEditTpl] = useState("");
 
@@ -62,14 +65,17 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   // the panel is never a dead end.
   const othersOpen = showOthers || !activeGame;
 
-  const parsedTags = parseTags(editTags);
+  // Prices the half-typed word too, so Save can't stay enabled on a list that is
+  // one commit away from being over budget.
+  const parsedTags = parseTags([...editTags, editTagsDraft].join(","));
   const tagsLen = tagsLength(parsedTags);
   const tagsOver = tagsLen > TAGS_MAX;
 
   const startEdit = () => {
     setEditTitle(data?.ytTitle || (activeGame ? activeGame + " Shorts" : ""));
     setEditDesc(data?.desc || "");
-    setEditTags((data?.tags || []).join(", "));
+    setEditTags(data?.tags || []);
+    setEditTagsDraft("");
     setEditingYt(true);
   };
 
@@ -168,16 +174,19 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                   <div style={LBL}>YouTube Tags</div>
                   <span style={{ marginLeft: "auto", fontSize: 10, color: tagsOver ? T.red : T.textMuted }}>{tagsLen} / {TAGS_MAX}</span>
                 </div>
-                <input
-                  value={editTags}
-                  onChange={(e) => setEditTags(e.target.value)}
+                <TagInput
+                  tags={editTags}
+                  draft={editTagsDraft}
+                  invalid={tagsOver}
+                  minHeight={44}
                   placeholder="rocket league, rocket league clips, gaming shorts"
-                  style={{ ...FIELD, border: `1px solid ${tagsOver ? T.red : T.accentBorder}` }}
+                  onChange={(next, d) => { setEditTags(next); setEditTagsDraft(d); }}
+                  onEscape={() => setEditingYt(false)}
                 />
                 <div style={{ color: tagsOver ? T.red : T.textMuted, fontSize: 10, marginTop: 5, lineHeight: 1.5 }}>
                   {tagsOver
                     ? `Over YouTube's 500-character tag limit by ${tagsLen - TAGS_MAX} — shorten the list to save.`
-                    : "Comma-separated. Sent with every Short for this game."}
+                    : "Comma or Enter adds a tag. Sent with every Short for this game."}
                 </div>
               </div>
             ) : hasEntry ? (
