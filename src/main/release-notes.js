@@ -12,6 +12,14 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.13",
+    date: "2026-08-30",
+    changed: [
+      "The game dropdown in the editor's AI panel now only steers the titles it writes. Picking a different game there used to quietly re-file the clip under that game — it would change banners in the Queue and publish with that game's tags. Now it just tells the AI what to write about, and nothing else moves. To actually change what a clip is filed under, use the tag pill on the clip in the Projects tab, where you can see it happen.",
+      "Clip detection now reads a content type's description. Content types (like Just Chatting or a watch-party show) have a field in Settings → Games → Edit → AI Context — now called \"About This Content\" — and what you write there reaches the AI that picks your clips, so it knows it's watching a Valorant match or GTA 6 footage instead of guessing from your voice alone. Games are unchanged; this was already how their researched knowledge worked.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.12",
     date: "2026-08-30",
     changed: [
