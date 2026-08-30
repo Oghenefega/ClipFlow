@@ -271,8 +271,12 @@ function libraryRoot() {
 // Keep the ids and the bg values identical to themes.css --bg.
 const THEME_CHROME = {
   midnight: { bg: "#0a0b10", symbol: "#edeef2" },
-  daylight: { bg: "#f3f4f7", symbol: "#14151c" },
+  graphite: { bg: "#101113", symbol: "#e8eaed" },
+  forest:   { bg: "#0a100d", symbol: "#e9f2ed" },
+  amethyst: { bg: "#0e0a16", symbol: "#f0ecfa" },
   rose:     { bg: "#120810", symbol: "#fdeef6" },
+  daylight: { bg: "#f3f4f7", symbol: "#14151c" },
+  paper:    { bg: "#edeae3", symbol: "#1e1c16" },
   blush:    { bg: "#fdf1f6", symbol: "#2a1020" },
 };
 const DEFAULT_THEME = "midnight";
@@ -5395,6 +5399,20 @@ ipcMain.handle("whatsnew:ack", async () => {
   return { success: true };
 });
 
+// #339: the full curated history, on demand from Settings → About. No
+// lastSeenVersion gating and no ack — reading history never marks anything
+// seen, so the first-launch announcement is untouched.
+ipcMain.handle("whatsnew:getAll", async () => {
+  try {
+    const releaseNotes = require("./release-notes");
+    const entries = releaseNotes.filter((e) => e.version !== "unreleased");
+    return { current: app.getVersion(), entries };
+  } catch (err) {
+    logger.warn(logger.MODULES.system, `whatsnew:getAll failed: ${err.message}`);
+    return { current: app.getVersion(), entries: [] };
+  }
+});
+
 // Open an external URL in the OS default browser. Only http/https allowed so a
 // compromised renderer can't trigger arbitrary protocols (file://, custom schemes, etc.).
 ipcMain.handle("app:openExternal", async (_event, url) => {
@@ -5435,8 +5453,9 @@ autoUpdater.on("download-progress", (p) => {
 ipcMain.handle("update:check", async () => {
   try {
     // Source runs (npm start / npm run dev) have no app-update.yml — the
-    // updater only means anything on an installed build.
-    if (!app.isPackaged) return { available: false };
+    // updater only means anything on an installed build. `unpackaged` lets the
+    // Settings button (#339) say so instead of a misleading "up to date".
+    if (!app.isPackaged) return { available: false, current: app.getVersion(), unpackaged: true };
     const result = await autoUpdater.checkForUpdates();
     const current = app.getVersion();
     if (!result || !result.isUpdateAvailable) return { available: false, current };

@@ -12,6 +12,16 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    added: [
+      "Settings has a new About section. It shows the version you're on, a \"Check for updates\" button so you no longer have to restart Corva to find out if there's a new one, and a \"View release history\" button that re-opens everything past updates changed — including this screen's older entries — any time you want to look back.",
+      "Four new themes join the picker: Graphite (neutral grey with steel-blue highlights), Forest (dark green with an emerald glow), Amethyst (dark purple through and through), and Paper (a soft warm light theme for anyone who found Daylight's white too bright).",
+    ],
+    fixed: [
+      "Buttons across the editor have their rounded corners back. The theme update accidentally dropped the one setting that controlled corner roundness, which quietly squared off the save button, the queue button, play/pause and about eighty other spots.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.13",
     date: "2026-08-30",
     changed: [

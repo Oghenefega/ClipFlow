@@ -50,6 +50,14 @@
    game colours, and DM Sans.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* #338: shadcn's one NON-colour token. Tailwind maps rounded-sm/md/lg to
+   var(--radius) (tailwind.config.js) — with it undefined every one of those
+   declarations is invalid and corners collapse square. Theme-invariant, so it
+   lives on :root, not in the per-theme blocks. */
+:root {
+  --radius: 0.5rem;
+}
+
 /* ── Midnight — the app's original look, and the default ─────────────────── */
 [data-theme="midnight"] {
   --bg: #0a0b10;
@@ -367,4 +375,320 @@
   --rulerBg: #f8e8f0;
   --scrollThumb: hsl(336 22% 82%);
   --scrollThumbHover: hsl(336 22% 68%);
+}
+
+/* ── Graphite — neutral dark grey, steel-blue accent ─────────────────────── */
+[data-theme="graphite"] {
+  --bg: #101113;
+  --bgRgb: 16, 17, 19;
+  --surface: #17181b;
+  --surfaceHover: #1c1e21;
+
+  --lift: 255, 255, 255;
+  --shade: 0, 0, 0;
+  --shadeK: 1;
+  --onSolid: #101113;
+
+  --border: rgba(255, 255, 255, 0.07);
+  --borderHover: rgba(255, 255, 255, 0.13);
+
+  --text: #e8eaed;
+  --textSecondary: rgba(255, 255, 255, 0.55);
+  --textTertiary: rgba(255, 255, 255, 0.32);
+  --textMuted: rgba(255, 255, 255, 0.16);
+  --labelStrong: rgba(255, 255, 255, 0.68);
+
+  --accent: #5b93f7;
+  --accentLight: #8ab4fa;
+  --accentDim: rgba(91, 147, 247, 0.12);
+  --accentBorder: rgba(91, 147, 247, 0.26);
+  --accentGlow: rgba(91, 147, 247, 0.06);
+
+  --green: #34d399;
+  --greenDim: rgba(52, 211, 153, 0.10);
+  --greenBorder: rgba(52, 211, 153, 0.22);
+  --yellow: #fbbf24;
+  --yellowDim: rgba(251, 191, 36, 0.10);
+  --yellowBorder: rgba(251, 191, 36, 0.22);
+  --red: #f87171;
+  --redDim: rgba(248, 113, 113, 0.08);
+  --redBorder: rgba(248, 113, 113, 0.18);
+  --orange: #f97316;
+  --orangeDim: rgba(249, 115, 22, 0.10);
+  --orangeBorder: rgba(249, 115, 22, 0.22);
+  --cyan: #22d3ee;
+  --cyanDim: rgba(34, 211, 238, 0.10);
+  --cyanBorder: rgba(34, 211, 238, 0.22);
+
+  --tierBronze: #cd7f44;
+  --tierSilver: #c4cdd6;
+  --tierGold: #f5c542;
+  --tierPlatinum: #6fe3d2;
+  --tierDiamond: #7cc4ff;
+
+  --background: 216 6% 6%;
+  --foreground: 216 5% 95%;
+  --card: 216 5% 9%;
+  --card-foreground: 216 5% 95%;
+  --popover: 216 5% 11%;
+  --popover-foreground: 216 5% 95%;
+  --primary: 218 91% 66%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 216 5% 14%;
+  --secondary-foreground: 216 5% 80%;
+  --muted: 216 5% 12%;
+  --muted-foreground: 216 4% 56%;
+  --accent-hsl: 218 91% 66%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 98%;
+  --border-hsl: 216 5% 16%;
+  --input: 216 5% 18%;
+  --ring: 218 91% 66%;
+  --stage: 216 6% 4%;
+  --trackTextL: 88%;
+  --trackIconL: 74%;
+  --trackTextDimL: 70%;
+  --timelineBg: #17181c;
+  --rulerBg: #121316;
+  --scrollThumb: hsl(216 5% 24%);
+  --scrollThumbHover: hsl(216 5% 32%);
+}
+
+/* ── Forest — dark green, emerald accent ─────────────────────────────────── */
+[data-theme="forest"] {
+  --bg: #0a100d;
+  --bgRgb: 10, 16, 13;
+  --surface: #101712;
+  --surfaceHover: #151d18;
+
+  /* Mint-tinted rather than pure white, so tints stay in the green family
+     instead of turning the surfaces grey (same trick as Neon Rose). */
+  --lift: 220, 245, 235;
+  --shade: 0, 0, 0;
+  --shadeK: 1;
+  --onSolid: #0a100d;
+
+  --border: rgba(220, 245, 235, 0.07);
+  --borderHover: rgba(220, 245, 235, 0.14);
+
+  --text: #e9f2ed;
+  --textSecondary: rgba(220, 245, 235, 0.56);
+  --textTertiary: rgba(220, 245, 235, 0.33);
+  --textMuted: rgba(220, 245, 235, 0.17);
+  --labelStrong: rgba(220, 245, 235, 0.69);
+
+  --accent: #10b981;
+  --accentLight: #3ce9a4;
+  --accentDim: rgba(16, 185, 129, 0.12);
+  --accentBorder: rgba(16, 185, 129, 0.28);
+  --accentGlow: rgba(16, 185, 129, 0.06);
+
+  --green: #34d399;
+  --greenDim: rgba(52, 211, 153, 0.10);
+  --greenBorder: rgba(52, 211, 153, 0.22);
+  --yellow: #fbbf24;
+  --yellowDim: rgba(251, 191, 36, 0.10);
+  --yellowBorder: rgba(251, 191, 36, 0.22);
+  --red: #f87171;
+  --redDim: rgba(248, 113, 113, 0.08);
+  --redBorder: rgba(248, 113, 113, 0.18);
+  --orange: #f97316;
+  --orangeDim: rgba(249, 115, 22, 0.10);
+  --orangeBorder: rgba(249, 115, 22, 0.22);
+  --cyan: #22d3ee;
+  --cyanDim: rgba(34, 211, 238, 0.10);
+  --cyanBorder: rgba(34, 211, 238, 0.22);
+
+  --tierBronze: #cd7f44;
+  --tierSilver: #c4cdd6;
+  --tierGold: #f5c542;
+  --tierPlatinum: #6fe3d2;
+  --tierDiamond: #7cc4ff;
+
+  --background: 160 20% 4%;
+  --foreground: 150 20% 96%;
+  --card: 158 18% 7%;
+  --card-foreground: 150 20% 96%;
+  --popover: 158 18% 9%;
+  --popover-foreground: 150 20% 96%;
+  --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 158 14% 12%;
+  --secondary-foreground: 150 15% 80%;
+  --muted: 158 14% 10%;
+  --muted-foreground: 155 10% 55%;
+  --accent-hsl: 160 84% 39%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 98%;
+  --border-hsl: 158 12% 14%;
+  --input: 158 12% 16%;
+  --ring: 160 84% 39%;
+  --stage: 160 22% 3%;
+  --trackTextL: 88%;
+  --trackIconL: 74%;
+  --trackTextDimL: 70%;
+  --timelineBg: #111814;
+  --rulerBg: #0d1310;
+  --scrollThumb: hsl(158 10% 22%);
+  --scrollThumbHover: hsl(158 10% 30%);
+}
+
+/* ── Amethyst — dark purple, through and through ─────────────────────────── */
+[data-theme="amethyst"] {
+  --bg: #0e0a16;
+  --bgRgb: 14, 10, 22;
+  --surface: #161022;
+  --surfaceHover: #1c1530;
+
+  /* Lavender-tinted white — tints stay violet instead of going grey. */
+  --lift: 236, 228, 255;
+  --shade: 0, 0, 0;
+  --shadeK: 1;
+  --onSolid: #0e0a16;
+
+  --border: rgba(236, 228, 255, 0.08);
+  --borderHover: rgba(236, 228, 255, 0.15);
+
+  --text: #f0ecfa;
+  --textSecondary: rgba(236, 228, 255, 0.57);
+  --textTertiary: rgba(236, 228, 255, 0.34);
+  --textMuted: rgba(236, 228, 255, 0.18);
+  --labelStrong: rgba(236, 228, 255, 0.70);
+
+  --accent: #a855f7;
+  --accentLight: #c4a1fd;
+  --accentDim: rgba(168, 85, 247, 0.14);
+  --accentBorder: rgba(168, 85, 247, 0.32);
+  --accentGlow: rgba(168, 85, 247, 0.07);
+
+  --green: #34d399;
+  --greenDim: rgba(52, 211, 153, 0.10);
+  --greenBorder: rgba(52, 211, 153, 0.22);
+  --yellow: #fbbf24;
+  --yellowDim: rgba(251, 191, 36, 0.10);
+  --yellowBorder: rgba(251, 191, 36, 0.22);
+  --red: #f87171;
+  --redDim: rgba(248, 113, 113, 0.08);
+  --redBorder: rgba(248, 113, 113, 0.18);
+  --orange: #f97316;
+  --orangeDim: rgba(249, 115, 22, 0.10);
+  --orangeBorder: rgba(249, 115, 22, 0.22);
+  --cyan: #22d3ee;
+  --cyanDim: rgba(34, 211, 238, 0.10);
+  --cyanBorder: rgba(34, 211, 238, 0.22);
+
+  --tierBronze: #cd7f44;
+  --tierSilver: #c4cdd6;
+  --tierGold: #f5c542;
+  --tierPlatinum: #6fe3d2;
+  --tierDiamond: #7cc4ff;
+
+  --background: 258 38% 6%;
+  --foreground: 260 50% 96%;
+  --card: 258 36% 10%;
+  --card-foreground: 260 50% 96%;
+  --popover: 258 36% 12%;
+  --popover-foreground: 260 50% 96%;
+  --primary: 271 91% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 258 28% 16%;
+  --secondary-foreground: 260 35% 82%;
+  --muted: 258 28% 13%;
+  --muted-foreground: 260 15% 60%;
+  --accent-hsl: 271 91% 65%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 98%;
+  --border-hsl: 258 24% 19%;
+  --input: 258 24% 21%;
+  --ring: 271 91% 65%;
+  --stage: 258 40% 4%;
+  --trackTextL: 88%;
+  --trackIconL: 74%;
+  --trackTextDimL: 70%;
+  --timelineBg: #150f21;
+  --rulerBg: #110c1b;
+  --scrollThumb: hsl(258 20% 27%);
+  --scrollThumbHover: hsl(258 20% 37%);
+}
+
+/* ── Paper — soft warm light, no glare ───────────────────────────────────── */
+[data-theme="paper"] {
+  --bg: #edeae3;
+  --bgRgb: 237, 234, 227;
+  --surface: #f8f6f1;
+  --surfaceHover: #f3f0e9;
+
+  --lift: 44, 40, 30;
+  --shade: 44, 40, 30;
+  --shadeK: 0.30;
+  --onSolid: #ffffff;
+
+  --border: rgba(44, 40, 30, 0.11);
+  --borderHover: rgba(44, 40, 30, 0.21);
+
+  --text: #1e1c16;
+  --textSecondary: rgba(30, 28, 22, 0.62);
+  --textTertiary: rgba(30, 28, 22, 0.44);
+  --textMuted: rgba(30, 28, 22, 0.26);
+  --labelStrong: rgba(30, 28, 22, 0.74);
+
+  --accent: #7c3aed;
+  /* Readable accent is DARKER on light themes — see the Daylight note. */
+  --accentLight: #6d28d9;
+  --accentDim: rgba(124, 58, 237, 0.10);
+  --accentBorder: rgba(124, 58, 237, 0.28);
+  --accentGlow: rgba(124, 58, 237, 0.05);
+
+  --green: #0d9463;
+  --greenDim: rgba(13, 148, 99, 0.10);
+  --greenBorder: rgba(13, 148, 99, 0.26);
+  --yellow: #b45309;
+  --yellowDim: rgba(180, 83, 9, 0.10);
+  --yellowBorder: rgba(180, 83, 9, 0.24);
+  --red: #dc2626;
+  --redDim: rgba(220, 38, 38, 0.08);
+  --redBorder: rgba(220, 38, 38, 0.20);
+  --orange: #ea580c;
+  --orangeDim: rgba(234, 88, 12, 0.10);
+  --orangeBorder: rgba(234, 88, 12, 0.24);
+  --cyan: #0e7490;
+  --cyanDim: rgba(14, 116, 144, 0.10);
+  --cyanBorder: rgba(14, 116, 144, 0.24);
+
+  --tierBronze: #a1622f;
+  --tierSilver: #7b8794;
+  --tierGold: #b8860b;
+  --tierPlatinum: #0f9b8a;
+  --tierDiamond: #2b7fd4;
+
+  --background: 42 20% 91%;
+  --foreground: 40 15% 10%;
+  --card: 43 25% 96%;
+  --card-foreground: 40 15% 10%;
+  --popover: 43 25% 96%;
+  --popover-foreground: 40 15% 10%;
+  --primary: 263 70% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 42 15% 87%;
+  --secondary-foreground: 40 12% 22%;
+  --muted: 42 15% 89%;
+  --muted-foreground: 40 6% 42%;
+  --accent-hsl: 263 70% 51%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border-hsl: 42 12% 80%;
+  --input: 42 12% 76%;
+  --ring: 263 70% 51%;
+  --stage: 42 16% 84%;
+  --trackTextL: 32%;
+  --trackIconL: 38%;
+  --trackTextDimL: 40%;
+  --timelineBg: #f8f6f1;
+  --rulerBg: #e6e2d8;
+  --scrollThumb: hsl(42 10% 72%);
+  --scrollThumbHover: hsl(42 10% 58%);
 }

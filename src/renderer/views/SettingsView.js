@@ -4,6 +4,7 @@ import T, { THEMES, applyTheme } from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot, Select } from "../components/shared";
 import { GameEditModal } from "../components/modals";
 import AudioCalibrationModal from "../components/AudioCalibrationModal";
+import { ReleaseHistoryModal } from "../components/WhatsNewModal";
 import { trackLabelText } from "../audioTrackLabels";
 
 // Shared button styles used across all settings sections
@@ -403,6 +404,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "publishing",  icon: "📤", label: "Publishing",   blurb: "Connected accounts, your schedule, and how the Queue fills." },
     { id: "tools",       icon: "🔑", label: "Tools & Keys", blurb: "Local engines and the API credentials Corva talks to." },
     { id: "diagnostics", icon: "🔎", label: "Diagnostics",  blurb: "Logs, costs, and reporting something that went wrong." },
+    { id: "about",       icon: "ℹ️", label: "About",        blurb: "Your version, updates, and what changed." },
   ];
 
   // Search index. `id` is the DOM id on the matching Card — the words someone
@@ -435,6 +437,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "set-logs",      section: "diagnostics", title: "Pipeline Logs",               kw: "cost tracking runs errors ai spend history" },
     { id: "set-report",    section: "diagnostics", title: "Report an Issue",             kw: "bug feedback send diagnostics screenshot github" },
     { id: "set-subs",      section: "diagnostics", title: "Subtitle Debug Log",          kw: "word timestamps whisper repair segmentation" },
+    { id: "set-updates",   section: "about",       title: "Updates",                     kw: "version check for updates install upgrade new release current" },
+    { id: "set-whatsnew",  section: "about",       title: "Release History",             kw: "what's new whatsnew changelog changes previous updates release notes" },
   ];
 
   // #328: seeded from the bridge, which the preload resolved synchronously at
@@ -442,6 +446,43 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   // selected for a frame. Local state only tracks what the user clicks here;
   // <html data-theme> is the actual source of truth for the paint.
   const [theme, setTheme] = useState(window.clipflow?.theme || "midnight");
+
+  // #339: About section — version, manual update check, release history.
+  // phase: idle | checking | none | unpackaged | available | installing | error
+  const [appVersion, setAppVersion] = useState("");
+  const [upd, setUpd] = useState({ phase: "idle" });
+  const [updProgress, setUpdProgress] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  useEffect(() => {
+    window.clipflow?.getAppVersion?.().then(setAppVersion).catch(() => {});
+    // Same unmount hygiene as UpdateBanner: drop any progress listener we added.
+    return () => window.clipflow?.removeUpdateProgressListeners?.();
+  }, []);
+
+  const checkForUpdates = async () => {
+    setUpd({ phase: "checking" });
+    try {
+      const r = await window.clipflow.checkForUpdate();
+      if (r?.available) setUpd({ phase: "available", newVersion: r.newVersion });
+      else if (r?.unpackaged) setUpd({ phase: "unpackaged" });
+      else if (r?.error) setUpd({ phase: "error", error: r.error });
+      else setUpd({ phase: "none" });
+    } catch (err) {
+      setUpd({ phase: "error", error: err.message });
+    }
+  };
+
+  const installUpdate = async () => {
+    setUpd((u) => ({ ...u, phase: "installing" }));
+    window.clipflow.onUpdateProgress?.((data) => setUpdProgress(data));
+    // On success the app quits and relaunches — this only returns on failure.
+    const result = await window.clipflow.installUpdate();
+    if (!result?.success) {
+      window.clipflow.removeUpdateProgressListeners?.();
+      setUpdProgress(null);
+      setUpd({ phase: "error", error: result?.error || "Update failed — try again later" });
+    }
+  };
 
   const [query, setQuery] = useState("");
   const [flashId, setFlashId] = useState(null);
@@ -1971,6 +2012,71 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       </>}
 
+      {!searching && activeSection === "about" && <>
+      <SectionHead id="about" />
+
+      {/* #339: version + manual update check. The automatic once-per-boot
+          check (UpdateBanner) is untouched — this button is the on-demand
+          path for "did I miss one?" without restarting Corva. */}
+      <Card {...cardProps("set-updates")} style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>
+              Corva{appVersion ? ` v${appVersion}` : ""}
+            </div>
+            <div style={{ fontSize: 12, marginTop: 4, color:
+              upd.phase === "none" ? T.green
+              : upd.phase === "available" ? T.accentLight
+              : upd.phase === "error" ? T.red
+              : T.textTertiary }}>
+              {upd.phase === "idle" && "Corva checks on its own each time it starts. You can also check right now."}
+              {upd.phase === "checking" && "Checking for updates…"}
+              {upd.phase === "none" && "You're on the latest version."}
+              {upd.phase === "unpackaged" && "Updates only apply to the installed app — this copy runs from source."}
+              {upd.phase === "available" && <>Update available — <strong>{upd.newVersion}</strong></>}
+              {upd.phase === "installing" && (updProgress
+                ? (updProgress.percent >= 100 ? "Restarting…" : `Downloading ${Math.round(updProgress.percent)}%`)
+                : "Preparing download…")}
+              {upd.phase === "error" && (upd.error || "Update check failed — try again later.")}
+            </div>
+          </div>
+          {(upd.phase === "available" || upd.phase === "installing") ? (
+            <button
+              onClick={installUpdate}
+              disabled={upd.phase === "installing"}
+              style={{ ...BTN, background: T.accent, border: "none", color: "#fff", fontWeight: 700, opacity: upd.phase === "installing" ? 0.6 : 1, flexShrink: 0 }}
+            >
+              {upd.phase === "installing" ? "Installing…" : "Install & restart"}
+            </button>
+          ) : (
+            <button
+              onClick={checkForUpdates}
+              disabled={upd.phase === "checking"}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: upd.phase === "checking" ? 0.6 : 1, flexShrink: 0 }}
+            >
+              Check for updates
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {/* #339: re-open What's New any time — full history, newest first. */}
+      <Card {...cardProps("set-whatsnew")} style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>What's New</div>
+            <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 4 }}>
+              Everything past updates changed, release by release.
+            </div>
+          </div>
+          <button onClick={() => setShowHistory(true)} style={{ ...BTN, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontWeight: 700, flexShrink: 0 }}>
+            View release history
+          </button>
+        </div>
+      </Card>
+
+      </>}
+
         </div>
       </div>
 
@@ -1978,6 +2084,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       <DevDashboard />
 
       {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} aiReady={anthropicConfigured} />}
+      {showHistory && <ReleaseHistoryModal onClose={() => setShowHistory(false)} />}
     </div>
   );
 }
