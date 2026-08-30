@@ -790,7 +790,10 @@ async function runAIPipeline({
     // Get game context (AI-researched description from game library).
     // #245: aiContextAuto is the field the Edit/Add Game modals actually write;
     // aiContext was never written anywhere — research never reached detection.
-    const gameContext = gameEntry?.aiContextAuto || "";
+    // #333: content entries have no research flow, so their hand-written
+    // context (aiContextUser) is the authored description — use it as fallback.
+    const gameContext = gameEntry?.aiContextAuto ||
+      (entryType === "content" ? gameEntry?.aiContextUser || "" : "");
 
     // Get few-shot examples from feedback DB — approved for taste calibration,
     // rejected for negative calibration (#191). Fetch extra rejected rows:

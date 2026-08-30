@@ -24,23 +24,11 @@ const useAIStore = create((set, get) => ({
 
   // ── Actions ──
   setAiContext: (c) => set({ aiContext: c }),
-  // #197: when called from the editor's game picker (gamesDb provided), the
-  // selection IS the clip's content tag — persist it so learning, hashtags,
-  // and the review-card badge follow. Calls without gamesDb (clip-load
-  // seeding) only set local state.
-  setAiGame: (g, gamesDb) => {
-    set({ aiGame: g });
-    if (!gamesDb) return;
-    try {
-      const entry = gamesDb.find((e) => e.name === g);
-      const { project, clip } = useEditorStore.getState();
-      if (entry && project?.id && clip?.id) {
-        window.clipflow?.projectUpdateClip?.(project.id, clip.id, { gameTag: entry.tag, gameName: entry.name }).catch(() => {});
-        // Keep the in-memory snapshot coherent with what was just persisted
-        useEditorStore.setState({ clip: { ...clip, gameTag: entry.tag, gameName: entry.name } });
-      }
-    } catch (e) { /* non-critical */ }
-  },
+  // #334 (reverses #197): the picker only steers title/caption generation —
+  // hashtag and game context follow the selection, but the clip's content tag
+  // is never written from here. Re-categorizing a clip lives in the Projects
+  // tab's per-clip tag menu, where the consequence is visible.
+  setAiGame: (g) => set({ aiGame: g }),
 
   // Gather the per-clip context every title/caption call needs. Scopes the
   // transcript to THIS clip's cut window via getTimelineMappedSegments — the

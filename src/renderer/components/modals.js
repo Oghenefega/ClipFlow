@@ -129,6 +129,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
 
 // ============ GAME EDIT MODAL ============
 export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = false }) => {
+  const isContentEntry = game.entryType === "content";
   const [tag, setTag] = useState(game.tag);
   const [hashtag, setHashtag] = useState(game.hashtag || "");
   const [color, setColor] = useState(game.color);
@@ -335,16 +336,18 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
 
           {showAiSection && (
             <div style={{ marginTop: 14 }}>
-              {/* Play Style - user editable */}
+              {/* Play Style - user editable (#333: doubles as the authored description for content entries) */}
               <div style={{ marginBottom: 14 }}>
-                <SectionLabel>Your Play Style</SectionLabel>
+                <SectionLabel>{isContentEntry ? "About This Content" : "Your Play Style"}</SectionLabel>
                 <textarea
                   value={aiPlayStyle}
                   onChange={(e) => setAiPlayStyle(e.target.value)}
-                  placeholder={"How do you play this game?\ne.g. \"I'm grinding ranked, trying to hit Diamond. Very competitive but I rage in a funny way.\""}
+                  placeholder={isContentEntry
+                    ? "What is this content?\ne.g. \"I watch and react to 100 Thieves' pro Valorant matches, hyping big plays and breaking down rounds.\""
+                    : "How do you play this game?\ne.g. \"I'm grinding ranked, trying to hit Diamond. Very competitive but I rage in a funny way.\""}
                   style={{ width: "100%", minHeight: 80, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
                 />
-                <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Included in AI title/caption generation for this game</div>
+                <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>{isContentEntry ? "Included in AI clip detection and title/caption generation for this content type" : "Included in AI title/caption generation for this game"}</div>
               </div>
 
               {/* Auto-researched context */}
