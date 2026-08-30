@@ -4,6 +4,20 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-30 (session 222) — React shows: per-show content types, a steer-only title dropdown, and the JC migration
+
+### Added
+- **Recurring react shows are now their own content types.** A week of react content (100 Thieves Valorant watch parties, Robot Olympics, GTA6 reactions, subscriber Rocket League clips) had all been recorded under the single "Just Chatting" category, which made projects indistinguishable ("JC Day 2 Pt 1"), fed the AI no context about what was being watched, hashtagged every title #justchatting, and made the Queue resolve JC's generic YouTube tags and description — hand-fixed per clip. Four new content-type entries now carry each show's own tag, color, hashtag, AI context blurb, and a pre-filled YouTube tags/description set: **100T Valorant Reacts** (`100T`), **Robot Olympics Reacts** (`ROBOT`), **GTA6 Reacts** (`GTA6-R`), and **RL Sub Reacts** (`RL-R`). The 100T set was seeded from the latest hand-fixed published clip (with the schedule and links block turned back into a reusable template), GTA6 Reacts inherited the already-curated "GTA 6" captions set, and the other two got react-flavored starters — all editable in Captions & Descriptions. No app code was needed for any of this: learning buckets, queue metadata, hashtags, art, and day counters already key off the entry. (#335)
+- **A content type's hand-written context now reaches clip detection.** Detection only ever read the AI-researched game description, which content types can't have (they have no research flow) — so react/IRL detection ran context-blind. The "About This Content" text (formerly "Your Play Style", relabeled with a content-flavored placeholder in the edit modal) now feeds the detection prompt's content-context section. Title/caption generation already read it. (#333)
+
+### Changed
+- **The AI title panel's game dropdown is steer-only.** Changing it used to silently re-file the clip under the selected game — picking "Valorant" to steer a title moved the clip under the VAL banner in the Queue and would have published with Valorant's gameplay tags. It now only steers the generated titles and hashtag; re-filing a clip stays where it's explicit and visible, the per-clip tag menu in the Projects tab. The dropdown's tooltip says so. (#334, reverses #197's write-through)
+- **This week's eight JC projects were migrated to their shows** (one-time data migration, backed up first): renamed with per-show day numbering (e.g. "2026-08-19 JC Day2 Pt1" → "2026-08-19 100T Day1 Pt1"), recolored, all 123 clip-level "JC"/"Val" tag overrides re-filed to their show, and 78 approve/reject learning decisions moved into per-show buckets so each show starts with a week of taste data. Just Chatting keeps its 5 genuine rows (July World-Cup clips) and its own day counter; recording filenames, publish history, and per-clip caption/tag overrides were deliberately untouched. Machine-verified: 504 feedback rows before and after, exactly −78 JC / +60 100T / +18 GTA6-R, zero JC projects since Aug 18 remaining.
+
+### Notes
+- Verified on the dev profile via CDP against the built bundle: six dropdown flips on a rejected clip wrote nothing to disk (the one historical "Val" clip-tag stayed the only one), and the Just Chatting edit modal shows the new "About This Content" labeling. The existing "GTA 6" game entry (researched Aug 27) was left untouched as the future gameplay entry — `GTA6-R` handles reactions until the game ships. Deferred follow-ups filed: an optional linked-game field on content entries (#336) and content-type creation ergonomics (#337).
+- The two code changes reach the installed daily driver with the next installer cut; the migration and the four show entries work on the current install immediately.
+
 ## [0.4.0-alpha.12] — 2026-08-30 (session 221) — alpha.12: YouTube tags edit as pills instead of a comma string
 
 ### Changed
