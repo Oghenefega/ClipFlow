@@ -1,69 +1,73 @@
-# HANDOFF — Session 221 (2026-08-30)
+# HANDOFF — Session 222 (2026-08-30)
 
 ## Current State
 
-**Two installers cut this session, and everything on master is shipped.**
+**React shows exist, the week's data is migrated, and alpha.13 is on the feed.** The
+brainstorm ("everything react is dumped in Just Chatting") resolved into four per-show
+content-type entries — 100T Valorant Reacts (`100T`), Robot Olympics Reacts (`ROBOT`),
+GTA6 Reacts (`GTA6-R`), RL Sub Reacts (`RL-R`) — each with seeded YouTube tags/description,
+color, hashtag, and an "About This Content" blurb. Three data migrations ran against prod
+(app closed, all backed up to `%APPDATA%\clipflow\data\backup-2026-08-30-show-migration\`):
+projects renamed/recolored with per-show day numbering, **all 123 per-clip gameTag
+overrides re-filed** (every clip carried one — not just the one "Val" stray), 78 feedback
+rows moved into per-show buckets (JC keeps its 5 July World-Cup rows), and 27 tracker
+history cards relabeled (16 → 100t, 11 → gta6-r, all matched by clipId, zero guesses).
 
-- **alpha.11** (`a3e2df0`) promoted session 220's audit fixes — the 18 `${T.colour}NN` concats,
-  the scheduler wedge, the tray-failure zombie. It was already written and waiting; this
-  session just cut it.
-- **alpha.12** (`d29672c`) promotes the session's own work: YouTube tags are now edited as
-  removable pills instead of a flat comma string, plus a "Clear all" button. Both editors —
-  the Queue's per-clip tags box and the per-game field in Captions & Descriptions — share one
-  new `TagInput` in `src/renderer/components/shared.js`.
-
-Feed is live at `0.4.0-alpha.12`; alpha.11's files were pruned. **Fega has not yet installed
-either** — he'll get the banner on next launch, and a What's New card explaining the tag change.
+**alpha.13** (`7c29810`) promotes the session's two code changes: the AI-title game
+dropdown is steer-only (#334, reverses #197's clip write-through), and content entries'
+`aiContextUser` reaches detection's CONTENT CONTEXT (#333). Fega has not yet confirmed
+installing it.
 
 ## Key Decisions
 
-- **`TagInput` is fully controlled on BOTH the committed list and the half-typed word.** The
-  draft can't live inside the component: the click that leaves the field blurs the input in the
-  same event that would read state back, so an internal draft is lost exactly when the user
-  expects it saved. Same reason `onCommitBlur` hands the caller the finished list — callers save
-  from that argument, never from their own state.
-- **Clear all has no confirm step.** Nothing is written until the field is left, so Escape
-  (Queue) / Cancel (Captions) is already a complete undo, and a cleared-then-saved Queue list is
-  just an empty override that "Reset to game tags" reverses.
-- **It's a "✕ Clear all" chip, not a bare ✕** (Fega asked for "pretty much an X"). A lone ✕ among
-  nineteen pills that each carry their own ✕ reads as one more pill-remove. Flagged to him; he
-  can have the naked glyph if he prefers.
-- **The pill ✕ uses `textTertiary`, not `textMuted`** — at 9px the muted token (16% dark /
-  26% light) doesn't read as a control.
+- **Flat show entries over a game+react toggle** — everything (learning, queue metadata,
+  hashtags, art, day counters) already keys off the entry tag; a per-game react mode would
+  rebuild all of that for less. Optional "linked game" field deferred to #336.
+- **`GTA6-R`/`RL-R` carry the `-R` suffix; `100T`/`ROBOT` don't** — suffix only where a
+  gameplay twin exists or will (Fega's call). Tags >4 chars + hyphens verified safe: no
+  maxLength, exact-match resolution, tags never parsed back out of filenames.
+- **The existing "GTA 6" game entry stays untouched** — it's the future gameplay entry
+  (researched Aug 27); GTA6-R inherited its curated ytDescriptions instead.
+- **Frozen publish snapshots stay frozen** — the tracker retag changed only `row.game`
+  (the pill/stats label); `published.*` and `mainGameAtTime` are the record of what shipped.
+- **Feedback rows follow project renames** — `video_id` IS the project name
+  (feedback.js:110), so every rename updated `video_id` in the same UPDATE or the
+  approve↔reject retract/dedupe key would break.
 
 ## Next Steps
 
-1. **Fega installs alpha.12 and judges the pills** — size, spacing, how obvious the ✕ is, and
-   whether "✕ Clear all" belongs at the right end of the box or up in the header by the counter.
-2. Nothing else is queued. Next session starts from the open backlog
-   (`gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"'`).
+1. **Fega installs alpha.13** and confirms: dropdown no longer re-files clips, and Settings
+   → Games → Edit on a show reads "About This Content". Then close #333/#334 (untested label).
+2. **Fega polishes the shows** (in-app, no code): upload art per show ("Choose image…" —
+   Steam lookup won't find shows), review the four seeded tag/description sets, refine the
+   context blurbs. First react pipeline run after alpha.13: check the persisted prompt file
+   shows the CONTENT CONTEXT block (closes the #333 verification loop).
+3. Deferred, filed: #336 (linked-game field on content entries), #337 (add content type
+   from Rename view + context step in the Add flow).
 
 ## Watch Out For
 
-- **The Queue's per-platform cards only render for a CONNECTED account**
-  (`activePlat = platforms.filter(p => p.connected)`, QueueView.js:1420), and the dev profile has
-  `platforms: []`. Any future work on that UI needs a **credential-free** platform entry written
-  into `%APPDATA%\clipflow-dev\clipflow-settings.json` — a settings entry, never a token. Add it,
-  back up the file, restore afterwards. (Already documented as gotcha 54 / s215 in
-  `project_cdp_verification_gotchas` — I re-derived it the hard way.)
-- **Buttons wired to `onMouseDown` ignore a synthetic `.click()`.** The Queue's Cancel buttons and
-  everything in `TagInput` use `onMouseDown` + `preventDefault` deliberately, to stop a click
-  blurring the field into a save. A probe using `.click()` reports success and does nothing.
-- **`asar extract-file` still writes to the basename in CWD.** Verify packaged contents by reading
-  the asar bytes instead. I reached for the dangerous form again this session; no damage, but the
-  trap is live.
-- `TagInput` keys its pills by tag string. Safe because both save paths normalize through
-  `parseTags` (which dedupes case-insensitively), but a legacy list with true duplicates would
-  collide — the pre-existing read-only display has the same exposure.
+- **Per-clip `gameTag` overrides exist on EVERY clip of the migrated projects** (now set to
+  their show). Any future migration or per-clip logic must assume clip-level tags are the
+  norm, not the exception — clip.gameTag beats project.gameTag in every resolution path
+  (QueueView.js:668, captionResolve.js:35).
+- **ytDescriptions is keyed by display NAME** — renaming a show entry orphans its
+  tags/descriptions set. Pre-existing fragility, now with 4 more entries exposed to it.
+- **The migration scripts are one-shot and already ran** — `migrate-shows.js` /
+  `retag-tracker.js` live in this session's scratchpad (gone with it); their guards abort
+  on re-run (tags exist). Backups remain in the folder above; restore = copy back with the
+  app closed.
+- **Tracker `entry.game` convention:** lowercased short tag for auto-posts, hashtag slug
+  for manual logs; `resolveGameDisplay` matches tag/hashtag/name case-insensitively. The
+  retagged rows use lowercased show tags (`100t`, `gta6-r`).
 
 ## Logs / Debugging
 
-- Dev boots this session: `%APPDATA%\clipflow-dev\logs`. Scheduler correctly refused each time
-  (`Scheduler: dev profile — scheduled publishing disabled`). Dev tokens verified `{"accounts":{}}`
-  before every boot and left that way; `platforms` restored to `[]`; no test tags left in any
-  game's list.
-- CDP driver used: `scratchpad/cdp.py` (Python `websocket-client`, `suppress_origin=True` — the
-  handshake 403s without it). Its `key()` sends `keyDown`-with-`text` then `keyUp` **only**;
-  adding a separate `char` event double-types and defeats `preventDefault`.
-- Release builds still need `NODE_OPTIONS=--max-old-space-size=8192` and must run in the
-  FOREGROUND — both cuts went clean with it.
+- Dev boot this session: `%APPDATA%\clipflow-dev\logs`; tokens verified `{"accounts":{}}`
+  before boot and left untouched; dev electron killed by PID (46760) at wrap of the drive.
+- CDP driver: fresh `cdp.py` in scratchpad (websocket-client, `suppress_origin=True`,
+  utf-8 stdout reconfigure for emoji labels). Trap 60 added to
+  `project_cdp_verification_gotchas` from this drive: whole-word matchers, visibility+
+  region filtering, screenshot after the first no-op click — the nav is a BOTTOM bar.
+- Release build ran foreground with `NODE_OPTIONS=--max-old-space-size=8192`, clean through
+  `building block map`; feed verified serving `version: 0.4.0-alpha.13`, alpha.12 pruned.
