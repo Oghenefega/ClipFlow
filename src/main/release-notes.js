@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.12",
+    date: "2026-08-30",
+    changed: [
+      "YouTube tags are now edited as tags, not as one long line of text. Clicking the tag box used to flatten everything into \"tag one, tag two, tag three\", so getting rid of one meant hunting for it mid-sentence and holding backspace. Now each tag stays its own block with a small ✕ on it — one click removes it. Type a word and press comma or Enter to add one, paste a whole comma-separated list and it splits itself up, and backspace on an empty box takes the last one off. There is also a \"Clear all\" button for starting a set from scratch. If you change your mind, Escape (on a clip) or Cancel (in Captions & Descriptions) puts the list back exactly as it was. This applies both to a single clip’s tags on the Queue and to a game’s default list in Captions & Descriptions.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.11",
     date: "2026-08-29",
     fixed: [
