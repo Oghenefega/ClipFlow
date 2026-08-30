@@ -1,66 +1,69 @@
-# HANDOFF — Session 220 (2026-08-28)
+# HANDOFF — Session 221 (2026-08-30)
 
 ## Current State
 
-**The five alpha.10 commits are now audited** (038262f small wins, 39c2ebd Queue redesign,
-5938b26 Settings revamp, 42574c5 themes, 73066d0 scheduler+streaming). Findings fixed and
-pushed in `fbebff3`; `28173aa` opened the next release-notes "unreleased" block. The fixes
-are on master only — **not yet in Fega's installed alpha.10**; they ride the next cut.
+**Two installers cut this session, and everything on master is shipped.**
 
-What was fixed: 18 `${T.colour}NN` hex-alpha concats that became invalid CSS when #328 made
-T values var() strings (banner tints, engine-setup boxes, Tracker glows, Projects player
-glows, both new Settings info boxes — all silently flat in alpha.10); a scheduler wedge
-(`onTick` outside `tickOnce`'s try/finally could stick `running=true` forever); a
-tray-creation failure during streaming-mode entry leaving a windowless, trayless resident
-process; tray-quit skipping `database.close()`; the boot `applyTheme({persist:false})` call
-theme.js documented but nobody wrote; three inert `dark` classNames.
+- **alpha.11** (`a3e2df0`) promoted session 220's audit fixes — the 18 `${T.colour}NN` concats,
+  the scheduler wedge, the tray-failure zombie. It was already written and waiting; this
+  session just cut it.
+- **alpha.12** (`d29672c`) promotes the session's own work: YouTube tags are now edited as
+  removable pills instead of a flat comma string, plus a "Clear all" button. Both editors —
+  the Queue's per-clip tags box and the per-game field in Captions & Descriptions — share one
+  new `TagInput` in `src/renderer/components/shared.js`.
 
-Everything else in the batch held up: claim arbitration, the pending-union anti-clobber
-guards, the shared caption/tracker-row resolvers (field-for-field vs. consumers), the
-What's New version walk, splash min-hold, Settings search index.
+Feed is live at `0.4.0-alpha.12`; alpha.11's files were pruned. **Fega has not yet installed
+either** — he'll get the banner on next launch, and a What's New card explaining the tag change.
 
 ## Key Decisions
 
-- **`editorPrimitives.js` is a dead file (zero importers) — left in place, noted on #40.**
-  Its `EditableTC` popover was themed anyway (correct if ever wired in). Deleting vs. wiring
-  is Fega's call in the hygiene pass.
-- **Remaining literal violet washes (~25 sites, e.g. `rgba(139,92,246,0.08)` drag overlays)
-  left alone.** They're readable on every theme; they just don't follow the pink accents on
-  Rose/Blush. Cosmetic follow-up candidate, not shipped-broken like the concats were.
-- The orphaned dev-store XP entries (`clip:mtdeiwr9…`/`clip:mtdejch8…`, no matching tracker
-  rows) are **s218's anti-clobber delete test as designed** — XP is append-only on purpose.
-  Not a leak; don't re-investigate.
+- **`TagInput` is fully controlled on BOTH the committed list and the half-typed word.** The
+  draft can't live inside the component: the click that leaves the field blurs the input in the
+  same event that would read state back, so an internal draft is lost exactly when the user
+  expects it saved. Same reason `onCommitBlur` hands the caller the finished list — callers save
+  from that argument, never from their own state.
+- **Clear all has no confirm step.** Nothing is written until the field is left, so Escape
+  (Queue) / Cancel (Captions) is already a complete undo, and a cleared-then-saved Queue list is
+  just an empty override that "Reset to game tags" reverses.
+- **It's a "✕ Clear all" chip, not a bare ✕** (Fega asked for "pretty much an X"). A lone ✕ among
+  nineteen pills that each carry their own ✕ reads as one more pill-remove. Flagged to him; he
+  can have the naked glyph if he prefers.
+- **The pill ✕ uses `textTertiary`, not `textMuted`** — at 9px the muted token (16% dark /
+  26% light) doesn't read as a control.
 
 ## Next Steps
 
-1. **Fega verifies alpha.10 on his install** (unchanged from s219): #331 Settings rail +
-   search, #328 four themes incl. editor, #329 streaming mode (tray + a scheduled clip with
-   the window closed), #324/#325 Queue redesign. Pull `status: untested` as confirmed.
-2. **Next installer cut picks up the audit fixes** — the restored-colours What's New entry
-   is already queued in release-notes.js. Batch per policy (~10 changes or explicit ask).
-3. #332 (GPU process doesn't retire in streaming mode) — open, measured, not urgent.
+1. **Fega installs alpha.12 and judges the pills** — size, spacing, how obvious the ✕ is, and
+   whether "✕ Clear all" belongs at the right end of the box or up in the header by the counter.
+2. Nothing else is queued. Next session starts from the open backlog
+   (`gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"'`).
 
 ## Watch Out For
 
-- **`npm start` is a publishing action** (prod profile boots a live scheduler since #329).
-  Verify with `CLIPFLOW_PROFILE=dev` (refuses to auto-publish) and confirm
-  `clipflow-dev\clipflow-tokens.json` is `{"accounts": {}}` before any dev boot.
-- **Never `taskkill //F //IM Corva.exe`** — shared image name with the daily driver. Kill
-  dev electron by PID.
-- **New colour code near themes:** never `${T.x}NN` — Dim/Border tokens or
-  `color-mix(in srgb, ${T.x} N%, transparent)`. Rule now in ui-standards.md +
-  clipflow-ui-debug; grep `\$\{T\.\w+\}[0-9a-fA-F]{2}` before shipping.
-- Release builds need `NODE_OPTIONS=--max-old-space-size=8192` (s219, in the launcher skill).
+- **The Queue's per-platform cards only render for a CONNECTED account**
+  (`activePlat = platforms.filter(p => p.connected)`, QueueView.js:1420), and the dev profile has
+  `platforms: []`. Any future work on that UI needs a **credential-free** platform entry written
+  into `%APPDATA%\clipflow-dev\clipflow-settings.json` — a settings entry, never a token. Add it,
+  back up the file, restore afterwards. (Already documented as gotcha 54 / s215 in
+  `project_cdp_verification_gotchas` — I re-derived it the hard way.)
+- **Buttons wired to `onMouseDown` ignore a synthetic `.click()`.** The Queue's Cancel buttons and
+  everything in `TagInput` use `onMouseDown` + `preventDefault` deliberately, to stop a click
+  blurring the field into a save. A probe using `.click()` reports success and does nothing.
+- **`asar extract-file` still writes to the basename in CWD.** Verify packaged contents by reading
+  the asar bytes instead. I reached for the dangerous form again this session; no damage, but the
+  trap is live.
+- `TagInput` keys its pills by tag string. Safe because both save paths normalize through
+  `parseTags` (which dedupes case-insensitively), but a legacy list with true duplicates would
+  collide — the pre-existing read-only display has the same exposure.
 
 ## Logs / Debugging
 
-- **Attribute app.log lines by `sess_` id, not tail recency** — a fresh boot's lines flush
-  late; s220 chased a phantom for 15 min on the previous boot's lines (now in trace-verify).
-- CDP against the dev boot: connect with `suppress_origin=True` (websocket-client sends an
-  Origin header Electron 40 rejects with 403 otherwise). The What's New modal (z-1000)
-  swallows synthetic clicks on everything under it — dismiss via its "Got it" before driving.
-- `color-mix` verified resolving in Electron 40: probe returned
-  `color(srgb 0.133 0.827 0.933 / 0.53)` for the cyan glow — the pattern is safe app-wide.
-- Audit verification run: dev boot `sess_a039d0b87dc6` (18:22) — scheduler refused on dev,
-  What's New fired for alpha.10 and acked (dev store's lastSeenVersion now alpha.10), real
-  clip opened in the editor (`.editor-scope` present, 2 videos, 4 canvases, no crash).
+- Dev boots this session: `%APPDATA%\clipflow-dev\logs`. Scheduler correctly refused each time
+  (`Scheduler: dev profile — scheduled publishing disabled`). Dev tokens verified `{"accounts":{}}`
+  before every boot and left that way; `platforms` restored to `[]`; no test tags left in any
+  game's list.
+- CDP driver used: `scratchpad/cdp.py` (Python `websocket-client`, `suppress_origin=True` — the
+  handshake 403s without it). Its `key()` sends `keyDown`-with-`text` then `keyUp` **only**;
+  adding a separate `char` event double-types and defeats `preventDefault`.
+- Release builds still need `NODE_OPTIONS=--max-old-space-size=8192` and must run in the
+  FOREGROUND — both cuts went clean with it.
