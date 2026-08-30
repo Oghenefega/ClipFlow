@@ -4,11 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-30 (session 223) — Settings About section, four new themes, and the editor's corners back
+## [0.4.0-alpha.14] — 2026-08-30 (session 223) — alpha.14: Settings About section, four new themes, and the editor's corners back
 
 ### Added
 - **Settings has an About section (#339).** Two cards at the bottom of the rail: **Updates** shows the running version with a "Check for updates" button — the update check used to run exactly once, when the app opened, so finding out about a new version meant restarting; the button asks the same feed on demand and reports one of: update available (with an "Install & restart" that rides the exact download-and-relaunch flow the top banner uses), "you're on the latest version", a source-run notice, or the error. **What's New** re-opens the update notes any time via "View release history" — the same modal the first-launch announcement uses, now listing every curated release (currently back to 0.4.0-alpha.9) with version and date headers, fed by a new `whatsnew:getAll` IPC that never touches the `lastSeenVersion` ack, so re-reading history can't suppress a pending first-launch announcement. Both cards are in the settings search ("updates", "release notes", "what's new"). Also noted while exploring: the "I skipped several versions" case needed no work — the first-launch screen already collects every missed entry.
 - **Four new themes (#340), doubling the picker to eight.** Dark group: **Graphite** (neutral grey surfaces, steel-blue accent), **Forest** (dark green, mint-tinted lifts so hover washes stay green instead of going grey, emerald accent), **Amethyst** (purple-tinted dark surfaces with lavender lifts — Midnight's accent hue promoted to the whole canvas). Light group: **Paper** — warm greige surfaces with no pure white anywhere, the direct answer to "the white is sooooo white"; Daylight itself is deliberately untouched for anyone who likes the stark look. Each is a full themes.css block (T tokens + editor shadcn set + timeline/scrollbar tokens) plus its swatch in THEMES and window-chrome colours in THEME_CHROME; picker order is now darks first, then lights.
+
+### Changed
+- **Version bumped to 0.4.0-alpha.14 and an installer cut** on Fega's ask, promoting this session's three changes (the About section, the four new themes, and the corner-radius fix) to the daily driver.
 
 ### Fixed
 - **Editor buttons have their rounded corners back (#338).** The #328 theme migration moved every shadcn *colour* token into themes.css but dropped the one non-colour token, `--radius: 0.5rem` — and Tailwind's `rounded-sm/md/lg` classes resolve against it, so with it undefined the border-radius declaration was invalid and fell back to square. That silently squared the save, queue, and play/pause buttons plus ~80 other spots (popovers, dropdowns, panels) across 13 editor files. Restored as a single `:root` definition at the top of themes.css, above the per-theme blocks, since it's theme-invariant.
