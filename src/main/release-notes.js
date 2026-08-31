@@ -12,6 +12,14 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    fixed: [
+      "AI captions no longer come back with a stray \" / \" in them. The slash was never meant to be text — it was how the AI was shown where a caption's line break goes, and it started typing it out literally. Captions now arrive with real line breaks, and the suggestion card shows them stacked the way they'll appear on the video.",
+      "The three captions are no longer just the three titles reworded. Only the first card is deliberately shared between a title and a caption — the strongest line shouldn't be wasted on one surface — but cards two and three are now their own ideas, so a generation gives you five distinct angles instead of three.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.14",
     date: "2026-08-30",
     added: [

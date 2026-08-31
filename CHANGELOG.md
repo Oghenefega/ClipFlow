@@ -4,6 +4,20 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-31 (session 224) — Two AI caption bugs: the stray slash and the title/caption mirror
+
+### Fixed
+- **AI captions no longer contain a literal `" / "` (#343).** Captions are multi-line on-screen text, and the creator's real published ones store the break as a genuine newline — measured against `title_caption_rounds`: 70 rows with a real newline, zero with a slash, so the training data was never the source. The prompt was. `formatVoice` flattens each example caption's newline to `" / "` so the shape fits one line, and the section header said *"`/` marks the line break"* — but the output schema never said how to *write* a break, so the model imitated the display notation and emitted the slash, which then got burned onto the video. The example headers (both the real-history and cold-start branches) now say the flattening is display-only and the slash must never appear in output; the caption rules say the break is a real `\n` inside the JSON string; and `Write "/", "|" or " - " in a caption where a line break belongs` is on the DO-NOT list in both the batch and single-card schemas, so Rephrase/Regenerate are covered too.
+- **Captions 2 and 3 no longer mirror titles 2 and 3 (#344).** #183 deliberately pairs the single strongest line across both surfaces so it isn't wasted on one — but that rule was written for card 1 only and never scoped, so the model generalised it to the whole batch, chips included, turning six cards into three ideas. The batch section now states that card 1 is the only shared card and that cards 2-3 are chosen independently per surface with their own chips; the schema's caption 2 and 3 slots say "a DIFFERENT angle from title N — not a rewording of it", and the DO-NOT list forbids the mirror outright.
+- **Caption suggestion cards render their line breaks.** The card at `RightPanelNew.js:873` printed `{c.caption}` with default white-space, collapsing every newline to a space — so even a correct two-line caption looked like one line until it was applied. Added `whitespace-pre-line`.
+
+### Changed
+- **The caption line-count rule now matches what the creator actually publishes.** The rules demanded "roughly two short lines" and "break naturally across two lines", but the real record disagrees: of 81 published captions, 58 are two lines, 12 are three, and 11 are one — 29% were being written against. The rule now says two lines is the usual shape, one is right when the phrase can't be split, three when there's a genuine third beat, and a blank line may set a second beat apart (9 published captions use one). The 4-9 word budget was checked against the same data and left alone — it covers 79 of 81, median 6 — so only the line guidance changed.
+
+### Notes
+- Verified by running real generations through the live Anthropic provider against a published clip's transcript and the creator's own 20 voice examples: across three batches, zero separator characters in nine captions, real newlines throughout, no card 2/3 mirroring and no chip reuse. The Rephrase and Regenerate paths were exercised separately and both came back clean (Regenerate produced a three-line caption, the new line rule working). The UI fix was measured in the running app via CDP: a two-line caption went 22px → 44px and a blank-line caption 22px → 66px, i.e. from collapsed-to-one-line to correctly stacked.
+- No installer cut — these ride the next batch. A fresh "unreleased" entry was opened in `src/main/release-notes.js`, which the alpha.14 cut had consumed; without it the next update would have shipped these silently.
+
 ## [0.4.0-alpha.14] — 2026-08-30 (session 223) — alpha.14: Settings About section, four new themes, and the editor's corners back
 
 ### Added

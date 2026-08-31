@@ -870,7 +870,7 @@ function AIToolsPanel({ gamesDb }) {
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="border-l-2 border-primary/50 pl-2.5 mb-2">
-                      <div className="text-base text-foreground leading-snug">{c.caption}</div>
+                      <div className="text-base text-foreground leading-snug whitespace-pre-line">{c.caption}</div>
                       {c.chip && <ChipLabel>{c.chip}</ChipLabel>}
                     </div>
                     <div className="flex items-center gap-1">

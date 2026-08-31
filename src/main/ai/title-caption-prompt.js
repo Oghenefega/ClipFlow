@@ -55,6 +55,8 @@ function formatVoice(voiceExamples) {
     return [
       "No published history for this creator yet, so these are reference examples.",
       "Match their LENGTH and PLAINNESS, not their subject matter.",
+      "The on-screen lines are MULTI-LINE on screen; shown here on one line with",
+      "\" / \" standing in for each line break. Never write that slash in a caption.",
       "",
       rows.join("\n"),
     ].join("\n");
@@ -77,7 +79,9 @@ function formatVoice(voiceExamples) {
   if (captionRows.length > 0) {
     out.push(
       "",
-      "On-screen captions they've actually used (\" / \" marks the line break):",
+      "On-screen captions they've actually used. Each is MULTI-LINE on screen;",
+      "shown here on one line with \" / \" standing in for each line break. That",
+      "slash is display notation for you to read — never write one in a caption.",
       "",
       captionRows.join("\n")
     );
@@ -134,8 +138,15 @@ const hardRules = (tag) => `**Titles**
 - One idea. If it needs a comma, it's probably two ideas.
 
 **Captions — this is text burned ON SCREEN over the opening seconds of the clip.**
-The viewer reads it while the footage plays, in roughly two short lines.
-- 4-9 words. Write it to break naturally across two lines.
+The viewer reads it while the footage plays, in short stacked lines.
+- 4-9 words total.
+- **Break it across lines where the phrase breaks when spoken.** Two lines is
+  the usual shape. One line is right when the phrase can't be split. Three is
+  right when there's a third beat — a tag, a score, a punchline.
+- **Write each break as a real line break inside the JSON string (\\n).** Never
+  a slash, a pipe, or a dash standing in for one.
+- A blank line (\\n\\n) sets a second beat apart. Use it only when the beat
+  genuinely lands on its own.
 - First person, spoken register — how you'd say it out loud, not how you'd write it.
 - No hashtags, no emoji.
 - You may put ONE word or short phrase in ALL CAPS for emphasis. At most once.
@@ -209,6 +220,12 @@ That line is BOTH title #1 and caption #1, reformatted to each surface's rules.
 Never split the surfaces: the best line does not get saved for one surface while
 a weaker line goes on the other.
 
+**Card 1 is the ONLY card shared across the two surfaces.** Cards 2 and 3 are
+chosen independently for titles and for captions — six cards, five distinct
+angles. Do not reword title 2 into caption 2, or title 3 into caption 3, and do
+not reuse their chips. If caption 2 and title 2 could swap places, caption 2 is
+wasted: pick a different angle for it.
+
 The remaining cards are genuinely different angles, not three phrasings of one.
 Angles that work on gaming clips: stakes declared before an attempt · an
 arguable claim · opening mid-emotion · a comeback · an anomaly the viewer has to
@@ -233,9 +250,9 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
     { "title": "...", "chip": "..." }
   ],
   "captions": [
-    { "caption": "<the SAME strongest line as title 1, reformatted — 4-9 words, first person, no hashtags>", "chip": "<2-6 words>" },
-    { "caption": "...", "chip": "..." },
-    { "caption": "...", "chip": "..." }
+    { "caption": "<the SAME strongest line as title 1, reformatted — 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" },
+    { "caption": "<a DIFFERENT angle from title 2 — not a rewording of it>", "chip": "<2-6 words>" },
+    { "caption": "<a DIFFERENT angle from title 3 — not a rewording of it>", "chip": "<2-6 words>" }
   ]
 }
 \`\`\`
@@ -244,6 +261,8 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
 - Wrap the JSON in code fences, or add any text around it
 - Return fewer or more than 3 titles and 3 captions
 - Use emojis, Title Case, or hashtags in a caption
+- Write "/", "|" or " - " in a caption where a line break belongs
+- Mirror titles 2-3 as captions 2-3 (only card 1 is shared)
 - Add a second clause to a title that already landed`;
 }
 
@@ -464,7 +483,7 @@ function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = ""
   const tag = hashtagText(gameHashtag);
   const outputDesc = isTitle
     ? `3-7 words, sentence case, ends with ${tag}`
-    : "4-9 words, first person, no hashtags";
+    : "4-9 words, first person, no hashtags, real \\n line breaks";
 
   return `# ROLE
 
@@ -512,6 +531,7 @@ Return ONLY valid JSON parseable by \`JSON.parse()\` with zero modifications:
 ## DO NOT
 - Wrap the JSON in code fences, or add any text around it
 - Use emojis, Title Case, or hashtags in a caption
+- Write "/", "|" or " - " in a caption where a line break belongs
 - Add a second clause to a ${kind} that already landed`;
 }
 
