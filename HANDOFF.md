@@ -1,73 +1,75 @@
-# HANDOFF — Session 222 (2026-08-30)
+# HANDOFF — Session 223 (2026-08-30)
 
 ## Current State
 
-**React shows exist, the week's data is migrated, and alpha.13 is on the feed.** The
-brainstorm ("everything react is dumped in Just Chatting") resolved into four per-show
-content-type entries — 100T Valorant Reacts (`100T`), Robot Olympics Reacts (`ROBOT`),
-GTA6 Reacts (`GTA6-R`), RL Sub Reacts (`RL-R`) — each with seeded YouTube tags/description,
-color, hashtag, and an "About This Content" blurb. Three data migrations ran against prod
-(app closed, all backed up to `%APPDATA%\clipflow\data\backup-2026-08-30-show-migration\`):
-projects renamed/recolored with per-show day numbering, **all 123 per-clip gameTag
-overrides re-filed** (every clip carried one — not just the one "Val" stray), 78 feedback
-rows moved into per-show buckets (JC keeps its 5 July World-Cup rows), and 27 tracker
-history cards relabeled (16 → 100t, 11 → gta6-r, all matched by clipId, zero guesses).
+**alpha.14 is on the feed** (`1c8fcfc`), promoting this session's batch (`394f93d`):
+the #328 `--radius` regression fixed (editor corners back — one `:root` line in
+themes.css), four new themes (Graphite, Forest, Amethyst, Paper — picker now 8, darks
+first), and a Settings → About section (version + on-demand "Check for updates" +
+"View release history" via new `whatsnew:getAll` IPC, no ack side effects). All
+verified live on the dev build via CDP, including a real clip-open in the editor
+(0/29 square buttons) and all four themes through the real picker. Fega has not yet
+installed alpha.14 — it also carries everything from alpha.13 he hasn't confirmed.
 
-**alpha.13** (`7c29810`) promotes the session's two code changes: the AI-title game
-dropdown is steer-only (#334, reverses #197's clip write-through), and content entries'
-`aiContextUser` reaches detection's CONTENT CONTEXT (#333). Fega has not yet confirmed
-installing it.
+Session opened as a five-item feedback batch; the other two items were investigated
+and filed, not built: #341 (content-type-aware rejection chips + "didn't stand alone"
+chip — review UI already has `tagEntry?.entryType` at ProjectsView.js:824, vocabulary
+lives in THREE unsynced places, all mapped in the issue) and #342 (ambient background
+treatment for non-editor tabs, Yomi's "UI sits in the middle" — mock-first, linked
+to #277).
 
 ## Key Decisions
 
-- **Flat show entries over a game+react toggle** — everything (learning, queue metadata,
-  hashtags, art, day counters) already keys off the entry tag; a per-game react mode would
-  rebuild all of that for less. Optional "linked game" field deferred to #336.
-- **`GTA6-R`/`RL-R` carry the `-R` suffix; `100T`/`ROBOT` don't** — suffix only where a
-  gameplay twin exists or will (Fega's call). Tags >4 chars + hyphens verified safe: no
-  maxLength, exact-match resolution, tags never parsed back out of filenames.
-- **The existing "GTA 6" game entry stays untouched** — it's the future gameplay entry
-  (researched Aug 27); GTA6-R inherited its curated ytDescriptions instead.
-- **Frozen publish snapshots stay frozen** — the tracker retag changed only `row.game`
-  (the pill/stats label); `published.*` and `mainGameAtTime` are the record of what shipped.
-- **Feedback rows follow project renames** — `video_id` IS the project name
-  (feedback.js:110), so every rename updated `video_id` in the same UPDATE or the
-  approve↔reject retract/dedupe key would break.
+- **Daylight untouched; Paper is the answer to "the white is sooooo white"** — a new
+  warm greige light theme instead of changing an existing theme under people's feet.
+- **The skipped-versions ask needed no code** — `whatsnew:get` already accumulates
+  every missed entry (array-position walk to `lastSeenVersion`); told Fega, noted in #339.
+- **Release history reaches back to alpha.9 only** (when release-notes.js began);
+  backfilling older versions from CHANGELOG was left as optional scope on #339.
+- **Settings "Install & restart" is the banner's flow behind a new button** — its
+  available→install branch can't run from source; first real exercise is the NEXT cut.
 
 ## Next Steps
 
-1. **Fega installs alpha.13** and confirms: dropdown no longer re-files clips, and Settings
-   → Games → Edit on a show reads "About This Content". Then close #333/#334 (untested label).
-2. **Fega polishes the shows** (in-app, no code): upload art per show ("Choose image…" —
-   Steam lookup won't find shows), review the four seeded tag/description sets, refine the
-   context blurbs. First react pipeline run after alpha.13: check the persisted prompt file
-   shows the CONTENT CONTEXT block (closes the #333 verification loop).
-3. Deferred, filed: #336 (linked-game field on content entries), #337 (add content type
-   from Rename view + context step in the Add flow).
+1. **Fega installs alpha.14** and eyeballs: editor corners, the four new themes, the
+   About section, and the What's New screen (first live multi-item showing). On confirm
+   close #338/#339/#340 — and #333/#334 from alpha.13 (all `status: untested`).
+2. **Show polish carry-over from s222** (in-app, no code): per-show art, review the four
+   seeded tag/description sets; first react pipeline run should show the CONTENT CONTEXT
+   block in the persisted prompt (closes #333's loop).
+3. Backlog candidates from this session's batch: #341 (rejection chips — needs Fega's
+   input on the react-content reason list), #342 (background treatment — mock two
+   directions first).
 
 ## Watch Out For
 
-- **Per-clip `gameTag` overrides exist on EVERY clip of the migrated projects** (now set to
-  their show). Any future migration or per-clip logic must assume clip-level tags are the
-  norm, not the exception — clip.gameTag beats project.gameTag in every resolution path
-  (QueueView.js:668, captionResolve.js:35).
-- **ytDescriptions is keyed by display NAME** — renaming a show entry orphans its
-  tags/descriptions set. Pre-existing fragility, now with 4 more entries exposed to it.
-- **The migration scripts are one-shot and already ran** — `migrate-shows.js` /
-  `retag-tracker.js` live in this session's scratchpad (gone with it); their guards abort
-  on re-run (tags exist). Backups remain in the folder above; restore = copy back with the
-  app closed.
-- **Tracker `entry.game` convention:** lowercased short tag for auto-posts, hashtag slug
-  for manual logs; `resolveGameDisplay` matches tag/hashtag/name case-insensitively. The
-  retagged rows use lowercased show tags (`100t`, `gta6-r`).
+- **`--radius` must stay on `:root` in themes.css** — it's the one non-colour shadcn
+  token; per-theme blocks are colours only. If a future theme pass rewrites the file
+  from the blocks, this line is the easy casualty (that's exactly how #328 lost it).
+- **New theme ids are validated against `THEME_CHROME` in main.js** — a themes.css
+  block without its THEME_CHROME entry gets reset to midnight by the boot migration
+  (main.js:473). Adding a theme = 3 places: themes.css block, THEMES (theme.js),
+  THEME_CHROME (main.js).
+- **`ReleaseHistoryModal` must never call `whatsNewAck`** — reading history while an
+  un-acked first-launch announcement is pending would suppress it. Close ≠ ack.
+- **Forest's accent (#10b981) is deliberately close to T.green (#34d399)** — user
+  asked for green-on-green; if status/accent confusion ever gets reported, that's the
+  place to look.
+- Per-clip `gameTag` overrides exist on EVERY clip of the s222-migrated projects;
+  ytDescriptions keyed by display NAME (rename orphans the set) — both still live.
 
 ## Logs / Debugging
 
-- Dev boot this session: `%APPDATA%\clipflow-dev\logs`; tokens verified `{"accounts":{}}`
-  before boot and left untouched; dev electron killed by PID (46760) at wrap of the drive.
-- CDP driver: fresh `cdp.py` in scratchpad (websocket-client, `suppress_origin=True`,
-  utf-8 stdout reconfigure for emoji labels). Trap 60 added to
-  `project_cdp_verification_gotchas` from this drive: whole-word matchers, visibility+
-  region filtering, screenshot after the first no-op click — the nav is a BOTTOM bar.
-- Release build ran foreground with `NODE_OPTIONS=--max-old-space-size=8192`, clean through
-  `building block map`; feed verified serving `version: 0.4.0-alpha.13`, alpha.12 pruned.
+- Dev boot: tokens verified `{"accounts":{}}` before boot, untouched; dev electron
+  launched with `--remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`,
+  killed by `//IM electron.exe` at wrap (no Corva.exe was running — checked implicitly
+  via the kill list, all six PIDs were electron.exe children).
+- CDP driver this session: `cdp.js` (Node's built-in WebSocket, Node 24) in the
+  scratchpad — eval + screenshot modes; simpler than s222's python driver.
+- Boot What's New overlay was open during the whole Settings drive (dev lastSeen <
+  alpha.13) — synthetic clicks passed through it; scope modal queries to the overlay
+  div that actually contains the expected text, there can be TWO z-1000 overlays open.
+- Release build foreground with `NODE_OPTIONS=--max-old-space-size=8192`, clean through
+  `building block map`; feed verified serving `version: 0.4.0-alpha.14`, alpha.13 pruned.
+- Dev theme reset to midnight at wrap; dev store briefly persisted `"theme": "paper"`
+  mid-verification (proves main-side validation of new ids).
