@@ -30,9 +30,20 @@ function formatAntiPatterns() {
   return kb.anti_patterns.map((p) => `- ${p}`).join("\n");
 }
 
-/** Show an on-screen caption's line break inline so the shape is visible. */
+/**
+ * Show an on-screen caption's line breaks inline so the shape is visible.
+ *
+ * A blank line means a separate beat, which is a different shape from a plain
+ * wrap, and a good share of the creator's published captions use one.
+ * Collapsing both to the same mark made them indistinguishable in the examples,
+ * so a stanza break gets its own. The blank-line pass must run first, or the
+ * single-break pass eats it and the distinction is lost again.
+ */
 function flattenCaption(text) {
-  return String(text || "").replace(/\s*\n\s*/g, " / ").trim();
+  return String(text || "")
+    .replace(/\s*\n\s*\n\s*/g, " // ")
+    .replace(/\s*\n\s*/g, " / ")
+    .trim();
 }
 
 /**
@@ -55,8 +66,8 @@ function formatVoice(voiceExamples) {
     return [
       "No published history for this creator yet, so these are reference examples.",
       "Match their LENGTH and PLAINNESS, not their subject matter.",
-      "The on-screen lines are MULTI-LINE on screen; shown here on one line with",
-      "\" / \" standing in for each line break. Never write that slash in a caption.",
+      "The on-screen lines are shown flattened onto one line, where \" / \" is a",
+      "line break. That mark is notation — never write one into a caption.",
       "",
       rows.join("\n"),
     ].join("\n");
@@ -79,9 +90,10 @@ function formatVoice(voiceExamples) {
   if (captionRows.length > 0) {
     out.push(
       "",
-      "On-screen captions they've actually used. Each is MULTI-LINE on screen;",
-      "shown here on one line with \" / \" standing in for each line break. That",
-      "slash is display notation for you to read — never write one in a caption.",
+      "On-screen captions they've actually used. Most stack over two or three",
+      "lines; some are a single line. Shown here flattened onto one line, where",
+      "\" / \" is a line break and \" // \" is a blank line between beats. Those",
+      "marks are notation for you to read — never write one into a caption.",
       "",
       captionRows.join("\n")
     );
@@ -138,7 +150,7 @@ const hardRules = (tag) => `**Titles**
 - One idea. If it needs a comma, it's probably two ideas.
 
 **Captions — this is text burned ON SCREEN over the opening seconds of the clip.**
-The viewer reads it while the footage plays, in short stacked lines.
+The viewer reads it while the footage plays, in one to three short lines.
 - 4-9 words total.
 - **Break it across lines where the phrase breaks when spoken.** Two lines is
   the usual shape. One line is right when the phrase can't be split. Three is
@@ -217,14 +229,13 @@ ${formatAntiPatterns()}
 
 **Find the strongest line first** — the single line that opens the loop hardest.
 That line is BOTH title #1 and caption #1, reformatted to each surface's rules.
-Never split the surfaces: the best line does not get saved for one surface while
-a weaker line goes on the other.
+Never split that line across the surfaces: the best line does not get saved for
+one surface while a weaker line goes on the other.
 
-**Card 1 is the ONLY card shared across the two surfaces.** Cards 2 and 3 are
-chosen independently for titles and for captions — six cards, five distinct
-angles. Do not reword title 2 into caption 2, or title 3 into caption 3, and do
-not reuse their chips. If caption 2 and title 2 could swap places, caption 2 is
-wasted: pick a different angle for it.
+**Card 1 is the ONLY card shared this way.** Cards 2 and 3 are chosen
+independently for titles and for captions — six cards, five distinct angles. Do
+not reword title 2 into caption 2, or title 3 into caption 3, and do not reuse
+their chips.
 
 The remaining cards are genuinely different angles, not three phrasings of one.
 Angles that work on gaming clips: stakes declared before an attempt · an
@@ -251,8 +262,8 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
   ],
   "captions": [
     { "caption": "<the SAME strongest line as title 1, reformatted — 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" },
-    { "caption": "<a DIFFERENT angle from title 2 — not a rewording of it>", "chip": "<2-6 words>" },
-    { "caption": "<a DIFFERENT angle from title 3 — not a rewording of it>", "chip": "<2-6 words>" }
+    { "caption": "<a DIFFERENT angle from title 2, not a rewording of it — same 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" },
+    { "caption": "<a DIFFERENT angle from title 3, not a rewording of it — same 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" }
   ]
 }
 \`\`\`
