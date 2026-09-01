@@ -95,8 +95,28 @@
     const sumsq = new Float64Array(dsW * dsH);
 
     const grids = Math.min(W, H) < 1200 ? [2, 4, 6] : [2, 4];
+    // #348: when the job carries ranges (the clip's own footage windows),
+    // spread the sample points across a virtual timeline made of just those
+    // windows, then map each point back to a real source timestamp. Without
+    // ranges this reproduces the legacy whole-recording spread exactly
+    // (one range [0, duration]). The 0.1..0.9 band skips intros/outros.
+    let ranges = (job.ranges || [])
+      .map((r) => ({ start: Math.max(0, r.start), end: Math.min(duration, r.end) }))
+      .filter((r) => r.end - r.start > 0.05);
+    if (!ranges.length) ranges = [{ start: 0, end: duration }];
+    const total = ranges.reduce((s, r) => s + (r.end - r.start), 0);
     const timestamps = [];
-    for (let i = 0; i < FRAME_COUNT; i++) timestamps.push(duration * (0.1 + (0.8 * i) / (FRAME_COUNT - 1)));
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      let t = total * (0.1 + (0.8 * i) / (FRAME_COUNT - 1));
+      let picked = ranges[ranges.length - 1].end - 0.05;
+      for (const r of ranges) {
+        const len = r.end - r.start;
+        if (t <= len) { picked = r.start + t; break; }
+        t -= len;
+      }
+      timestamps.push(Math.max(0, picked));
+    }
+    log(`sampling ${FRAME_COUNT} frames @ [${timestamps.map((t) => t.toFixed(1)).join(", ")}]s across ${ranges.length} range(s)`);
 
     function detectTile(sx, sy, sw, sh) {
       tileCanvas.width = sw;

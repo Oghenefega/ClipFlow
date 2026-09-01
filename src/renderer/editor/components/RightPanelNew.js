@@ -29,7 +29,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import AudioPanel from "./audio/AudioPanel";
 import MediaPanel from "./media/MediaPanel";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
-import { bgSourceWindow, presetFullyZoomed, presetFitToScreen } from "../utils/reframeStyle";
+import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe } from "../utils/reframeStyle";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 
 // ════════════════════════════════════════════════════════════════
@@ -1827,19 +1827,23 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
 
 function LayoutPanel() {
   const project = useEditorStore((s) => s.project);
+  const clip = useEditorStore((s) => s.clip);
   const reframeDraft = useEditorStore((s) => s.reframeDraft);
   const beginReframeDraft = useEditorStore((s) => s.beginReframeDraft);
   const updateReframeDraft = useEditorStore((s) => s.updateReframeDraft);
   const updateReframeStyle = useEditorStore((s) => s.updateReframeStyle);
   const cancelReframeDraft = useEditorStore((s) => s.cancelReframeDraft);
   const commitReframeDraft = useEditorStore((s) => s.commitReframeDraft);
-  const removeReframe = useEditorStore((s) => s.removeReframe);
+  const clearClipReframe = useEditorStore((s) => s.clearClipReframe);
+  const disableClipReframe = useEditorStore((s) => s.disableClipReframe);
+  const applyReframeToAllClips = useEditorStore((s) => s.applyReframeToAllClips);
   const applyReframeLayout = useEditorStore((s) => s.applyReframeLayout);
   const setReframePipCanvas = useEditorStore((s) => s.setReframePipCanvas);
   const reframeAutoDetectPending = useEditorStore((s) => s.reframeAutoDetectPending);
 
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [applyingAll, setApplyingAll] = useState(false);
   const [error, setError] = useState("");
   const [detecting, setDetecting] = useState(false);
   const [detectStatus, setDetectStatus] = useState("");
@@ -1886,13 +1890,39 @@ function LayoutPanel() {
     reloadLayouts();
   }, [commitReframeDraft, layoutName, reloadLayouts]);
 
-  const handleRemove = useCallback(async () => {
+  // #348: the remove-type actions share one busy flag — they're mutually
+  // exclusive buttons in the same view.
+  const handleUseProjectLayout = useCallback(async () => {
     setError("");
     setRemoving(true);
-    const result = await removeReframe();
+    const result = await clearClipReframe();
     setRemoving(false);
     if (result?.error) setError(result.error);
-  }, [removeReframe]);
+  }, [clearClipReframe]);
+
+  const handleDisableForClip = useCallback(async () => {
+    setError("");
+    setRemoving(true);
+    const result = await disableClipReframe();
+    setRemoving(false);
+    if (result?.error) setError(result.error);
+  }, [disableClipReframe]);
+
+  const handleRemoveAll = useCallback(async () => {
+    setError("");
+    setRemoving(true);
+    const result = await applyReframeToAllClips(null);
+    setRemoving(false);
+    if (result?.error) setError(result.error);
+  }, [applyReframeToAllClips]);
+
+  const handleApplyAll = useCallback(async () => {
+    setError("");
+    setApplyingAll(true);
+    const result = await applyReframeToAllClips();
+    setApplyingAll(false);
+    if (result?.error) setError(result.error);
+  }, [applyReframeToAllClips]);
 
   const handleSnap169 = useCallback((key) => {
     if (!reframeDraft) return;
@@ -1916,7 +1946,13 @@ function LayoutPanel() {
     setDetectStatus("");
     setNocamDetected(false);
     setDetecting(true);
-    const result = await window.clipflow.reframeDetect(projectId);
+    // #348: confine sampling to the open clip's footage so the proposal
+    // reflects THIS clip's framing, not somewhere else in the recording.
+    const segs = useEditorStore.getState().nleSegments || [];
+    const ranges = segs
+      .map((sg) => ({ start: sg.sourceStart, end: sg.sourceEnd }))
+      .filter((r) => Number.isFinite(r.start) && Number.isFinite(r.end) && r.end > r.start);
+    const result = await window.clipflow.reframeDetect(projectId, ranges.length ? ranges : undefined);
     setDetecting(false);
     const s = useEditorStore.getState();
     if (s.project?.id !== projectId || !s.reframeDraft) return;
@@ -2039,12 +2075,18 @@ function LayoutPanel() {
 
   if (!project) return null;
 
+  // #348: what this clip actually renders with — its own override, or the
+  // project layout. hasOverride distinguishes "This clip only" from "All clips".
+  const effective = resolveClipReframe(clip, project);
+  const hasOverride = !!clip && clip.reframe !== undefined;
+  const othersHaveOverrides = (project.clips || []).some((c) => c.id !== clip?.id && c.reframe !== undefined);
+
   // ── Calibrating ──
   if (reframeDraft) {
     const style = reframeDraft.style; // seeded by beginReframeDraft — always present
     // #164 B3: preset chips on a fresh draft (nothing saved/linked yet), after
     // a 'nocam' detection, or while editing an already game-only layout.
-    const showPresets = (!reframeDraft.layoutId && !project.reframe) || nocamDetected || reframeDraft.camRect === null;
+    const showPresets = (!reframeDraft.layoutId && !effective) || nocamDetected || reframeDraft.camRect === null;
     return (
       <div className="p-3 space-y-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -2147,17 +2189,32 @@ function LayoutPanel() {
   }
 
   // ── Layout active, not calibrating ──
-  if (project.reframe) {
-    const activeName = savedLayouts.find((l) => l.id === project.reframe.layoutId)?.name;
+  if (effective) {
+    const activeName = savedLayouts.find((l) => l.id === effective.layoutId)?.name;
     return (
       <div className="p-3 space-y-3">
         <p className="text-xs text-muted-foreground leading-relaxed">
           {activeName ? <><span className="text-foreground font-medium">{activeName}</span> is active — preview and renders use it.</> : "Vertical layout active — preview and renders use it."}
+          {/* #348: scope chip — which clips this layout governs. */}
+          <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
+            {hasOverride ? "This clip only" : "All clips"}
+          </span>
         </p>
 
         <Button size="sm" variant="outline" className="w-full h-8 text-xs" onClick={() => beginReframeDraft()}>
           Edit layout
         </Button>
+
+        {/* #348: promote this clip's layout to the whole project (clears every
+            per-clip override). Only shown when overrides make it meaningful. */}
+        {(hasOverride || othersHaveOverrides) && (
+          <Button
+            size="sm" variant="outline" onClick={handleApplyAll} disabled={applyingAll || removing}
+            className="w-full h-8 text-xs"
+          >
+            {applyingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply to all clips in this project"}
+          </Button>
+        )}
 
         {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
 
@@ -2167,7 +2224,7 @@ function LayoutPanel() {
             defaultLayoutId={defaultLayoutId}
             sourceWidth={project.sourceWidth}
             sourceHeight={project.sourceHeight}
-            linkedLayoutId={project.reframe?.layoutId ?? null}
+            linkedLayoutId={effective.layoutId ?? null}
             applying={applyingSavedLayout}
             onApply={handleApplySavedLayout}
             onSetDefault={handleSetDefaultLayout}
@@ -2175,12 +2232,49 @@ function LayoutPanel() {
           />
         )}
 
-        <Button
-          size="sm" variant="ghost" onClick={handleRemove} disabled={removing}
-          className="w-full h-7 text-xs text-muted-foreground hover:text-destructive"
-        >
-          {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove layout"}
-        </Button>
+        {/* #348: remove actions depend on scope. An override over a project
+            layout can fall back OR go raw; an inherited layout can be dropped
+            for just this clip or for the whole project. */}
+        {hasOverride ? (
+          project.reframe ? (
+            <div className="flex gap-1.5">
+              <Button
+                size="sm" variant="ghost" onClick={handleUseProjectLayout} disabled={removing || applyingAll}
+                className="flex-1 h-7 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Use project layout"}
+              </Button>
+              <Button
+                size="sm" variant="ghost" onClick={handleDisableForClip} disabled={removing || applyingAll}
+                className="flex-1 h-7 text-xs text-muted-foreground hover:text-destructive"
+              >
+                No layout for this clip
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm" variant="ghost" onClick={handleUseProjectLayout} disabled={removing || applyingAll}
+              className="w-full h-7 text-xs text-muted-foreground hover:text-destructive"
+            >
+              {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove layout"}
+            </Button>
+          )
+        ) : (
+          <div className="flex gap-1.5">
+            <Button
+              size="sm" variant="ghost" onClick={handleDisableForClip} disabled={removing || applyingAll}
+              className="flex-1 h-7 text-xs text-muted-foreground hover:text-destructive"
+            >
+              {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove for this clip"}
+            </Button>
+            <Button
+              size="sm" variant="ghost" onClick={handleRemoveAll} disabled={removing || applyingAll}
+              className="flex-1 h-7 text-xs text-muted-foreground hover:text-destructive"
+            >
+              Remove for all clips
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -2192,15 +2286,30 @@ function LayoutPanel() {
     project.sourceWidth > 0 && project.sourceHeight > 0 &&
     Math.abs(project.sourceWidth / project.sourceHeight - 9 / 16) < 0.01
   );
+  const ignoredName = savedLayouts.find((l) => l.id === project.reframe?.layoutId)?.name;
   return (
     <div className="p-3 space-y-3">
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Set up the vertical layout once — webcam on top, game below, blurred fill — and every render becomes a vertical short.
+        Set up the vertical layout — webcam on top, game below, blurred fill — and this clip renders as a vertical short.
       </p>
       {alreadyVertical && (
         <p className="text-xs text-muted-foreground/70 leading-relaxed">
           This recording is already vertical (9:16), so it renders as-is — a layout is optional here.
         </p>
+      )}
+      {/* #348: clip explicitly opted out of an existing project layout. */}
+      {clip?.reframe === null && project.reframe && (
+        <div className="space-y-1.5 rounded-md border border-border/40 px-2.5 py-2">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This clip ignores the project layout{ignoredName ? <> (<span className="text-foreground">{ignoredName}</span>)</> : ""}.
+          </p>
+          <Button
+            size="sm" variant="outline" onClick={handleUseProjectLayout} disabled={removing}
+            className="w-full h-7 text-xs"
+          >
+            {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Use project layout"}
+          </Button>
+        </div>
       )}
       <Button size="sm" onClick={() => beginReframeDraft()} className="w-full h-9 text-xs">
         Set up vertical layout

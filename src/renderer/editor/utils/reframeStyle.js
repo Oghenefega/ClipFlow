@@ -96,6 +96,15 @@ function presetFitToScreen(srcW, srcH) {
   return { camRect: null, gameRect: { x: 0, y: 0, w: Math.round(srcW), h: Math.round(srcH) } };
 }
 
+// ── #348: per-clip layout resolution ──
+// clip.reframe is tri-state: absent (undefined) = inherit the project layout,
+// null = explicitly no layout for this clip, object = per-clip override.
+// The check MUST be `!== undefined` — null is a real value, never truthiness.
+function resolveClipReframe(clip, project) {
+  if (clip && clip.reframe !== undefined) return clip.reframe;
+  return (project && project.reframe) || null;
+}
+
 // ── #164 B4: first-recording auto-offer trigger ──
 // Pure decision for "offer a vertical-layout setup when this project opens?"
 // True only when the dims are decidable and non-9:16, the project has no
@@ -125,5 +134,6 @@ module.exports = {
   bgSourceWindow,
   presetFullyZoomed,
   presetFitToScreen,
+  resolveClipReframe,
   shouldOfferReframe,
 };

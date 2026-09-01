@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-01 (session 227) — Per-clip layouts: one clip's layout no longer changes the whole project (#348)
+
+### Added
+- **Per-clip layouts (#348).** Layouts used to live only on the project (one slot per recording), so applying a layout inside one clip silently changed every clip — the exact wall Fega hit trying to give a vertical-video reaction clip a different layout than its gaming siblings. Each clip can now carry its own layout: absent = inherit the project layout (every existing project behaves exactly as before), explicit "no layout" = render raw, or its own boxes/style. "Apply layout" in the editor now affects only the open clip; the Layout panel shows a scope chip ("This clip only" / "All clips"), an "Apply to all clips in this project" action that restores the old whole-project behavior (and clears every override), and split remove actions ("Use project layout" / "No layout for this clip" / "Remove for all clips"). Writes go through a new validated IPC (`project:updateClipReframe`, `project:applyReframeAllClips`) with the same rect whitelisting as project layouts; render, thumbnail capture, and the preview compositor all resolve clip-first via a shared `resolveClipReframe` helper. Verified end-to-end on a copied fixture project: overrides isolate on disk, survive autosave and app restart, and two clips in one project rendered 1080×1920 composited and raw 2560×2880 respectively; legacy no-override clips pass the same reframe object through untouched (byte-identical filter graphs). 9 new unit tests.
+- **"Detect layout" now looks at the open clip's own footage (#348).** Detection used to sample its 8 frames spread across the whole recording, so a clip whose framing differs from the rest (the vertical-reaction case) could get boxes proposed from footage it doesn't contain. The editor now passes the clip's cut ranges through to the detector, which spreads its samples across just those windows — verified in the log: all 8 samples landed inside the clip's 24-second range. Detection from anywhere without a clip (and old callers) keeps the whole-recording spread.
+
+### Fixed
+- **The "set up a vertical layout?" banner respects per-clip decisions (#348).** It stays hidden when the open clip explicitly opted out of a layout, instead of re-offering onboarding for a project whose layout story is already decided.
+
 ## [Unreleased] — 2026-09-01 (session 226) — Same-titled clips no longer vanish from the Queue (#347)
 
 ### Fixed

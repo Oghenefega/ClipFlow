@@ -202,7 +202,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),
   projectDeleteClipRender: (projectId, clipId) => ipcRenderer.invoke("project:deleteClipRender", projectId, clipId),
   projectUpdateReframe: (projectId, reframe) => ipcRenderer.invoke("project:updateReframe", projectId, reframe),
-  reframeDetect: (projectId) => ipcRenderer.invoke("reframe:detect", projectId),
+  projectUpdateClipReframe: (projectId, clipId, reframe) => ipcRenderer.invoke("project:updateClipReframe", projectId, clipId, reframe),
+  projectApplyReframeAllClips: (projectId, reframe) => ipcRenderer.invoke("project:applyReframeAllClips", projectId, reframe),
+  reframeDetect: (projectId, ranges) => ipcRenderer.invoke("reframe:detect", projectId, ranges),
 
   // Pipeline
   generateClips: (sourceFile, gameData) => ipcRenderer.invoke("pipeline:generateClips", sourceFile, gameData),

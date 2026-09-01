@@ -12,7 +12,7 @@ import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegm
 import { normalizePlacements, resolvePlacements, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
-import { resolveReframeStyle } from "../utils/reframeStyle";
+import { resolveReframeStyle, resolveClipReframe } from "../utils/reframeStyle";
 
 // ── Autosave internals (module-closure, NOT in state) ──
 // Kept outside Zustand state to avoid infinite subscribe loops when the timer is (re)set.
@@ -27,6 +27,24 @@ import { resolveReframeStyle } from "../utils/reframeStyle";
 let _autosaveTimer = null;
 let _savesInFlight = 0;
 const AUTOSAVE_DEBOUNCE_MS = 800;
+
+// #348: mirror a clip's reframe write onto the in-store project.clips copy so
+// panel state derived from project.clips stays consistent with disk.
+// reframe === undefined deletes the override key (inherit); null/object set it.
+function projectWithClipReframe(project, clipId, reframe) {
+  if (!project?.clips) return project;
+  return {
+    ...project,
+    clips: project.clips.map((c) => {
+      if (c.id !== clipId) return c;
+      if (reframe === undefined) {
+        const { reframe: _drop, ...rest } = c;
+        return rest;
+      }
+      return { ...c, reframe };
+    }),
+  };
+}
 
 // #297: the writer hands back errno text ("EPERM: operation not permitted,
 // rename '...'"). A creator needs the cause, not the syscall — and needs enough
@@ -1035,7 +1053,7 @@ const useEditorStore = create((set, get) => ({
     const vid = usePlaybackStore.getState()._videoRef?.current;
     const w = sourceW || project?.sourceWidth || vid?.videoWidth || 1920;
     const h = sourceH || project?.sourceHeight || vid?.videoHeight || 1080;
-    const existing = project?.reframe;
+    const existing = resolveClipReframe(get().clip, project); // #348: clip override > project layout
     // #164 B3: camRect === null is a real saved value (game-only layout) —
     // it must route to the "edit existing" path, not fresh defaults.
     if (existing?.gameRect && (existing.camRect || existing.camRect === null)) {
@@ -1102,17 +1120,20 @@ const useEditorStore = create((set, get) => ({
   requestReframeAutoDetect: () => set({ reframeAutoDetectPending: true }),
   clearReframeAutoDetect: () => set({ reframeAutoDetectPending: false }),
 
-  // Persist the draft as project.reframe AND upsert it into the app-level
-  // layout library (`reframeLayouts`) under layoutName — one Apply both
-  // applies and saves (Fega, session 105: the separate save step was
-  // redundant). Upserts by the draft's layoutId so repeat applies update the
-  // same entry (no duplicates); a fresh layout gets its new id in the SAME
-  // project write. Default is only claimed when no valid default exists.
-  // Re-checks project identity after the IPC await so a rapid clip/project
-  // switch can't get a stale write (#97 family).
+  // Persist the draft as the OPEN CLIP's layout override (#348 — Apply is
+  // clip-scoped; "Apply to all clips" is the separate whole-project action)
+  // AND upsert it into the app-level layout library (`reframeLayouts`) under
+  // layoutName — one Apply both applies and saves (Fega, session 105: the
+  // separate save step was redundant). Upserts by the draft's layoutId so
+  // repeat applies update the same entry (no duplicates); a fresh layout gets
+  // its new id in the SAME write. Default is only claimed when no valid
+  // default exists. Re-checks project AND clip identity after the IPC await so
+  // a rapid clip/project switch can't get a stale write (#97 family).
   commitReframeDraft: async (layoutName) => {
-    const { project, reframeDraft } = get();
+    const { project, clip, reframeDraft } = get();
     if (!project?.id || !reframeDraft) return { error: "Nothing to apply" };
+    if (!clip?.id) return { error: "Open a clip to apply a layout" };
+    const clipId = clip.id;
     const name = (layoutName || "").trim() || "Layout";
     const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
     const existingIdx = reframeDraft.layoutId
@@ -1126,9 +1147,9 @@ const useEditorStore = create((set, get) => ({
       gameRect: { ...reframeDraft.gameRect },
       style: resolveReframeStyle(reframeDraft.style),
     };
-    const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
+    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
     if (result?.error) return result;
-    if (get().project?.id !== project.id) return { error: "Project changed during save" };
+    if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
     const now = new Date().toISOString();
     const entryFields = {
       name,
@@ -1153,30 +1174,89 @@ const useEditorStore = create((set, get) => ({
     if (!(currentDefaultId && layouts.some((l) => l.id === currentDefaultId))) {
       await window.clipflow.storeSet("reframeLayoutDefaultId", id);
     }
-    set({ project: { ...get().project, reframe }, reframeDraft: null });
+    set({
+      clip: { ...get().clip, reframe },
+      project: projectWithClipReframe(get().project, clipId, reframe),
+      reframeDraft: null,
+    });
     return { success: true };
   },
 
-  // Detach the layout from this project (back to plain horizontal render).
-  removeReframe: async () => {
-    const { project } = get();
+  // #348: drop this clip's override — back to the project layout.
+  clearClipReframe: async () => {
+    const { project, clip } = get();
+    if (!project?.id || !clip?.id) return { error: "No clip open" };
+    const clipId = clip.id;
+    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, "inherit");
+    if (result?.error) return result;
+    if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
+    const { reframe: _drop, ...clipRest } = get().clip;
+    set({ clip: clipRest, project: projectWithClipReframe(get().project, clipId, undefined), reframeDraft: null });
+    return { success: true };
+  },
+
+  // #348: explicitly no layout for THIS clip (raw render), whatever the
+  // project layout says.
+  disableClipReframe: async () => {
+    const { project, clip } = get();
+    if (!project?.id || !clip?.id) return { error: "No clip open" };
+    const clipId = clip.id;
+    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, null);
+    if (result?.error) return result;
+    if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
+    set({
+      clip: { ...get().clip, reframe: null },
+      project: projectWithClipReframe(get().project, clipId, null),
+      reframeDraft: null,
+    });
+    return { success: true };
+  },
+
+  // #348: the old whole-project behavior — push a layout (default: this
+  // clip's effective one; pass null to remove everywhere) to project.reframe
+  // and strip every clip's override in one save.
+  applyReframeToAllClips: async (reframeArg) => {
+    const { project, clip } = get();
     if (!project?.id) return { error: "No project" };
-    const result = await window.clipflow.projectUpdateReframe(project.id, null);
+    const eff = reframeArg !== undefined ? reframeArg : resolveClipReframe(clip, project);
+    const result = await window.clipflow.projectApplyReframeAllClips(project.id, eff);
     if (result?.error) return result;
     if (get().project?.id !== project.id) return { error: "Project changed during save" };
-    set({ project: { ...get().project, reframe: null }, reframeDraft: null });
+    // Patch state locally (never swap in the disk copy of the open clip —
+    // it may be behind the in-memory edits the autosave hasn't flushed yet).
+    const cur = get().clip;
+    let nextClip = cur;
+    if (cur && cur.reframe !== undefined) {
+      const { reframe: _drop, ...rest } = cur;
+      nextClip = rest;
+    }
+    set({
+      project: {
+        ...get().project,
+        reframe: eff,
+        clips: (get().project.clips || []).map((c) => {
+          if (c.reframe === undefined) return c;
+          const { reframe: _drop2, ...rest } = c;
+          return rest;
+        }),
+      },
+      clip: nextClip,
+      reframeDraft: null,
+    });
     return { success: true };
   },
 
-  // Attach a saved layout-library entry to the active project (Layout
+  // Attach a saved layout-library entry to the OPEN CLIP (#348; Layout
   // panel's "Saved layouts" list). Requires an exact source-dimension
   // match — a layout calibrated for a different recording size can't transfer.
   applyReframeLayout: async (entry) => {
-    const { project } = get();
+    const { project, clip } = get();
     if (!project?.id) return { error: "No project" };
+    if (!clip?.id) return { error: "Open a clip to apply a layout" };
     if (entry.sourceWidth !== project.sourceWidth || entry.sourceHeight !== project.sourceHeight) {
       return { error: "Layout was calibrated for a different source size" };
     }
+    const clipId = clip.id;
     const reframe = {
       layoutId: entry.id,
       // #164 B3: game-only entries carry camRect null — copy it as null.
@@ -1184,10 +1264,14 @@ const useEditorStore = create((set, get) => ({
       gameRect: { ...entry.gameRect },
       style: resolveReframeStyle(entry.style),
     };
-    const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
+    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
     if (result?.error) return result;
-    if (get().project?.id !== project.id) return { error: "Project changed during save" };
-    set({ project: { ...get().project, reframe }, reframeDraft: null });
+    if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
+    set({
+      clip: { ...get().clip, reframe },
+      project: projectWithClipReframe(get().project, clipId, reframe),
+      reframeDraft: null,
+    });
     return { success: true };
   },
 

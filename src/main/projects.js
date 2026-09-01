@@ -69,6 +69,9 @@ function normalizeProject(proj) {
     proj.tags = tags.filter((t) => t !== "test");
   }
   // Default missing reframe/source-probe fields for pre-#164 projects.
+  // Clip-level reframe (#348) must NOT be defaulted here: an absent
+  // clip.reframe key means "inherit the project layout" — undefined is
+  // meaningful, only project-level reframe normalizes to null.
   if (proj.reframe === undefined) proj.reframe = null;
   if (proj.sourceWidth === undefined) proj.sourceWidth = null;
   if (proj.sourceHeight === undefined) proj.sourceHeight = null;
@@ -395,6 +398,28 @@ function isValidReframeRect(r) {
 }
 
 /**
+ * Validate + whitelist a reframe snapshot into its stored shape.
+ * @param {object} reframe - { layoutId, camRect:{x,y,w,h}|null, gameRect:{x,y,w,h}, style }
+ * @returns {{ value: object }|{ error: string }}
+ */
+function sanitizeReframe(reframe) {
+  const camOk = reframe && (reframe.camRect === null || isValidReframeRect(reframe.camRect));
+  if (!reframe || typeof reframe !== "object" || !camOk || !isValidReframeRect(reframe.gameRect)) {
+    return { error: "Invalid reframe: gameRect (and camRect unless null) must have finite numeric x/y/w/h with w,h > 0" };
+  }
+  return {
+    value: {
+      layoutId: reframe.layoutId ?? null,
+      // #164 B3: null camRect is a real value (game-only layout) — the
+      // whitelist must copy it through, never drop the key (session-104 trap).
+      camRect: reframe.camRect === null ? null : { x: reframe.camRect.x, y: reframe.camRect.y, w: reframe.camRect.w, h: reframe.camRect.h },
+      gameRect: { x: reframe.gameRect.x, y: reframe.gameRect.y, w: reframe.gameRect.w, h: reframe.gameRect.h },
+      style: resolveReframeStyle(reframe.style),
+    },
+  };
+}
+
+/**
  * Update a project's Auto-Reframe calibration (#164 Phase A).
  * @param {string} watchFolder
  * @param {string} projectId
@@ -408,19 +433,69 @@ function updateReframe(watchFolder, projectId, reframe) {
   if (reframe === null) {
     project.reframe = null;
   } else {
-    const camOk = reframe && (reframe.camRect === null || isValidReframeRect(reframe.camRect));
-    if (!reframe || typeof reframe !== "object" || !camOk || !isValidReframeRect(reframe.gameRect)) {
-      return { error: "Invalid reframe: gameRect (and camRect unless null) must have finite numeric x/y/w/h with w,h > 0" };
-    }
-    project.reframe = {
-      layoutId: reframe.layoutId ?? null,
-      // #164 B3: null camRect is a real value (game-only layout) — the
-      // whitelist must copy it through, never drop the key (session-104 trap).
-      camRect: reframe.camRect === null ? null : { x: reframe.camRect.x, y: reframe.camRect.y, w: reframe.camRect.w, h: reframe.camRect.h },
-      gameRect: { x: reframe.gameRect.x, y: reframe.gameRect.y, w: reframe.gameRect.w, h: reframe.gameRect.h },
-      style: resolveReframeStyle(reframe.style),
-    };
+    const sanitized = sanitizeReframe(reframe);
+    if (sanitized.error) return { error: sanitized.error };
+    project.reframe = sanitized.value;
   }
+
+  saveProject(watchFolder, project);
+  return { success: true, project };
+}
+
+/**
+ * Set, clear, or detach one clip's layout override (#348).
+ * clip.reframe is tri-state: absent = inherit project.reframe, null =
+ * explicitly no layout, object = per-clip override.
+ * @param {string} watchFolder
+ * @param {string} projectId
+ * @param {string} clipId
+ * @param {object|null|"inherit"} reframe - "inherit" deletes the override
+ *   (fall back to the project layout); null / object as in updateReframe.
+ * @returns {{ success: true, clip: object }|{ error: string }}
+ */
+function updateClipReframe(watchFolder, projectId, clipId, reframe) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+
+  const clipIndex = project.clips.findIndex((c) => c.id === clipId);
+  if (clipIndex === -1) return { error: "Clip not found" };
+
+  const clip = project.clips[clipIndex];
+  if (reframe === "inherit") {
+    delete clip.reframe;
+  } else if (reframe === null) {
+    clip.reframe = null;
+  } else {
+    const sanitized = sanitizeReframe(reframe);
+    if (sanitized.error) return { error: sanitized.error };
+    clip.reframe = sanitized.value;
+  }
+
+  saveProject(watchFolder, project);
+  return { success: true, clip };
+}
+
+/**
+ * Set the project layout AND strip every clip's override in one save (#348) —
+ * the "apply to all clips in this project" action. After this, every clip
+ * inherits the new project.reframe.
+ * @param {string} watchFolder
+ * @param {string} projectId
+ * @param {object|null} reframe - null clears the layout everywhere
+ * @returns {{ success: true, project: object }|{ error: string }}
+ */
+function applyReframeToAllClips(watchFolder, projectId, reframe) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+
+  if (reframe === null) {
+    project.reframe = null;
+  } else {
+    const sanitized = sanitizeReframe(reframe);
+    if (sanitized.error) return { error: sanitized.error };
+    project.reframe = sanitized.value;
+  }
+  for (const c of project.clips || []) delete c.reframe;
 
   saveProject(watchFolder, project);
   return { success: true, project };
@@ -636,6 +711,8 @@ module.exports = {
   updateClip,
   claimScheduledPublish,
   updateReframe,
+  updateClipReframe,
+  applyReframeToAllClips,
   addClip,
   duplicateClip,
   repostClip,

@@ -10,7 +10,7 @@ import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPla
 import { sourceToTimeline } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
-import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
+import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 import {
@@ -1245,10 +1245,11 @@ export default function PreviewPanelNew() {
     return `file://${src.replace(/\\/g, "/")}${cacheBuster}`;
   }, [project?.sourceFile, clip?.filePath, videoVersion, sourceOffline]);
 
-  // #164 non-destructive reframe: crop rects stored on the project (null = no
-  // reframe, everything below is inert and the preview behaves exactly as before).
+  // #164 non-destructive reframe (null = no reframe, everything below is
+  // inert and the preview behaves exactly as before). #348: the clip's own
+  // override outranks the project layout.
   // camRect === null is a game-only layout (#164 B3) — still active.
-  const reframe = project?.reframe ?? null;
+  const reframe = resolveClipReframe(clip, project);
   const reframeActive = !!(reframe && (reframe.camRect || reframe.camRect === null) && reframe.gameRect && videoSrc && !sourceOffline);
   const reframeRef = useRef(reframe);
   reframeRef.current = reframe;
@@ -1321,6 +1322,10 @@ export default function PreviewPanelNew() {
     if (reframeOfferDoneRef.current.has(p.id)) return;
     // Already calibrating = the user found the Layout panel themselves.
     if (calibrating) { reframeOfferDoneRef.current.add(p.id); return; }
+    // #348: a clip that carries its own override (even an explicit "no
+    // layout") means this project's layout story is already decided — the
+    // offer is project onboarding, don't resurface it.
+    if (clip && clip.reframe !== undefined) { reframeOfferDoneRef.current.add(p.id); return; }
     // readyState guard: after a src swap the element reports 0×0 until the
     // CURRENT video's metadata arrives — never trust leftover dimensions.
     const vid = videoRef.current;
@@ -1342,7 +1347,7 @@ export default function PreviewPanelNew() {
       }
     })();
     return () => { stale = true; };
-  }, [project, sourceOffline, calibrating, videoDims]);
+  }, [project, clip, sourceOffline, calibrating, videoDims]);
 
   // The offer is moot the moment calibration starts (banner button or the
   // Layout panel itself) — and must NOT return when a draft cancels.
@@ -2568,7 +2573,7 @@ export default function PreviewPanelNew() {
         {/* #164 B4: first-recording auto-offer — floats over the preview beside
             the rail that hosts the Layout panel it opens. Shown once per open;
             "Not for this format" persists the dims so this format never asks again. */}
-        {reframeOffer && !calibrating && !project?.reframe && (
+        {reframeOffer && !calibrating && !reframe && (
           <div className="absolute top-3 right-3 z-40 flex flex-wrap items-center justify-end gap-2 max-w-[calc(100%-1.5rem)] rounded-lg border bg-card/95 backdrop-blur-sm shadow-lg pl-3 pr-1.5 py-1.5">
             <Crop className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="text-xs text-foreground">New recording format — set up a vertical layout?</span>

@@ -26,7 +26,9 @@ function isDetectSender(event) {
 
 ipcMain.handle("reframe-detect:get-job", (event) => {
   if (!isDetectSender(event)) return null;
-  return { sourceFile: activeRun.sourceFile };
+  // #348: ranges ([{start,end}] source seconds, or null) confine frame
+  // sampling to the requesting clip's footage.
+  return { sourceFile: activeRun.sourceFile, ranges: activeRun.ranges || null };
 });
 
 ipcMain.on("reframe-detect:result", (event, proposal) => {
@@ -51,9 +53,12 @@ function finish(err, proposal) {
 
 /**
  * @param {string} sourceFile absolute path to the source video
+ * @param {Array<{start:number,end:number}>|null} [ranges] - #348: source-second
+ *   windows (the clip's nleSegments) to sample frames from; null/empty =
+ *   whole recording (legacy behavior)
  * @returns {Promise<object>} proposal — { world, camRect, gameRect, confidence, faceBox, frame, ... }
  */
-function runDetection(sourceFile) {
+function runDetection(sourceFile, ranges) {
   if (activeRun) return Promise.reject(new Error("Detection already running"));
   return new Promise((resolve, reject) => {
     const win = new BrowserWindow({
@@ -73,6 +78,7 @@ function runDetection(sourceFile) {
     activeRun = {
       win,
       sourceFile,
+      ranges: Array.isArray(ranges) && ranges.length ? ranges : null,
       resolve,
       reject,
       timer: setTimeout(() => finish(new Error("Detection timed out")), DETECT_TIMEOUT_MS),

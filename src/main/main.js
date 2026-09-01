@@ -3017,10 +3017,26 @@ ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
   } catch (err) { return { error: err.message }; }
 });
 
+// #348: per-clip layout override — "inherit" detaches, null disables, object overrides.
+ipcMain.handle("project:updateClipReframe", async (_, projectId, clipId, reframe) => {
+  try {
+    return projects.updateClipReframe(libraryRoot(), projectId, clipId, reframe);
+  } catch (err) { return { error: err.message }; }
+});
+
+// #348: set the project layout and strip every clip's override in one save.
+ipcMain.handle("project:applyReframeAllClips", async (_, projectId, reframe) => {
+  try {
+    return projects.applyReframeToAllClips(libraryRoot(), projectId, reframe);
+  } catch (err) { return { error: err.message }; }
+});
+
 // #164 Phase B: auto-detect layout boxes from the project's source video.
 // Runs MediaPipe + the gate algorithm in a dedicated hidden window
 // (reframe-detect.js); returns a rect proposal, never writes the project.
-ipcMain.handle("reframe:detect", async (_, projectId) => {
+// #348: optional `ranges` ([{start,end}] in source seconds — the open clip's
+// nleSegments) confine frame sampling to that clip's footage.
+ipcMain.handle("reframe:detect", async (_, projectId, ranges) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const project = projects.loadProject(watchFolder, projectId);
@@ -3028,7 +3044,13 @@ ipcMain.handle("reframe:detect", async (_, projectId) => {
     if (!project.sourceFile || !fs.existsSync(project.sourceFile)) {
       return { error: "Source video not found on disk" };
     }
-    const proposal = await reframeDetect.runDetection(project.sourceFile);
+    const safeRanges = Array.isArray(ranges)
+      ? ranges
+          .filter((r) => r && Number.isFinite(r.start) && Number.isFinite(r.end) && r.end > r.start)
+          .slice(0, 500)
+          .map((r) => ({ start: Math.max(0, r.start), end: r.end }))
+      : null;
+    const proposal = await reframeDetect.runDetection(project.sourceFile, safeRanges);
     return { success: true, proposal };
   } catch (err) { return { error: err.message }; }
 });

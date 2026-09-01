@@ -9,7 +9,7 @@ const { resolvePlacements } = require("../renderer/editor/models/audioPlacements
 const { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } = require("../renderer/editor/models/mediaPlacements");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
-const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../renderer/editor/utils/reframeStyle");
+const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe } = require("../renderer/editor/utils/reframeStyle");
 
 /**
  * Probe a video file for its FPS using ffprobe.
@@ -587,7 +587,8 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const sourceFile = projectData.sourceFile;
       const sourceOk = sourceFile && fs.existsSync(sourceFile);
       const useNle = nleSegments.length > 0 && sourceOk;
-      const reframeActive = isReframeActive(projectData.reframe); // #164
+      const reframe = resolveClipReframe(clipData, projectData); // #348: clip override > project layout
+      const reframeActive = isReframeActive(reframe); // #164
 
       // Resolve source: prefer NLE (source + segments). Only fall back to a
       // legacy clip MP4 if the source has gone offline. If neither path is
@@ -884,7 +885,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       if (useNle) {
         // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
         const { filterComplex, mapArgs } = buildNleFilterComplex(
-          nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight,
+          nleSegments, hasFrames, reframe, projectData.sourceWidth, projectData.sourceHeight,
           {
             audioAssets: activeAudioAssets,
             sourceMuted: clipData.sourceAudioMuted === true,
@@ -1065,7 +1066,8 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
   const sourceFile = projectData.sourceFile;
   const sourceOk = sourceFile && fs.existsSync(sourceFile);
   const useNle = nleSegments.length > 0 && sourceOk;
-  const reframeActive = isReframeActive(projectData.reframe);
+  const reframe = resolveClipReframe(clipData, projectData); // #348: clip override > project layout
+  const reframeActive = isReframeActive(reframe);
 
   let srcFile;
   if (useNle) srcFile = sourceFile;
@@ -1181,7 +1183,7 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
     const { filterComplex, mapArgs } = buildNleFilterComplex(
       [{ id: "thumb", sourceStart: sourceTime, sourceEnd: sourceTime + 1 }],
       !!overlayPng,
-      projectData.reframe,
+      reframe,
       projectData.sourceWidth,
       projectData.sourceHeight,
       { audio: false, mediaAssets, outputWidth: thumbOutputWidth }
