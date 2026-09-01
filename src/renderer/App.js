@@ -1300,15 +1300,19 @@ export default function App() {
         <div style={{ position: "fixed", bottom: 20, right: 24, zIndex: 950, display: "flex", alignItems: "center", gap: 10, padding: "9px 12px 9px 14px", borderRadius: 10, background: renderJob.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", boxShadow: "0 8px 24px rgba(var(--shade),calc(0.45 * var(--shadeK)))", fontFamily: T.font, color: "#fff" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}>
             <span style={{ fontSize: 12, fontWeight: 700, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {renderJob.error ? "Render failed" : renderJob.canceling ? "Canceling…" : renderJob.done ? "Rendered!" : `Rendering${renderJob.clipTitle ? ` “${renderJob.clipTitle}”` : ""} ${renderJob.pct || 0}%`}
+              {renderJob.error ? "Render failed" : renderJob.canceling ? "Canceling…" : renderJob.done ? "Rendered!" : `Rendering${renderJob.clipTitle ? ` “${renderJob.clipTitle}”` : ""}`}
             </span>
             {!renderJob.done && !renderJob.canceling && (
               <div style={{ width: "100%", height: 4, background: "rgba(var(--shade),calc(0.3 * var(--shadeK)))", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${renderJob.pct || 0}%`, background: "#fff", borderRadius: 999, transition: "width 0.3s" }} />
               </div>
             )}
+            {/* Stage internals ("subtitle frame 391/392") stay out of the pill —
+                the percentage is the info; detail only surfaces error text. */}
             <span style={{ fontSize: 10, opacity: 0.85, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {renderJob.waiting > 0 ? `${renderJob.detail || ""} · ${renderJob.waiting} waiting` : (renderJob.detail || "")}
+              {renderJob.error
+                ? (renderJob.detail || "")
+                : `${renderJob.pct || 0}%${renderJob.waiting > 0 ? ` · ${renderJob.waiting} waiting` : ""}`}
             </span>
           </div>
           {!renderJob.done && (
