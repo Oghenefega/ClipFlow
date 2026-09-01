@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.15] — 2026-08-31 (session 225) — alpha.15: the Queue tab rework and the AI caption fixes
+
+### Changed
+- **Version bumped to 0.4.0-alpha.15 and an installer cut** on Fega's ask, promoting the two sessions below to the daily driver: the AI caption fixes (#343 stray slashes, #344 title/caption mirroring, session 224) and this session's Queue tab batch (#346 — wider click-to-edit captions panel, denser layout, merged schedule/status column, per-game platform tags) plus the render pill now showing the percentage instead of stage internals.
+
 ## [Unreleased] — 2026-08-31 (session 225) — Queue tab: wider captions panel, click-to-edit, per-game platform tags (#346)
 
 ### Added

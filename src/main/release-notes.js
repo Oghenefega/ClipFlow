@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.4.0-alpha.15",
+    date: "2026-08-31",
     added: [
       "Each game can now carry its own tag line for TikTok, Instagram and Facebook. Type it once on the new \"Game tags\" row in the Queue's captions panel — say #vct #100thieves #100T — and every clip of that game gets those tags added on all three platforms automatically. No more pasting the same hashtags into caption after caption.",
     ],
