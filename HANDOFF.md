@@ -1,5 +1,7 @@
 # HANDOFF — Session 227 (2026-09-01)
 
+> Pending session title (set automatically at next session start): S227 · alpha.16 — layouts go per-clip
+
 ## Current State
 
 **alpha.16 is cut, on the feed, and the update itself is CONFIRMED installed by Fega**
