@@ -82,7 +82,10 @@ const glassDot = (g) => ({
 // at fire time, so entry + no pending scheduledAt = Published.
 const makePublishState = (trackerData) => {
   const ids = new Set((trackerData || []).map((t) => t.clipId).filter(Boolean));
-  const titles = new Set((trackerData || []).map((t) => t.title).filter(Boolean));
+  // #347: title matching only for legacy id-less entries (pre-2026-03-12) —
+  // matching modern entries' titles stamped a false Published badge on any
+  // clip that reused an already-published title.
+  const titles = new Set((trackerData || []).filter((t) => !t.clipId).map((t) => t.title).filter(Boolean));
   const tracked = (c) => ids.has(c.id) || titles.has(c.title);
   return {
     isScheduled: (c) => !!c.scheduledAt,

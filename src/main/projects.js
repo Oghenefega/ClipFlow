@@ -300,7 +300,7 @@ function updateClip(watchFolder, projectId, clipId, updates) {
  *   `<clip id>_renderthumb.jpg` — post-render thumb, by id, in the project folder (#205)
  *   `<render name>_thumb.jpg`  — legacy: paired to the video filename, pre-#205
  *   `<clip id>_repairthumb.jpg` — named by id on purpose (render-collision-repair.js)
- *   `<title>_thumbnail.png`     — the WYSIWYG screenshot, a separate feature
+ *   `<title>_thumbnail_<id tail>.png` — the WYSIWYG screenshot, a separate feature (#347)
  * Anything without a recognised suffix is left alone rather than guessed at.
  */
 function renameThumbnailTo(currentPath, newBase) {

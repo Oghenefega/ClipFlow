@@ -642,7 +642,10 @@ export default function QueueView({
     }));
   }, [setLocalProjects]);
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
-  const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
+  // #347: title matching is a shim for legacy tracker entries (pre-2026-03-12)
+  // that recorded no clipId. Matching modern entries' titles too made any new
+  // clip that reused a published title silently vanish from the queue.
+  const scheduledTitles = new Set(trackerData.filter((t) => !t.clipId).map((t) => t.title).filter(Boolean));
   // projectId → metadata (gameTag, gameColor, name, testMode). gameTag is lowercased
   // once here so all downstream comparisons can use === without case juggling.
   const projectInfo = React.useMemo(() => {

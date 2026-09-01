@@ -946,7 +946,8 @@ export default function App() {
   // badge keeps counting already-published clips and inflates past the list count.
   const totalApproved = React.useMemo(() => {
     const trackedIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
-    const trackedTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
+    // #347: title knockout scoped to legacy id-less entries, mirroring QueueView.
+    const trackedTitles = new Set(trackerData.filter((t) => !t.clipId).map((t) => t.title).filter(Boolean));
     return Object.values(allClips).flat().filter((c) =>
       (c.status === "approved" || c.status === "ready")
       && !c.scheduledAt

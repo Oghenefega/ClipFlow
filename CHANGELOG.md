@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-01 (session 226) — Same-titled clips no longer vanish from the Queue (#347)
+
+### Fixed
+- **A new clip reusing an already-published clip's title no longer disappears (#347).** The Queue tab, its badge count, and the Projects tab's Published badge all matched clips against the publish tracker by exact title as well as by clip id — so a fresh clip titled identically to anything ever published was silently hidden from the queue and shown as "Published" without ever going out (reported with two same-day "100T Vora is INSANE!" clips). Title matching is a shim for the 26 tracker entries from early March 2026 that predate clip ids; it is now scoped to exactly those id-less entries in all three places (`QueueView.js`, `App.js` badge, `ProjectsView.js` publish state), so modern publishes match by id only. Verified against the live tracker data: the incident clip becomes visible, legacy entries keep working, and the genuinely-published clip still reads as published. No video files were ever overwritten — renders live in per-project folders with a collision suffix; the damage was purely the UI hiding the clip.
+- **Two same-titled clips in one project can no longer overwrite each other's Shorts thumbnail (#347).** The editor's screenshot button saved `<title>_thumbnail.png`, so a title collision inside a project clobbered the sibling's PNG. The filename now ends with a short piece of the clip's id (`…_thumbnail_taum.png`): recapturing still replaces the clip's own file, but two clips can never share a name.
+
 ## [0.4.0-alpha.15] — 2026-08-31 (session 225) — alpha.15: the Queue tab rework and the AI caption fixes
 
 ### Changed

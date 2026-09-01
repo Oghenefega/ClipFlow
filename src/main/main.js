@@ -4497,11 +4497,14 @@ ipcMain.handle("thumbnail:capture", async (event, clipData, projectData, timelin
   try {
     const outputFolder = resolveTestAwareOutputFolder(projectData);
     if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
-    // #188: base must match what the title-change rename produces, or a retitle
-    // would orphan the PNG instead of moving it.
-    const fileName = `${projects.sanitizeFileBase(clipData.title || `clip_${clipData.id}`)}_thumbnail.png`;
-    // #181: same per-project scoping as renders. No collision suffix here —
-    // recapturing the same clip's screenshot should overwrite its own PNG.
+    // #347: the id tail makes the name deterministic per CLIP, not per title —
+    // recapturing still overwrites the clip's own PNG, but two same-titled
+    // clips in one project can no longer clobber each other's screenshot. The
+    // path is never stored on the clip (the editor only toasts it), so nothing
+    // renames it on retitle — recapturing under the new title is the remedy.
+    const idTail = String(clipData.id || "").split("_").pop();
+    const fileName = `${projects.sanitizeFileBase(clipData.title || `clip_${clipData.id}`)}_thumbnail${idTail ? `_${idTail}` : ""}.png`;
+    // #181: same per-project scoping as renders.
     const outputPath = path.join(renderOutputDir(outputFolder, projectData), fileName);
     return await render.renderThumbnail(clipData, projectData, timelineTime, outputPath, options || {});
   } catch (err) {
