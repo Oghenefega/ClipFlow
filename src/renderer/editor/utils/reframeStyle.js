@@ -105,6 +105,39 @@ function resolveClipReframe(clip, project) {
   return (project && project.reframe) || null;
 }
 
+// ── #349: per-section layout resolution ──
+// segment.reframe (on an nleSegments entry) is the same tri-state one level
+// down: absent = inherit the clip's effective layout, null = this section is
+// raw, object = section override. Same `!== undefined` rule as above.
+function resolveSegmentReframe(segment, clip, project) {
+  if (segment && segment.reframe !== undefined) return segment.reframe;
+  return resolveClipReframe(clip, project);
+}
+
+// Do two resolved layouts paint the same picture? Compares the geometry and
+// style by VALUE — layoutId is library bookkeeping, not a look. Two nulls are
+// the same (raw) look. Used by the render graph to take the single-composite
+// parity path when every section of a clip resolves to the same thing.
+function sameReframeLook(a, b) {
+  if (!a || !b) return !a && !b;
+  const rectEq = (r, s) => (r === null || s === null)
+    ? r === s
+    : !!r && !!s && r.x === s.x && r.y === s.y && r.w === s.w && r.h === s.h;
+  if (!rectEq(a.camRect ?? null, b.camRect ?? null)) return false;
+  if (!rectEq(a.gameRect, b.gameRect)) return false;
+  const sa = resolveReframeStyle(a.style);
+  const sb = resolveReframeStyle(b.style);
+  return Object.keys(REFRAME_STYLE_DEFAULTS).every((k) => sa[k] === sb[k]);
+}
+
+// The stand-in for a raw section inside a clip that has a layout elsewhere:
+// the whole frame letterboxed over the blurred background, so the picture
+// stays 1080x1920 across the cut instead of snapping to the source size.
+// `style` is borrowed from a neighbouring section so the backdrop matches.
+function fitToScreenReframe(srcW, srcH, style) {
+  return { layoutId: null, ...presetFitToScreen(srcW, srcH), style: resolveReframeStyle(style) };
+}
+
 // ── #164 B4: first-recording auto-offer trigger ──
 // Pure decision for "offer a vertical-layout setup when this project opens?"
 // True only when the dims are decidable and non-9:16, the project has no
@@ -135,5 +168,8 @@ module.exports = {
   presetFullyZoomed,
   presetFitToScreen,
   resolveClipReframe,
+  resolveSegmentReframe,
+  sameReframeLook,
+  fitToScreenReframe,
   shouldOfferReframe,
 };

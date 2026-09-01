@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-01 (session 228) — Per-section layouts: the picture can change at a cut inside one clip (#349)
+
+### Added
+- **Per-section layouts (#349).** A layout used to be one decision per clip; now each section of a cut-up clip can carry its own, so a clip can play zoomed-out before a cut and punched-in after it. The Layout panel gains a "This section / This clip" scope switch (only when the clip has a cut) — under "This section", setting up, editing, applying a saved layout, Detect, and the remove actions ("Use clip layout" / "No layout for this section") all target the section under the playhead, and the timeline block gets a small badge when a section carries its own layout or has opted out. Switches are instant at the cut, in both the editor preview and the rendered file. The cascade is section → clip → project (absent = inherit, explicit "no layout" = raw, object = its own), and a raw section inside a clip that has a layout elsewhere letterboxes the whole picture over the blurred backdrop so the frame never changes size mid-clip. Section layouts persist with the clip's sections (no new file format, no migration; existing projects are untouched), survive split, trim, undo and app restart, and "Apply to all clips in this project" clears them along with the clip overrides. Verified on a fixture project: preview, thumbnail capture and a real 1080×1920 render all switch layout exactly at the cut; a clip whose sections all agree produces the same render graph as before, byte for byte (23 new unit tests).
+
+### Fixed
+- **Splitting a section keeps everything the section carried (#349).** The split operation rebuilt both halves from scratch, dropping any field other than the cut times — with per-section layouts that would have silently lost a section's layout on every cut. Both halves now inherit the parent's fields.
+
 ## [0.4.0-alpha.16] — 2026-09-01 (session 227) — alpha.16: per-clip layouts and the same-titled clip fix
 
 ### Changed

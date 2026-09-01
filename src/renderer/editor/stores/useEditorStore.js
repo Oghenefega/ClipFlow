@@ -8,11 +8,11 @@ import useLayoutStore from "./useLayoutStore";
 import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
-import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource } from "../models/timeMapping";
+import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource, segmentIdAtTimeline } from "../models/timeMapping";
 import { normalizePlacements, resolvePlacements, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
-import { resolveReframeStyle, resolveClipReframe } from "../utils/reframeStyle";
+import { resolveReframeStyle, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
 
 // ── Autosave internals (module-closure, NOT in state) ──
 // Kept outside Zustand state to avoid infinite subscribe loops when the timer is (re)set.
@@ -211,6 +211,10 @@ const useEditorStore = create((set, get) => ({
   // the same Detect the button runs. Cleared on consume, cancel, and clip load.
   reframeAutoDetectPending: false,
 
+  // #349: which target the Layout panel writes to — the open clip (Phase A
+  // behaviour) or the section under the playhead. Reset on clip load.
+  layoutScope: "clip",
+
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
@@ -382,6 +386,7 @@ const useEditorStore = create((set, get) => ({
       previewWarning: null, // re-probed below for the newly opened source
       reframeDraft: null, // #164: a clip/project switch drops any in-flight calibration
       reframeAutoDetectPending: false,
+      layoutScope: "clip", // #349
     });
 
     if (!sourceOffline && project?.sourceFile) get().checkSourcePlayability(project.sourceFile);
@@ -1044,7 +1049,7 @@ const useEditorStore = create((set, get) => ({
 
   // ── #164 Reframe calibration (Layout panel) ──
   beginReframeDraft: (sourceW, sourceH) => {
-    const { project, reframeDraft } = get();
+    const { project, reframeDraft, layoutScope, nleSegments } = get();
     if (reframeDraft) return; // already calibrating
     // Dims resolution chain: explicit args → project probe fields → the live
     // <video> element (covers pre-#164 projects with null probe fields) →
@@ -1053,7 +1058,16 @@ const useEditorStore = create((set, get) => ({
     const vid = usePlaybackStore.getState()._videoRef?.current;
     const w = sourceW || project?.sourceWidth || vid?.videoWidth || 1920;
     const h = sourceH || project?.sourceHeight || vid?.videoHeight || 1080;
-    const existing = resolveClipReframe(get().clip, project); // #348: clip override > project layout
+    // #349: under section scope the draft targets the section under the
+    // playhead, captured NOW so scrubbing during calibration can't retarget
+    // it. Seeds from that section's effective layout.
+    const targetSegmentId = layoutScope === "section" && nleSegments.length > 1
+      ? segmentIdAtTimeline(usePlaybackStore.getState().currentTime || 0, nleSegments)
+      : null;
+    const targetSeg = targetSegmentId ? nleSegments.find((s) => s.id === targetSegmentId) : null;
+    const existing = targetSeg
+      ? resolveSegmentReframe(targetSeg, get().clip, project)
+      : resolveClipReframe(get().clip, project); // #348: clip override > project layout
     // #164 B3: camRect === null is a real saved value (game-only layout) —
     // it must route to the "edit existing" path, not fresh defaults.
     if (existing?.gameRect && (existing.camRect || existing.camRect === null)) {
@@ -1065,6 +1079,7 @@ const useEditorStore = create((set, get) => ({
           style: resolveReframeStyle(existing?.style),
           sourceW: w,
           sourceH: h,
+          targetSegmentId,
         },
       });
       return;
@@ -1080,6 +1095,7 @@ const useEditorStore = create((set, get) => ({
         style: resolveReframeStyle(null),
         sourceW: w,
         sourceH: h,
+        targetSegmentId,
       },
     });
   },
@@ -1147,9 +1163,16 @@ const useEditorStore = create((set, get) => ({
       gameRect: { ...reframeDraft.gameRect },
       style: resolveReframeStyle(reframeDraft.style),
     };
-    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
-    if (result?.error) return result;
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
+    if (reframeDraft.targetSegmentId) {
+      // #349: section scope — a store write; autosave persists nleSegments.
+      const r = get().setSegmentReframe(reframeDraft.targetSegmentId, reframe);
+      if (r?.error) return r;
+    } else {
+      const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
+      if (result?.error) return result;
+      if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
+    }
     const now = new Date().toISOString();
     const entryFields = {
       name,
@@ -1174,6 +1197,10 @@ const useEditorStore = create((set, get) => ({
     if (!(currentDefaultId && layouts.some((l) => l.id === currentDefaultId))) {
       await window.clipflow.storeSet("reframeLayoutDefaultId", id);
     }
+    if (reframeDraft.targetSegmentId) {
+      set({ reframeDraft: null });
+      return { success: true };
+    }
     set({
       clip: { ...get().clip, reframe },
       project: projectWithClipReframe(get().project, clipId, reframe),
@@ -1181,6 +1208,33 @@ const useEditorStore = create((set, get) => ({
     });
     return { success: true };
   },
+
+  // #349: write ONE section's layout. reframe: object = section override,
+  // null = this section renders raw, undefined = drop the key (inherit the
+  // clip). Store-only on purpose: _doSilentSave writes nleSegments wholesale
+  // and the undo stack snapshots them, so persistence and undo come free —
+  // unlike clip.reframe, which is kept out of the autosave list and needs its
+  // own IPC.
+  setSegmentReframe: (segmentId, reframe) => {
+    const segs = get().nleSegments;
+    const idx = segs.findIndex((s) => s.id === segmentId);
+    if (idx === -1) return { error: "Section not found" };
+    get()._pushNleUndo();
+    const next = segs.map((s, i) => {
+      if (i !== idx) return s;
+      if (reframe === undefined) {
+        const { reframe: _drop, ...rest } = s;
+        return rest;
+      }
+      return { ...s, reframe };
+    });
+    set({ nleSegments: next });
+    usePlaybackStore.getState().setNleSegments(next);
+    get().markDirty();
+    return { success: true };
+  },
+
+  setLayoutScope: (scope) => set({ layoutScope: scope === "section" ? "section" : "clip" }),
 
   // #348: drop this clip's override — back to the project layout.
   clearClipReframe: async () => {
@@ -1230,19 +1284,32 @@ const useEditorStore = create((set, get) => ({
       const { reframe: _drop, ...rest } = cur;
       nextClip = rest;
     }
+    // #349: the section overrides go too — and they must go from the STORE's
+    // nleSegments, or the next autosave writes them straight back over what
+    // projects.js just stripped.
+    const stripSeg = (s) => {
+      if (s.reframe === undefined) return s;
+      const { reframe: _d, ...rest } = s;
+      return rest;
+    };
+    const segs = get().nleSegments;
+    const nextSegs = segs.some((s) => s.reframe !== undefined) ? segs.map(stripSeg) : segs;
     set({
       project: {
         ...get().project,
         reframe: eff,
         clips: (get().project.clips || []).map((c) => {
-          if (c.reframe === undefined) return c;
+          const hasSegOverride = (c.nleSegments || []).some((s) => s.reframe !== undefined);
+          if (c.reframe === undefined && !hasSegOverride) return c;
           const { reframe: _drop2, ...rest } = c;
-          return rest;
+          return hasSegOverride ? { ...rest, nleSegments: c.nleSegments.map(stripSeg) } : rest;
         }),
       },
       clip: nextClip,
+      nleSegments: nextSegs,
       reframeDraft: null,
     });
+    if (nextSegs !== segs) usePlaybackStore.getState().setNleSegments(nextSegs);
     return { success: true };
   },
 
@@ -1250,7 +1317,7 @@ const useEditorStore = create((set, get) => ({
   // panel's "Saved layouts" list). Requires an exact source-dimension
   // match — a layout calibrated for a different recording size can't transfer.
   applyReframeLayout: async (entry) => {
-    const { project, clip } = get();
+    const { project, clip, layoutScope, nleSegments } = get();
     if (!project?.id) return { error: "No project" };
     if (!clip?.id) return { error: "Open a clip to apply a layout" };
     if (entry.sourceWidth !== project.sourceWidth || entry.sourceHeight !== project.sourceHeight) {
@@ -1264,6 +1331,15 @@ const useEditorStore = create((set, get) => ({
       gameRect: { ...entry.gameRect },
       style: resolveReframeStyle(entry.style),
     };
+    // #349: section scope → the section under the playhead, store-only write.
+    if (layoutScope === "section" && nleSegments.length > 1) {
+      const segId = segmentIdAtTimeline(usePlaybackStore.getState().currentTime || 0, nleSegments);
+      if (!segId) return { error: "No section under the playhead" };
+      const r = get().setSegmentReframe(segId, reframe);
+      if (r?.error) return r;
+      set({ reframeDraft: null });
+      return { success: true };
+    }
     const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
     if (result?.error) return result;
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };

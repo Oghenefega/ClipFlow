@@ -10,7 +10,7 @@ import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPla
 import { sourceToTimeline } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
-import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe } from "../utils/reframeStyle";
+import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe, resolveSegmentReframe, fitToScreenReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 import {
@@ -1250,9 +1250,24 @@ export default function PreviewPanelNew() {
   // override outranks the project layout.
   // camRect === null is a game-only layout (#164 B3) — still active.
   const reframe = resolveClipReframe(clip, project);
-  const reframeActive = !!(reframe && (reframe.camRect || reframe.camRect === null) && reframe.gameRect && videoSrc && !sourceOffline);
+  // #349: sections carry their own layouts. The compositor is up when ANY
+  // section resolves to one; which layout paints is decided per frame in
+  // paintActive from the section under the playhead.
+  const layoutSegs = useEditorStore((s) => s.nleSegments);
+  const segReframes = useMemo(
+    () => layoutSegs.map((s) => resolveSegmentReframe(s, clip, project)),
+    [layoutSegs, clip, project]
+  );
+  const layoutOn = (r) => !!(r && (r.camRect || r.camRect === null) && r.gameRect);
+  const anyLayout = layoutSegs.length > 0 ? segReframes.some(layoutOn) : layoutOn(reframe);
+  const reframeActive = !!(anyLayout && videoSrc && !sourceOffline);
   const reframeRef = useRef(reframe);
   reframeRef.current = reframe;
+  const layoutSegsRef = useRef(layoutSegs);
+  layoutSegsRef.current = layoutSegs;
+  const segReframesRef = useRef(segReframes);
+  segReframesRef.current = segReframes;
+  const lastLayoutIdxRef = useRef(0);
 
   // Imperative src management — replaces the `src={videoSrc}` JSX prop.
   // Why: with `src` as a React prop, swapping the URL leaves the previous
@@ -1326,6 +1341,8 @@ export default function PreviewPanelNew() {
     // layout") means this project's layout story is already decided — the
     // offer is project onboarding, don't resurface it.
     if (clip && clip.reframe !== undefined) { reframeOfferDoneRef.current.add(p.id); return; }
+    // #349: a section override is just as decided.
+    if (layoutSegsRef.current.some((s) => s.reframe !== undefined)) { reframeOfferDoneRef.current.add(p.id); return; }
     // readyState guard: after a src swap the element reports 0×0 until the
     // CURRENT video's metadata arrives — never trust leftover dimensions.
     const vid = videoRef.current;
@@ -2116,8 +2133,32 @@ export default function PreviewPanelNew() {
   // One painter, two targets: the full-size composite in normal mode, the
   // vertical PiP (painted from the live draft) while calibrating.
   const paintActive = useCallback(() => {
-    if (calibratingRef.current) paintComposite(pipElRef.current, draftRef.current);
-    else paintComposite(compositeCanvasRef.current, reframeRef.current);
+    if (calibratingRef.current) { paintComposite(pipElRef.current, draftRef.current); return; }
+    // #349: paint the layout of the section under the playhead. The <video>
+    // clock is SOURCE time, so the section is found by source range —
+    // half-open, so a join belongs to the section that starts there, with an
+    // inclusive fallback for the very last frame. Mid-seek across a cut the
+    // clock can sit in removed footage: keep painting the last section then
+    // rather than flashing. A raw section inside a laid-out clip letterboxes
+    // the whole frame — same rule and same helper as render.js.
+    const video = videoRef.current;
+    const segs = layoutSegsRef.current;
+    const rfs = segReframesRef.current;
+    let rf = reframeRef.current;
+    if (video && segs.length > 0) {
+      const t = video.currentTime;
+      let idx = segs.findIndex((s) => t >= s.sourceStart && t < s.sourceEnd);
+      if (idx === -1) idx = segs.findIndex((s) => t >= s.sourceStart && t <= s.sourceEnd);
+      if (idx === -1) idx = Math.min(lastLayoutIdxRef.current, segs.length - 1);
+      lastLayoutIdxRef.current = idx;
+      rf = rfs[idx];
+      const on = (r) => !!(r && (r.camRect || r.camRect === null) && r.gameRect);
+      if (!on(rf)) {
+        const donor = rfs.find(on);
+        rf = donor && video.videoWidth ? fitToScreenReframe(video.videoWidth, video.videoHeight, donor.style) : null;
+      }
+    }
+    paintComposite(compositeCanvasRef.current, rf);
   }, [paintComposite]);
 
   // Paint on every presented video frame. requestVideoFrameCallback fires
@@ -2158,7 +2199,7 @@ export default function PreviewPanelNew() {
   // calibration drags).
   useEffect(() => {
     if (reframeActive || calibrating) paintActive();
-  }, [reframeActive, calibrating, paintActive, canvasWidth, fitSize, zoom, reframe, reframeDraft, reframePipCanvas]);
+  }, [reframeActive, calibrating, paintActive, canvasWidth, fitSize, zoom, reframe, segReframes, reframeDraft, reframePipCanvas]);
 
   // Deselect overlay when clicking canvas background
   const onCanvasClick = useCallback((e) => {

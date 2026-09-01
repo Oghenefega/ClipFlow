@@ -1,4 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
+import { LayoutTemplate } from "lucide-react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
 function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating, onMoveStart, onMoveDrag, onMoveEnd, onSeekClick, moveDragging }) {
@@ -227,6 +228,23 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
       <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: SEGMENT_RADIUS }}>
         <canvas ref={canvasRef} className="absolute inset-0" style={{ margin: 1 }} />
       </div>
+      {/* #349: this section carries its own layout (override or opted out) —
+          a small badge so the cut where the picture changes is visible on the
+          timeline. Absent key = inherits the clip, no badge. */}
+      {nleSegment && nleSegment.reframe !== undefined && (
+        <div
+          className="absolute top-0.5 left-1 z-10 flex items-center justify-center rounded pointer-events-none"
+          style={{
+            width: 14, height: 14,
+            background: "rgba(var(--lift),0.14)",
+            color: nleSegment.reframe ? "#22d3ee" : "hsl(25 90% 55% / 0.9)",
+            boxShadow: `0 0 6px ${nleSegment.reframe ? "rgba(34,211,238,0.5)" : "hsl(25 90% 55% / 0.4)"}`,
+          }}
+          title={nleSegment.reframe ? "This section has its own layout" : "This section has no layout"}
+        >
+          <LayoutTemplate size={9} strokeWidth={2.5} />
+        </div>
+      )}
       {/* Left handle */}
       <div
         className="absolute left-0 top-0 bottom-0 z-10 cursor-col-resize"

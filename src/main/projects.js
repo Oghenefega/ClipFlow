@@ -495,7 +495,11 @@ function applyReframeToAllClips(watchFolder, projectId, reframe) {
     if (sanitized.error) return { error: sanitized.error };
     project.reframe = sanitized.value;
   }
-  for (const c of project.clips || []) delete c.reframe;
+  for (const c of project.clips || []) {
+    delete c.reframe;
+    // #349: one uniform look means the per-section overrides go too.
+    for (const s of c.nleSegments || []) delete s.reframe;
+  }
 
   saveProject(watchFolder, project);
   return { success: true, project };

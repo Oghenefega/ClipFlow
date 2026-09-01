@@ -34,9 +34,12 @@ function splitAtSource(segments, sourceTime) {
       sourceTime > seg.sourceStart + MIN_SEGMENT_DURATION &&
       sourceTime < seg.sourceEnd - MIN_SEGMENT_DURATION
     ) {
-      // Bisect: left half keeps original ID, right half gets new ID
-      result.push(createSegment(seg.sourceStart, sourceTime, seg.id));
-      result.push(createSegment(sourceTime, seg.sourceEnd));
+      // Bisect: left half keeps original ID, right half gets new ID. Both
+      // halves inherit every other field of the parent (#349: a section's
+      // own layout must survive being cut in two) — createSegment only mints
+      // the new id.
+      result.push({ ...seg, sourceEnd: sourceTime });
+      result.push({ ...seg, id: createSegment(sourceTime, seg.sourceEnd).id, sourceStart: sourceTime });
     } else {
       result.push(seg);
     }

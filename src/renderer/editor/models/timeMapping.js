@@ -129,6 +129,26 @@ function getTimelineDuration(segments) {
 }
 
 /**
+ * Id of the segment under a timeline position (#349 — the Layout panel's
+ * "This section"). Sitting exactly on a join, timelineToSource resolves to the
+ * EARLIER segment (its offset equals its full duration); on screen the playhead
+ * is at the head of the next one, so that's the one the user means — the same
+ * tie-break trimTimelineToPlayhead uses. Past the end → the last segment.
+ *
+ * @param {number} timelineTime
+ * @param {Array} segments - ordered NLE segment list
+ * @returns {string|null} segment id, or null for an empty list
+ */
+function segmentIdAtTimeline(timelineTime, segments) {
+  if (!Array.isArray(segments) || segments.length === 0) return null;
+  const { sourceTime, found, segmentIndex } = timelineToSource(timelineTime, segments);
+  if (!found) return segments[segments.length - 1].id;
+  let idx = segmentIndex;
+  if (sourceTime >= segments[idx].sourceEnd - 1e-6 && idx + 1 < segments.length) idx += 1;
+  return segments[idx].id;
+}
+
+/**
  * Get timeline start/end for a specific segment by ID or index.
  *
  * @param {string|number} idOrIndex - segment ID string or numeric index
@@ -363,6 +383,7 @@ module.exports = {
   sourceToTimelineClamped,
   timelineToSource,
   getTimelineDuration,
+  segmentIdAtTimeline,
   getSegmentTimelineRange,
   buildTimelineLayout,
   visibleWords,

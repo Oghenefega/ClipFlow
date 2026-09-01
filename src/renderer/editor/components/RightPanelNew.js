@@ -26,10 +26,12 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
+import usePlaybackStore from "../stores/usePlaybackStore";
+import { segmentIdAtTimeline } from "../models/timeMapping";
 import AudioPanel from "./audio/AudioPanel";
 import MediaPanel from "./media/MediaPanel";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
-import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe } from "../utils/reframeStyle";
+import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 
 // ════════════════════════════════════════════════════════════════
@@ -1841,6 +1843,16 @@ function LayoutPanel() {
   const setReframePipCanvas = useEditorStore((s) => s.setReframePipCanvas);
   const reframeAutoDetectPending = useEditorStore((s) => s.reframeAutoDetectPending);
 
+  // #349: section scope — the panel can target the section under the playhead
+  // instead of the whole clip. The playhead selector returns the section's id
+  // (a primitive), so the panel re-renders when the playhead crosses a cut,
+  // not on every time tick.
+  const nleSegments = useEditorStore((s) => s.nleSegments);
+  const layoutScope = useEditorStore((s) => s.layoutScope);
+  const setLayoutScope = useEditorStore((s) => s.setLayoutScope);
+  const setSegmentReframe = useEditorStore((s) => s.setSegmentReframe);
+  const playheadSegId = usePlaybackStore((s) => segmentIdAtTimeline(s.currentTime || 0, s.nleSegments || []));
+
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [applyingAll, setApplyingAll] = useState(false);
@@ -1924,6 +1936,19 @@ function LayoutPanel() {
     if (result?.error) setError(result.error);
   }, [applyReframeToAllClips]);
 
+  // #349: section-level removes. Synchronous store writes — no busy flag.
+  const handleUseClipLayoutForSection = useCallback(() => {
+    setError("");
+    const r = setSegmentReframe(playheadSegId, undefined);
+    if (r?.error) setError(r.error);
+  }, [setSegmentReframe, playheadSegId]);
+
+  const handleDisableForSection = useCallback(() => {
+    setError("");
+    const r = setSegmentReframe(playheadSegId, null);
+    if (r?.error) setError(r.error);
+  }, [setSegmentReframe, playheadSegId]);
+
   const handleSnap169 = useCallback((key) => {
     if (!reframeDraft) return;
     const rect = reframeDraft[key];
@@ -1948,7 +1973,11 @@ function LayoutPanel() {
     setDetecting(true);
     // #348: confine sampling to the open clip's footage so the proposal
     // reflects THIS clip's framing, not somewhere else in the recording.
-    const segs = useEditorStore.getState().nleSegments || [];
+    // #349: a section-scoped draft samples only that section's footage.
+    const es = useEditorStore.getState();
+    const allSegs = es.nleSegments || [];
+    const target = es.reframeDraft?.targetSegmentId;
+    const segs = target ? allSegs.filter((sg) => sg.id === target) : allSegs;
     const ranges = segs
       .map((sg) => ({ start: sg.sourceStart, end: sg.sourceEnd }))
       .filter((r) => Number.isFinite(r.start) && Number.isFinite(r.end) && r.end > r.start);
@@ -2081,16 +2110,47 @@ function LayoutPanel() {
   const hasOverride = !!clip && clip.reframe !== undefined;
   const othersHaveOverrides = (project.clips || []).some((c) => c.id !== clip?.id && c.reframe !== undefined);
 
+  // #349: section scope only means something once the clip has a cut. Under
+  // it, the panel describes and edits the section under the playhead.
+  const hasSections = nleSegments.length > 1;
+  const sectionScope = hasSections && layoutScope === "section";
+  const playheadSeg = sectionScope ? nleSegments.find((s) => s.id === playheadSegId) || null : null;
+  const sectionHasOverride = !!playheadSeg && playheadSeg.reframe !== undefined;
+  const sectionOverrideCount = nleSegments.filter((s) => s.reframe !== undefined).length;
+  // What the panel is looking at: the section's effective layout, or the clip's.
+  const shown = playheadSeg ? resolveSegmentReframe(playheadSeg, clip, project) : effective;
+  const scopeControl = hasSections && (
+    <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5">
+      {[["section", "This section"], ["clip", "This clip"]].map(([k, label]) => (
+        <button
+          key={k}
+          onClick={() => setLayoutScope(k)}
+          className={`flex-1 text-[12px] px-2 py-1 rounded transition-colors ${
+            layoutScope === k ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
   // ── Calibrating ──
   if (reframeDraft) {
     const style = reframeDraft.style; // seeded by beginReframeDraft — always present
     // #164 B3: preset chips on a fresh draft (nothing saved/linked yet), after
     // a 'nocam' detection, or while editing an already game-only layout.
-    const showPresets = (!reframeDraft.layoutId && !effective) || nocamDetected || reframeDraft.camRect === null;
+    const showPresets = (!reframeDraft.layoutId && !shown) || nocamDetected || reframeDraft.camRect === null;
     return (
       <div className="p-3 space-y-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Click a box on the preview to select it, then drag or resize — purple is your webcam, cyan is the game. The result updates live below.
+          {/* #349: the target was captured when calibration began. */}
+          {hasSections && (
+            <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
+              {reframeDraft.targetSegmentId ? "This section" : "This clip"}
+            </span>
+          )}
         </p>
 
         <div className="space-y-2">
@@ -2189,25 +2249,49 @@ function LayoutPanel() {
   }
 
   // ── Layout active, not calibrating ──
-  if (effective) {
-    const activeName = savedLayouts.find((l) => l.id === effective.layoutId)?.name;
+  if (shown) {
+    const activeName = savedLayouts.find((l) => l.id === shown.layoutId)?.name;
+    const clipName = savedLayouts.find((l) => l.id === effective?.layoutId)?.name;
     return (
       <div className="p-3 space-y-3">
+        {scopeControl}
         <p className="text-xs text-muted-foreground leading-relaxed">
-          {activeName ? <><span className="text-foreground font-medium">{activeName}</span> is active — preview and renders use it.</> : "Vertical layout active — preview and renders use it."}
-          {/* #348: scope chip — which clips this layout governs. */}
-          <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
-            {hasOverride ? "This clip only" : "All clips"}
-          </span>
+          {sectionScope ? (
+            // #349: describing the section under the playhead.
+            sectionHasOverride ? (
+              <>
+                {activeName
+                  ? <><span className="text-foreground font-medium">{activeName}</span> is this section's own layout</>
+                  : "This section has its own layout"}
+                {effective
+                  ? <> — the rest of the clip uses {clipName ? <span className="text-foreground">{clipName}</span> : "the clip layout"}.</>
+                  : "."}
+              </>
+            ) : (
+              <>This section follows the clip layout{activeName ? <> (<span className="text-foreground font-medium">{activeName}</span>)</> : ""}. Apply one here to change the picture from this cut.</>
+            )
+          ) : (
+            <>
+              {activeName ? <><span className="text-foreground font-medium">{activeName}</span> is active — preview and renders use it.</> : "Vertical layout active — preview and renders use it."}
+              {/* #348: scope chip — which clips this layout governs. */}
+              <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
+                {hasOverride ? "This clip only" : "All clips"}
+              </span>
+              {/* #349: sections that break from it. */}
+              {sectionOverrideCount > 0 && (
+                <> {sectionOverrideCount === 1 ? "One section has its" : `${sectionOverrideCount} sections have their`} own layout.</>
+              )}
+            </>
+          )}
         </p>
 
         <Button size="sm" variant="outline" className="w-full h-8 text-xs" onClick={() => beginReframeDraft()}>
-          Edit layout
+          {sectionScope && !sectionHasOverride ? "Set up layout for this section" : "Edit layout"}
         </Button>
 
         {/* #348: promote this clip's layout to the whole project (clears every
             per-clip override). Only shown when overrides make it meaningful. */}
-        {(hasOverride || othersHaveOverrides) && (
+        {!sectionScope && (hasOverride || othersHaveOverrides || sectionOverrideCount > 0) && (
           <Button
             size="sm" variant="outline" onClick={handleApplyAll} disabled={applyingAll || removing}
             className="w-full h-8 text-xs"
@@ -2224,7 +2308,7 @@ function LayoutPanel() {
             defaultLayoutId={defaultLayoutId}
             sourceWidth={project.sourceWidth}
             sourceHeight={project.sourceHeight}
-            linkedLayoutId={effective.layoutId ?? null}
+            linkedLayoutId={shown.layoutId ?? null}
             applying={applyingSavedLayout}
             onApply={handleApplySavedLayout}
             onSetDefault={handleSetDefaultLayout}
@@ -2232,10 +2316,38 @@ function LayoutPanel() {
           />
         )}
 
-        {/* #348: remove actions depend on scope. An override over a project
+        {/* #349: section scope — the section's own layout can fall back to the
+            clip's or go raw; a section that follows the clip can only go raw. */}
+        {sectionScope ? (
+          sectionHasOverride ? (
+            <div className="flex gap-1.5">
+              <Button
+                size="sm" variant="ghost" onClick={handleUseClipLayoutForSection}
+                className="flex-1 h-7 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {effective ? "Use clip layout" : "Remove for this section"}
+              </Button>
+              {effective && (
+                <Button
+                  size="sm" variant="ghost" onClick={handleDisableForSection}
+                  className="flex-1 h-7 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  No layout for this section
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button
+              size="sm" variant="ghost" onClick={handleDisableForSection}
+              className="w-full h-7 text-xs text-muted-foreground hover:text-destructive"
+            >
+              No layout for this section
+            </Button>
+          )
+        ) : /* #348: remove actions depend on scope. An override over a project
             layout can fall back OR go raw; an inherited layout can be dropped
-            for just this clip or for the whole project. */}
-        {hasOverride ? (
+            for just this clip or for the whole project. */
+        hasOverride ? (
           project.reframe ? (
             <div className="flex gap-1.5">
               <Button
@@ -2287,18 +2399,39 @@ function LayoutPanel() {
     Math.abs(project.sourceWidth / project.sourceHeight - 9 / 16) < 0.01
   );
   const ignoredName = savedLayouts.find((l) => l.id === project.reframe?.layoutId)?.name;
+  const clipLayoutName = savedLayouts.find((l) => l.id === effective?.layoutId)?.name;
   return (
     <div className="p-3 space-y-3">
+      {scopeControl}
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Set up the vertical layout — webcam on top, game below, blurred fill — and this clip renders as a vertical short.
+        {sectionScope
+          ? "Set up a layout for this section — the picture changes at this cut and switches back at the next."
+          : "Set up the vertical layout — webcam on top, game below, blurred fill — and this clip renders as a vertical short."}
       </p>
       {alreadyVertical && (
         <p className="text-xs text-muted-foreground/70 leading-relaxed">
           This recording is already vertical (9:16), so it renders as-is — a layout is optional here.
         </p>
       )}
+      {/* #349: this section opted out of a clip layout that exists. */}
+      {sectionScope && sectionHasOverride && effective && (
+        <div className="space-y-1.5 rounded-md border border-border/40 px-2.5 py-2">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This section ignores the clip layout{clipLayoutName ? <> (<span className="text-foreground">{clipLayoutName}</span>)</> : ""}.
+          </p>
+          <Button size="sm" variant="outline" onClick={handleUseClipLayoutForSection} className="w-full h-7 text-xs">
+            Use clip layout
+          </Button>
+        </div>
+      )}
+      {/* #349: no clip layout, but some sections carry their own. */}
+      {!sectionScope && sectionOverrideCount > 0 && (
+        <p className="text-xs text-muted-foreground/70 leading-relaxed">
+          {sectionOverrideCount === 1 ? "One section has its" : `${sectionOverrideCount} sections have their`} own layout — switch to <span className="text-foreground">This section</span> to see it.
+        </p>
+      )}
       {/* #348: clip explicitly opted out of an existing project layout. */}
-      {clip?.reframe === null && project.reframe && (
+      {!sectionScope && clip?.reframe === null && project.reframe && (
         <div className="space-y-1.5 rounded-md border border-border/40 px-2.5 py-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
             This clip ignores the project layout{ignoredName ? <> (<span className="text-foreground">{ignoredName}</span>)</> : ""}.
@@ -2312,7 +2445,7 @@ function LayoutPanel() {
         </div>
       )}
       <Button size="sm" onClick={() => beginReframeDraft()} className="w-full h-9 text-xs">
-        Set up vertical layout
+        {sectionScope ? "Set up layout for this section" : "Set up vertical layout"}
       </Button>
       {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
       {savedLayouts.length > 0 && (

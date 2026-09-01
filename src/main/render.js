@@ -9,7 +9,7 @@ const { resolvePlacements } = require("../renderer/editor/models/audioPlacements
 const { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } = require("../renderer/editor/models/mediaPlacements");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
-const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe } = require("../renderer/editor/utils/reframeStyle");
+const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe } = require("../renderer/editor/utils/reframeStyle");
 
 /**
  * Probe a video file for its FPS using ffprobe.
@@ -48,21 +48,33 @@ function probeFps(filePath) {
  * @returns {Promise<number>} width in px, or 0 if the probe fails
  */
 function probeWidth(filePath) {
+  return probeDims(filePath).then((d) => d.w);
+}
+
+/**
+ * Probe a video file for its frame width AND height (#349). A raw section
+ * inside a clip with mixed layouts letterboxes the whole frame, which needs
+ * both dims; projects saved before the probe fields existed have neither.
+ * @param {string} filePath
+ * @returns {Promise<{w: number, h: number}>} px, or 0/0 if the probe fails
+ */
+function probeDims(filePath) {
   return new Promise((resolve) => {
     const proc = spawn(FFPROBE_BIN, [
       "-v", "error",
       "-select_streams", "v:0",
-      "-show_entries", "stream=width",
+      "-show_entries", "stream=width,height",
       "-of", "csv=p=0",
       filePath,
     ]);
     let stdout = "";
     proc.stdout.on("data", (d) => (stdout += d.toString()));
     proc.on("close", (code) => {
-      const w = parseInt(stdout.trim(), 10);
-      resolve(code !== 0 || isNaN(w) || w <= 0 ? 0 : w);
+      const [w, h] = stdout.trim().split(",").map((v) => parseInt(v, 10));
+      const ok = code === 0 && w > 0 && h > 0;
+      resolve(ok ? { w, h } : { w: 0, h: 0 });
     });
-    proc.on("error", () => resolve(0));
+    proc.on("error", () => resolve({ w: 0, h: 0 }));
   });
 }
 
@@ -182,6 +194,86 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
 }
 
 /**
+ * Emit the vertical-composite stage of the graph: `[inLabel]` (source-sized
+ * frames) → `[outLabel]` (1080x1920 yuv420p). Intermediate labels are
+ * `${p}cam_in`, `${p}t2` etc, so with p="rf_" the text is exactly the pre-#349
+ * single-composite graph, and per-section runs (#349, p="rf<i>_") can't
+ * collide. `geo` comes from computeReframeGeometry and must be non-null.
+ */
+function emitReframeComposite(filters, inLabel, outLabel, geo, style, p) {
+  const { cam, game, camBand, gameBand } = geo;
+
+  if (!cam && gameBand >= 1916) {
+    // #164 B3 fully-zoomed: no cam and the game band covers the whole 1920
+    // frame — one crop+scale, no bg/feather stages (nothing behind the band
+    // is visible). Within ±4px of 1920 the forced scale absorbs rounding
+    // slop from near-9:16 rects; taller bands instead crop to the centered
+    // 1920 window (scaling those down would visibly distort).
+    const fill = gameBand <= 1924
+      ? "scale=1080:1920"
+      : `scale=1080:${gameBand},crop=1080:1920:0:${(gameBand - 1920) / 2}`;
+    filters.push(`[${inLabel}]crop=${game.w}:${game.h}:${game.x}:${game.y},${fill},format=yuv420p,setsar=1[${outLabel}]`);
+    return;
+  }
+
+  // #164 polish: the game band's bottom edge alpha-fades into the bg instead
+  // of a hard seam. floor(gameBand/4)*2 caps featherH at gameBand/2,
+  // so gameBand-featherH can never go negative; the even height also keeps the
+  // 4:2:0 crop legal. Skipped when the bands already fill the whole 1920 frame
+  // (nothing below to fade into). seamPx derives from the user's seamSize 0-25
+  // slider (percent of 1920) instead of a fixed constant; seamSize=10 reproduces
+  // the pre-style-controls 192px feather exactly.
+  const seamPx = 2 * Math.round((1920 * style.seamSize / 100) / 2);
+  const featherH = camBand + gameBand <= 1920 - 4
+    ? Math.min(seamPx, Math.floor(gameBand / 4) * 2)
+    : 0;
+  // #164 B3: with no cam the game band centers vertically in the frame.
+  // camBand is 0 there, so cam layouts keep the exact pre-B3 filter text
+  // (gameY === camBand) — parity by construction.
+  const gameY = cam ? camBand : (1920 - gameBand) / 2;
+
+  if (cam) {
+    filters.push(`[${inLabel}]split=3[${p}cam_in][${p}game_in][${p}bg_in]`);
+    filters.push(`[${p}cam_in]crop=${cam.w}:${cam.h}:${cam.x}:${cam.y},scale=1080:${camBand}[${p}cam]`);
+  } else {
+    filters.push(`[${inLabel}]split=2[${p}game_in][${p}bg_in]`);
+  }
+  filters.push(`[${p}game_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:${gameBand}[${p}game]`);
+  // Stronger blur + an optional limited-range darken lut so the bg reads as a soft
+  // backdrop behind the sharp bands (mirrors style.darken in the preview
+  // compositor): luma scales toward 16, chroma toward neutral 128 — the
+  // legal-range equivalent of compositing black at style.darken% alpha.
+  // format=yuv420p guards the 8-bit lut constants against 10-bit sources.
+  // boxblur/lutyuv stages are dropped entirely at blur=0/darken=0 — boxblur
+  // rejects a 0 radius, and an identity lutyuv is just wasted decode cost.
+  const win = bgSourceWindow(game, style);
+  const boxblurRadius = bgBoxblurRadius(style.blur);
+  const darkenK = +((1 - style.darken / 100).toFixed(4));
+  let bgChain = `crop=${win.w}:${win.h}:${win.x}:${win.y},scale=270:480,`;
+  if (boxblurRadius >= 1) bgChain += `boxblur=${boxblurRadius}:2,`;
+  bgChain += `scale=1080:1920,format=yuv420p,setsar=1`;
+  if (style.darken > 0) bgChain += `,lutyuv=y=16+(val-16)*${darkenK}:u=128+(val-128)*${darkenK}:v=128+(val-128)*${darkenK}`;
+  filters.push(`[${p}bg_in]${bgChain}[${p}bg]`);
+  // With no cam the game band composites straight onto the bg.
+  let below = `${p}bg`;
+  if (cam) {
+    filters.push(`[${p}bg][${p}cam]overlay=0:0[${p}t1]`);
+    below = `${p}t1`;
+  }
+  if (featherH >= 8) {
+    // geq only runs on the 1080×featherH strip, so per-frame cost is negligible.
+    filters.push(`[${p}game]split[${p}g_top_in][${p}g_btm_in]`);
+    filters.push(`[${p}g_top_in]crop=1080:${gameBand - featherH}:0:0[${p}g_top]`);
+    filters.push(`[${p}g_btm_in]crop=1080:${featherH}:0:${gameBand - featherH},format=yuva444p,geq=lum=lum(X\\,Y):cb=cb(X\\,Y):cr=cr(X\\,Y):a=255*(1-Y/${featherH})[${p}g_btm]`);
+    filters.push(`[${below}][${p}g_top]overlay=0:${gameY}[${p}t1b]`);
+    filters.push(`[${p}t1b][${p}g_btm]overlay=0:${gameY + gameBand - featherH}[${p}t2]`);
+  } else {
+    filters.push(`[${below}][${p}game]overlay=0:${gameY}[${p}t2]`);
+  }
+  filters.push(`[${p}t2]format=yuv420p[${outLabel}]`);
+}
+
+/**
  * Build FFmpeg filter_complex for NLE segment assembly.
  *
  * Inputs are pre-seeked per segment (`-ss <start> -t <dur>` BEFORE each `-i`,
@@ -230,11 +322,25 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   const n = nleSegments.length;
   const filters = [];
 
+  // #349: one effective layout per section. Callers that know the sections
+  // (renderClip) pass `opts.segmentReframes` aligned to nleSegments; everyone
+  // else (thumbnail, tests, render:batch) gets today's behaviour — the one
+  // `reframe` for every section. A clip is "mixed" only when its sections
+  // resolve to different LOOKS (value comparison, layoutId ignored); a clip
+  // whose sections all agree takes the pre-#349 graph unchanged.
+  const segReframes = Array.isArray(opts.segmentReframes) && opts.segmentReframes.length === n
+    ? opts.segmentReframes
+    : nleSegments.map(() => reframe);
+  const anyActive = segReframes.some((r) => isReframeActive(r));
+  const mixed = n > 1 && anyActive && !segReframes.every((r) => sameReframeLook(r, segReframes[0]));
+
+  let videoLabel = "base_v";
+  let composited = false;
   if (n === 1) {
     // Single segment: input 0 is already the trimmed range — normalize PTS only
     filters.push(`[0:v]setpts=PTS-STARTPTS[base_v]`);
     if (withAudio) filters.push(`[0:a]asetpts=PTS-STARTPTS[base_a]`);
-  } else {
+  } else if (!mixed) {
     // Multi-segment: each input is one pre-seeked segment — normalize + concat
     for (let i = 0; i < n; i++) {
       filters.push(`[${i}:v]setpts=PTS-STARTPTS[v${i}]`);
@@ -242,84 +348,39 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     }
     const concatInputs = Array.from({ length: n }, (_, i) => `[v${i}][a${i}]`).join("");
     filters.push(`${concatInputs}concat=n=${n}:v=1:a=1[base_v][base_a]`);
+  } else {
+    // #349 mixed layouts: composite each section on its own, THEN concat the
+    // 1080x1920 results. A section that resolves to no layout still bakes the
+    // vertical frame — whole picture letterboxed over the blurred backdrop,
+    // borrowing the first laid-out section's style — so the output never
+    // changes size at a cut (the subtitle canvas is one size per clip).
+    if (!(sourceWidth > 0 && sourceHeight > 0)) {
+      throw new Error("Mixed section layouts need the source dimensions (probe them before building the graph)");
+    }
+    const donorStyle = resolveReframeStyle(segReframes.find((r) => isReframeActive(r)).style);
+    for (let i = 0; i < n; i++) {
+      filters.push(`[${i}:v]setpts=PTS-STARTPTS[v${i}]`);
+      filters.push(`[${i}:a]asetpts=PTS-STARTPTS[a${i}]`);
+      const rf = isReframeActive(segReframes[i])
+        ? segReframes[i]
+        : fitToScreenReframe(sourceWidth, sourceHeight, donorStyle);
+      const geo = computeReframeGeometry(rf, sourceWidth, sourceHeight);
+      emitReframeComposite(filters, `v${i}`, `v${i}_rf`, geo, resolveReframeStyle(rf.style), `rf${i}_`);
+    }
+    const concatInputs = Array.from({ length: n }, (_, i) => `[v${i}_rf][a${i}]`).join("");
+    filters.push(`${concatInputs}concat=n=${n}:v=1:a=1[base_out][base_a]`);
+    videoLabel = "base_out";
+    composited = true;
   }
 
   // #164: reframe branch. Inactive reframe is a no-op — videoLabel stays
   // base_v and the filter string is byte-identical to pre-#164 output.
-  let videoLabel = "base_v";
-  const geo = computeReframeGeometry(reframe, sourceWidth, sourceHeight);
-  if (geo) {
-    const { cam, game, camBand, gameBand } = geo;
-    const style = resolveReframeStyle(reframe && reframe.style);
-
-    if (!cam && gameBand >= 1916) {
-      // #164 B3 fully-zoomed: no cam and the game band covers the whole 1920
-      // frame — one crop+scale, no bg/feather stages (nothing behind the band
-      // is visible). Within ±4px of 1920 the forced scale absorbs rounding
-      // slop from near-9:16 rects; taller bands instead crop to the centered
-      // 1920 window (scaling those down would visibly distort).
-      const fill = gameBand <= 1924
-        ? "scale=1080:1920"
-        : `scale=1080:${gameBand},crop=1080:1920:0:${(gameBand - 1920) / 2}`;
-      filters.push(`[base_v]crop=${game.w}:${game.h}:${game.x}:${game.y},${fill},format=yuv420p,setsar=1[base_out]`);
+  if (!mixed) {
+    const geo = computeReframeGeometry(segReframes[0], sourceWidth, sourceHeight);
+    if (geo) {
+      emitReframeComposite(filters, "base_v", "base_out", geo, resolveReframeStyle(segReframes[0].style), "rf_");
       videoLabel = "base_out";
-    } else {
-    // #164 polish: the game band's bottom edge alpha-fades into the bg instead
-    // of a hard seam. floor(gameBand/4)*2 caps featherH at gameBand/2,
-    // so gameBand-featherH can never go negative; the even height also keeps the
-    // 4:2:0 crop legal. Skipped when the bands already fill the whole 1920 frame
-    // (nothing below to fade into). seamPx derives from the user's seamSize 0-25
-    // slider (percent of 1920) instead of a fixed constant; seamSize=10 reproduces
-    // the pre-style-controls 192px feather exactly.
-    const seamPx = 2 * Math.round((1920 * style.seamSize / 100) / 2);
-    const featherH = camBand + gameBand <= 1920 - 4
-      ? Math.min(seamPx, Math.floor(gameBand / 4) * 2)
-      : 0;
-    // #164 B3: with no cam the game band centers vertically in the frame.
-    // camBand is 0 there, so cam layouts keep the exact pre-B3 filter text
-    // (gameY === camBand) — parity by construction.
-    const gameY = cam ? camBand : (1920 - gameBand) / 2;
-
-    if (cam) {
-      filters.push(`[base_v]split=3[rf_cam_in][rf_game_in][rf_bg_in]`);
-      filters.push(`[rf_cam_in]crop=${cam.w}:${cam.h}:${cam.x}:${cam.y},scale=1080:${camBand}[rf_cam]`);
-    } else {
-      filters.push(`[base_v]split=2[rf_game_in][rf_bg_in]`);
-    }
-    filters.push(`[rf_game_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:${gameBand}[rf_game]`);
-    // Stronger blur + an optional limited-range darken lut so the bg reads as a soft
-    // backdrop behind the sharp bands (mirrors style.darken in the preview
-    // compositor): luma scales toward 16, chroma toward neutral 128 — the
-    // legal-range equivalent of compositing black at style.darken% alpha.
-    // format=yuv420p guards the 8-bit lut constants against 10-bit sources.
-    // boxblur/lutyuv stages are dropped entirely at blur=0/darken=0 — boxblur
-    // rejects a 0 radius, and an identity lutyuv is just wasted decode cost.
-    const win = bgSourceWindow(game, style);
-    const boxblurRadius = bgBoxblurRadius(style.blur);
-    const darkenK = +((1 - style.darken / 100).toFixed(4));
-    let bgChain = `crop=${win.w}:${win.h}:${win.x}:${win.y},scale=270:480,`;
-    if (boxblurRadius >= 1) bgChain += `boxblur=${boxblurRadius}:2,`;
-    bgChain += `scale=1080:1920,format=yuv420p,setsar=1`;
-    if (style.darken > 0) bgChain += `,lutyuv=y=16+(val-16)*${darkenK}:u=128+(val-128)*${darkenK}:v=128+(val-128)*${darkenK}`;
-    filters.push(`[rf_bg_in]${bgChain}[rf_bg]`);
-    // With no cam the game band composites straight onto the bg.
-    let below = "rf_bg";
-    if (cam) {
-      filters.push(`[rf_bg][rf_cam]overlay=0:0[rf_t1]`);
-      below = "rf_t1";
-    }
-    if (featherH >= 8) {
-      // geq only runs on the 1080×featherH strip, so per-frame cost is negligible.
-      filters.push(`[rf_game]split[rf_g_top_in][rf_g_btm_in]`);
-      filters.push(`[rf_g_top_in]crop=1080:${gameBand - featherH}:0:0[rf_g_top]`);
-      filters.push(`[rf_g_btm_in]crop=1080:${featherH}:0:${gameBand - featherH},format=yuva444p,geq=lum=lum(X\\,Y):cb=cb(X\\,Y):cr=cr(X\\,Y):a=255*(1-Y/${featherH})[rf_g_btm]`);
-      filters.push(`[${below}][rf_g_top]overlay=0:${gameY}[rf_t1b]`);
-      filters.push(`[rf_t1b][rf_g_btm]overlay=0:${gameY + gameBand - featherH}[rf_t2]`);
-    } else {
-      filters.push(`[${below}][rf_game]overlay=0:${gameY}[rf_t2]`);
-    }
-    filters.push(`[rf_t2]format=yuv420p[base_out]`);
-    videoLabel = "base_out";
+      composited = true;
     }
   }
 
@@ -347,7 +408,7 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   const mediaAssets = opts.mediaAssets || [];
   if (mediaAssets.length > 0) {
     // Reframe always bakes 1080x1920; otherwise the output IS the source frame.
-    const outW = geo ? 1080 : (opts.outputWidth > 0 ? opts.outputWidth : 1080);
+    const outW = composited ? 1080 : (opts.outputWidth > 0 ? opts.outputWidth : 1080);
     mediaAssets.forEach((m, i) => {
       const tlStart = Math.max(0, m.tlStart || 0);
       const tlEnd = Math.max(tlStart, m.tlEnd || 0);
@@ -588,7 +649,23 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const sourceOk = sourceFile && fs.existsSync(sourceFile);
       const useNle = nleSegments.length > 0 && sourceOk;
       const reframe = resolveClipReframe(clipData, projectData); // #348: clip override > project layout
-      const reframeActive = isReframeActive(reframe); // #164
+      // #349: each section's own effective layout; on the NLE path "active"
+      // means ANY section bakes the vertical frame (that's what sizes the
+      // subtitle canvas and the overlay maths), not what the clip alone says.
+      const segReframes = nleSegments.map((s) => resolveSegmentReframe(s, clipData, projectData));
+      const reframeActive = useNle
+        ? segReframes.some((r) => isReframeActive(r))
+        : isReframeActive(reframe); // #164
+      // A raw section inside a laid-out clip letterboxes the whole frame, which
+      // needs real source dims — probe only in that case so every other render's
+      // clamp bounds (and therefore its args) stay exactly as they were.
+      let srcW = projectData.sourceWidth;
+      let srcH = projectData.sourceHeight;
+      if (reframeActive && useNle && segReframes.some((r) => !isReframeActive(r)) && !(srcW > 0 && srcH > 0)) {
+        const dims = await probeDims(sourceFile);
+        srcW = dims.w;
+        srcH = dims.h;
+      }
 
       // Resolve source: prefer NLE (source + segments). Only fall back to a
       // legacy clip MP4 if the source has gone offline. If neither path is
@@ -885,12 +962,13 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       if (useNle) {
         // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
         const { filterComplex, mapArgs } = buildNleFilterComplex(
-          nleSegments, hasFrames, reframe, projectData.sourceWidth, projectData.sourceHeight,
+          nleSegments, hasFrames, reframe, srcW, srcH,
           {
             audioAssets: activeAudioAssets,
             sourceMuted: clipData.sourceAudioMuted === true,
             mediaAssets: activeMediaAssets,
             outputWidth: mediaOutputWidth,
+            segmentReframes: segReframes, // #349
           }
         );
         args.push("-filter_complex", filterComplex);
@@ -1066,8 +1144,7 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
   const sourceFile = projectData.sourceFile;
   const sourceOk = sourceFile && fs.existsSync(sourceFile);
   const useNle = nleSegments.length > 0 && sourceOk;
-  const reframe = resolveClipReframe(clipData, projectData); // #348: clip override > project layout
-  const reframeActive = isReframeActive(reframe);
+  let reframe = resolveClipReframe(clipData, projectData); // #348: clip override > project layout
 
   let srcFile;
   if (useNle) srcFile = sourceFile;
@@ -1080,11 +1157,30 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
   // Clamp inside the clip so the seek always lands on a decodable frame
   const t = Math.max(0, Math.min(timelineTime || 0, Math.max(0, timelineDuration - 0.05)));
   let sourceTime;
+  let srcW = projectData.sourceWidth;
+  let srcH = projectData.sourceHeight;
+  let reframeActive;
   if (useNle) {
     const mapped = timelineToSource(t, nleSegments);
     sourceTime = mapped && mapped.found ? mapped.sourceTime : (nleSegments[0].sourceStart + t);
+    // #349: this instant belongs to ONE section — its layout is the one the
+    // export paints here, and the canvas rule follows the export too: a raw
+    // section of a clip that has a layout elsewhere is letterboxed, not raw.
+    const segIdx = mapped && mapped.found ? mapped.segmentIndex : 0;
+    const segReframes = nleSegments.map((s) => resolveSegmentReframe(s, clipData, projectData));
+    reframe = segReframes[segIdx];
+    reframeActive = segReframes.some((r) => isReframeActive(r));
+    if (reframeActive && !isReframeActive(reframe)) {
+      if (!(srcW > 0 && srcH > 0)) {
+        const dims = await probeDims(srcFile);
+        srcW = dims.w;
+        srcH = dims.h;
+      }
+      reframe = fitToScreenReframe(srcW, srcH, segReframes.find((r) => isReframeActive(r)).style);
+    }
   } else {
     sourceTime = (clipData.startTime || 0) + t;
+    reframeActive = isReframeActive(reframe);
   }
 
   const dir = path.dirname(outputPath);
@@ -1184,8 +1280,8 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
       [{ id: "thumb", sourceStart: sourceTime, sourceEnd: sourceTime + 1 }],
       !!overlayPng,
       reframe,
-      projectData.sourceWidth,
-      projectData.sourceHeight,
+      srcW,
+      srcH,
       { audio: false, mediaAssets, outputWidth: thumbOutputWidth }
     );
     args.push("-filter_complex", filterComplex, ...mapArgs, "-frames:v", "1", outputPath);
