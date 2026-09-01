@@ -1,60 +1,67 @@
-# HANDOFF — Session 226 (2026-09-01)
+# HANDOFF — Session 227 (2026-09-01)
 
 ## Current State
 
-**#347 fixed, committed (a344d9e), pushed — awaiting Fega's in-app verification,
-NOT yet in an installer.** Fega reported a clip titled identically to an
-already-published clip vanishing from the Queue tab and wearing a false
-"Published" badge. Root cause: three mirrored spots (QueueView list knockout,
-App.js badge count, ProjectsView `makePublishState`) matched clips against
-tracker entries by exact TITLE as well as clip id — a shim for the 26 id-less
-tracker entries from March 2026. All three now title-match only those id-less
-legacy entries. Also: the WYSIWYG Shorts thumbnail filename gained a clip-id
-tail so same-titled clips in one project can't clobber each other's PNG.
-No video files were ever overwritten (per-project folders + ` (2)` suffix
-guards held) — the damage was purely UI.
+**alpha.16 is cut, on the feed, and the update itself is CONFIRMED installed by Fega**
+("the update worked"). It promotes #348 (per-clip layouts + clip-aware Detect, this
+session) and #347 (same-titled-clip tracker fixes, s226). The FEATURES are not yet
+user-verified — both issues stay open with `status: untested`. Phase B (layout changes
+*within* one clip, per cut-point) is designed and parked as #349 with landmine notes.
 
 ## Key Decisions
 
-- **Title fallback scoped, not removed** — the 26 March-2026 id-less tracker
-  entries still need it; everything since carries `clipId` (verified in the
-  live store).
-- **Thumbnail stays title-led with an id tail** (`…_thumbnail_taum.png`) —
-  Fega browses the folder manually to upload, so a pure-id name was rejected
-  as hostile. Recapture still overwrites the clip's own file.
-- **No installer cut** — 1 change since alpha.15; batching per standing rule.
+- **`clip.reframe` is tri-state**: absent key = inherit `project.reframe`, `null` =
+  explicitly raw, object = override. Absent-key inheritance means zero migration and
+  byte-identical filter graphs for every existing project (proven E2E + unit-tested
+  same-reference resolver).
+- **Apply scope = this clip only** (Fega chose via 4-option Q&A); explicit "Apply to
+  all clips in this project" restores old behavior and strips every override in one
+  atomic save. Phase B sections align to NLE cut points, switches are instant.
+- **Dedicated validated IPC** (`project:updateClipReframe` with an `"inherit"` sentinel,
+  `project:applyReframeAllClips`) instead of riding the unvalidated `updateClip` merge.
+- **Autosave deliberately does NOT list `reframe`** — the `{...existing, ...updates}`
+  merge protects the override; adding it to `_doSilentSave`'s field list would race the
+  dedicated IPC. Never "fix" this by listing it.
 
 ## Next Steps
 
-1. **#347 verification by Fega** (needs next installer): title a new clip
-   identically to a published one, render → it must appear in the Queue with no
-   Published badge. Then close #347 (it will NOT auto-close — commit says
-   "(#347)", not "Fix #347").
-2. **#341** (content-type-aware rejection chips) and **#342** (ambient
-   background for non-editor tabs) — filed s223, still unbuilt.
-3. s225 leftovers: ALL-CAPS caption rule offer (unfiled); two #346 paths
-   logic-verified but never exercised live (merged schedule cell with a date,
-   over-limit tag blur-refusal).
+1. **Fega's feature check on #348** (~3 min): vertical-reaction project, tall Game box
+   around the vertical video on that one clip, confirm gaming clips keep theirs. Close
+   #348 + #347 (and drop the labels) on his confirmation.
+2. **#349 per-section layouts** — needs its own planning session before build.
+3. Backlog picks surfaced at session start if he wants another evening run: the
+   data-safety pair (#297 autosave-lies, #299 non-atomic DB — though #299 may be
+   partially addressed, `atomic-write.js` exists now; verify before starting), the
+   quick-wins bundle (#307, #304, #320, #303), and s223's #341/#342.
 
 ## Watch Out For
 
-- **His incident clips**: the new Pt5 clip was self-rescued by retitling to
-  `100T Vora is INSANE!!!` and is scheduled 2026-09-04 2:30 PM; the Pt4
-  original was re-rendered by Fega at 22:24 during his own investigation
-  (harmless). Don't "clean up" either.
-- The retitle-after-capture case still orphans the old thumbnail PNG under the
-  old name (path never stored on the clip — editor only toasts it). Remedy is
-  recapture; documented in the main.js comment.
-- `renameThumbnailTo`'s `_thumbnail` suffix branch no longer matches the new
-  `_thumbnail_<tail>` stems — fine today (nothing stores capture paths in
-  `thumbnailPath`), but if a future feature starts storing them, revisit.
+- **`buildNleFilterComplex` still applies ONE reframe after concat** — that inversion
+  (per-segment composite before concat) is the core of #349, along with
+  `splitAtSource`/`concatRecut` dropping unknown segment fields. Fix those WITH #349,
+  not before.
+- **Offer banner latch is clip-aware now**: any `clip.reframe !== undefined` on the open
+  clip latches the project as decided (PreviewPanelNew offer effect). The
+  `shouldOfferReframe` gate itself still takes `p.reframe` on purpose (project
+  onboarding semantics).
+- **`render:batch` is dead code** (zero renderer callers) but inherits the resolver via
+  `renderClip` — don't wire anything to it assuming it runs.
+- Layout-panel "Apply to all clips" only renders when an override exists somewhere
+  (`hasOverride || othersHaveOverrides`) — not missing, conditional.
 
 ## Logs/Debugging
 
-- Filter logic was proven against the REAL prod store read-only
-  (`%APPDATA%\clipflow\clipflow-settings.json` → 155 tracker entries, 26
-  id-less, all 2026-03-05→12): old filter hid the incident clip, new one
-  doesn't; legacy titles still knocked out; clip A still published-by-id.
-- Dev boot clean (`sess_8c82617f608b`): scheduler correctly disabled on dev,
-  window revealed, no errors; dev tokens still `{"accounts":{}}`; killed by
-  PID, Corva.exe daily driver untouched.
+- **First alpha.16 `npm run build` died at `editWindowsResources` → `writeFile`**
+  (open error on the exe — transient lock, likely AV overlap). Immediate identical
+  rerun succeeded. Not the s219 heap failure; flag was set. If it repeats, check what
+  holds `dist/win-unpacked/Corva.exe`.
+- **`public/detect-page.js` changes need `npm run build:renderer` even under dev** —
+  the hidden detect window loads `build/detect.html` from disk.
+- **Fixture technique that worked (and its correction):** copy a project dir into
+  `<scratch>/fixture/.clipflow/projects/`, repoint dev `projectsRoot`/`watchFolder`/
+  `outputFolder` (3 keys, originals saved to `dev-settings-orig.json`, restored after),
+  boot dev electron with CDP 9222. CORRECTION from Fega routed to code-review 0d +
+  memory: fixture projects must have ZERO approved/published clips (AR pool) — even
+  as copies. The s227 fixture (100T copy) violated this.
+- Detect-scoping proof reads straight from the boot log: `[ReframeDetect] sampling 8
+  frames @ [...] across N range(s)`.
