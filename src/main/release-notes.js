@@ -12,6 +12,18 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.16",
+    date: "2026-09-01",
+    added: [
+      "Layouts are now per clip. Applying a layout in the editor changes only the clip you're in — the rest of the project keeps its own look. The Layout panel shows whether the clip uses its own layout (\"This clip only\") or the project's (\"All clips\"), and a new \"Apply to all clips in this project\" button does what applying used to do. You can also switch a single clip's layout off entirely — handy when one clip needs a totally different framing, like a reaction to a vertical video.",
+      "\"Detect layout\" now studies the clip you have open instead of sampling the whole recording, so the boxes it proposes come from that clip's actual footage.",
+    ],
+    fixed: [
+      "A new clip that reuses a title you've already published no longer vanishes from the Queue and pretends it went out. It shows up and publishes like any other clip.",
+      "Two clips in the same project with the same title no longer overwrite each other's Shorts thumbnail when you use the editor's screenshot button.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.15",
     date: "2026-08-31",
     added: [

@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.16] — 2026-09-01 (session 227) — alpha.16: per-clip layouts and the same-titled clip fix
+
+### Changed
+- **Version bumped to 0.4.0-alpha.16 and an installer cut** on Fega's ask, promoting per-clip layouts + clip-aware layout detection (#348, session 227) and the same-titled-clip tracker fixes (#347, session 226).
+
 ## [Unreleased] — 2026-09-01 (session 227) — Per-clip layouts: one clip's layout no longer changes the whole project (#348)
 
 ### Added
