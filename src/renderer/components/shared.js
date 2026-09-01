@@ -228,8 +228,8 @@ export const InfoBanner = ({ color = T.accent, icon = "💡", children }) => (
   </div>
 );
 
-export const PageHeader = ({ title, subtitle, backAction, children }) => (
-  <div style={{ marginBottom: 28 }}>
+export const PageHeader = ({ title, subtitle, backAction, children, style }) => (
+  <div style={{ marginBottom: 28, ...style }}>
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
       {backAction && (
         <button onClick={backAction} style={{ background: T.surface, borderRadius: T.radius.md, padding: "10px 14px", color: T.textSecondary, fontSize: 16, border: `1px solid ${T.border}`, cursor: "pointer", fontFamily: T.font }}>←</button>

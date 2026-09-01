@@ -629,7 +629,7 @@ export default function QueueView({
   allClips, localProjects, setLocalProjects, mainGameTag, platforms, trackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, streamSchedule,
-  platformOptions, setPlatformOptions, gamesDb, streamingMode, onOpenInEditor, onCreateGame,
+  platformOptions, setPlatformOptions, gamesDb, setGamesDb, streamingMode, onOpenInEditor, onCreateGame,
   focusFailedSignal, onRepostClip,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
@@ -1808,12 +1808,15 @@ export default function QueueView({
     if (isPub) return { label: "Published", bg: "rgba(52,211,153,0.1)", color: T.green };
     if (isPublishing) return { label: "Publishing...", bg: "rgba(251,191,36,0.1)", color: T.yellow };
     if (isFailed) return { label: "Failed", bg: "rgba(248,113,113,0.1)", color: T.red };
+    // "Not rendered" outranks the schedule date (#346): a scheduled clip with no
+    // video can't publish, and the merged schedule/status cell already shows the
+    // date — the pill's job there is to say what the date can't.
+    if (!hasVideo) return { label: "Not rendered", bg: "rgba(251,191,36,0.1)", color: T.yellow };
     if (clip.scheduledAt) {
       const d = new Date(clip.scheduledAt);
       const label = `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
       return { label, bg: "rgba(251,191,36,0.1)", color: T.yellow };
     }
-    if (!hasVideo) return { label: "Not rendered", bg: "rgba(251,191,36,0.1)", color: T.yellow };
     return { label: "Queued", bg: T.accentDim, color: T.accentLight };
   };
 
@@ -1826,7 +1829,7 @@ export default function QueueView({
 
   return (
     <div onDragEnter={handleImportDragEnter} onDragOver={handleImportDragOver} onDragLeave={handleImportDragLeave} onDrop={handleImportDrop}>
-      <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`}>
+      <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} style={{ marginBottom: 18 }}>
         {/* #329: "I am about to stream" - drop the UI now rather than hunting for the
             window close. Only offered when the setting is on, because with it off this
             would just quit the app. */}
@@ -1885,31 +1888,31 @@ export default function QueueView({
           `minmax(0,1fr)` (not `1fr`) is load-bearing — the queue rows are full of
           nowrap/ellipsis text that would otherwise push the track wider than the
           window and shove the panel off-screen. */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 372px", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 440px", gap: 18, alignItems: "start" }}>
         <div style={{ minWidth: 0 }}>
 
       {/* Stats bar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
-        <Card style={{ padding: "14px 16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+        <Card style={{ padding: "10px 14px" }}>
           <SectionLabel>Unscheduled</SectionLabel>
-          <div style={{ color: T.accentLight, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{unscheduledClips.length}</div>
+          <div style={{ color: T.accentLight, fontSize: 22, fontWeight: 800, fontFamily: T.mono, marginTop: 2 }}>{unscheduledClips.length}</div>
         </Card>
-        <Card style={{ padding: "14px 16px" }}>
+        <Card style={{ padding: "10px 14px" }}>
           <SectionLabel>Scheduled</SectionLabel>
-          <div style={{ color: T.yellow, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{scheduledClips.length}</div>
+          <div style={{ color: T.yellow, fontSize: 22, fontWeight: 800, fontFamily: T.mono, marginTop: 2 }}>{scheduledClips.length}</div>
         </Card>
-        <Card style={{ padding: "14px 16px" }}>
+        <Card style={{ padding: "10px 14px" }}>
           <SectionLabel>Published Today</SectionLabel>
-          <div style={{ color: T.green, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{publishedToday}</div>
+          <div style={{ color: T.green, fontSize: 22, fontWeight: 800, fontFamily: T.mono, marginTop: 2 }}>{publishedToday}</div>
         </Card>
-        <Card style={{ padding: "14px 16px" }}>
+        <Card style={{ padding: "10px 14px" }}>
           <SectionLabel>Failed</SectionLabel>
-          <div style={{ color: T.red, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{failedCount}</div>
+          <div style={{ color: T.red, fontSize: 22, fontWeight: 800, fontFamily: T.mono, marginTop: 2 }}>{failedCount}</div>
         </Card>
       </div>
 
       {/* Phase 5: Filter bar */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.06em" }}>Filter:</span>
         <Select value={filterStatus} onChange={setFilterStatus} options={[
           { value: "all", label: "All" },
@@ -2046,7 +2049,7 @@ export default function QueueView({
 
       {/* UNSCHEDULED SECTION */}
       {showUnscheduled && (
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}>
         {/* Section header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2066,7 +2069,7 @@ export default function QueueView({
           </button>
         </div>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 160px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 84px 150px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
           {["", "Clip", "Title", "Game", "Platforms", "Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
@@ -2105,14 +2108,14 @@ export default function QueueView({
                   {/* Table row */}
                   <div
                     onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 160px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 84px 150px", gap: 0, padding: "7px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
                     onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; setRowActions(e, true); }}
                     onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; setRowActions(e, false); }}
                   >
                     {/* Drag handle */}
                     <div {...listeners} onClick={(e) => e.stopPropagation()} style={{ cursor: "grab", color: T.textMuted, fontSize: 14 }}>{"\u2630"}</div>
                     {/* Thumbnail */}
-                    <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 28, height: 50, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {clip.thumbnailPath ? (
                         <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
@@ -2653,15 +2656,15 @@ export default function QueueView({
 
       {/* SCHEDULED SECTION */}
       {showScheduled && scheduledClips.length > 0 && (
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "rgba(251,191,36,0.03)", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.yellow }}>Scheduled</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted }}>{filteredScheduled.length} clip{filteredScheduled.length !== 1 ? "s" : ""}</span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 160px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
-          {["Clip", "Title", "Game", "Scheduled For", "Status", ""].map((h, i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 150px 150px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+          {["Clip", "Title", "Game", "Schedule / Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
         </div>
@@ -2687,12 +2690,12 @@ export default function QueueView({
             <div key={clip.id}>
               <div
                 onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 160px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 150px 150px", gap: 0, padding: "7px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
                 onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; setRowActions(e, true); }}
                 onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; setRowActions(e, false); }}
               >
                 {/* Thumbnail */}
-                <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 28, height: 50, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 16 }}>{"\uD83C\uDFAC"}</span>}
                 </div>
                 {/* Title */}
@@ -2701,10 +2704,14 @@ export default function QueueView({
                 </div>
                 {/* Game */}
                 <div>{gameTag && <GamePill tag={(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()} color={gameColorFor(clip)} size="sm" variant="solid" />}</div>
-                {/* Scheduled time */}
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.yellow }}>{formatSchedule(clip.scheduledAt)}</div>
-                {/* Status */}
-                <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
+                {/* Schedule / status — one cell (#346). Both columns used to render
+                    the same timestamp; the pill now only appears when it says
+                    something the date doesn't. */}
+                {isPub || isPublishing || isFailed || !hasVideoId ? (
+                  <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
+                ) : (
+                  <div style={{ fontSize: 11, fontWeight: 600, color: T.yellow }}>{formatSchedule(clip.scheduledAt)}</div>
+                )}
                 {/* Action */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                   <RowActions clip={clip} onOpenInEditor={onOpenInEditor} />
@@ -2809,7 +2816,7 @@ export default function QueueView({
       {showPublished && publishedClips.length > 0 && (() => {
         const expanded = publishedOpen || filterStatus === "published";
         return (
-          <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
+          <Card style={{ padding: "14px 20px", marginBottom: 14 }}>
             <div
               onClick={() => { setPublishedOpen(!expanded); if (expanded) setSelPublished(null); }}
               style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
@@ -2924,7 +2931,7 @@ export default function QueueView({
       })()}
 
       {/* PUBLISH LOG */}
-      <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
+      <Card style={{ padding: "14px 20px", marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <SectionLabel>Publish Log</SectionLabel>
           <button onClick={() => { setShowLogs(!showLogs); if (!showLogs) loadPublishLogs(); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{showLogs ? "Hide" : `Show (${publishLogs.length})`}</button>
@@ -2972,10 +2979,11 @@ export default function QueueView({
           platformOptions={platformOptions}
           setPlatformOptions={setPlatformOptions}
           gamesDb={gamesDb}
+          setGamesDb={setGamesDb}
           scopeGame={scopeGame}
         />
       </div>{/* /queue grid */}
-      <div style={{ height: 60 }} />
+      <div style={{ height: 24 }} />
     </div>
   );
 }

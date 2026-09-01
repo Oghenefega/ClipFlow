@@ -14,6 +14,14 @@ module.exports = [
   {
     version: "unreleased",
     date: "",
+    added: [
+      "Each game can now carry its own tag line for TikTok, Instagram and Facebook. Type it once on the new \"Game tags\" row in the Queue's captions panel — say #vct #100thieves #100T — and every clip of that game gets those tags added on all three platforms automatically. No more pasting the same hashtags into caption after caption.",
+    ],
+    changed: [
+      "The Queue tab got a layout pass: the Captions & Descriptions panel is wider, the stat cards and clip rows are tighter, and the page scrolls a lot less. Scheduled clips also stopped showing their date twice — one column now shows the date, or a status pill when something is actually happening (publishing, failed, published, not rendered).",
+      "Everything in the captions panel is click-to-edit now: click straight into the description, the tags, a platform template, or the game tag line, and clicking away saves it — a small \"Saved ✓\" confirms. Escape backs out without saving. The Edit buttons are gone, and the copy button sits next to the description where you'd look for it.",
+      "The automatic game hashtag in TikTok, Instagram and Facebook captions is now the game's full hashtag (like #100thieves) instead of its short code (like #1oot). The per-game YouTube Title box is gone from the panel — it never did anything; clips always publish under their own titles.",
+    ],
     fixed: [
       "AI captions no longer come back with a stray \" / \" in them. The slash was never meant to be text — it was how the AI was shown where a caption's line break goes, and it started typing it out literally. Captions now arrive with real line breaks, and the suggestion card shows them stacked the way they'll appear on the video.",
       "The three captions are no longer just the three titles reworded. Only the first card is deliberately shared between a title and a caption — the strongest line shouldn't be wasted on one surface — but cards two and three are now their own ideas, so a generation gives you five distinct angles instead of three.",

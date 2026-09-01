@@ -350,9 +350,9 @@ export default function App() {
   // and its catch both still flip hasLoaded — so on a settings-read failure
   // whatever sits here gets persisted as the user's own templates.
   const [captionTemplates, setCaptionTemplates] = useState({
-    tiktok: "{title} #{gametitle} #fyp #gamingontiktok",
-    instagram: "{title} #{gametitle} #reels #gamingreels",
-    facebook: "{title} #{gametitle} #gaming #fbreels",
+    tiktok: "{title} #{gametitle} #fyp #gamingontiktok {gametags}",
+    instagram: "{title} #{gametitle} #reels #gamingreels {gametags}",
+    facebook: "{title} #{gametitle} #gaming #fbreels {gametags}",
   });
   const [ytDescriptions, setYtDescriptions] = useState({});
   // #286: one stream-schedule string, referenced by templates as {schedule}.
@@ -1101,8 +1101,9 @@ export default function App() {
         </div>
         <div style={tabPaneStyle(view === "queue")}>
           {/* #324: the Queue is now two columns (list + Captions panel), so it
-              gets a wider ceiling than the 1120 the single column needed. */}
-          <div style={{ padding: "32px 40px", maxWidth: 1520, margin: "0 auto" }}>
+              gets a wider ceiling than the 1120 the single column needed.
+              #346: 1520 → 1600 so the widened Captions panel doesn't squeeze the list. */}
+          <div style={{ padding: "32px 40px", maxWidth: 1600, margin: "0 auto" }}>
             <QueueView
               allClips={allClips}
               localProjects={localProjects}
@@ -1121,6 +1122,7 @@ export default function App() {
               platformOptions={platformOptions}
               setPlatformOptions={setPlatformOptions}
               gamesDb={gamesDb}
+              setGamesDb={setGamesDb}
               streamingMode={streamingMode}
               onOpenInEditor={handleOpenQueueClipInEditor}
               onCreateGame={handleNewGame}

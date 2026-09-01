@@ -4,6 +4,29 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-31 (session 225) — Queue tab: wider captions panel, click-to-edit, per-game platform tags (#346)
+
+### Added
+- **Per-game tags for TikTok/Instagram/Facebook (#346).** New `captionTags` string on each gamesDb record plus a `{gametags}` placeholder resolved in `captionResolve.js` — in both branches, so YouTube descriptions can use it too. A boot migration appends ` {gametags}` to the three stored platform templates (idempotent contains-check) and backfills `captionTags: ""` on every game record; fresh-install defaults carry it already. Edited via a click-to-edit "Game tags" row in the captions panel — one line per game (e.g. `#vct #100thieves #100T`) fills into all three platform captions per clip, and a game with no tags substitutes cleanly with no leftover double space.
+
+### Changed
+- **Captions & Descriptions panel widened to 440px (was 372)** and the queue tab's width ceiling rose 1520 → 1600, absorbing the dead strip that sat to the panel's right.
+- **Queue tab densified.** Page-header margin 28 → 18 (PageHeader grew an optional `style` prop; other tabs unchanged), slimmer stat cards (22px numbers), section gaps 20-28 → 14, clip rows ~80px → ~65px (28×50 thumbnails, 7px row padding), trailing spacer 60 → 24 — the page reaches the Publish Log with far less scrolling.
+- **Scheduled rows show one Schedule / Status column instead of two.** The "Tue, Sep 1 at 12:30 PM" column and the "Sep 1 12:30 PM" pill were the same timestamp rendered twice; now the date shows normally and the pill appears only when it says something the date doesn't (Published / Publishing… / Failed / Not rendered — and "Not rendered" now outranks the date for a scheduled clip with no video). Scheduled grid `48px 1fr 70px 140px 90px 160px` → `48px 1fr 70px 150px 150px`; unscheduled status column 90 → 84 and the actions column 160 → 150 on both lists.
+- **The captions panel is click-to-edit throughout (#346).** Description, YouTube tags, the three platform templates, and the new Game tags row all open in place on click, save on click-away with a "Saved ✓" flash, and revert on Escape. The Edit/Cancel/Save buttons are gone (the YouTube header keeps only Del); Regenerate moved beside the DESCRIPTION label and seeds the starter text into the open editor so regenerating stays undoable; the description copy button moved from the header bar to beside the DESCRIPTION label, mirroring the TAGS row. Tags over YouTube's 500-character limit refuse the click-away save and keep the editor open with the red over-by-N message — nothing is silently lost or clamped.
+- **`#{gametitle}` now fills the game's full hashtag on every platform (#346).** TikTok/IG/FB substituted the clip's short game code (`#1oot`) while YouTube used the gamesDb hashtag (`#100thieves`); both branches now resolve through the game record with the short code only as fallback. Per-clip caption overrides are untouched — they win before resolution ever runs.
+
+### Removed
+- **The per-game YouTube TITLE field in the captions panel.** It saved what was typed but nothing ever read it — every publish path uses the clip's own title (`clip.youtubeTitle || clip.title`) — so it was write-only clutter. Stored `ytTitle` values remain harmlessly in place.
+
+### Fixed
+- **"Create one from the template" no longer crashes.** The empty-state button seeded TagInput with a string instead of an array (`"".map` throw); it now writes the starter description straight into `ytDescriptions` with no edit state involved.
+- **The captions panel's game pill can no longer silently lose its fill.** The colour fallback was `T.accent` — a `var()` string that GamePill's alpha-append turns into invalid, silently-dropped CSS (#328 rule) — replaced with a literal.
+
+### Notes
+- Verified on the built bundle under the dev profile via CDP at 1280×860: panel exactly 440px and fully on-screen with no horizontal scroll; merged Schedule / Status header live and the old "Scheduled For" header gone; unscheduled rows measured 65px; click-to-edit driven end-to-end for the description (Escape revert, blur-save persisted to the settings file), a platform template row, and the Game tags row, with the description editor stable across 5 open/close repeats. The resolver was unit-checked in node across 7 cases (full-hashtag substitution, tags appended, empty tags leaving no gap, mid-template `{gametags}`, unknown game, YouTube branch, per-clip override precedence). The migration was proven on the real dev store: `{gametags}` appended exactly once, 11 game records backfilled, and a second boot changed nothing. Not exercised live: a scheduled row rendering its date (the dev queue had no scheduled clips — verified via the DOM header and code logic) and the over-limit tag refusal (mirrors the #291 pattern).
+- No installer cut — rides the next batch; user-facing entries added to the unreleased release-notes entry. Tracked as #346, left open pending Fega's pass.
+
 ## [Unreleased] — 2026-08-31 (session 224) — Two AI caption bugs: the stray slash and the title/caption mirror
 
 ### Fixed

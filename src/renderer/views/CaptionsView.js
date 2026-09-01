@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
 import { CopyIconButton, GamePill, TagInput } from "../components/shared";
@@ -29,36 +29,55 @@ const FIELD = { width: "100%", background: "rgba(var(--lift),0.05)", border: `1p
  * The YouTube set is per-game, so scoping it is exact. TikTok/Instagram/Facebook
  * are ONE template each shared by every game — the panel labels them
  * "GLOBAL · ALL GAMES" rather than implying they belong to the scoped game.
- * (Making them per-game is a storage change; it is its own piece of work.)
+ * #346: what IS per-game for them is the tag line ({gametags}, gamesDb
+ * captionTags), edited on the Game tags row below the three templates.
+ *
+ * Every field is click-to-edit: clicking the preview opens the editor in place,
+ * clicking away saves, Escape backs out without saving (#346).
  *
  * This component only ever renders inside QueueView — it is not a route.
  */
-export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [], scopeGame = null }) {
+export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [], setGamesDb, scopeGame = null }) {
   // A game opened by hand from the "Other games" list. The selected clip always
   // wins, so this clears the moment the scoped game changes underneath it.
   const [pinned, setPinned] = useState(null);
   const [showOthers, setShowOthers] = useState(false);
-  const [editingYt, setEditingYt] = useState(false);
+  // #346: which YouTube field is open in place — null | "desc" | "tags".
+  const [editingField, setEditingField] = useState(null);
   const [editDesc, setEditDesc] = useState("");
-  const [editTitle, setEditTitle] = useState("");
   // Committed pills and the word still being typed, held apart so the counter
   // can price both (see TagInput in components/shared).
   const [editTags, setEditTags] = useState([]);
   const [editTagsDraft, setEditTagsDraft] = useState("");
   const [editPlat, setEditPlat] = useState(null);
   const [editTpl, setEditTpl] = useState("");
+  const [editingGameTags, setEditingGameTags] = useState(false);
+  const [editGameTags, setEditGameTags] = useState("");
+  // Which label just flashed "Saved ✓" — a blur-save has no button press, so it
+  // needs its own visible confirmation.
+  const [savedFlash, setSavedFlash] = useState(null);
+  const flashTimer = useRef(null);
+  const flash = (k) => { setSavedFlash(k); clearTimeout(flashTimer.current); flashTimer.current = setTimeout(() => setSavedFlash(null), 1600); };
+  useEffect(() => () => clearTimeout(flashTimer.current), []);
+  // Escape tears an editor down without saving; this flag makes the blur that
+  // follows a no-op (same trick TagInput uses internally).
+  const skipSave = useRef(false);
 
   const scopeName = scopeGame?.name || null;
-  useEffect(() => { setPinned(null); setEditingYt(false); }, [scopeName]);
+  useEffect(() => { setPinned(null); setEditingField(null); setEditPlat(null); setEditingGameTags(false); setSavedFlash(null); }, [scopeName]);
 
   const activeGame = pinned || scopeName;
   // The pill has to describe what the panel is SHOWING. scopeGame's tag/colour
   // belong to the selected clip, so a hand-opened game must resolve its own from
   // gamesDb — otherwise the header reads "RL" over Arc Raiders' description.
+  // Colour fallback is a literal, not T.accent — GamePill string-appends an
+  // alpha suffix, which silently drops a var() value (#328 rule; fixed in #346).
   const activeMeta = pinned
-    ? { tag: (gamesDb.find((g) => g.name === pinned)?.tag || pinned).toUpperCase(), color: gamesDb.find((g) => g.name === pinned)?.color || T.accent }
-    : { tag: (scopeGame?.tag || activeGame || "").toUpperCase(), color: scopeGame?.color || T.accent };
+    ? { tag: (gamesDb.find((g) => g.name === pinned)?.tag || pinned).toUpperCase(), color: gamesDb.find((g) => g.name === pinned)?.color || "#8b5cf6" }
+    : { tag: (scopeGame?.tag || activeGame || "").toUpperCase(), color: scopeGame?.color || "#8b5cf6" };
   const data = (activeGame && ytDescriptions[activeGame]) || null;
+  // The scoped game's gamesDb record — where the per-game tag line lives (#346).
+  const gameRecord = gamesDb.find((g) => g.name === activeGame) || null;
   const hasEntry = !!data;
   const otherGames = Object.keys(ytDescriptions).filter((g) => g !== activeGame).sort();
   // With nothing scoped there is no content above, so the list opens itself —
@@ -71,33 +90,46 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   const tagsLen = tagsLength(parsedTags);
   const tagsOver = tagsLen > TAGS_MAX;
 
-  const startEdit = () => {
-    setEditTitle(data?.ytTitle || (activeGame ? activeGame + " Shorts" : ""));
+  const startEditDesc = () => {
     setEditDesc(data?.desc || "");
+    setEditingField("desc");
+  };
+  const saveDesc = () => {
+    if (skipSave.current) { skipSave.current = false; setEditingField(null); return; }
+    setYtDescriptions((p) => ({ ...p, [activeGame]: { ...p[activeGame], desc: editDesc } }));
+    setEditingField(null);
+    flash("desc");
+  };
+
+  const startEditTags = () => {
     setEditTags(data?.tags || []);
     setEditTagsDraft("");
-    setEditingYt(true);
+    setEditingField("tags");
+  };
+  // TagInput hands the finished list to onCommitBlur — save from the argument,
+  // never from state. Over YouTube's 500-char budget the write is refused and
+  // the editor stays open (red) so nothing is silently lost or clamped.
+  const saveTags = (finalTags) => {
+    if (tagsLength(finalTags) > TAGS_MAX) return;
+    setYtDescriptions((p) => ({ ...p, [activeGame]: { ...p[activeGame], tags: finalTags } }));
+    setEditingField(null);
+    flash("tags");
   };
 
-  const handleSave = () => {
-    if (tagsOver) return;
-    setYtDescriptions((p) => ({
-      ...p,
-      [activeGame]: { ...p[activeGame], desc: editDesc, ytTitle: editTitle, tags: parsedTags },
-    }));
-    setEditingYt(false);
+  // The same starter description a newly-added game gets (App.js), for a legacy
+  // game that never received one.
+  const starterDesc = () => {
+    const hashtag = gameRecord?.hashtag || (activeGame || "").toLowerCase().replace(/\s+/g, "");
+    return buildStarterYtDescription(activeGame, hashtag);
   };
-
-  // Seeds the same starter description a newly-added game gets (App.js), for a
-  // legacy game that never received one. Without this a scoped panel for such a
-  // game would have nothing to show and no way forward.
+  // Seeds the starter into the OPEN editor rather than writing it — blur saves,
+  // Escape backs out, so regenerating over a real description stays undoable.
   const handleRegenerate = () => {
-    const entry = gamesDb.find((g) => g.name === activeGame);
-    const hashtag = entry?.hashtag || (activeGame || "").toLowerCase().replace(/\s+/g, "");
-    setEditDesc(buildStarterYtDescription(activeGame, hashtag));
+    setEditDesc(starterDesc());
+    setEditingField("desc");
   };
 
-  const openGame = (g) => { setPinned(g); setEditingYt(false); };
+  const openGame = (g) => { setPinned(g); setEditingField(null); setEditPlat(null); setEditingGameTags(false); };
 
   const yt = PLATFORM_BRAND.youtube;
 
@@ -128,95 +160,90 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
               <PlatformIcon platform="youtube" size={15} />
               <span style={{ fontSize: 12.5, fontWeight: 800, color: yt.accent }}>YouTube</span>
               <div style={{ marginLeft: "auto", display: "flex", gap: 5 }}>
-                {editingYt ? (
-                  <>
-                    <button onClick={() => setEditingYt(false)} style={BTN}>Cancel</button>
-                    <button
-                      onClick={handleSave}
-                      disabled={tagsOver}
-                      title={tagsOver ? "Tags are over YouTube's 500-character limit" : ""}
-                      style={{ ...BTN, background: tagsOver ? "rgba(var(--lift),0.06)" : T.green, border: "none", color: tagsOver ? T.textMuted : "#fff", cursor: tagsOver ? "not-allowed" : "pointer" }}
-                    >Save</button>
-                  </>
-                ) : hasEntry ? (
-                  <>
-                    <button onClick={startEdit} style={BTN}>Edit</button>
-                    <CopyIconButton value={data.desc} title="Copy description" />
-                    <button
-                      onClick={() => { setYtDescriptions((p) => { const n = { ...p }; delete n[activeGame]; return n; }); setPinned(null); }}
-                      title={`Delete ${activeGame}'s description`}
-                      style={{ ...BTN, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red }}
-                    >Del</button>
-                  </>
-                ) : null}
+                {hasEntry && (
+                  <button
+                    onClick={() => { setYtDescriptions((p) => { const n = { ...p }; delete n[activeGame]; return n; }); setPinned(null); }}
+                    title={`Delete ${activeGame}'s description`}
+                    style={{ ...BTN, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red }}
+                  >Del</button>
+                )}
               </div>
             </div>
 
-            {editingYt ? (
+            {hasEntry ? (
               <div style={{ padding: "0 15px 12px" }}>
-                <div style={{ ...LBL, margin: "10px 0 5px" }}>Title</div>
-                <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={FIELD} />
-
-                <div style={{ display: "flex", alignItems: "center", margin: "12px 0 5px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "11px 0 5px" }}>
                   <div style={LBL}>Description</div>
-                  <button onClick={handleRegenerate} style={{ marginLeft: "auto", padding: "3px 9px", borderRadius: 6, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>
+                  {!!data.desc && <CopyIconButton value={data.desc} title="Copy description" />}
+                  <button onClick={handleRegenerate} style={{ padding: "2px 8px", borderRadius: 6, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>
                     Regenerate
                   </button>
+                  {savedFlash === "desc" && <span style={{ fontSize: 10, fontWeight: 700, color: T.green }}>Saved ✓</span>}
+                  <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary }}>{(editingField === "desc" ? editDesc : data.desc || "").length} chars</span>
                 </div>
-                <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={9} style={{ ...FIELD, lineHeight: 1.6, resize: "vertical" }} />
-                <div style={{ color: T.textMuted, fontSize: 10, marginTop: 5, lineHeight: 1.5 }}>
-                  Variables: <span style={{ color: T.textTertiary }}>{"{title}"}</span> clip title
-                  {" · "}<span style={{ color: T.textTertiary }}>{"#{gametitle}"}</span> game hashtag
-                  {" · "}<span style={{ color: T.textTertiary }}>{"{schedule}"}</span> stream schedule
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", margin: "12px 0 5px" }}>
-                  <div style={LBL}>YouTube Tags</div>
-                  <span style={{ marginLeft: "auto", fontSize: 10, color: tagsOver ? T.red : T.textMuted }}>{tagsLen} / {TAGS_MAX}</span>
-                </div>
-                <TagInput
-                  tags={editTags}
-                  draft={editTagsDraft}
-                  invalid={tagsOver}
-                  minHeight={44}
-                  placeholder="rocket league, rocket league clips, gaming shorts"
-                  onChange={(next, d) => { setEditTags(next); setEditTagsDraft(d); }}
-                  onEscape={() => setEditingYt(false)}
-                />
-                <div style={{ color: tagsOver ? T.red : T.textMuted, fontSize: 10, marginTop: 5, lineHeight: 1.5 }}>
-                  {tagsOver
-                    ? `Over YouTube's 500-character tag limit by ${tagsLen - TAGS_MAX} — shorten the list to save.`
-                    : "Comma or Enter adds a tag. Sent with every Short for this game."}
-                </div>
-              </div>
-            ) : hasEntry ? (
-              <div style={{ padding: "0 15px 12px" }}>
-                <div style={{ ...LBL, margin: "10px 0 5px" }}>Title</div>
-                <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(var(--lift),0.03)", padding: "7px 10px", fontSize: 12.5, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {data.ytTitle || activeGame + " Shorts"}
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", margin: "11px 0 5px" }}>
-                  <div style={LBL}>Description</div>
-                  <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary }}>{(data.desc || "").length} chars</span>
-                </div>
-                <div style={{ position: "relative", border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(var(--lift),0.03)", padding: "9px 11px", fontSize: 12, color: T.textSecondary, lineHeight: 1.6, maxHeight: 118, overflow: "hidden", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                  {data.desc || <span style={{ color: T.textMuted, fontStyle: "italic" }}>Empty</span>}
-                  {/* Fade instead of a scrollbar — the panel is a reference view;
-                      Edit is where the whole thing is readable. */}
-                  <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 32, background: `linear-gradient(180deg, rgba(17,18,24,0), ${T.surface})`, pointerEvents: "none" }} />
-                </div>
+                {editingField === "desc" ? (
+                  <>
+                    <textarea
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Escape") { skipSave.current = true; e.currentTarget.blur(); } }}
+                      onBlur={saveDesc}
+                      autoFocus
+                      rows={9}
+                      style={{ ...FIELD, lineHeight: 1.6, resize: "vertical" }}
+                    />
+                    <div style={{ color: T.textMuted, fontSize: 10, marginTop: 5, lineHeight: 1.5 }}>
+                      Variables: <span style={{ color: T.textTertiary }}>{"{title}"}</span> clip title
+                      {" · "}<span style={{ color: T.textTertiary }}>{"#{gametitle}"}</span> game hashtag
+                      {" · "}<span style={{ color: T.textTertiary }}>{"{gametags}"}</span> game tag line
+                      {" · "}<span style={{ color: T.textTertiary }}>{"{schedule}"}</span> stream schedule
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    onClick={startEditDesc}
+                    title="Click to edit"
+                    style={{ position: "relative", border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(var(--lift),0.03)", padding: "9px 11px", fontSize: 12, color: T.textSecondary, lineHeight: 1.6, maxHeight: 118, overflow: "hidden", whiteSpace: "pre-wrap", wordBreak: "break-word", cursor: "text" }}
+                  >
+                    {data.desc || <span style={{ color: T.textMuted, fontStyle: "italic" }}>Empty — click to write one</span>}
+                    {/* Fade instead of a scrollbar — the panel is a reference view;
+                        clicking in is where the whole thing is readable. */}
+                    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 32, background: `linear-gradient(180deg, rgba(17,18,24,0), ${T.surface})`, pointerEvents: "none" }} />
+                  </div>
+                )}
 
                 <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "11px 0 5px" }}>
                   <div style={LBL}>Tags</div>
-                  {data.tags?.length > 0 && <CopyIconButton value={tagsToText(data.tags)} title="Copy tags" />}
-                  <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary }}>{tagsLength(data.tags || [])}/{TAGS_MAX}</span>
+                  {editingField !== "tags" && data.tags?.length > 0 && <CopyIconButton value={tagsToText(data.tags)} title="Copy tags" />}
+                  {savedFlash === "tags" && <span style={{ fontSize: 10, fontWeight: 700, color: T.green }}>Saved ✓</span>}
+                  <span style={{ marginLeft: "auto", fontSize: 10.5, color: editingField === "tags" && tagsOver ? T.red : T.textTertiary }}>
+                    {editingField === "tags" ? tagsLen : tagsLength(data.tags || [])}/{TAGS_MAX}
+                  </span>
                 </div>
-                {data.tags?.length ? (
+                {editingField === "tags" ? (
+                  <>
+                    <TagInput
+                      tags={editTags}
+                      draft={editTagsDraft}
+                      invalid={tagsOver}
+                      autoFocus
+                      minHeight={44}
+                      placeholder="rocket league, rocket league clips, gaming shorts"
+                      onChange={(next, d) => { setEditTags(next); setEditTagsDraft(d); }}
+                      onCommitBlur={saveTags}
+                      onEscape={() => setEditingField(null)}
+                    />
+                    <div style={{ color: tagsOver ? T.red : T.textMuted, fontSize: 10, marginTop: 5, lineHeight: 1.5 }}>
+                      {tagsOver
+                        ? `Over YouTube's 500-character tag limit by ${tagsLen - TAGS_MAX} — shorten the list to save.`
+                        : "Comma or Enter adds a tag. Click away to save."}
+                    </div>
+                  </>
+                ) : data.tags?.length ? (
                   // Capped the same way the description is: a real game carries 20+
                   // tags, and letting them run pushes the platform templates below
                   // the fold — which is the scrolling this panel exists to end.
-                  <div style={{ position: "relative", maxHeight: 74, overflow: "hidden" }}>
+                  <div onClick={startEditTags} title="Click to edit" style={{ position: "relative", maxHeight: 74, overflow: "hidden", cursor: "text" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                       {data.tags.map((t) => (
                         <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px" }}>{t}</span>
@@ -225,7 +252,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                     <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: `linear-gradient(180deg, rgba(17,18,24,0), ${T.surface})`, pointerEvents: "none" }} />
                   </div>
                 ) : (
-                  <span style={{ fontSize: 11.5, color: T.textMuted, fontStyle: "italic" }}>No tags</span>
+                  <span onClick={startEditTags} title="Click to edit" style={{ fontSize: 11.5, color: T.textMuted, fontStyle: "italic", cursor: "text" }}>No tags — click to add</span>
                 )}
               </div>
             ) : (
@@ -234,7 +261,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                   {activeGame} has no YouTube description yet — its clips publish with just the title.
                 </div>
                 <button
-                  onClick={() => { handleRegenerate(); setEditTitle(activeGame + " Shorts"); setEditTags(""); setEditingYt(true); }}
+                  onClick={() => setYtDescriptions((p) => ({ ...p, [activeGame]: { desc: starterDesc(), tags: [] } }))}
                   style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight }}
                 >Create one from the template</button>
               </div>
@@ -258,28 +285,73 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <PlatformIcon platform={p.id} size={14} />
                     <span style={{ fontSize: 11.5, fontWeight: 800, color: brand.accent, flexShrink: 0 }}>{p.label}</span>
+                    {savedFlash === p.id && <span style={{ fontSize: 10, fontWeight: 700, color: T.green, flexShrink: 0 }}>Saved ✓</span>}
                     {!isEditing && (
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: T.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span
+                        onClick={() => { setEditPlat(p.id); setEditTpl(captionTemplates[p.id] || ""); }}
+                        title="Click to edit"
+                        style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: T.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}
+                      >
                         {captionTemplates[p.id] || "{title} #fyp"}
                       </span>
                     )}
-                    <div style={{ marginLeft: isEditing ? "auto" : 0, display: "flex", gap: 5, flexShrink: 0 }}>
-                      {isEditing ? (
-                        <>
-                          <button onClick={() => setEditPlat(null)} style={BTN}>Cancel</button>
-                          <button onClick={() => { setCaptionTemplates((pr) => ({ ...pr, [p.id]: editTpl })); setEditPlat(null); }} style={{ ...BTN, background: T.green, border: "none", color: "#fff" }}>Save</button>
-                        </>
-                      ) : (
-                        <button onClick={() => { setEditPlat(p.id); setEditTpl(captionTemplates[p.id] || ""); }} style={BTN}>Edit</button>
-                      )}
-                    </div>
                   </div>
                   {isEditing && (
-                    <input value={editTpl} onChange={(e) => setEditTpl(e.target.value)} autoFocus style={{ ...FIELD, marginTop: 7 }} />
+                    <input
+                      value={editTpl}
+                      onChange={(e) => setEditTpl(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); else if (e.key === "Escape") { skipSave.current = true; e.currentTarget.blur(); } }}
+                      onBlur={() => {
+                        if (skipSave.current) { skipSave.current = false; setEditPlat(null); return; }
+                        setCaptionTemplates((pr) => ({ ...pr, [p.id]: editTpl }));
+                        setEditPlat(null);
+                        flash(p.id);
+                      }}
+                      autoFocus
+                      style={{ ...FIELD, marginTop: 7 }}
+                    />
                   )}
                 </div>
               );
             })}
+
+            {/* #346: the game's shared tag line — one line per game, filled into
+                all three captions wherever their template says {gametags}. Hidden
+                for a legacy ytDescriptions key with no gamesDb record to save to. */}
+            {gameRecord && (
+              <div style={{ padding: "7px 0", borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ ...LBL, flexShrink: 0 }}>Game tags &middot; {activeMeta.tag}</span>
+                  {savedFlash === "gametags" && <span style={{ fontSize: 10, fontWeight: 700, color: T.green, flexShrink: 0 }}>Saved ✓</span>}
+                  {!editingGameTags && (
+                    <span
+                      onClick={() => { setEditGameTags(gameRecord.captionTags || ""); setEditingGameTags(true); }}
+                      title="Click to edit"
+                      style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: gameRecord.captionTags ? T.textSecondary : T.textMuted, fontStyle: gameRecord.captionTags ? "normal" : "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}
+                    >
+                      {gameRecord.captionTags || "e.g. #vct #100thieves #100T"}
+                    </span>
+                  )}
+                </div>
+                {editingGameTags && (
+                  <input
+                    value={editGameTags}
+                    onChange={(e) => setEditGameTags(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); else if (e.key === "Escape") { skipSave.current = true; e.currentTarget.blur(); } }}
+                    onBlur={() => {
+                      if (skipSave.current) { skipSave.current = false; setEditingGameTags(false); return; }
+                      const value = editGameTags.trim();
+                      setGamesDb?.((prev) => prev.map((g) => (g.name === activeGame ? { ...g, captionTags: value } : g)));
+                      setEditingGameTags(false);
+                      flash("gametags");
+                    }}
+                    autoFocus
+                    placeholder="#vct #100thieves #100T"
+                    style={{ ...FIELD, marginTop: 7 }}
+                  />
+                )}
+              </div>
+            )}
 
             {/* TikTok's post mode lives with TikTok's template, as it always has */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 9 }}>
@@ -303,7 +375,8 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
 
             <div style={{ fontSize: 10.5, color: T.textTertiary, lineHeight: 1.55, marginTop: 9, paddingTop: 9, borderTop: `1px solid ${T.border}` }}>
               These three are one template each, shared by every game &mdash;{" "}
-              <span style={{ color: T.textSecondary }}>{"#{gametitle}"}</span> fills in the right hashtag per clip.
+              <span style={{ color: T.textSecondary }}>{"#{gametitle}"}</span> fills the game&rsquo;s hashtag and{" "}
+              <span style={{ color: T.textSecondary }}>{"{gametags}"}</span> fills its tag line per clip.
             </div>
           </div>
         </>

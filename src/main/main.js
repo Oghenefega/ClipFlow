@@ -333,10 +333,11 @@ const STORE_DEFAULTS = {
   xpLedger: [],
   streakState: { evaluatedThroughMondayISO: null, current: 0, best: 0 },
   // #262: generic templates — no personal hashtags in defaults.
+  // #346: {gametags} fills each game's own tag line (gamesDb captionTags).
   captionTemplates: {
-    tiktok: "{title} #{gametitle} #fyp #gamingontiktok",
-    instagram: "{title} #{gametitle} #reels #gamingreels",
-    facebook: "{title} #{gametitle} #gaming #fbreels",
+    tiktok: "{title} #{gametitle} #fyp #gamingontiktok {gametags}",
+    instagram: "{title} #{gametitle} #reels #gamingreels {gametags}",
+    facebook: "{title} #{gametitle} #gaming #fbreels {gametags}",
   },
   ytDescriptions: {},
   // #286: the user's stream schedule as one line of text. Templates reference it
@@ -670,6 +671,31 @@ function runStoreMigrations(store) {
       store.set("ytDescriptions", {});
       logger.info(logger.MODULES.system, "Reset unused seeded game library to empty defaults (#262)");
     }
+  }
+
+  // ── #346: {gametags} placeholder + per-game captionTags field ──
+  // Idempotent: templates only gain the placeholder if they don't carry it,
+  // game records only gain captionTags if the key is missing.
+  const storedTemplates = store.get("captionTemplates");
+  if (storedTemplates && typeof storedTemplates === "object") {
+    let templatesChanged = false;
+    const nextTemplates = { ...storedTemplates };
+    for (const plat of ["tiktok", "instagram", "facebook"]) {
+      const tpl = nextTemplates[plat];
+      if (typeof tpl === "string" && !tpl.includes("{gametags}")) {
+        nextTemplates[plat] = tpl.trimEnd() + " {gametags}";
+        templatesChanged = true;
+      }
+    }
+    if (templatesChanged) {
+      store.set("captionTemplates", nextTemplates);
+      logger.info(logger.MODULES.system, "Appended {gametags} to platform caption templates (#346)");
+    }
+  }
+  const gamesDbForTags = store.get("gamesDb");
+  if (Array.isArray(gamesDbForTags) && gamesDbForTags.some((g) => g && g.captionTags === undefined)) {
+    store.set("gamesDb", gamesDbForTags.map((g) => (g && g.captionTags === undefined ? { ...g, captionTags: "" } : g)));
+    logger.info(logger.MODULES.system, "Backfilled captionTags on gamesDb records (#346)");
   }
 
   // ── #263: sweep detection stamps for files that left the disk ──

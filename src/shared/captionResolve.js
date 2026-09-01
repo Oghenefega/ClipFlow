@@ -68,34 +68,36 @@ function resolveTags(clip, ytDescriptions, gamesDb) {
 function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule = "") {
   // Prefer clip.gameTag (first-class field, lowercased); fall back to title hashtag for legacy clips.
   const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
-  // YouTube description comes from ytDescriptions per-game system.
   // ytDescriptions is keyed by game display name ("Arc Raiders"). Projects store
   // clip.gameTag as the short abbreviation from gamesDb (e.g. "RL", "AR") OR sometimes
   // as a hashtag slug ("rocketleague") via title extraction. Resolve via gamesDb by
   // matching either form to find the display name.
+  const { game, key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
+  // #346: every platform prefers the gamesDb hashtag for {gametitle} — before,
+  // TikTok/IG/FB substituted the raw short code, so the same clip published
+  // "#rocketleague" on YouTube but "#rl" everywhere else. clip.gameTag only
+  // reaches a caption when the game record has no hashtag.
+  const hashtagForSub = (game?.hashtag || gameTag || "").toLowerCase();
+  // #346: the game's shared tag line ("#vct #100thieves #100T"). The \s* eats
+  // the space a tagless game would otherwise leave behind in the template.
+  const gameTags = (game?.captionTags || "").trim();
+  const fill = (tpl) => tpl
+    .replace(/\{title\}/g, clip.title || "")
+    .replace(/#\{gametitle\}/g, hashtagForSub ? `#${hashtagForSub}` : "")
+    .replace(/\s*\{gametags\}/g, gameTags ? ` ${gameTags}` : "")
+    // #286: one Settings field feeds every template — a schedule change is
+    // one edit, not one per game. Unset resolves to "" so a template can
+    // never publish a raw {schedule}.
+    .replace(/\{schedule\}/g, streamSchedule || "");
+  // YouTube description comes from ytDescriptions per-game system.
   if (platformKey === "youtube") {
-    const { game, key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
-    if (key && ytDescriptions[key]?.desc) {
-      // Prefer the gamesDb hashtag for {gametitle} substitution so saved templates
-      // still render "#rocketleague" even when clip.gameTag is the short form ("RL").
-      const hashtagForSub = (game?.hashtag || gameTag || "").toLowerCase();
-      return ytDescriptions[key].desc
-        .replace(/\{title\}/g, clip.title || "")
-        .replace(/#\{gametitle\}/g, hashtagForSub ? `#${hashtagForSub}` : "")
-        // #286: one Settings field feeds every template — a schedule change is
-        // one edit, not one per game. Unset resolves to "" so a template can
-        // never publish a raw {schedule}.
-        .replace(/\{schedule\}/g, streamSchedule || "");
-    }
+    if (key && ytDescriptions[key]?.desc) return fill(ytDescriptions[key].desc);
     return clip.title || "";
   }
   // TikTok / Instagram / Facebook — use captionTemplates
   const template = captionTemplates?.[platformKey];
   if (!template) return clip.title || "";
-  return template
-    .replace(/\{title\}/g, clip.title || "")
-    .replace(/#\{gametitle\}/g, gameTag ? `#${gameTag}` : "")
-    .replace(/\{schedule\}/g, streamSchedule || "");
+  return fill(template);
 }
 
 /**
