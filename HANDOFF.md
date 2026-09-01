@@ -1,62 +1,60 @@
-# HANDOFF — Session 225 (2026-08-31)
+# HANDOFF — Session 226 (2026-09-01)
 
 ## Current State
 
-**alpha.15 is cut, on the feed, installed, and CONFIRMED by Fega** ("It all looks
-good") — it promotes the s224 AI caption fixes (#343/#344) and this session's Queue
-tab rework (#346, closed confirmed): 440px click-to-edit Captions & Descriptions
-panel, densified layout, the duplicated schedule/status columns merged into one,
-per-game `captionTags` on gamesDb + a `{gametags}` placeholder (idempotent boot
-migration appended it to the three stored platform templates), the `#{gametitle}`
-short-code/full-hashtag asymmetry fixed, the write-only per-game YouTube TITLE
-field removed, and the render pill showing a percentage instead of stage internals.
-alpha.13/alpha.14 confirmation chasing is moot — he's on .15.
+**#347 fixed, committed (a344d9e), pushed — awaiting Fega's in-app verification,
+NOT yet in an installer.** Fega reported a clip titled identically to an
+already-published clip vanishing from the Queue tab and wearing a false
+"Published" badge. Root cause: three mirrored spots (QueueView list knockout,
+App.js badge count, ProjectsView `makePublishState`) matched clips against
+tracker entries by exact TITLE as well as clip id — a shim for the 26 id-less
+tracker entries from March 2026. All three now title-match only those id-less
+legacy entries. Also: the WYSIWYG Shorts thumbnail filename gained a clip-id
+tail so same-titled clips in one project can't clobber each other's PNG.
+No video files were ever overwritten (per-project folders + ` (2)` suffix
+guards held) — the damage was purely UI.
 
 ## Key Decisions
 
-- **Game tags = ONE shared line per game across TikTok/IG/FB** (Fega chose over
-  per-platform variants and full per-game templates — matches his actual pain).
-- **`captionTags` lives on the gamesDb record**, not a new store key — `resolveCaption`
-  already receives gamesDb at every call site, so zero settings-bundle changes anywhere.
-- **Migration edits Fega's stored templates** (append `{gametags}` if absent) rather
-  than asking him to hand-edit three fields.
-- **TITLE field removed, not wired** — Fega picked removal when told it was write-only.
+- **Title fallback scoped, not removed** — the 26 March-2026 id-less tracker
+  entries still need it; everything since carries `clipId` (verified in the
+  live store).
+- **Thumbnail stays title-led with an id tail** (`…_thumbnail_taum.png`) —
+  Fega browses the folder manually to upload, so a pure-id name was rejected
+  as hostile. Recapture still overwrites the clip's own file.
+- **No installer cut** — 1 change since alpha.15; batching per standing rule.
 
 ## Next Steps
 
-1. **#341** (content-type-aware rejection chips) and **#342** (ambient background for
-   non-editor tabs) — filed s223, still unbuilt.
-2. **ALL-CAPS caption rule** (s224 offer, unfiled, not taken up): rules say "at most
-   once", his real captions routinely use two runs. One-line change if he wants it.
-3. Two #346 paths were logic-verified but never exercised live (dev queue had no
-   scheduled clips): the merged cell showing a date, and the over-limit tag
-   blur-refusal. Fega's normal use covers the first; if either misbehaves, start at
-   QueueView's merged cell / CaptionsView's `saveTags`.
+1. **#347 verification by Fega** (needs next installer): title a new clip
+   identically to a published one, render → it must appear in the Queue with no
+   Published badge. Then close #347 (it will NOT auto-close — commit says
+   "(#347)", not "Fix #347").
+2. **#341** (content-type-aware rejection chips) and **#342** (ambient
+   background for non-editor tabs) — filed s223, still unbuilt.
+3. s225 leftovers: ALL-CAPS caption rule offer (unfiled); two #346 paths
+   logic-verified but never exercised live (merged schedule cell with a date,
+   over-limit tag blur-refusal).
 
 ## Watch Out For
 
-- **`resolveCaption` now runs `resolveYtGameKey` for every platform** (needed for
-  hashtag + gametags) — it's in queue-card preview paths. Cheap at 16 games; don't
-  let a future gamesDb blowup make it hot.
-- **statusBadge branch order changed**: "Not rendered" now outranks the scheduledAt
-  date pill (deliberate — the merged cell already shows the date).
-- **CaptionsView click-to-edit saves on EVERY click-away**; Escape is the only
-  no-save exit. The skipSave ref pattern gates all four field types.
-- **Fega's stored platform templates contain NO `#{gametitle}`** — the hashtag
-  symmetry fix changes nothing for him until a template re-adds it; `{gametags}`
-  WAS migrated in and is live.
-- The `ytDescriptions[game].ytTitle` orphan values remain on disk (harmless, spread
-  preserves them); nothing reads or writes the key anymore.
+- **His incident clips**: the new Pt5 clip was self-rescued by retitling to
+  `100T Vora is INSANE!!!` and is scheduled 2026-09-04 2:30 PM; the Pt4
+  original was re-rendered by Fega at 22:24 during his own investigation
+  (harmless). Don't "clean up" either.
+- The retitle-after-capture case still orphans the old thumbnail PNG under the
+  old name (path never stored on the clip — editor only toasts it). Remedy is
+  recapture; documented in the main.js comment.
+- `renameThumbnailTo`'s `_thumbnail` suffix branch no longer matches the new
+  `_thumbnail_<tail>` stems — fine today (nothing stores capture paths in
+  `thumbnailPath`), but if a future feature starts storing them, revisit.
 
 ## Logs/Debugging
 
-- **Python `websocket-client` → Electron 40 CDP needs `suppress_origin=True`** or the
-  handshake 403s (node's global WebSocket sends no Origin — that's why old drivers
-  never hit it). Routed to the CDP-gotchas memory (#61).
-- **After any version bump, the boot What's-New modal swallows ALL CDP clicks** —
-  probes report success while nothing happens. Dismiss "Got it" first (memory #62).
-- **`$TMPDIR` is empty in the Bash tool** — `"$TMPDIR/x"` writes to `C:\` silently.
-  Full scratchpad paths only (routed to the bash-backslash memory).
-- Migration verified against the REAL dev store: `{gametags}` appended exactly once
-  across a double boot, 11 games backfilled `captionTags: ""`. Dev scheduler
-  correctly logs "scheduled publishing disabled"; dev tokens still `{"accounts":{}}`.
+- Filter logic was proven against the REAL prod store read-only
+  (`%APPDATA%\clipflow\clipflow-settings.json` → 155 tracker entries, 26
+  id-less, all 2026-03-05→12): old filter hid the incident clip, new one
+  doesn't; legacy titles still knocked out; clip A still published-by-id.
+- Dev boot clean (`sess_8c82617f608b`): scheduler correctly disabled on dev,
+  window revealed, no errors; dev tokens still `{"accounts":{}}`; killed by
+  PID, Corva.exe daily driver untouched.
