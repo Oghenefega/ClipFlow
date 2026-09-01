@@ -1733,3 +1733,25 @@ things checked BEFORE done, not for things done DURING.
 through autocrlf, so an all-LF file comes back CRLF. `git diff --stat` still reported "1
 insertion" because the diff normalises both sides. Byte-probe after any checkout of a file you
 then edit.
+
+---
+
+## Session 227 — Fixture selection: never a project in a good state, even as a copy
+
+**What went wrong:** the #348 per-clip layouts E2E used a COPY of `proj_1787974685148_36a5ut`
+(the Aug 28 100T project) as its dev fixture — a project with approved, rendered, scheduled
+clips. The copy-into-scratch mechanics were sound (his originals were never written), but Fega
+corrected it anyway: don't touch projects that are in a good state, period.
+
+**Why it slipped:** I treated "it's a copy in a scratch projectsRoot" as full mitigation and
+optimized for a rich fixture (clips with renders, a layout, rejection chips). The
+rejected-clips-only rule was applied *within* the project (I opened rejected Clip 2 for the
+destructive gestures) but not to the project *selection* itself. From Fega's side, a
+good-state project showing up in any test loop is risk he never agreed to — the copy/original
+distinction is my implementation detail, not something he should have to trust.
+
+**Rule:** fixture selection filters at the PROJECT level, before the within-project
+rejected-clips rule applies: pick projects with ZERO approved and zero published clips —
+Fega named the Arc Raiders projects as the sanctioned pool. Scan for
+`approved == 0 and published/scheduled == 0` the same way s227 scanned for clip counts, and
+prefer AR. This applies even when copying to a scratch root.
