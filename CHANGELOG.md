@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.17] — 2026-09-01 (session 228) — alpha.17: per-section layouts
+
+### Changed
+- **Version bumped to 0.4.0-alpha.17 and an installer cut** on Fega's ask, promoting per-section layouts (#349, session 228) — the only code change since alpha.16. #349 stays open with `status: untested` until Fega sees it in the app.
+
 ## [Unreleased] — 2026-09-01 (session 228) — Per-section layouts: the picture can change at a cut inside one clip (#349)
 
 ### Added

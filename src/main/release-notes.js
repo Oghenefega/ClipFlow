@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.17",
+    date: "2026-09-01",
+    added: [
+      "A clip's layout can now change at a cut. Once a clip has a cut in it, the Layout panel offers \"This section / This clip\": pick \"This section\" and whatever you set up, apply from your saved layouts, or detect goes to just the part of the clip the playhead is in — so a clip can play wide before a cut and punched-in after it. The switch happens exactly at the cut, in the preview and in the rendered video, and a small badge on the timeline marks any section that has its own layout. You can also switch a single section's layout off (\"No layout for this section\"); it then shows the whole picture letterboxed so the video never changes size mid-clip. Splitting or trimming a section keeps its layout, and \"Apply to all clips in this project\" clears section layouts along with the rest.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.16",
     date: "2026-09-01",
     added: [
