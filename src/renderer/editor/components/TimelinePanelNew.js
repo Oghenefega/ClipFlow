@@ -637,6 +637,26 @@ export default function TimelinePanelNew() {
     trimNleSegmentRight(id, newSourceEnd);
   }, [trimNleSegmentRight]);
 
+  // Move the cut after `leftId` (#352) — same drag plumbing as a trim.
+  const handleNleRoll = useCallback((leftId, newLeftEnd) => {
+    useEditorStore.getState().rollNleCut(leftId, newLeftEnd);
+  }, []);
+
+  // A section-edge drag is ONE undo entry: startDrag captures the pre-drag
+  // snapshot and locks _pushUndo until endDrag, so the per-move store writes
+  // above don't each burn an entry (they used to land one every 300ms, so a
+  // long trim took several Ctrl+Z presses to revert). Also freezes the pixel
+  // scale for the drag's duration (see trimSnapshot).
+  const handleNleTrimStart = useCallback(() => {
+    useSubtitleStore.getState().startDrag();
+    setTrimSnapshot(rawEffectiveDuration);
+  }, [rawEffectiveDuration]);
+
+  const handleNleTrimEnd = useCallback(() => {
+    useSubtitleStore.getState().endDrag();
+    setTrimSnapshot(null);
+  }, []);
+
   // Resize subtitle — uses originals snapshot so neighbors restore when dragging back.
   // Originals are in timeline coordinates (from getTimelineMappedSegments) since
   // SegmentBlock passes timeline-time values. Convert to source at updateSegmentTimes calls.
@@ -1622,7 +1642,7 @@ export default function TimelinePanelNew() {
               <LaneToggle on={!sourceAudioMuted} family="sound" title="Clip audio" />
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
-              {nleSegments.map((seg) => {
+              {nleSegments.map((seg, segIdx) => {
                 const range = getSegmentTimelineRange(seg.id, nleSegments);
                 if (!range) return null;
                 const leftPx = effectiveDuration > 0 ? (range.start / effectiveDuration) * clipContentWidth : 0;
@@ -1647,10 +1667,13 @@ export default function TimelinePanelNew() {
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
                       nleSegment={seg}
+                      prevSegment={segIdx > 0 ? nleSegments[segIdx - 1] : null}
+                      hasNext={segIdx < nleSegments.length - 1}
                       onTrimLeft={handleNleTrimLeft}
                       onTrimRight={handleNleTrimRight}
-                      onTrimStart={() => setTrimSnapshot(rawEffectiveDuration)}
-                      onTrimEnd={() => setTrimSnapshot(null)}
+                      onRoll={handleNleRoll}
+                      onTrimStart={handleNleTrimStart}
+                      onTrimEnd={handleNleTrimEnd}
                       onMoveStart={handleNleMoveStart}
                       onMoveDrag={handleNleMoveDrag}
                       onMoveEnd={handleNleMoveEnd}

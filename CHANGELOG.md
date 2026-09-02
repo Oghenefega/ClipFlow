@@ -4,6 +4,18 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-01 (session 229) — Move a cut by dragging it; repeated footage plays correctly (#352, #351)
+
+### Added
+- **Move the cut (#352).** Hovering the join between two sections on the Audio lane now shows a two-bar handle; dragging it slides the cut — the section before ends earlier or later and the section after starts earlier or later by the same amount, so the clip's total length never changes and the two sections keep whatever source gap sat between them (a cut across a deleted middle chunk slides just like a continuous one). It stops at each side's 50ms minimum, at the start of the recording and at its end. Holding Ctrl while dragging the join keeps the old single-edge trim, for whichever side of the join the pointer started on; the first section's left edge and the last section's right edge stay plain trim handles. Before this, the two sections' edge handles overlapped pixel-for-pixel at a join and the later one always won, so grabbing a cut silently extended the second section backwards over the first's footage.
+
+### Fixed
+- **Playback looped at a cut when two sections shared footage (#351).** With A = 0–8 and B = 6–16, play would reach the end of A, jump back to 6, replay A's tail and never enter B: the position lookup scanned the sections in order and answered "A" for source time 6 every time. Sharing footage is now explicitly allowed — Fega wants to reuse a moment twice on a timeline — so playback, the second-player parking, the paused-scrub handler and the per-section layout painter all resolve the video's position against the section the playhead is in on the timeline (a join belongs to the section that starts there) and only fall back to the scan when that fails. The cut-crossing tick now stamps the exact join time, and the hinted lookup tolerates a seek landing a few milliseconds early (Chromium lands 5.997 for a 6.000 target). Verified over CDP on a rejected-clip fixture with a deliberate 2s overlap: the playhead runs 7 → 8 → 10.5 with the video clock dropping from 8 to 6 at the cut and rising from there; a paused scrub onto the cut rests at 8, not 6.
+- **One Ctrl+Z per section drag.** A trim or roll drag on a section edge used to burn an undo entry every 300ms, so one long drag took several Ctrl+Z presses to revert. The drag is now one entry, like subtitle drags already were.
+
+### Notes
+- Repeated footage is only half-supported until #353 lands: subtitles, sounds and media overlays anchor to a source moment and still appear on the FIRST copy only, in preview and export. Fega's call: repeat all three with the footage. A "Repeat this section" action rides along in the same issue.
+
 ## [0.4.0-alpha.17] — 2026-09-01 (session 228) — alpha.17: per-section layouts
 
 ### Changed

@@ -50,6 +50,42 @@ function sourceToTimeline(sourceTime, segments) {
 }
 
 /**
+ * sourceToTimeline with a preferred section (#351). The same source moment can
+ * sit in two sections once footage is repeated, and a first-match scan then
+ * always answers with the earlier copy — playback at the second copy snapped
+ * back to the first and looped at the cut. Callers that already know which
+ * section the playhead is in (from its TIMELINE position) pass that index;
+ * it wins whenever the source time falls inside it, and the plain scan is the
+ * fallback. Identical to sourceToTimeline on an unrepeated list.
+ *
+ * @param {number} sourceTime
+ * @param {Array} segments - ordered NLE segment list
+ * @param {number} hintIndex - section index to try first (-1 / out of range = none)
+ */
+// A seek across a cut lands a few ms EARLY (Chromium snaps to a decodable
+// frame — measured 5.997 for a 6.000 target, s229). The hinted section is
+// trusted, so it gets a wider tolerance than the scan; the time is clamped
+// into the section either way.
+const HINT_EPS = 0.05;
+
+function sourceToTimelineNear(sourceTime, segments, hintIndex) {
+  if (hintIndex >= 0 && hintIndex < segments.length) {
+    const seg = segments[hintIndex];
+    if (sourceTime >= seg.sourceStart - HINT_EPS && sourceTime <= seg.sourceEnd + HINT_EPS) {
+      let timelineOffset = 0;
+      for (let i = 0; i < hintIndex; i++) timelineOffset += segmentDuration(segments[i]);
+      const clamped = Math.max(seg.sourceStart, Math.min(seg.sourceEnd, sourceTime));
+      return {
+        timelineTime: timelineOffset + (clamped - seg.sourceStart),
+        found: true,
+        segmentIndex: hintIndex,
+      };
+    }
+  }
+  return sourceToTimeline(sourceTime, segments);
+}
+
+/**
  * Like sourceToTimeline, but for anchors that must survive a trim: when the
  * anchor moment itself was cut away, clamp FORWARD to the next surviving
  * footage instead of reporting not-found.
@@ -140,12 +176,21 @@ function getTimelineDuration(segments) {
  * @returns {string|null} segment id, or null for an empty list
  */
 function segmentIdAtTimeline(timelineTime, segments) {
-  if (!Array.isArray(segments) || segments.length === 0) return null;
+  const idx = segmentIndexAtTimeline(timelineTime, segments);
+  return idx === -1 ? null : segments[idx].id;
+}
+
+/**
+ * Index form of segmentIdAtTimeline — same join tie-break (a join belongs to
+ * the section that starts there), same past-the-end rule. -1 for an empty list.
+ */
+function segmentIndexAtTimeline(timelineTime, segments) {
+  if (!Array.isArray(segments) || segments.length === 0) return -1;
   const { sourceTime, found, segmentIndex } = timelineToSource(timelineTime, segments);
-  if (!found) return segments[segments.length - 1].id;
+  if (!found) return segments.length - 1;
   let idx = segmentIndex;
   if (sourceTime >= segments[idx].sourceEnd - 1e-6 && idx + 1 < segments.length) idx += 1;
-  return segments[idx].id;
+  return idx;
 }
 
 /**
@@ -380,10 +425,12 @@ function visibleSubtitleSegments(subtitleSegs, nleSegments) {
 
 module.exports = {
   sourceToTimeline,
+  sourceToTimelineNear,
   sourceToTimelineClamped,
   timelineToSource,
   getTimelineDuration,
   segmentIdAtTimeline,
+  segmentIndexAtTimeline,
   getSegmentTimelineRange,
   buildTimelineLayout,
   visibleWords,

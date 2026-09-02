@@ -7,7 +7,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
 import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
-import { sourceToTimeline } from "../models/timeMapping";
+import { sourceToTimelineNear, segmentIndexAtTimeline } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe, resolveSegmentReframe, fitToScreenReframe } from "../utils/reframeStyle";
@@ -1771,7 +1771,9 @@ export default function PreviewPanelNew() {
       const segs = ps.nleSegments;
       const standby = standbyRef.current;
       if (standby && segs.length > 1) {
-        const here = sourceToTimeline(sourceTime + ps.clipFileOffset, segs);
+        // Section-aware (#351): with repeated footage the plain scan would park
+        // the standby after the EARLIER copy of the moment.
+        const here = sourceToTimelineNear(sourceTime + ps.clipFileOffset, segs, segmentIndexAtTimeline(ps.currentTime, segs));
         const nextIdx = here.found ? here.segmentIndex + 1 : -1;
         if (nextIdx > 0 && nextIdx < segs.length && parkRef.current.idx !== nextIdx) {
           parkRef.current = { idx: nextIdx, ready: false };
@@ -1840,6 +1842,11 @@ export default function PreviewPanelNew() {
     if (result.atEnd) {
       setCurrentTime(result.timelineTime);
     } else if (result.needsSeek) {
+      // Stamp the join before hopping, same as the playing path (#351): the
+      // next timeupdate picks its section from currentTime, and with
+      // overlapping footage the landed frame belongs to the earlier section
+      // too — without the stamp a paused scrub onto a cut snapped back.
+      setCurrentTime(result.timelineTime);
       video.currentTime = result.seekToSource;
     } else {
       setCurrentTime(result.timelineTime);
@@ -2147,7 +2154,12 @@ export default function PreviewPanelNew() {
     let rf = reframeRef.current;
     if (video && segs.length > 0) {
       const t = video.currentTime;
-      let idx = segs.findIndex((s) => t >= s.sourceStart && t < s.sourceEnd);
+      // The playhead's timeline section first (#351) — repeated footage puts
+      // the same source moment in two sections, and only the timeline says
+      // which copy is playing. Source-range scan is the fallback.
+      const hint = segmentIndexAtTimeline(usePlaybackStore.getState().currentTime || 0, segs);
+      let idx = hint >= 0 && t >= segs[hint].sourceStart && t <= segs[hint].sourceEnd ? hint : -1;
+      if (idx === -1) idx = segs.findIndex((s) => t >= s.sourceStart && t < s.sourceEnd);
       if (idx === -1) idx = segs.findIndex((s) => t >= s.sourceStart && t <= s.sourceEnd);
       if (idx === -1) idx = Math.min(lastLayoutIdxRef.current, segs.length - 1);
       lastLayoutIdxRef.current = idx;

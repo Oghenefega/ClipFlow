@@ -1755,3 +1755,25 @@ rejected-clips rule applies: pick projects with ZERO approved and zero published
 Fega named the Arc Raiders projects as the sanctioned pool. Scan for
 `approved == 0 and published/scheduled == 0` the same way s227 scanned for clip counts, and
 prefer AR. This applies even when copying to a scratch root.
+
+---
+
+## Session 229 — A "guard" that forbids a state is a product decision, not a bug fix
+
+**What went wrong:** diagnosing the playback loop (#351) I proposed a neighbour clamp so no
+section could ever share footage with another — "the loop can't happen for new edits." Fega:
+"sometimes I want to use a section of a clip twice." The clamp would have removed a capability
+he wants (repeat a funny moment) to avoid fixing the thing that was actually broken (playback
+resolving a source moment by first-match instead of by the playhead's own section).
+
+**Why it slipped:** the overlap was the *precondition* of the bug, so forbidding the
+precondition read as the cleanest fix. But "the model allows X and X breaks Y" has two fixes —
+forbid X, or make Y correct under X — and only the user knows whether X is a state they ever
+want. I picked the one that shrank the product without asking.
+
+**Rule:** before proposing to forbid a state the model currently permits, ask in one line
+whether the user ever wants that state ("do you ever want the same moment twice on a
+timeline?"). Default to making the consumer robust to the state; reach for a clamp only when
+the user says the state is never wanted. Corollary from the same session: the repeat-footage
+fix needed the hint stamped at the EXACT join (not the 20 ms-early trigger time) and a landing
+tolerance for seeks — a section-aware lookup is only as good as the section it is told.

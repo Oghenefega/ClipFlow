@@ -11,7 +11,7 @@ import { createSegment, createInitialSegments, cloneSegments } from "../models/s
 import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource, segmentIdAtTimeline } from "../models/timeMapping";
 import { normalizePlacements, resolvePlacements, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
-import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
+import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight, rollCut } from "../models/segmentOps";
 import { resolveReframeStyle, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
 
 // ── Autosave internals (module-closure, NOT in state) ──
@@ -628,6 +628,24 @@ const useEditorStore = create((set, get) => ({
     // the first or the last on the timeline. Set explicitly rather than letting
     // setNleSegments infer it from the element's position, which lags a seek.
     usePlaybackStore.getState().seekTo(side === "start" ? 0 : getTimelineDuration(kept));
+    get().markDirty();
+  },
+
+  /**
+   * Move the cut after `leftId` so the left section ends at newLeftEnd (#352);
+   * the right section's start moves by the same amount. Called per pointermove
+   * from the join handle; the drag wraps itself in startDrag/endDrag so
+   * _pushNleUndo is a no-op here and the whole gesture is one undo entry.
+   */
+  rollNleCut: (leftId, newLeftEnd) => {
+    const { nleSegments, sourceDuration } = get();
+    const left = nleSegments.find((s) => s.id === leftId);
+    if (!left) return;
+    const newSegs = rollCut(nleSegments, leftId, newLeftEnd - left.sourceEnd, sourceDuration);
+    if (newSegs === nleSegments) return;
+    get()._pushNleUndo();
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
     get().markDirty();
   },
 

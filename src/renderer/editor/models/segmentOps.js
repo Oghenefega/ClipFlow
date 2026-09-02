@@ -231,6 +231,44 @@ function extendSegmentRight(segments, segmentId, newSourceEnd, sourceDuration) {
   );
 }
 
+// ─── Roll (move a cut) ──────────────────────────────────────────────────────
+
+/**
+ * Move the cut between a section and the one after it on the timeline (#352).
+ * The left section's end and the right section's start shift by the SAME
+ * amount, so the timeline keeps its total length and any gap between the two
+ * in the source is preserved — the cut simply slides. Works whether or not the
+ * two are continuous footage.
+ *
+ * Bounds: each side keeps MIN_SEGMENT_DURATION, the right start can't go below
+ * 0, the left end can't pass the recording length. Deliberately NO clamp
+ * against other sections' footage — repeating a moment is allowed (#351/#353).
+ *
+ * @param {Array} segments - current segment list
+ * @param {string} leftId - the section BEFORE the cut
+ * @param {number} deltaSec - how far to move the cut (+ later, − earlier)
+ * @param {number} sourceDuration - recording length (upper bound); non-finite = unbounded
+ * @returns {Array} new list, or the input unchanged when nothing moves
+ */
+function rollCut(segments, leftId, deltaSec, sourceDuration) {
+  const i = segments.findIndex((s) => s.id === leftId);
+  if (i === -1 || i + 1 >= segments.length) return segments;
+  const left = segments[i];
+  const right = segments[i + 1];
+
+  const ceiling = Number.isFinite(sourceDuration) && sourceDuration > 0 ? sourceDuration : Infinity;
+  const lo = Math.max(left.sourceStart + MIN_SEGMENT_DURATION - left.sourceEnd, -right.sourceStart);
+  const hi = Math.min(right.sourceEnd - MIN_SEGMENT_DURATION - right.sourceStart, ceiling - left.sourceEnd);
+  const dt = Math.max(lo, Math.min(hi, deltaSec));
+  if (dt === 0) return segments;
+
+  return segments.map((s, k) => {
+    if (k === i) return { ...s, sourceEnd: left.sourceEnd + dt };
+    if (k === i + 1) return { ...s, sourceStart: right.sourceStart + dt };
+    return s;
+  });
+}
+
 // ─── Utilities ──────────────────────────────────────────────────────────────
 
 /**
@@ -272,6 +310,7 @@ module.exports = {
   trimSegment,
   extendSegmentLeft,
   extendSegmentRight,
+  rollCut,
   validateSegments,
   findSegmentAtSource,
   MIN_SEGMENT_DURATION,

@@ -2,7 +2,15 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { LayoutTemplate } from "lucide-react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating, onMoveStart, onMoveDrag, onMoveEnd, onSeekClick, moveDragging }) {
+// Section edges (#352). A block's LEFT handle sits on the join with the section
+// before it (prevSegment), and that join is shared: the previous block's own
+// right handle is not drawn (hasNext), since the two overlapped pixel-for-pixel
+// and the later block always won. On a join a plain drag MOVES THE CUT — the
+// section before ends later/earlier and this one starts later/earlier by the
+// same amount, total length unchanged. Ctrl+drag keeps the old single-edge
+// trim, for whichever side of the join the pointer started on. The first
+// section's left edge and the last section's right edge stay plain trims.
+function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, prevSegment = null, hasNext = false, onTrimLeft, onTrimRight, onRoll, onTrimStart, onTrimEnd, rippleAnimating, onMoveStart, onMoveDrag, onMoveEnd, onSeekClick, moveDragging }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -14,26 +22,48 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
   const onHandleDown = useCallback((side, e) => {
     if (!nleSegment) return;
     e.stopPropagation();
+
+    // Which edit this drag performs and which section it edits.
+    let mode = side === "left" ? "trimLeft" : "trimRight";
+    let target = nleSegment;
+    if (side === "left" && prevSegment) {
+      if (e.ctrlKey || e.metaKey) {
+        // The handle is centred on the join: pointer left of centre = the
+        // previous section's end, right of it = this section's start.
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (e.clientX < rect.left + rect.width / 2) { mode = "trimRight"; target = prevSegment; }
+      } else if (onRoll) {
+        mode = "roll";
+        target = prevSegment;
+      }
+    }
+
     setResizing(side);
-    startRef.current = { x: e.clientX, sourceStart: nleSegment.sourceStart, sourceEnd: nleSegment.sourceEnd };
-    document.body.style.cursor = "col-resize";
+    startRef.current = { x: e.clientX, sourceStart: target.sourceStart, sourceEnd: target.sourceEnd };
+    document.body.style.cursor = mode === "roll" ? "ew-resize" : "col-resize";
     if (onTrimStart) onTrimStart();
 
+    // Pixel scale from this block's own width; the scale is uniform along the
+    // timeline (and frozen for the drag by trimSnapshot), so it serves the
+    // previous section's edge too.
     const segSourceDur = nleSegment.sourceEnd - nleSegment.sourceStart;
+    const pxPerSec = segSourceDur > 0 ? timelineWidth / segSourceDur : 0;
     const onMove = (ev) => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         const dx = ev.clientX - startRef.current.x;
-        // Convert pixel delta to source-time delta using the segment's own duration
-        const dtSec = segSourceDur > 0 ? (dx / timelineWidth) * segSourceDur : 0;
-        if (side === "left") {
+        const dtSec = pxPerSec > 0 ? dx / pxPerSec : 0;
+        if (mode === "roll") {
+          // Store clamps both sides (minimum lengths, 0, recording end).
+          onRoll(target.id, startRef.current.sourceEnd + dtSec);
+        } else if (mode === "trimLeft") {
           // Lower bound: source-time 0 (start of source recording).
           // Upper bound: our own end minus minimum duration.
           const newSourceStart = Math.max(0, Math.min(
             startRef.current.sourceStart + dtSec,
             startRef.current.sourceEnd - 0.1
           ));
-          if (onTrimLeft) onTrimLeft(nleSegment.id, newSourceStart);
+          if (onTrimLeft) onTrimLeft(target.id, newSourceStart);
         } else {
           // Upper bound: source recording end (can't extend past actual audio).
           // Lower bound: our own start plus minimum duration.
@@ -41,7 +71,7 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
             startRef.current.sourceStart + 0.1,
             Math.min(sourceDuration, startRef.current.sourceEnd + dtSec)
           );
-          if (onTrimRight) onTrimRight(nleSegment.id, newSourceEnd);
+          if (onTrimRight) onTrimRight(target.id, newSourceEnd);
         }
       });
     };
@@ -57,7 +87,7 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, timelineWidth, sourceDuration]);
+  }, [nleSegment, prevSegment, onTrimLeft, onTrimRight, onRoll, onTrimStart, onTrimEnd, timelineWidth, sourceDuration]);
 
   // ── Body drag = reorder this section on the timeline ──
   // Pressing the block swallows the container's scrub handler, so a press that
@@ -245,38 +275,56 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
           <LayoutTemplate size={9} strokeWidth={2.5} />
         </div>
       )}
-      {/* Left handle */}
+      {/* Left handle — on a join it moves the cut (two bars); at the very
+          start it trims this edge (one bar). Ctrl+drag on a join = trim. */}
       <div
-        className="absolute left-0 top-0 bottom-0 z-10 cursor-col-resize"
-        style={{ left: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W }}
+        className="absolute left-0 top-0 bottom-0 z-10"
+        style={{ left: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W, cursor: prevSegment ? "ew-resize" : "col-resize" }}
+        title={prevSegment ? "Drag to move the cut · Ctrl+drag to trim one side" : undefined}
         onPointerDown={(e) => onHandleDown("left", e)}
       >
-        <div
-          className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
-          style={{
-            left: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
-            width: 4, height: 16,
-            background: "rgba(var(--lift),0.55)",
-            opacity: showHandles ? 1 : 0,
-          }}
-        />
+        {prevSegment ? (
+          <>
+            <div
+              className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
+              style={{ left: Math.floor(TRIM_HANDLE_HIT_W / 2) - 4, width: 3, height: 16, background: "rgba(var(--lift),0.55)", opacity: showHandles ? 1 : 0 }}
+            />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
+              style={{ left: Math.floor(TRIM_HANDLE_HIT_W / 2) + 1, width: 3, height: 16, background: "rgba(var(--lift),0.55)", opacity: showHandles ? 1 : 0 }}
+            />
+          </>
+        ) : (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
+            style={{
+              left: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
+              width: 4, height: 16,
+              background: "rgba(var(--lift),0.55)",
+              opacity: showHandles ? 1 : 0,
+            }}
+          />
+        )}
       </div>
-      {/* Right handle */}
-      <div
-        className="absolute right-0 top-0 bottom-0 z-10 cursor-col-resize"
-        style={{ right: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W }}
-        onPointerDown={(e) => onHandleDown("right", e)}
-      >
+      {/* Right handle — only on the last section; inner joins are owned by the
+          next block's left handle (they shared the same pixels anyway). */}
+      {!hasNext && (
         <div
-          className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
-          style={{
-            right: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
-            width: 4, height: 16,
-            background: "rgba(var(--lift),0.55)",
-            opacity: showHandles ? 1 : 0,
-          }}
-        />
-      </div>
+          className="absolute right-0 top-0 bottom-0 z-10 cursor-col-resize"
+          style={{ right: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W }}
+          onPointerDown={(e) => onHandleDown("right", e)}
+        >
+          <div
+            className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
+            style={{
+              right: Math.floor(TRIM_HANDLE_HIT_W / 2) - 2,
+              width: 4, height: 16,
+              background: "rgba(var(--lift),0.55)",
+              opacity: showHandles ? 1 : 0,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -290,6 +338,9 @@ export default React.memo(WaveformTrack, (prev, next) => {
     prev.timelineWidth === next.timelineWidth &&
     prev.selected === next.selected &&
     prev.nleSegment === next.nleSegment &&
+    prev.prevSegment === next.prevSegment &&
+    prev.hasNext === next.hasNext &&
+    prev.onRoll === next.onRoll &&
     prev.rippleAnimating === next.rippleAnimating &&
     prev.moveDragging === next.moveDragging &&
     prev.onMoveDrag === next.onMoveDrag

@@ -1,8 +1,10 @@
 import { create } from "zustand";
 import {
-  sourceToTimeline,
+  sourceToTimelineNear,
+  segmentIndexAtTimeline,
   timelineToSource,
   getTimelineDuration,
+  getSegmentTimelineRange,
 } from "../models/timeMapping";
 
 // Rungs the R / E keys climb on repeat presses. A fourth press falls off the
@@ -103,11 +105,10 @@ const usePlaybackStore = create((set, get) => ({
     // SOURCE-ABSOLUTE — translate via clipFileOffset.
     if (vid && segments.length > 0) {
       const srcAbs = vid.currentTime + clipFileOffset;
-      // Use epsilon-tolerant check so sub-millisecond FP drift at the segment
-      // start doesn't falsely mark the video as "outside" the segment.
-      const EPS = 0.001;
-      const inside = segments.some((s) => srcAbs >= s.sourceStart - EPS && srcAbs <= s.sourceEnd + EPS);
-      if (!inside) {
+      // Prefer the section the playhead was in before the edit (#351): with
+      // repeated footage a plain scan would re-map it onto the earlier copy.
+      const mapped = sourceToTimelineNear(srcAbs, segments, segmentIndexAtTimeline(get().currentTime, segments));
+      if (!mapped.found) {
         const targetAbs = segments[0].sourceStart;
         vid.currentTime = Math.max(0, targetAbs - clipFileOffset);
         // Snap store currentTime to the timeline position we just seeked to
@@ -115,8 +116,7 @@ const usePlaybackStore = create((set, get) => ({
         // which was correct numerically but brittle.
         set({ currentTime: 0 });
       } else {
-        const mapped = sourceToTimeline(srcAbs, segments);
-        if (mapped.found) set({ currentTime: mapped.timelineTime });
+        set({ currentTime: mapped.timelineTime });
       }
     }
   },
@@ -167,14 +167,27 @@ const usePlaybackStore = create((set, get) => ({
     // Helper: convert source-absolute target back to clip-relative for video.currentTime
     const toVid = (abs) => Math.max(0, abs - clipFileOffset);
 
-    const mapped = sourceToTimeline(sourceAbs, nleSegments);
+    // Resolve against the section the playhead is in (#351). A source moment
+    // can live in two sections once footage is repeated; a first-match scan
+    // answered with the earlier copy every time, so play at the later copy
+    // mapped back onto the first and looped at the cut. The playhead's own
+    // TIMELINE position is unambiguous — a join counts as the later section,
+    // which is where the seek issued below lands.
+    const hint = segmentIndexAtTimeline(get().currentTime, nleSegments);
+    const mapped = sourceToTimelineNear(sourceAbs, nleSegments, hint);
     if (mapped.found) {
       const seg = nleSegments[mapped.segmentIndex];
       if (sourceAbs >= seg.sourceEnd - 0.02) {
         const nextIdx = mapped.segmentIndex + 1;
         if (nextIdx < nleSegments.length) {
           return {
-            timelineTime: mapped.timelineTime,
+            // Stamp the EXACT join, not the 20ms-early trigger time: the next
+            // tick derives its section hint from currentTime, and a join
+            // resolves to the section that starts there — the one the seek
+            // below lands in. Stamping 7.98 instead of 8 left the hint on the
+            // earlier section, which re-claimed the landed frame when the two
+            // shared footage (the #351 loop, reproduced in the s229 E2E).
+            timelineTime: getSegmentTimelineRange(nextIdx, nleSegments).start,
             needsSeek: true,
             seekToSource: toVid(nleSegments[nextIdx].sourceStart),
             // Which segment the seek lands in — lets the preview's
@@ -203,7 +216,7 @@ const usePlaybackStore = create((set, get) => ({
     const nextIdx = here.found ? here.segmentIndex + 1 : nleSegments.length;
     if (nextIdx < nleSegments.length) {
       return {
-        timelineTime: tlNow,
+        timelineTime: getSegmentTimelineRange(nextIdx, nleSegments).start, // the join — see above
         needsSeek: true,
         seekToSource: toVid(nleSegments[nextIdx].sourceStart),
         seekToIndex: nextIdx,

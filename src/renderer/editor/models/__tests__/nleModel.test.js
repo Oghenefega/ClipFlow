@@ -8,9 +8,11 @@ const {
 
 const {
   sourceToTimeline,
+  sourceToTimelineNear,
   sourceToTimelineClamped,
   timelineToSource,
   getTimelineDuration,
+  segmentIndexAtTimeline,
   getSegmentTimelineRange,
   buildTimelineLayout,
   visibleWords,
@@ -27,6 +29,7 @@ const {
   trimSegment,
   extendSegmentLeft,
   extendSegmentRight,
+  rollCut,
   validateSegments,
   findSegmentAtSource,
   MIN_SEGMENT_DURATION,
@@ -865,5 +868,144 @@ describe("reorder", () => {
       const result = extendSegmentLeft(reordered(), "earlier", -5, 100);
       expect(result.find((s) => s.id === "earlier").sourceStart).toBe(0);
     });
+  });
+});
+
+// ─── Move the cut (#352) + repeated footage (#351) ──────────────────────────
+
+describe("rollCut", () => {
+  // Fega's example: A = 1-5, C = 11-15 (a middle chunk was deleted)
+  const ac = () => [createSegment(1, 5, "a"), createSegment(11, 15, "c")];
+
+  test("moving the cut left shortens A and reveals earlier footage in C, same total length", () => {
+    const r = rollCut(ac(), "a", -2, 100);
+    expect(r[0]).toMatchObject({ sourceStart: 1, sourceEnd: 3 });
+    expect(r[1]).toMatchObject({ sourceStart: 9, sourceEnd: 15 });
+    expect(getTimelineDuration(r)).toBe(getTimelineDuration(ac()));
+  });
+
+  test("moving the cut right extends A and drops the head of C", () => {
+    const r = rollCut(ac(), "a", 2, 100);
+    expect(r[0]).toMatchObject({ sourceStart: 1, sourceEnd: 7 });
+    expect(r[1]).toMatchObject({ sourceStart: 13, sourceEnd: 15 });
+    expect(getTimelineDuration(r)).toBe(getTimelineDuration(ac()));
+  });
+
+  test("the source gap between the two sections is preserved", () => {
+    const r = rollCut(ac(), "a", -1.5, 100);
+    expect(r[1].sourceStart - r[0].sourceEnd).toBe(6);
+  });
+
+  test("works on continuous footage too", () => {
+    const r = rollCut(segs([[0, 10], [10, 20]]), "seg-0", 3, 100);
+    expect(r[0].sourceEnd).toBe(13);
+    expect(r[1].sourceStart).toBe(13);
+  });
+
+  test("stops at the left section's minimum length", () => {
+    const r = rollCut(ac(), "a", -10, 100);
+    expect(r[0].sourceEnd).toBeCloseTo(1 + MIN_SEGMENT_DURATION);
+    expect(r[1].sourceStart).toBeCloseTo(11 - (4 - MIN_SEGMENT_DURATION));
+  });
+
+  test("stops at the right section's minimum length", () => {
+    const r = rollCut(ac(), "a", 10, 100);
+    expect(r[1].sourceStart).toBeCloseTo(15 - MIN_SEGMENT_DURATION);
+    expect(r[0].sourceEnd).toBeCloseTo(5 + (4 - MIN_SEGMENT_DURATION));
+  });
+
+  test("the right section's start cannot go below 0", () => {
+    const r = rollCut(segs([[0, 10], [1, 20]]), "seg-0", -5, 100);
+    expect(r[1].sourceStart).toBe(0);
+    expect(r[0].sourceEnd).toBe(9);
+  });
+
+  test("the left section's end cannot pass the recording length", () => {
+    const r = rollCut(segs([[0, 10], [10, 20]]), "seg-0", 5, 12);
+    expect(r[0].sourceEnd).toBe(12);
+    expect(r[1].sourceStart).toBe(12);
+  });
+
+  test("does NOT clamp against other sections' footage — repeats are allowed", () => {
+    // Section D (6-9) was moved to the end; rolling A/C over its footage is fine
+    const list = [createSegment(1, 5, "a"), createSegment(11, 15, "c"), createSegment(6, 9, "d")];
+    const r = rollCut(list, "a", -3, 100);
+    expect(r[1].sourceStart).toBe(8);
+    expect(r[2]).toEqual(list[2]);
+  });
+
+  test("no-op on the last section, an unknown id, or a zero delta returns the same array", () => {
+    const list = ac();
+    expect(rollCut(list, "c", 1, 100)).toBe(list);
+    expect(rollCut(list, "nope", 1, 100)).toBe(list);
+    expect(rollCut(list, "a", 0, 100)).toBe(list);
+  });
+
+  test("keeps every other field on both sections (#349 per-section layout)", () => {
+    const list = [{ ...createSegment(1, 5, "a"), reframe: { x: 1 } }, { ...createSegment(11, 15, "c"), reframe: null }];
+    const r = rollCut(list, "a", 1, 100);
+    expect(r[0].reframe).toEqual({ x: 1 });
+    expect(r[1].reframe).toBeNull();
+  });
+});
+
+describe("repeated footage lookups", () => {
+  // The same moment (10-20) appears twice on the timeline
+  const twice = () => segs([[0, 10], [10, 20], [10, 20]]);
+
+  test("sourceToTimelineNear maps to the hinted copy, not the first match", () => {
+    const first = sourceToTimeline(15, twice());
+    expect(first.segmentIndex).toBe(1);
+    const near = sourceToTimelineNear(15, twice(), 2);
+    expect(near.segmentIndex).toBe(2);
+    expect(near.timelineTime).toBe(25);
+  });
+
+  test("sourceToTimelineNear falls back to the scan when the hint doesn't hold the moment", () => {
+    const r = sourceToTimelineNear(5, twice(), 2);
+    expect(r).toEqual({ timelineTime: 5, found: true, segmentIndex: 0 });
+    expect(sourceToTimelineNear(15, twice(), -1).segmentIndex).toBe(1);
+    expect(sourceToTimelineNear(15, twice(), 99).segmentIndex).toBe(1);
+  });
+
+  test("sourceToTimelineNear tolerates the boundary epsilon on the hinted section", () => {
+    const r = sourceToTimelineNear(10 - 0.0005, twice(), 2);
+    expect(r.segmentIndex).toBe(2);
+    expect(r.timelineTime).toBe(20);
+  });
+
+  test("overlapping sections (A 1-5, B 4-10) resolve by the playhead's section", () => {
+    const ab = segs([[1, 5], [4, 10]]);
+    // Playhead at the join → the later section, so source 4 maps to B's head
+    const idx = segmentIndexAtTimeline(4, ab);
+    expect(idx).toBe(1);
+    expect(sourceToTimelineNear(4, ab, idx)).toMatchObject({ segmentIndex: 1, timelineTime: 4 });
+    // Playhead inside A → source 4.5 is A's
+    expect(sourceToTimelineNear(4.5, ab, segmentIndexAtTimeline(3.5, ab))).toMatchObject({ segmentIndex: 0, timelineTime: 3.5 });
+  });
+
+  test("segmentIndexAtTimeline: join → later section, past the end → last, empty → -1", () => {
+    const list = segs([[0, 10], [10, 20]]);
+    expect(segmentIndexAtTimeline(0, list)).toBe(0);
+    expect(segmentIndexAtTimeline(9.9, list)).toBe(0);
+    expect(segmentIndexAtTimeline(10, list)).toBe(1);
+    expect(segmentIndexAtTimeline(50, list)).toBe(1);
+    expect(segmentIndexAtTimeline(0, [])).toBe(-1);
+  });
+});
+
+describe("sourceToTimelineNear seek-landing tolerance (#351)", () => {
+  test("a frame that landed a few ms before the hinted section's start still maps into it", () => {
+    const ab = segs([[1, 5], [4, 10]]);
+    // Seek target was B.start (4.000); Chromium landed at 3.997
+    const r = sourceToTimelineNear(3.997, ab, 1);
+    expect(r.segmentIndex).toBe(1);
+    expect(r.timelineTime).toBe(4);
+  });
+
+  test("the wider tolerance applies to the hint only — the scan keeps its 1ms boundary", () => {
+    const list = segs([[0, 10], [20, 30]]);
+    expect(sourceToTimelineNear(19.98, list, -1).found).toBe(false);
+    expect(sourceToTimelineNear(19.98, list, 1).segmentIndex).toBe(1);
   });
 });
