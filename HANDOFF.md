@@ -12,7 +12,8 @@ check. Fega confirmed all four alpha.19 checks → #351 CLOSED. His one complain
 VANISHED over a cut — alpha.19's cursor SVGs had bare path text instead of `<path d>`, an
 empty image. alpha.20 fixes it (`svgCursor` in `timelineConstants.js`), proven by rasterising
 the production cursor values (`cursor-probe.js`: 244–284 opaque px each, three distinct).
-#352 stays open until Fega sees the pointer turn into the icon.**
+Fega confirmed alpha.20 ("the mouse turns into the icon now") → #352 CLOSED. Session done:
+#351 + #352 closed, alpha.20 is the installed daily driver.**
 
 Original Batch A (still in place underneath):
 
@@ -44,14 +45,12 @@ in the roll/trim path. Repeats are half-supported until #353.
 
 ## Next Steps
 
-1. **Fega's in-app check** (alpha.20 on the feed; relaunch → Install): hover a cut — the
-   pointer must TURN INTO the `]` / `][` / `[` icon, never vanish. Then close #352.
-2. **#353 Batch B:** project subtitles/sounds/overlays PER SECTION (each copy gets an
+1. **#353 Batch B:** project subtitles/sounds/overlays PER SECTION (each copy gets an
    `instanceKey`, `id` stays shared so edits hit both), audit `id`-keyed consumers
    (SegmentRow, timeline sub lane, karaoke index, renderPayload, render.js:571,
    PreviewOverlays, ProjectsView preview), and add "Repeat this section" to the Audio-lane
    right-click menu.
-3. Backlog from s228 still stands: #350 inherited-layout upsert, #297/#299, quick-wins
+2. Backlog from s228 still stands: #350 inherited-layout upsert, #297/#299, quick-wins
    bundle (#307, #304, #320, #303), #341/#342.
 
 ## Watch Out For
