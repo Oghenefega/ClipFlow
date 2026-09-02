@@ -1,19 +1,18 @@
 # HANDOFF — Session 228 (2026-09-01)
 
-> Pending session title (set automatically at next session start): S228 · #349 per-section layouts built
-
 ## Current State
 
-**#349 per-section layouts is BUILT, machine-verified, committed — not yet in an installer
-and not yet user-verified** (`status: untested`, stays open). A clip can now switch layout at
-a cut: `segment.reframe` on each `nleSegments` entry, cascade section → clip → project.
-Proven on an AR-pool fixture: preview, thumbnail capture and a real 1080×1920 @ 60 fps render
-all switch at the cut; the opted-out section letterboxes in both engines; split / trim /
-undo / restart keep the section's layout; apply-to-all strips it; Detect under section scope
-samples only that section. 205 jest tests green (23 new).
+**alpha.17 is cut, on the feed, and CONFIRMED installed by Fega** ("the update worked"). It
+promotes #349 per-section layouts — the only change on top of alpha.16. The FEATURE is not
+user-verified yet (`status: untested`, stays open). A clip can now switch layout at a cut:
+`segment.reframe` on each `nleSegments` entry, cascade section → clip → project. Proven on
+an AR-pool fixture: preview, thumbnail capture and a real 1080×1920 @ 60 fps render all
+switch at the cut; the opted-out section letterboxes in both engines; split / trim / undo /
+restart keep the section's layout; apply-to-all strips it; Detect under section scope samples
+only that section. 205 jest tests green (23 new).
 
-Still awaiting Fega: the #348 feature check (alpha.16 is installed; feature unverified) and
-#347. Both stay open with `status: untested`.
+Still awaiting Fega's in-app checks on #349, #348 and #347 — all three open with
+`status: untested`.
 
 ## Key Decisions
 
@@ -33,15 +32,14 @@ Still awaiting Fega: the #348 feature check (alpha.16 is installed; feature unve
 
 ## Next Steps
 
-1. **Cut an installer when Fega asks** (alpha.17 would carry #349 alone on top of alpha.16;
-   batching rule says wait for the ask or ~10 changes).
-2. **Fega's check on #349** (~3 min, plain-language script is in the session wrap message):
-   clip with a cut → "This section" → different layout after the cut → scrub + render.
-3. **#350** (filed this session): editing an INHERITED layout under clip/section scope
+1. **Fega's checks on #349 / #348 / #347** (~3 min each). #349: clip with a cut → "This
+   section" → different layout after the cut → scrub + render; close + drop the label on
+   his confirmation.
+2. **#350** (filed this session): editing an INHERITED layout under clip/section scope
    upserts the shared library entry in place, so the section's "own" layout and the clip's
    share one id/name — decide "variant by default" vs "ask". Pre-existing Phase A semantics,
    more visible now.
-4. Backlog from s227 still stands: #297/#299 data-safety pair, quick-wins bundle
+3. Backlog from s227 still stands: #297/#299 data-safety pair, quick-wins bundle
    (#307, #304, #320, #303), s223's #341/#342.
 
 ## Watch Out For
