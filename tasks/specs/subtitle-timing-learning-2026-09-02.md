@@ -231,3 +231,80 @@ So: (a) the shipped rule stands, (b) CrisperWhisper would add roughly one point 
 non-commercial licence and a 3 GB model — worth revisiting only with a licence, (c) the honest
 ceiling for automatic timing on this data is ~82-83% of words within 100 ms; after that the
 remaining fixes are taste and belong in the editor.
+
+## 9. Session 232 (same day): the whole pill, the grouping, and a third aligner
+
+Fega's follow-up: "besides the first word, the same thing happens for the middle and the third
+words — and look at how I combine words, sometimes you group them weirdly." Everything below is
+scored on the same 121 clips (`tasks/spikes/subtitle-timing/`: `group_exp.py`, `group_model.py`,
+`chunk_exp2.js`, `qwen_run.py`, `combo.py`, `score3.py`, `score_production.py median|qwen`).
+
+### 9a. Where Fega's words differ from raw stable-ts, by position and direction
+
+| position | n | off > 100 ms | pushed later | pulled earlier | raw duration of the moved word (median) |
+|---|---|---|---|---|---|
+| single-word pill | 614 | 30.6% | 14.7% | 16.0% | later: 0.41 s, earlier: 0.07 s |
+| first of 2-3 | 1,100 | 19.7% | 13.3% | 6.5% | later: 0.42 s, earlier: 0.08 s |
+| middle | 547 | 15.0% | 7.3% | 7.7% | |
+| last | 1,093 | 21.6% | 6.1% | 15.5% | |
+
+Two mirror-image defects, not one: a LONG raw word (stretched back over the pause) starts too
+early; a TINY raw word (70-80 ms, after a 0.37 s silence) starts too late — stable-ts pushed
+the real onset into what it called silence. The energy snap only handles the first kind.
+Fega's pills are internally contiguous (94% of intra-pill word gaps are exactly 0, pill start =
+first word start in 99.8%, pill end = last word end in 98.7%), so word STARTS are the whole
+story for the karaoke; ends only matter for the last word's linger.
+
+### 9b. Three aligners, one median
+
+Qwen3-ForcedAligner-0.6B (Alibaba, Jan 2026, **Apache-2.0 code and weights**, `pip install
+qwen-asr`, 1.8 GB in the HF cache, 0.13 s/clip on the 3090, **10x realtime on CPU**) was run over
+the 121 clips. Alone it is worse than raw (75.5%, 19% of good words disturbed, and it collapses
+"ha ha ha" into zero-length words). But the three aligners miss DIFFERENT words:
+
+| Method (word start within 100 ms of Fega) | all | moved later | moved earlier | untouched disturbed | single/first/mid/last moved fixed |
+|---|---|---|---|---|---|
+| raw stable-ts | 78.4% | 0% | 0% | 0% | — |
+| WhisperX alone (bias +31 ms) | 80.6% | 62% | 57% | 13.1% | 47/58/70/67% |
+| Qwen alone (bias -15 ms) | 76.8% | 60% | 62% | 18.8% | 65/59/66/59% |
+| CrisperWhisper alone (cannot ship) | 81.6% | 58% | 66% | 13.3% | 54/61/65/69% |
+| shipped s231: WhisperX where > 150 ms from raw | 81.2% | 37% | 34% | 6.5% | 31/39/27/39% |
+| **median(raw, WhisperX, Qwen)** | **84.6%** | **50%** | **54%** | **6.5%** | **47/49/61/56%** |
+| median of all four incl. CrisperWhisper | 86.1% | 56% | 64% | 6.8% | 54/56/70/67% |
+
+Through the real `refine_word_timing` (`score_production.py median`): **84.1%** of all words,
+44.9% of the first words and 56.6% of the inner words Fega had to move now land, 7.6% / 5.6% of
+untouched words shift. That is above the "82-83% ceiling" written in section 8: the ceiling was
+for one aligner; a vote of three independent ones is a different estimator. Single-aligner
+fallbacks: WhisperX-only 80.8% (unchanged); Qwen-only scores 78.9% through the harness, below the
+snap-only 79.6%, so a machine with Qwen but no WhisperX uses the snap.
+
+### 9c. Grouping: the chunker is at its ceiling, two small knobs help
+
+Junction study (every word-to-next-word junction present in both Fega's pills and the chunker's,
+n = 2,998): boundary precision 92.4%, recall 86.5%; 1,252 of 1,612 pills (77.7%) reproduced
+exactly. A logistic-regression junction model on words + POS tags + gaps (grouped 5-fold CV by
+clip) scores F1 80% alone and 89.4% with the chunker's own decision as a feature vs the
+chunker's 89.3%: the remaining 10-13% of boundary disagreements are not predictable from local
+features (Fega himself splits "what the heck" two different ways in two clips). What the
+disagreements look like: he starts pills at phrase heads the chunker fills past ("was on | my
+mind", "the way | he rolls", "get him out | of here") and isolates vocatives ("come on | man |
+come on | baby"). Scored variants (exact pills / boundary F1, raw timings):
+
+| variant | exact | F1 |
+|---|---|---|
+| chunker as shipped (s231) | 77.7% | 89.4 |
+| vocatives (man/bro/dude/guys/bruh) isolated like fillers | 78.7% | 89.8 |
+| FORWARD_LOOK_GAP 0.5 → 0.4 | 78.2% | 89.7 |
+| **both (shipped s232)** | **79.2%** | **90.1** |
+| interjections isolated / possessives or pronouns as forward connectors / MAX_CHARS 16 or 24 / no atomic phrases / no known-phrase recall | 74-78% | 87-89 |
+
+On the median-refined timings the same pair scores 78.2% vs 77.0% for the old chunker. Fega's
+pill sizes are 1:2:3 = 36/35/30% (13 four-word pills in 2,074): MAX_WORDS 3 stands.
+
+### 9d. Shipped in s232
+
+- `tools/word_timing.py`: Qwen3-ForcedAligner as a third opinion; word start = median of
+  {stable-ts, WhisperX, Qwen}; WhisperX alone → gated rule + snap tie-break; otherwise snap.
+- `segmentWords.js`: vocatives in FILLERS, FORWARD_LOOK_GAP 0.4.
+- Customer runtime (#357) now needs `qwen-asr` + the 1.8 GB model as well as whisperx.

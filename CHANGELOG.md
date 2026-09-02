@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-02 (session 232) — Whole-pill subtitle timing: median of three aligners, grouping knobs (#356)
+
+### Changed
+- **Every word start is now the median vote of three aligners (#356).** Fega's follow-up: inner and last words were off too, not just the first word. A third aligner, Qwen3-ForcedAligner-0.6B (Apache-2.0, `qwen-asr`), joins stable-ts and WhisperX, and each word start becomes the median of the three. Scored on the 129 approved clips through the real code path: 84.1% of word starts land within 0.1 s of Fega's hand-fixed timing (session 231 rule 80.8%, raw 78.4%); 45% of the first words and 57% of the inner/last words he used to move by hand now land, in both directions (long words stretched back over a pause AND tiny words pushed late); 6-8% of already-good words shift. Each aligner alone is worse than raw stable-ts — the vote is what works. Qwen runs at 10x realtime on CPU. Fallbacks: WhisperX alone keeps the session-231 rule (80.8%); Qwen alone scores below the silence snap, so it is not used on its own; no aligner = snap (79.6%). Customer runtime needs `qwen-asr` + the 1.8 GB model (#357 updated).
+- **Grouping: vocatives get their own pill and the forward-look pause is 0.4 s (was 0.5).** A junction study of all 2,998 word-to-word boundaries in Fega's pills shows the 3-word chunker already at the ceiling a learned model can reach (a POS+timing model cannot beat it; the rest is taste). Two scored knobs shipped: "man", "bro", "dude", "guys", "bruh" are isolated like fillers ("come on | man | come on"), and a 0.4 s pause after a 2-word chunk now ends it. Exact pill reproduction 77.7% → 79.2%, boundary recall 86.6% → 88.6%. Study: `tasks/specs/subtitle-timing-learning-2026-09-02.md` §9, scripts in `tasks/spikes/subtitle-timing/`.
+
 ## [Unreleased] — 2026-09-02 (session 231) — Subtitle timing learned from 129 approved clips, then fixed (#356)
 
 ### Fixed

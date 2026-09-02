@@ -11,13 +11,16 @@
 const MAX_WORDS = 3;
 const MAX_CHARS = 20;
 const PAUSE_SPLIT_THRESHOLD = 0.7;   // seconds — hard wall
-const FORWARD_LOOK_GAP = 0.5;        // seconds — within partitions only
+const FORWARD_LOOK_GAP = 0.4;        // seconds — within partitions only (0.5 → 0.4, s232: +0.5 pt exact pills on Fega's 129 approved clips)
 const SILENCE_GAP_THRESHOLD = 0.15;  // seconds — close tiny gaps
 const MIN_DISPLAY_DURATION = 0.3;    // seconds — auto-generated floor
 const LINGER_DURATION = 0.4;         // seconds — extend into empty space after last word
 
-// Filler words (exact match only, per spec)
-const FILLERS = new Set(["um", "uh", "ah"]);
+// Filler words (exact match only, per spec) plus vocatives. Fega's approved clips (s232,
+// tasks/specs/subtitle-timing-learning-2026-09-02.md §9) give "man"/"bro"/"dude" their own pill
+// 9 times out of 10 ("come on | man | come on | baby"); isolating them like fillers reproduces
+// 16 more of his 1,627 pills and raises boundary recall 86.6% → 88.6%.
+const FILLERS = new Set(["um", "uh", "ah", "man", "bro", "dude", "guys", "bruh"]);
 
 // Words that connect forward — should never end a segment (they start the next one).
 // Includes pronouns, prepositions, articles, conjunctions, and contractions that

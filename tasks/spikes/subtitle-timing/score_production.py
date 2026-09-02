@@ -1,7 +1,7 @@
 """
 Score tools/word_timing.refine_word_timing against Fega's saved subtitles on every approved
 clip, through the real production function. Run in the whisper venv:
-  python score_production.py <scratchpad with approved_clips.json + audio/> [snap|whisperx]
+  python score_production.py <scratchpad with approved_clips.json + audio/> [snap|whisperx|qwen|median]   (DUMP=1 writes refined/<mode>/<clipId>.json)
 Metric: word start within 100 ms of Fega's final; "moved" = Fega changed raw by >100 ms
 either way, "untouched" = within 50 ms of raw.
 """
@@ -21,7 +21,9 @@ for c in clips:
     with wave.open(wav, "rb") as wf:
         sr = wf.getframerate(); a = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
     raw_segs = json.loads(json.dumps(c["clipTranscription"]["segments"]))
-    new_segs, stats = refine_word_timing(raw_segs, a, sr, device=dev, use_whisperx=(mode == "whisperx"))
+    new_segs, stats = refine_word_timing(raw_segs, a, sr, device=dev, use_whisperx=(mode in ("whisperx", "median")), use_qwen=(mode in ("qwen", "median")))
+    if os.environ.get("DUMP"):
+        os.makedirs(os.path.join(S, "refined", mode), exist_ok=True); json.dump({"segments": new_segs}, open(os.path.join(S, "refined", mode, c["clipId"] + ".json"), "w", encoding="utf-8"))
     for k, v in stats.items():
         if isinstance(v, int): tot_stats[k] = tot_stats.get(k, 0) + v
     raw = sorted([w for s in c["clipTranscription"]["segments"] for w in s.get("words", [])], key=lambda w: w["start"])
