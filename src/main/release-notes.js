@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.19",
+    date: "2026-09-01",
+    changed: [
+      "The cut between two sections now works the way DaVinci Resolve's does, with no Ctrl key. Hover the middle of the cut and the pointer becomes the move-the-cut icon: drag to slide the cut with both sections following. Hover just left of the cut and it becomes the trim icon for the section before; just right of it, the trim icon for the section after. Each spot also shows its own little marker on the timeline so you can see which edit you're about to make.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.18",
     date: "2026-09-01",
     added: [

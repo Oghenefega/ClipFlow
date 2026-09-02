@@ -1777,3 +1777,21 @@ timeline?"). Default to making the consumer robust to the state; reach for a cla
 the user says the state is never wanted. Corollary from the same session: the repeat-footage
 fix needed the hint stamped at the EXACT join (not the 20 ms-early trigger time) and a landing
 tolerance for seeks — a section-aware lookup is only as good as the section it is told.
+
+---
+
+## Session 229 (later) — When the user names an NLE as the reference, copy its interaction, not a simplified stand-in
+
+**What went wrong:** the move-the-cut handle shipped in alpha.18 with "plain drag = roll,
+Ctrl+drag = trim one side". Fega rejected it on first use: DaVinci Resolve does all three edits
+at a cut with no modifier — the pointer position decides (middle of the cut = roll, just left =
+trim the left clip's end, just right = trim the right clip's start), each with its own cursor.
+
+**Why it slipped:** I *named* the DaVinci zone model in the plan, then chose the modifier
+because three zones "could be fiddly at 14px" — an implementation worry I resolved by changing
+the interaction instead of widening the hit area. The standing rule (memory
+`project_editor_industry_standard`: don't reinvent editing primitives) already answered this.
+
+**Rule:** for any editor gesture, the reference NLE's interaction IS the spec. If it looks
+awkward at the current dimensions, change the dimensions, not the gesture — and never reach
+for a modifier key to disambiguate what a professional tool disambiguates by pointer position.

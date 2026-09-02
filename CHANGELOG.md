@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.19] — 2026-09-01 (session 229) — alpha.19: the cut works like Resolve's, no modifier key
+
+### Changed
+- **Version bumped to 0.4.0-alpha.19 and an installer cut** on Fega's ask, promoting the three-zone cut below — the only code change since alpha.18.
+- **The join between two sections is now three hover zones, no Ctrl (#352).** Fega rejected alpha.18's Ctrl+drag on first use and pointed at DaVinci Resolve: hovering the middle of a cut shows the move-the-cut cursor (`][` with arrows) and dragging slides the cut with both sections following; hovering just left of the cut shows the trim cursor for the section before (`]`), just right of it the trim cursor for the section after (`[`), and dragging from either trims or extends only that section. The handle glyph on the timeline changes with the zone too. The hit zone is 30px wide with a 10px middle band. The first section's left edge and the last section's right edge keep their single trim handle, now with the matching trim cursor. Verified over CDP: hover reports the right cursor and glyph per zone, and drags from each zone perform the right edit (roll, trim A's end, trim B's start).
+
 ## [0.4.0-alpha.18] — 2026-09-01 (session 229) — alpha.18: move the cut, repeats play through
 
 ### Changed

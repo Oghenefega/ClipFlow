@@ -2,15 +2,19 @@
 
 ## Current State
 
-**Batch A of "move the cut" is built, E2E-verified, committed, and CUT as alpha.18 (on the
-feed, f9ee60b) — NOT yet user-verified.** Fega asked for a roll edit (drag a cut between
-two sections; both sides move, total length unchanged) and reported the playback loop when a
-section was extended over its neighbour's footage. Both landed together:
+**Batch A of "move the cut" shipped as alpha.18, then Fega rejected the Ctrl+drag on first
+use ("the update worked" = installer only) and asked for DaVinci's pointer-position model.
+alpha.19 cuts that: the join is a 30px three-zone hit area in `WaveformTrack` — middle 10px =
+roll (`][` cursor + glyph), left third = trim the previous section's end (`]`), right third =
+trim this section's start (`[`), cursors are inline-SVG data URIs in `timelineConstants.js`.
+No modifier anywhere. E2E (`e2e-roll.js`, run 4) passes all 10 steps incl. the hover-zone
+check. Both #351 and #352 remain open, `status: untested` on the feature itself.**
+
+Original Batch A (still in place underneath):
 
 - `rollCut` in `models/segmentOps.js` + `rollNleCut` store action; the join is owned by the
-  later block's left handle in `WaveformTrack` (two bars, `ew-resize`); plain drag = roll,
-  Ctrl+drag = single-edge trim for the side the pointer started on; inner right handles are
-  no longer drawn (they were under the next block's left handle anyway).
+  later block's left handle in `WaveformTrack`; inner right handles are no longer drawn
+  (they were under the next block's left handle anyway).
 - Playback is section-aware (`sourceToTimelineNear` + `segmentIndexAtTimeline` in
   `timeMapping.js`): `mapSourceTime`, `setNleSegments`, the standby parking, the paused
   `onTimeUpdate`, and the #349 layout painter all resolve against the playhead's timeline
@@ -26,8 +30,8 @@ in the roll/trim path. Repeats are half-supported until #353.
 
 ## Key Decisions
 
-- **Ctrl, not Alt, for the single-edge trim at a join** — Alt+drag already means "duplicate"
-  on the subtitle lane.
+- **Pointer position, not a modifier, picks the edit at a cut** (lesson in tasks/lessons.md:
+  the reference NLE's interaction IS the spec; widen the hit area, don't change the gesture).
 - **Roll semantics:** C keeps its end (Fega confirmed: A 1–5 / C 11–15, drag 2s left →
   A 1–3 / C 9–15). Gap between the two in the source is preserved.
 - **No load-time healing of already-overlapped clips** — Fega undid his; and overlap is now
@@ -36,10 +40,10 @@ in the roll/trim path. Repeats are half-supported until #353.
 
 ## Next Steps
 
-1. **Fega's in-app check** (alpha.18 is on the feed; relaunch → Install): drag a cut
-   left/right (length readout unchanged), Ctrl+drag a cut (one side only, including pulling
-   B back over A's footage), play across a moved cut and across a deliberate overlap, one
-   Ctrl+Z per drag. Then close #351/#352 (currently open, commit SHA in comments).
+1. **Fega's in-app check** (alpha.19 on the feed; relaunch → Install): hover a cut — three
+   cursors across it; drag the middle (length readout unchanged), drag just left / just
+   right of it (one side only, including pulling B back over A's footage), play across a
+   moved cut and across a deliberate overlap, one Ctrl+Z per drag. Then close #351/#352.
 2. **#353 Batch B:** project subtitles/sounds/overlays PER SECTION (each copy gets an
    `instanceKey`, `id` stays shared so edits hit both), audit `id`-keyed consumers
    (SegmentRow, timeline sub lane, karaoke index, renderPayload, render.js:571,

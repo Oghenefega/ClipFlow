@@ -1,19 +1,31 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { LayoutTemplate } from "lucide-react";
-import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
+import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS, JOIN_HIT_W, JOIN_ROLL_W, CURSOR_ROLL, CURSOR_TRIM_LEFT, CURSOR_TRIM_RIGHT } from "./timelineConstants";
 
-// Section edges (#352). A block's LEFT handle sits on the join with the section
-// before it (prevSegment), and that join is shared: the previous block's own
-// right handle is not drawn (hasNext), since the two overlapped pixel-for-pixel
-// and the later block always won. On a join a plain drag MOVES THE CUT — the
+// Section edges (#352, DaVinci-style). A block's LEFT handle sits on the join
+// with the section before it (prevSegment), and that join is shared: the
+// previous block's own right handle is not drawn (hasNext), since the two
+// overlapped pixel-for-pixel and the later block always won. The join is one
+// hit zone in three parts, no modifier key: the MIDDLE moves the cut (the
 // section before ends later/earlier and this one starts later/earlier by the
-// same amount, total length unchanged. Ctrl+drag keeps the old single-edge
-// trim, for whichever side of the join the pointer started on. The first
-// section's left edge and the last section's right edge stay plain trims.
+// same amount, total length unchanged); just LEFT of the cut trims the
+// previous section's end; just RIGHT of it trims this section's start. Each
+// part has its own cursor and handle glyph. The first section's left edge and
+// the last section's right edge are plain trims.
+const zoneAt = (e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const dx = e.clientX - (rect.left + rect.width / 2);
+  if (dx < -JOIN_ROLL_W / 2) return "left";
+  if (dx > JOIN_ROLL_W / 2) return "right";
+  return "roll";
+};
+const ZONE_CURSOR = { left: CURSOR_TRIM_LEFT, roll: CURSOR_ROLL, right: CURSOR_TRIM_RIGHT };
+
 function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, prevSegment = null, hasNext = false, onTrimLeft, onTrimRight, onRoll, onTrimStart, onTrimEnd, rippleAnimating, onMoveStart, onMoveDrag, onMoveEnd, onSeekClick, moveDragging }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
+  const [joinZone, setJoinZone] = useState(null); // "left" | "roll" | "right" while the pointer is over the join
   const startRef = useRef({ x: 0, sourceStart: 0, sourceEnd: 0 });
   const rafRef = useRef(null);
   const moveXRef = useRef(0);
@@ -23,24 +35,21 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
     if (!nleSegment) return;
     e.stopPropagation();
 
-    // Which edit this drag performs and which section it edits.
+    // Which edit this drag performs and which section it edits — decided by
+    // where on the join the pointer is, never by a modifier.
     let mode = side === "left" ? "trimLeft" : "trimRight";
     let target = nleSegment;
+    let cursor = side === "left" ? CURSOR_TRIM_RIGHT : CURSOR_TRIM_LEFT;
     if (side === "left" && prevSegment) {
-      if (e.ctrlKey || e.metaKey) {
-        // The handle is centred on the join: pointer left of centre = the
-        // previous section's end, right of it = this section's start.
-        const rect = e.currentTarget.getBoundingClientRect();
-        if (e.clientX < rect.left + rect.width / 2) { mode = "trimRight"; target = prevSegment; }
-      } else if (onRoll) {
-        mode = "roll";
-        target = prevSegment;
-      }
+      const zone = zoneAt(e);
+      cursor = ZONE_CURSOR[zone];
+      if (zone === "left") { mode = "trimRight"; target = prevSegment; }
+      else if (zone === "roll" && onRoll) { mode = "roll"; target = prevSegment; }
     }
 
     setResizing(side);
     startRef.current = { x: e.clientX, sourceStart: target.sourceStart, sourceEnd: target.sourceEnd };
-    document.body.style.cursor = mode === "roll" ? "ew-resize" : "col-resize";
+    document.body.style.cursor = cursor;
     if (onTrimStart) onTrimStart();
 
     // Pixel scale from this block's own width; the scale is uniform along the
@@ -275,26 +284,45 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
           <LayoutTemplate size={9} strokeWidth={2.5} />
         </div>
       )}
-      {/* Left handle — on a join it moves the cut (two bars); at the very
-          start it trims this edge (one bar). Ctrl+drag on a join = trim. */}
-      <div
-        className="absolute left-0 top-0 bottom-0 z-10"
-        style={{ left: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W, cursor: prevSegment ? "ew-resize" : "col-resize" }}
-        title={prevSegment ? "Drag to move the cut · Ctrl+drag to trim one side" : undefined}
-        onPointerDown={(e) => onHandleDown("left", e)}
-      >
-        {prevSegment ? (
-          <>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
-              style={{ left: Math.floor(TRIM_HANDLE_HIT_W / 2) - 4, width: 3, height: 16, background: "rgba(var(--lift),0.55)", opacity: showHandles ? 1 : 0 }}
-            />
-            <div
-              className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
-              style={{ left: Math.floor(TRIM_HANDLE_HIT_W / 2) + 1, width: 3, height: 16, background: "rgba(var(--lift),0.55)", opacity: showHandles ? 1 : 0 }}
-            />
-          </>
-        ) : (
+      {/* Left handle. On a join: a three-part zone — middle moves the cut
+          (][ glyph), left third trims the previous section's end (] glyph in
+          that section), right third trims this section's start ([ glyph).
+          At the very start of the clip: a plain trim of this edge. */}
+      {prevSegment ? (
+        <div
+          className="absolute top-0 bottom-0 z-10"
+          style={{ left: -Math.floor(JOIN_HIT_W / 2), width: JOIN_HIT_W, cursor: ZONE_CURSOR[joinZone || "roll"] }}
+          title="Middle: move the cut · sides: trim that section"
+          onPointerDown={(e) => onHandleDown("left", e)}
+          onPointerMove={(e) => { const z = zoneAt(e); if (z !== joinZone) setJoinZone(z); }}
+          onPointerLeave={() => setJoinZone(null)}
+        >
+          {(() => {
+            const c = Math.floor(JOIN_HIT_W / 2);
+            const bar = "rgba(var(--lift),0.55)";
+            const on = showHandles || joinZone;
+            if (joinZone === "left") {
+              // ] just inside the previous section
+              return <div className="absolute top-1/2 -translate-y-1/2" style={{ left: c - 8, width: 6, height: 16, borderTop: `2px solid ${bar}`, borderBottom: `2px solid ${bar}`, borderRight: `2px solid ${bar}`, borderRadius: "0 3px 3px 0" }} />;
+            }
+            if (joinZone === "right") {
+              // [ just inside this section
+              return <div className="absolute top-1/2 -translate-y-1/2" style={{ left: c + 2, width: 6, height: 16, borderTop: `2px solid ${bar}`, borderBottom: `2px solid ${bar}`, borderLeft: `2px solid ${bar}`, borderRadius: "3px 0 0 3px" }} />;
+            }
+            return (
+              <>
+                <div className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150" style={{ left: c - 4, width: 3, height: 16, background: bar, opacity: on ? 1 : 0 }} />
+                <div className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150" style={{ left: c + 1, width: 3, height: 16, background: bar, opacity: on ? 1 : 0 }} />
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        <div
+          className="absolute top-0 bottom-0 z-10"
+          style={{ left: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W, cursor: CURSOR_TRIM_RIGHT }}
+          onPointerDown={(e) => onHandleDown("left", e)}
+        >
           <div
             className="absolute top-1/2 -translate-y-1/2 rounded-full transition-opacity duration-150"
             style={{
@@ -304,14 +332,14 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
               opacity: showHandles ? 1 : 0,
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
       {/* Right handle — only on the last section; inner joins are owned by the
           next block's left handle (they shared the same pixels anyway). */}
       {!hasNext && (
         <div
-          className="absolute right-0 top-0 bottom-0 z-10 cursor-col-resize"
-          style={{ right: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W }}
+          className="absolute right-0 top-0 bottom-0 z-10"
+          style={{ right: -Math.floor(TRIM_HANDLE_HIT_W / 2), width: TRIM_HANDLE_HIT_W, cursor: CURSOR_TRIM_LEFT }}
           onPointerDown={(e) => onHandleDown("right", e)}
         >
           <div

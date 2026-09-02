@@ -116,6 +116,36 @@ export const CLUSTER_MIN_WIDTH_PX = 40;
 // ── Interaction ──
 export const TRIM_HANDLE_VISUAL_W = 4;
 export const TRIM_HANDLE_HIT_W = 14;
+
+// ── Section joins (#352, DaVinci-style) ──
+// The hit zone centred on a cut is three zones with no modifier key: the
+// middle moves the cut (both sides), the outer thirds trim the section on
+// that side. Each zone has its own cursor so the pointer says which edit a
+// press will make — the same three cursors Resolve shows at an edit point.
+export const JOIN_HIT_W = 30;   // whole zone
+export const JOIN_ROLL_W = 10;  // middle band = roll; the rest = trim that side
+
+// Cursors as inline SVG (white glyph, dark outline — readable on every theme
+// and over video). Hotspot at the centre. `ew-resize` is the fallback.
+const svgCursor = (body) =>
+  `url("data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">` +
+    `<g fill="none" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${body}</g>` +
+    `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`
+  )}") 16 16, ew-resize`;
+
+// ][ with arrows either side — move the cut
+export const CURSOR_ROLL = svgCursor(
+  "M13 9v14M19 9v14M9 16H3M6 13l-3 3 3 3M23 16h6M26 13l3 3-3 3"
+);
+// ] with arrows — the LEFT section's end (its out point)
+export const CURSOR_TRIM_LEFT = svgCursor(
+  "M15 9h4v14h-4M9 16H3M6 13l-3 3 3 3M23 16h6M26 13l3 3-3 3"
+);
+// [ with arrows — the RIGHT section's start (its in point)
+export const CURSOR_TRIM_RIGHT = svgCursor(
+  "M17 9h-4v14h4M9 16H3M6 13l-3 3 3 3M23 16h6M26 13l3 3-3 3"
+);
 // Per-word "teeth" boundary handle (#119) — internal word-boundary drag on a
 // selected subtitle block. Slightly narrower than the trim handle so adjacent
 // teeth on short words don't overlap.
