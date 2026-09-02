@@ -2,8 +2,8 @@
 
 ## Current State
 
-**Batch A of "move the cut" is built, E2E-verified on the dev profile, and committed — NOT
-yet in an installer and NOT yet user-verified.** Fega asked for a roll edit (drag a cut between
+**Batch A of "move the cut" is built, E2E-verified, committed, and CUT as alpha.18 (on the
+feed, f9ee60b) — NOT yet user-verified.** Fega asked for a roll edit (drag a cut between
 two sections; both sides move, total length unchanged) and reported the playback loop when a
 section was extended over its neighbour's footage. Both landed together:
 
@@ -36,7 +36,7 @@ in the roll/trim path. Repeats are half-supported until #353.
 
 ## Next Steps
 
-1. **Fega's in-app check** (needs an installer — he tests on the daily build): drag a cut
+1. **Fega's in-app check** (alpha.18 is on the feed; relaunch → Install): drag a cut
    left/right (length readout unchanged), Ctrl+drag a cut (one side only, including pulling
    B back over A's footage), play across a moved cut and across a deliberate overlap, one
    Ctrl+Z per drag. Then close #351/#352 (currently open, commit SHA in comments).
