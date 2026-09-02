@@ -12,6 +12,17 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.18",
+    date: "2026-09-01",
+    added: [
+      "You can now move a cut. Hover the join between two sections on the Audio lane and drag the two-bar handle: the section before ends later or earlier and the section after starts later or earlier by the same amount, so the clip's total length never changes. Hold Ctrl while dragging to trim just one side of the cut, the way it used to work.",
+    ],
+    fixed: [
+      "Playback no longer gets stuck at a cut when two sections share the same footage. It used to reach the end of the first section, jump back, replay its tail and never move on. Using the same moment twice in one clip is allowed on purpose, and it now plays straight through.",
+      "One Ctrl+Z now undoes a whole drag on a section edge. A long trim used to take several presses to revert.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.17",
     date: "2026-09-01",
     added: [

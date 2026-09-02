@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.18] — 2026-09-01 (session 229) — alpha.18: move the cut, repeats play through
+
+### Changed
+- **Version bumped to 0.4.0-alpha.18 and an installer cut** on Fega's ask, promoting move-the-cut and section-aware playback (#352, #351, session 229) — the only code change since alpha.17. Both issues stay open until Fega sees them in the app.
+
 ## [Unreleased] — 2026-09-01 (session 229) — Move a cut by dragging it; repeated footage plays correctly (#352, #351)
 
 ### Added
