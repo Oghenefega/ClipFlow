@@ -89,6 +89,7 @@ NEVER use timing-gap heuristics for merging — whisper gaps are too inconsisten
 - **A subtitle straddling a cut can map to an inverted range** (start lands late, end lands early) once the two sides aren't adjacent. `visibleSubtitleSegments` clips it to the section holding its start and rebuilds `text` from the kept words — keep `text`/`words[]` in sync there or the burned-in render silently drops a word (#116).
 - **Repeated footage is ALLOWED (s229, #351/#353):** two sections may share source time — Fega reuses a moment on purpose. Never clamp a trim/roll against another section's footage, and never resolve a source time to a section by first-match scan: use `sourceToTimelineNear` with the playhead's `segmentIndexAtTimeline` hint (a join belongs to the later section), stamp the EXACT join when crossing a cut. Subtitle/sound/media projection still maps each anchor once (#353 pending).
 - **The reference NLE's gesture IS the spec (s229).** At a cut, pointer position picks the edit (middle = roll, sides = trim that section, each with its own cursor) — never a modifier key. If a zone feels small, widen `JOIN_HIT_W`, don't change the gesture.
+- **Timeline edits get an on-block control first, never a right-click item (s230).** Fega rejected "Merge with next" in the context menu and sketched dots on the selected block's top corners (#355). Propose handles/knobs/dots/edge zones on the block itself (like trim handles and word teeth); a menu is at most the secondary path. When he sketches the control, build it where he drew it.
 
 ## Keyboard Shortcuts
 

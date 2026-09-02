@@ -2,8 +2,8 @@
 
 ## Current State
 
-**#354 and #355 built, verified in the dev app, committed, and cut as alpha.21 (feed live,
-alpha.20 pruned). Both wait for Fega to try them (`status: untested`).**
+**Session done: #354 and #355 built, verified, cut as alpha.21, and CONFIRMED by Fega
+("both work") — both CLOSED. alpha.21 is the installed daily driver.**
 
 - **#354 Queue:** `Schedule` button on every unscheduled row, left of `Post`. It opens the
   date/time picker in a strip directly under the row (`rowSched` state in `QueueView.js`),
@@ -36,8 +36,7 @@ unit tests green. Proof shots: `q-picker.png`, `t-dots.png`.
 
 ## Next Steps
 
-1. Fega tries both on the next installer → close #354/#355 (remove `status: untested`).
-2. #353 Batch B (project subtitles/sounds/overlays per section) is still the big open item;
+1. #353 Batch B (project subtitles/sounds/overlays per section) is still the big open item;
    backlog from s228 stands (#350, #297/#299, quick-wins #307/#304/#320/#303, #341/#342).
 
 ## Watch Out For

@@ -8,6 +8,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - **Version bumped to 0.4.0-alpha.21 and an installer cut** on Fega's ask, promoting the session-230 batch below (#354 row Schedule + Post rename, #355 merge dots) — the only code change since alpha.20. Both issues stay open until Fega sees them in the app.
+- **Fega confirmed both on alpha.21 ("both work") — #354 and #355 closed.** The one correction this session (a right-click merge item rejected in favour of the on-block dots) is distilled into the editor-patterns skill.
 
 ## [Unreleased] — 2026-09-02 (session 230) — Schedule from the Queue row, "Post" not "Publish", merge dots on the timeline (#354, #355)
 
