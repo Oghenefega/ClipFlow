@@ -4,6 +4,16 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-02 (session 230) — Schedule from the Queue row, "Post" not "Publish", merge dots on the timeline (#354, #355)
+
+### Added
+- **Schedule straight from the Queue row (#354).** Every unscheduled clip now has a `Schedule` button beside `Post`. Clicking it opens the date and time picker directly under that row, already filled with the next free slot from the weekly template, and `Save Schedule` moves the clip to the Scheduled section — no expanding the row and scrolling to the bottom of its panel. It is the same picker the expanded panel uses (one shared piece of code now), so the past-time block, the "already taken" warning and the suggestion line behave identically in both places. Greyed with a tooltip until the clip is rendered.
+- **Merge subtitles on the timeline (#355).** A selected subtitle block shows a small green dot at each top corner: click the right dot to fold the next subtitle into it, the left dot to fold it into the previous one. Same result as the left panel's merge buttons (text joined, word timings kept, one undo step), and the merged block stays selected. A dot only appears when there is a visible neighbour on that side — never for a subtitle trimmed out of the clip — and the dots are skipped on blocks too narrow to hold two (zoom in). Fega's design: "if I just click on that green circle to the right, it'd merge".
+
+### Changed
+- **"Publish" is now "Post" on every Queue action (#354).** Row button `Post`, panel button `Post now`, the confirmation dialog (`Confirm post`, `Posting to 3 platforms`, `Post`), the results panel headings (`Posting…` / `Post results` / `Posted`) and the tooltips and warnings around them ("posting is blocked", "before posting"). Status words stay as they were by Fega's call — the `Published` badge, `Published Today`, the `Published` section and Settings → Publishing.
+- The Queue's action column is a little wider to fit the extra button.
+
 ## [0.4.0-alpha.20] — 2026-09-01 (session 229) — alpha.20: the cut cursors actually draw
 
 ### Changed

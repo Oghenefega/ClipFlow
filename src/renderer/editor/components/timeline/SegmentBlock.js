@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, WORD_TOOTH_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onDuplicate, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating, disabled = false }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onDuplicate, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating, disabled = false, onMerge, canMergePrev = false, canMergeNext = false }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -252,6 +252,27 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         />
       </div>
 
+      {/* Merge dots (#355) — one at each top corner of a SELECTED subtitle block.
+          Click the right dot to fold the next block into this one, the left dot
+          to fold this block into the previous. A dot is only drawn when the
+          neighbour is actually visible on the timeline (parent's guard, #217).
+          Skipped on a block too narrow to hold two distinct dots — zoom in. */}
+      {selected && onMerge && widthPx >= 36 && [["prev", canMergePrev], ["next", canMergeNext]].map(([dir, can]) => can && (
+        <div
+          key={`merge-${dir}`}
+          className="absolute z-30 cursor-pointer flex items-center justify-center"
+          title={dir === "prev" ? "Merge with previous subtitle" : "Merge with next subtitle"}
+          style={{ top: 0, [dir === "prev" ? "left" : "right"]: 2, width: 14, height: 14 }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onMerge(seg.id, dir); }}
+        >
+          <div
+            className="transition-transform duration-100 hover:scale-125"
+            style={{ width: 8, height: 8, borderRadius: "50%", background: trackColor.ring, boxShadow: `0 0 5px ${trackColor.ring}` }}
+          />
+        </div>
+      ))}
+
       {/* Per-word boundary "teeth" — draggable internal word boundaries (#119) */}
       {showTeeth && teethWords.slice(0, -1).map((_w, i) => {
         // Place the tooth where the NEXT word begins (flush with its section).
@@ -303,6 +324,9 @@ export default React.memo(SegmentBlock, (prev, next) => {
     prev.sourceWordCount === next.sourceWordCount &&
     prev.onDrag === next.onDrag &&
     prev.onDuplicate === next.onDuplicate &&
-    prev.onWordBoundaryDrag === next.onWordBoundaryDrag
+    prev.onWordBoundaryDrag === next.onWordBoundaryDrag &&
+    prev.onMerge === next.onMerge &&
+    prev.canMergePrev === next.canMergePrev &&
+    prev.canMergeNext === next.canMergeNext
   );
 });

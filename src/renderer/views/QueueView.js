@@ -702,6 +702,8 @@ export default function QueueView({
   const mainCount = approved.filter((c) => c.gameTag === mainGameTagLc).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
+  // #354: which unscheduled row has the schedule picker open beneath it.
+  const [rowSched, setRowSched] = useState(null);
   const [schedDate, setSchedDate] = useState("");
   const [schedHour, setSchedHour] = useState("12");
   const [schedMin, setSchedMin] = useState("30");
@@ -1087,7 +1089,7 @@ export default function QueueView({
   const getTiktokBlockReason = (clip) => {
     const enabled = getEnabledPlatforms(clip);
     if (!enabled.includes("tiktok")) return null;
-    if (!clip.tiktokPrivacy) return "Pick a TikTok privacy level in the TikTok panel before publishing.";
+    if (!clip.tiktokPrivacy) return "Pick a TikTok privacy level in the TikTok panel before posting.";
     if (clip.tiktokCommercialDisclosure === true) {
       const youBrand = clip.tiktokIsYourBrand === true;
       const branded = clip.tiktokIsBrandedContent === true;
@@ -1118,7 +1120,7 @@ export default function QueueView({
     // #71: Scheduling a placeholder-named clip means it'll auto-publish later as
     // "Clip 3" unless the user renames it first. Warn explicitly.
     if (isPlaceholderTitle(clip.title)) {
-      const ok = window.confirm(`This clip still has a placeholder name (${clip.title}). It will publish to social platforms with this title at the scheduled time.\n\nSchedule anyway?`);
+      const ok = window.confirm(`This clip still has a placeholder name (${clip.title}). It will be posted to social platforms with this title at the scheduled time.\n\nSchedule anyway?`);
       if (!ok) return;
     }
     const scheduledAt = `${date}T${time}:00`;
@@ -1131,8 +1133,37 @@ export default function QueueView({
       if (!r?.error) updateClipInState(clip._projectId, clip.id, updates);
     } catch (e) { console.error("Schedule save failed:", e); }
     setSchedAction(null);
+    setRowSched(null);
   };
 
+  // Date/time picker shared by the row's Schedule button (#354) and the
+  // expanded panel — ONE picker, so the two can never drift.
+  const renderSchedulePicker = (clip, onCancel) => {
+    // #228: a picked time in the past greys the save —
+    // the scheduler would fire it immediately.
+    const schedPast = !!schedDate && new Date(`${schedDate}T${schedHour}:${schedMin}:00`) <= new Date();
+    const canSave = !!schedDate && !schedPast;
+    // #243: warn (don't block) when the picked time is
+    // already held by a scheduled clip or a tracker entry.
+    const conflict = schedDate ? getTakenSlots().get(`${schedDate}T${schedHour}:${schedMin}`) : null;
+    return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "8px 12px", fontSize: 12 }} />
+        <TimeWheel hour={schedHour} min={schedMin} onHour={setSchedHour} onMin={setSchedMin} date={schedDate} />
+        <button onClick={() => { if (canSave) scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!canSave} title={schedPast ? "That time has already passed" : undefined} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: canSave ? T.accent : "rgba(var(--lift),0.04)", color: canSave ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
+        <button onClick={onCancel} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+      </div>
+      {schedPast && <div style={{ fontSize: 10, color: T.red, marginTop: 6 }}>That time has already passed — pick a future time.</div>}
+      {!schedPast && conflict && (
+        <div style={{ fontSize: 10, color: T.yellow, marginTop: 6 }}>
+          {"⚠ "}{conflict.kind === "scheduled" ? `Another clip is already scheduled for this time: "${conflict.title}"` : `A post already went out at this time: "${conflict.title}"`}
+        </div>
+      )}
+      {(() => { const sug = autoSuggestSlot(); return sug ? <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 6 }}>Suggested: {sug.label}</div> : null; })()}
+    </div>
+    );
+  };
   // Phase 3: Unschedule a clip
   const unscheduleClip = async (clip) => {
     if (!clip._projectId) return;
@@ -1220,7 +1251,7 @@ export default function QueueView({
     if (!clip || !ps?.platforms) return { allSuccess: false };
     // #60: Hard-block publish for test clips.
     if (isClipTest(clip)) {
-      setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "failed", error: "Test clip — publishing blocked. Untoggle TEST on the project first." } }));
+      setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "failed", error: "Test clip — posting blocked. Untoggle TEST on the project first." } }));
       return { allSuccess: false };
     }
     publishingRef.current = true;
@@ -1493,7 +1524,7 @@ export default function QueueView({
     }
     // #60: Hard-block publish for test clips.
     if (isClipTest(clip)) {
-      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Test clip — publishing blocked. Untoggle TEST on the project first.", platforms: {} } }));
+      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Test clip — posting blocked. Untoggle TEST on the project first.", platforms: {} } }));
       return { allSuccess: false, failures: [] };
     }
 
@@ -1951,7 +1982,7 @@ export default function QueueView({
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(var(--shade),calc(0.7 * var(--shadeK)))", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={cancelConfirm}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "24px 28px", maxWidth: 480, width: "90%", maxHeight: "80vh", overflow: "auto" }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 16 }}>Confirm Publish</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 16 }}>Confirm post</div>
               {/* Clip summary */}
               <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
                 <div style={{ width: 60, flexShrink: 0 }}>
@@ -1962,7 +1993,7 @@ export default function QueueView({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4 }}>{clip.title}</div>
                   {confirmSchedOpts && <div style={{ fontSize: 11, color: T.yellow, fontWeight: 600, marginBottom: 8 }}>Scheduled: {confirmSchedOpts.date} at {confirmSchedOpts.time}</div>}
-                  <div style={{ fontSize: 10, color: T.textTertiary }}>Publishing to {enabledKeys.length} platform{enabledKeys.length !== 1 ? "s" : ""}</div>
+                  <div style={{ fontSize: 10, color: T.textTertiary }}>Posting to {enabledKeys.length} platform{enabledKeys.length !== 1 ? "s" : ""}</div>
                 </div>
               </div>
               {/* Per-platform caption preview */}
@@ -1986,13 +2017,13 @@ export default function QueueView({
               {/* #71: Placeholder-title warning */}
               {isPlaceholderTitle(clip.title) && (
                 <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 7, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 600 }}>
-                  This clip still has a placeholder name (<span style={{ fontFamily: T.mono }}>{clip.title}</span>). Run AI Titles and Captions first, or rename it manually before publishing.
+                  This clip still has a placeholder name (<span style={{ fontFamily: T.mono }}>{clip.title}</span>). Run AI Titles and Captions first, or rename it manually before posting.
                 </div>
               )}
               {/* #60: Test-mode banner */}
               {isClipTest(clip) && (
                 <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 7, border: `1px dashed rgba(250,204,21,0.45)`, background: "rgba(250,204,21,0.08)", color: "#facc15", fontSize: 11, fontWeight: 600 }}>
-                  This clip belongs to a TEST project — publishing is blocked. Untoggle TEST on the project in the Projects tab to go live.
+                  This clip belongs to a TEST project — posting is blocked. Untoggle TEST on the project in the Projects tab to go live.
                 </div>
               )}
               {/* Actions */}
@@ -2001,9 +2032,9 @@ export default function QueueView({
                 <button
                   onClick={confirmPublish}
                   disabled={isClipTest(clip)}
-                  title={isClipTest(clip) ? "Test clip — publishing blocked." : undefined}
+                  title={isClipTest(clip) ? "Test clip — posting blocked." : undefined}
                   style={{ padding: "8px 22px", borderRadius: 7, border: "none", background: isClipTest(clip) ? "rgba(var(--lift),0.04)" : T.green, color: isClipTest(clip) ? T.textMuted : T.onSolid, fontSize: 12, fontWeight: 700, cursor: isClipTest(clip) ? "not-allowed" : "pointer", fontFamily: T.font }}
-                >{isClipTest(clip) ? "Blocked (Test)" : "Publish"}</button>
+                >{isClipTest(clip) ? "Blocked (Test)" : "Post"}</button>
               </div>
             </div>
           </div>
@@ -2072,7 +2103,7 @@ export default function QueueView({
           </button>
         </div>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 84px 150px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 84px 215px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
           {["", "Clip", "Title", "Game", "Platforms", "Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
@@ -2110,8 +2141,8 @@ export default function QueueView({
                 <div ref={ref} style={sortStyle} {...attributes}>
                   {/* Table row */}
                   <div
-                    onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 84px 150px", gap: 0, padding: "7px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                    onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); setRowSched(null); } }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 84px 215px", gap: 0, padding: "7px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
                     onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; setRowActions(e, true); }}
                     onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; setRowActions(e, false); }}
                   >
@@ -2147,9 +2178,26 @@ export default function QueueView({
                     {/* Action buttons */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                       <RowActions clip={clip} onOpenInEditor={onOpenInEditor} />
+                      {/* #354: schedule straight from the row — no expanding, no scrolling */}
+                      {!isPub && !isPublishing && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!hasVideoId) return;
+                            if (rowSched === clip.id) { setRowSched(null); return; }
+                            const sug = autoSuggestSlot();
+                            if (sug) { setSchedDate(sug.date); setSchedHour(sug.hour); setSchedMin(sug.min); } else { setSchedDate(""); }
+                            setSelClip(null); setSchedAction(null);
+                            setRowSched(clip.id);
+                          }}
+                          disabled={!hasVideoId}
+                          title={hasVideoId ? undefined : "Render the clip before scheduling."}
+                          style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: rowSched === clip.id ? "rgba(var(--lift),0.08)" : "rgba(var(--lift),0.03)", color: hasVideoId ? T.textSecondary : T.textMuted, fontSize: 10, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}
+                        >Schedule</button>
+                      )}
                       {!isPub && !isPublishing && hasVideoId && (
                         isClipTest(clip) ? (
-                          <TestChip isTest disabled size="sm" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
+                          <TestChip isTest disabled size="sm" title="Test clip — posting blocked. Untoggle TEST on the project to go live." />
                         ) : (() => {
                           const tikBlock = getTiktokBlockReason(clip);
                           return (
@@ -2158,7 +2206,7 @@ export default function QueueView({
                               disabled={!!tikBlock}
                               title={tikBlock || undefined}
                               style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(var(--lift),0.04)" : T.green, color: tikBlock ? T.textMuted : T.onSolid, fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
-                            >Publish</button>
+                            >Post</button>
                           );
                         })()
                       )}
@@ -2173,6 +2221,13 @@ export default function QueueView({
                       )}
                     </div>
                   </div>
+
+                  {/* #354: the picker under the row, same one the panel uses */}
+                  {rowSched === clip.id && !isSel && (
+                    <div onClick={(e) => e.stopPropagation()} style={{ padding: "0 14px 12px 90px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
+                      {renderSchedulePicker(clip, () => setRowSched(null))}
+                    </div>
+                  )}
 
                   {/* Expanded detail panel */}
                   {isSel && (
@@ -2258,7 +2313,7 @@ export default function QueueView({
                             const enabledKeys = getEnabledPlatforms(clip);
                             if (enabledKeys.length === 0) return (
                               <div style={{ padding: "10px 14px", borderRadius: 8, background: T.redDim, border: `1px solid ${T.redBorder}`, marginBottom: 14, fontSize: 11, color: T.red, fontWeight: 600 }}>
-                                All platforms disabled — toggle at least one to publish.
+                                All platforms disabled — toggle at least one to post.
                               </div>
                             );
                             return (
@@ -2526,7 +2581,7 @@ export default function QueueView({
                               return p?.platform === "TikTok" && (st === "publishing" || st === "done");
                             });
                             const borderColor = isPublishing ? T.yellowBorder : isFailed ? T.redBorder : T.greenBorder;
-                            const heading = isPublishing ? "Publishing..." : isFailed ? "Publish results" : "Published";
+                            const heading = isPublishing ? "Posting..." : isFailed ? "Post results" : "Posted";
                             return (
                               <div style={{ background: T.surface, border: `1px solid ${borderColor}`, borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
                                 <SectionLabel>{heading}</SectionLabel>
@@ -2603,7 +2658,7 @@ export default function QueueView({
                             )}
                             {!isPub && !isPublishing && (
                               isClipTest(clip) ? (
-                                <TestChip isTest disabled size="md" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
+                                <TestChip isTest disabled size="md" title="Test clip — posting blocked. Untoggle TEST on the project to go live." />
                               ) : (() => {
                                 const tikBlock = getTiktokBlockReason(clip);
                                 const canPub = hasVideoId && !publishingRef.current && !tikBlock;
@@ -2611,40 +2666,15 @@ export default function QueueView({
                                   <button
                                     onClick={() => { if (canPub) pubNow(clip.id); }}
                                     disabled={!canPub}
-                                    title={tikBlock || (!hasVideoId ? "Render the clip before publishing." : undefined)}
+                                    title={tikBlock || (!hasVideoId ? "Render the clip before posting." : undefined)}
                                     style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(var(--lift),0.04)", color: canPub ? T.onSolid : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
-                                  >Publish Now</button>
+                                  >Post now</button>
                                 );
                               })()
                             )}
                           </div>
                           {/* Phase 3: Schedule picker with auto-suggest */}
-                          {schedAction === "schedule" && (() => {
-                            // #228: a picked time in the past greys the save —
-                            // the scheduler would fire it immediately.
-                            const schedPast = !!schedDate && new Date(`${schedDate}T${schedHour}:${schedMin}:00`) <= new Date();
-                            const canSave = !!schedDate && !schedPast;
-                            // #243: warn (don't block) when the picked time is
-                            // already held by a scheduled clip or a tracker entry.
-                            const conflict = schedDate ? getTakenSlots().get(`${schedDate}T${schedHour}:${schedMin}`) : null;
-                            return (
-                            <div style={{ marginTop: 10 }}>
-                              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "8px 12px", fontSize: 12 }} />
-                                <TimeWheel hour={schedHour} min={schedMin} onHour={setSchedHour} onMin={setSchedMin} date={schedDate} />
-                                <button onClick={() => { if (canSave) scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!canSave} title={schedPast ? "That time has already passed" : undefined} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: canSave ? T.accent : "rgba(var(--lift),0.04)", color: canSave ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
-                                <button onClick={() => setSchedAction(null)} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                              </div>
-                              {schedPast && <div style={{ fontSize: 10, color: T.red, marginTop: 6 }}>That time has already passed — pick a future time.</div>}
-                              {!schedPast && conflict && (
-                                <div style={{ fontSize: 10, color: T.yellow, marginTop: 6 }}>
-                                  {"⚠ "}{conflict.kind === "scheduled" ? `Another clip is already scheduled for this time: "${conflict.title}"` : `A post already went out at this time: "${conflict.title}"`}
-                                </div>
-                              )}
-                              {(() => { const sug = autoSuggestSlot(); return sug ? <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 6 }}>Suggested: {sug.label}</div> : null; })()}
-                            </div>
-                            );
-                          })()}
+                          {schedAction === "schedule" && renderSchedulePicker(clip, () => setSchedAction(null))}
                         </div>
                       </div>
                     </div>
@@ -2726,7 +2756,7 @@ export default function QueueView({
                         disabled={!!tikBlock}
                         title={tikBlock || undefined}
                         style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(var(--lift),0.04)" : T.green, color: tikBlock ? T.textMuted : T.onSolid, fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
-                      >Publish</button>
+                      >Post</button>
                     );
                   })()}
                   {!isPublishing && (
@@ -2790,9 +2820,9 @@ export default function QueueView({
                             <button
                               onClick={() => { if (canPub) pubNow(clip.id); }}
                               disabled={!canPub}
-                              title={tikBlock || (!hasVideoId ? "Render the clip before publishing." : undefined)}
+                              title={tikBlock || (!hasVideoId ? "Render the clip before posting." : undefined)}
                               style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(var(--lift),0.04)", color: canPub ? T.onSolid : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
-                            >Publish Now</button>
+                            >Post now</button>
                           );
                         })()}
                       </div>

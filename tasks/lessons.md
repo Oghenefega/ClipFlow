@@ -1815,3 +1815,22 @@ production code path, so it couldn't catch the production bug.
 inspected as an image before shipping — load the exact data URI into an `<img>`, draw it to a
 canvas and count opaque pixels (or rasterise to PNG and Read it). A string assertion on a
 visual asset is not verification.
+
+---
+
+## Session 230 — Timeline edits get an on-block control first; a right-click menu is not "a way to do it"
+
+**What went wrong:** For #355 (merge two subtitles from the timeline) I planned "Merge with
+previous / next" as two items in the subtitle block's right-click menu. Fega: "I don't like
+that" — he sketched two dots on the top corners of the selected block, click the right one to
+merge with the next, the left one to merge with the previous.
+
+**Why it slipped:** I reached for the existing menu because it was the cheapest place to hang
+a new action, and treated "reachable from the timeline" as the requirement. The requirement was
+"one click on the thing itself" — a menu is two clicks plus a read, which is the same cost he was
+complaining about in the left panel.
+
+**Rule:** For any timeline editing affordance, the first proposal is an on-object control on the
+block (handle, knob, dot, edge zone — the way the trim handles and word teeth already work), with
+the menu as the secondary path at most. When Fega sketches the control, the sketch IS the spec:
+build the dot where he drew it. Pairs with s229's "the reference NLE's interaction is the spec".

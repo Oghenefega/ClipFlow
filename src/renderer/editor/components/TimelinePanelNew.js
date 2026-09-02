@@ -196,6 +196,34 @@ export default function TimelinePanelNew() {
     return m;
   }, [rawEditSegments]);
 
+  // Merge dots on a selected subtitle block (#355). Same guard as the Edit
+  // subtitles panel (#217): the RAW neighbour that a merge would swallow must be
+  // visible on the timeline — merging in text from before the in-point or from a
+  // cut-out span looked like the line had corrupted itself. mergeSegment always
+  // folds the active block into its NEXT, so "merge with previous" is driven
+  // from the previous block's side; the survivor keeps the earlier block's id.
+  const subMergeTargets = useCallback((segId) => {
+    const visible = new Set(editSegments.map((s) => s.id));
+    const i = rawEditSegments.findIndex((s) => s.id === segId);
+    const prev = i > 0 ? rawEditSegments[i - 1] : null;
+    const next = i >= 0 && i < rawEditSegments.length - 1 ? rawEditSegments[i + 1] : null;
+    return {
+      prev: prev && visible.has(prev.id) ? prev.id : null,
+      next: next && visible.has(next.id) ? next.id : null,
+    };
+  }, [editSegments, rawEditSegments]);
+  const handleSubtitleMerge = useCallback((segId, dir) => {
+    const { prev, next } = subMergeTargets(segId);
+    const keepId = dir === "prev" ? prev : (next ? segId : null);
+    if (!keepId) return;
+    const sub = useSubtitleStore.getState();
+    sub.setActiveSegId(keepId);
+    sub.mergeSegment();
+    setSelectedTrack("sub");
+    setSelectedSegIds(new Set([keepId]));
+    sub.setSelectedWordInfo({ segId: keepId, wordIdx: 0 });
+  }, [subMergeTargets]);
+
   // Helper: convert timeline time → source time for subtitle operations
   const toSource = useCallback((timelineTime) => {
     if (!nleSegments || nleSegments.length === 0) return timelineTime;
@@ -1568,11 +1596,17 @@ export default function TimelinePanelNew() {
                 const visibleSubs = editSegments;
                 // No clustering — always render subs individually. Zoom controls density.
                 return (<>
-                  {visibleSubs.map((seg) => (
+                  {visibleSubs.map((seg) => {
+                    const isSelSub = selectedSegIds.has(seg.id) && selectedTrack === "sub";
+                    const mergeT = isSelSub ? subMergeTargets(seg.id) : null;
+                    return (
                     <SegmentBlock
                       key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
                       duration={effectiveDuration} timelineWidth={clipContentWidth}
-                      selected={selectedSegIds.has(seg.id) && selectedTrack === "sub"}
+                      selected={isSelSub}
+                      onMerge={handleSubtitleMerge}
+                      canMergePrev={!!mergeT?.prev}
+                      canMergeNext={!!mergeT?.next}
                       disabled={!showSubs || seg.enabled === false}
                       onSelect={(id, e) => handleSegSelect("sub", id, e)}
                       onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
@@ -1585,7 +1619,8 @@ export default function TimelinePanelNew() {
                       sourceWordCount={sourceWordCounts[seg.id] ?? 0}
                       rippleAnimating={rippleAnimating}
                     />
-                  ))}
+                    );
+                  })}
                   {/* Phantom right portions during middle-case drag */}
                   {dragPhantoms.map((phantom, i) => {
                     // Phantom positions are source-absolute — convert to timeline for rendering
