@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.20",
+    date: "2026-09-01",
+    fixed: [
+      "The mouse pointer no longer vanishes over a cut. The three cut icons (move the cut, trim the left section, trim the right section) now actually draw, so the pointer turns into the icon instead of disappearing.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.19",
     date: "2026-09-01",
     changed: [

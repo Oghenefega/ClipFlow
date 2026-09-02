@@ -8,7 +8,11 @@ alpha.19 cuts that: the join is a 30px three-zone hit area in `WaveformTrack` �
 roll (`][` cursor + glyph), left third = trim the previous section's end (`]`), right third =
 trim this section's start (`[`), cursors are inline-SVG data URIs in `timelineConstants.js`.
 No modifier anywhere. E2E (`e2e-roll.js`, run 4) passes all 10 steps incl. the hover-zone
-check. Both #351 and #352 remain open, `status: untested` on the feature itself.**
+check. Fega confirmed all four alpha.19 checks → #351 CLOSED. His one complaint: the pointer
+VANISHED over a cut — alpha.19's cursor SVGs had bare path text instead of `<path d>`, an
+empty image. alpha.20 fixes it (`svgCursor` in `timelineConstants.js`), proven by rasterising
+the production cursor values (`cursor-probe.js`: 244–284 opaque px each, three distinct).
+#352 stays open until Fega sees the pointer turn into the icon.**
 
 Original Batch A (still in place underneath):
 
@@ -40,10 +44,8 @@ in the roll/trim path. Repeats are half-supported until #353.
 
 ## Next Steps
 
-1. **Fega's in-app check** (alpha.19 on the feed; relaunch → Install): hover a cut — three
-   cursors across it; drag the middle (length readout unchanged), drag just left / just
-   right of it (one side only, including pulling B back over A's footage), play across a
-   moved cut and across a deliberate overlap, one Ctrl+Z per drag. Then close #351/#352.
+1. **Fega's in-app check** (alpha.20 on the feed; relaunch → Install): hover a cut — the
+   pointer must TURN INTO the `]` / `][` / `[` icon, never vanish. Then close #352.
 2. **#353 Batch B:** project subtitles/sounds/overlays PER SECTION (each copy gets an
    `instanceKey`, `id` stays shared so edits hit both), audit `id`-keyed consumers
    (SegmentRow, timeline sub lane, karaoke index, renderPayload, render.js:571,

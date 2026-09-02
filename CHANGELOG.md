@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.20] — 2026-09-01 (session 229) — alpha.20: the cut cursors actually draw
+
+### Changed
+- **Version bumped to 0.4.0-alpha.20 and an installer cut** on Fega's report, promoting the cursor fix below — the only code change since alpha.19.
+
+### Fixed
+- **The mouse pointer disappeared over a cut (#352).** alpha.19's three cut cursors were inline SVGs whose path data was inserted as bare text instead of inside a path element — a valid but empty image, which Chromium dutifully used as the pointer. Fega: "my mouse disappears… jarring." The path is now a real `<path d>` in both the outline and the fill layer. Verified by loading the exact production cursor values into an image and rasterising them: each draws 244–284 opaque pixels with the white glyph on top, and the three are distinct. Fega had confirmed all four alpha.19 behaviour checks (roll, one-side trims, play through an overlap, one undo per drag); #351 closed on that confirmation.
+
 ## [0.4.0-alpha.19] — 2026-09-01 (session 229) — alpha.19: the cut works like Resolve's, no modifier key
 
 ### Changed

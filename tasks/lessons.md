@@ -1795,3 +1795,23 @@ the interaction instead of widening the hit area. The standing rule (memory
 **Rule:** for any editor gesture, the reference NLE's interaction IS the spec. If it looks
 awkward at the current dimensions, change the dimensions, not the gesture — and never reach
 for a modifier key to disambiguate what a professional tool disambiguates by pointer position.
+
+---
+
+## Session 229 (later still) — A visual asset ships only after it has been LOOKED AT as pixels
+
+**What went wrong:** alpha.19's three cut cursors were inline-SVG data URIs whose path data
+was inserted as bare text inside `<g>` instead of a `<path d>` — a valid, empty SVG. Chromium
+happily used the empty image as the cursor, so the pointer vanished over every cut ("my mouse
+disappears… jarring"). The E2E "verified" the cursors by regex-matching the path string inside
+`style.cursor`, which proved the STRING was set, not that anything was drawn. I even generated
+a side-by-side SVG "for eyeballing" — with the correct `<path>` wrapper — and never opened it.
+
+**Why it slipped:** the check I could run cheaply (string match) substituted for the check that
+mattered (rendered pixels), and the helper that rendered the eyeball copy didn't share the
+production code path, so it couldn't catch the production bug.
+
+**Rule:** any icon/cursor/glyph built in code gets rendered THROUGH THE PRODUCTION VALUE and
+inspected as an image before shipping — load the exact data URI into an `<img>`, draw it to a
+canvas and count opaque pixels (or rasterise to PNG and Read it). A string assertion on a
+visual asset is not verification.

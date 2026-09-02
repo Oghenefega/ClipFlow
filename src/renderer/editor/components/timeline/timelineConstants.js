@@ -127,11 +127,14 @@ export const JOIN_ROLL_W = 10;  // middle band = roll; the rest = trim that side
 
 // Cursors as inline SVG (white glyph, dark outline — readable on every theme
 // and over video). Hotspot at the centre. `ew-resize` is the fallback.
-const svgCursor = (body) =>
+// `d` is a path string. (alpha.19 dropped it in as bare text — an SVG with no
+// path element, so the pointer became an invisible 32×32 image: "my mouse
+// disappears". Any change here must be eyeballed as a rendered image.)
+const svgCursor = (d) =>
   `url("data:image/svg+xml;utf8,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">` +
-    `<g fill="none" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${body}</g>` +
-    `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`
+    `<path d="${d}" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
   )}") 16 16, ew-resize`;
 
 // ][ with arrows either side — move the cut
