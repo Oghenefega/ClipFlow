@@ -12,6 +12,15 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.22",
+    date: "2026-09-02",
+    changed: [
+      "Subtitle words now fire when they are actually spoken. Every word's start time is decided by three independent aligners voting, so the first word of a pill no longer lights up during the pause before it, and middle and last words no longer jump late. Only new transcriptions get this; clips you already edited keep your timing.",
+      "Reopening an edited clip keeps your word timing exactly as you saved it. Before, a cleanup pass could nudge a few hand-set words on every reopen.",
+      "Grouping: \"man\", \"bro\", \"dude\" and \"guys\" get their own pill, and a short pause after a two-word pill now ends it, matching how you split pills by hand.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.21",
     date: "2026-09-02",
     added: [

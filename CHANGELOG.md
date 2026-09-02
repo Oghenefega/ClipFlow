@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-02 (session 232) — alpha.22 cut
+
+### Changed
+- **Version bump to 0.4.0-alpha.22 and installer cut.** Promotes everything since alpha.21: the #356 word-timing work from sessions 231 and 232 (median vote of stable-ts, WhisperX and Qwen3-ForcedAligner on every word start; editor-saved words untouched on reopen) and the two grouping knobs (vocatives isolated, 0.4 s forward-look). Fega tests on a fresh recording; the proof line in the pipeline log is `[TIMING] {'method': 'median3', ...}`.
+
 ## [Unreleased] — 2026-09-02 (session 232) — Whole-pill subtitle timing: median of three aligners, grouping knobs (#356)
 
 ### Changed
