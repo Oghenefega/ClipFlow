@@ -164,3 +164,46 @@ Montreal Forced Aligner / NeMo forced aligner on the known text. Until one score
 early set without disturbing the rest, some pills will still need the editor.
 
 Not recommended: any change to `segmentWords` chunking or `LINGER_DURATION` (2c, 2d).
+
+## 6. Correction: it is not only the first word (Fega's pushback, same session)
+
+Section 2b counted a word as "moved" only when Fega pushed it LATER. Counting both directions
+(|Fega - raw| > 100 ms) changes the picture:
+
+| position in the pill | n | off > 100 ms | pushed later | pulled earlier |
+|---|---|---|---|---|
+| first | 1,100 | 19.7% | 13.3% | 6.5% |
+| middle | 547 | 15.0% | 7.3% | 7.7% |
+| last | 1,093 | 21.6% | 6.1% | **15.5%** |
+| single-word pill | 614 | 30.6% | 14.7% | 16.0% |
+
+Of 486 three-word pills, 20% have the first word off, 29% have a middle or last word off, and
+19% have an inner word off while the first word is fine. The last word is usually too LATE in
+the raw output: the middle word stays lit until the last word finally fires ("the middle word
+swallows the pill"). The silence-edge rule can only move a start later, so it does nothing for
+these; WhisperX places inner words well (70% of the inner words Fega moved land within 100 ms).
+
+Re-scored in both directions (all 121 clips):
+
+| Method | first words Fega moved | inner words Fega moved | untouched disturbed (first / inner) | all words <= 100 ms |
+|---|---|---|---|---|
+| raw stable-ts | 0% | 0% | 0 / 0 | 78.4% |
+| WhisperX bias-corrected, full replacement | 53% | 67% | 14% / 12% | 80.6% |
+| silence-edge snap only | 22% | 2.5% | 2.9% / 2.1% | 79.6% |
+| **shipped: WhisperX where it disagrees with stable-ts by > 150 ms, silence snap as tie-break** | 33% | 36% | 7.8% / 5.5% | **80.8%** |
+
+## 7. What shipped (s231, after Fega's "do all 3")
+
+- `resolveSubtitles.js`: editor-saved words pass through untouched (0 of 4,150 saved words
+  change on reopen, was 26); fresh transcription no longer gets the anchored Pass 4.
+- `tools/word_timing.py` (new) + `tools/transcribe.py`: `refine_word_timing` runs after the
+  existing post-processing. WhisperX forced alignment of the same text is the second opinion
+  (override when > 150 ms apart, after a +31 ms bias correction); the silence-edge snap applies
+  to long words when WhisperX agrees with it. Without WhisperX the snap runs alone.
+  Scored through the real function: 80.8% (WhisperX path), 79.6% (snap-only fallback).
+- Customer machines: `tools/runtime/requirements.txt` does not install whisperx (only the
+  constraints file pins 3.8.2) and the wav2vec2 model is a ~360 MB torch-hub download on first
+  use, so customers get the snap-only path until #146's runtime adds both. Filed separately.
+- CrisperWhisper (cc-by-nc-4.0, NON-commercial licence — usable for scoring, not for shipping
+  without a licence from nyra health): downloaded (3.2 GB) and run over the clips; see the
+  final section of this document for its score.

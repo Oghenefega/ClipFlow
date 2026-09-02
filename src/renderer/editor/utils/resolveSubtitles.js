@@ -294,15 +294,23 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       const segStartSec = s.start;
       const segEndSec = s.end;
 
-      const rawWords = mergeWordTokens(s.words, s.text);
-      const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
-      let repairedWords = cleanWordTimestamps(validatedWords, {
-        segStart: segStartSec,
-        segEnd: segEndSec,
-      });
-      // Fresh transcription only — editor-saved casing is the user's and is
-      // never rewritten (mirrors the other hasEditorSavedSubs cleanup gates).
-      if (!hasEditorSavedSubs) repairedWords = autoCapitalizeWords(repairedWords);
+      // #356: editor-saved words are the user's hand timings — pass them through
+      // untouched. Running the repair stack on them re-timed saved words on every
+      // reopen (9 starts / 17 ends of 4,150 on Fega's approved clips). Fresh
+      // transcription still gets token merge + clamp + timestamp cleanup, but
+      // WITHOUT the segment anchors: the anchored Pass 4 ("words cover <60% of
+      // the segment → redistribute by character count") was written for WhisperX
+      // DTW output and fires on 40% of stable-ts segments, where short words with
+      // real gaps are normal speech. Scored against Fega's finals it moved 6-7%
+      // of good words and fixed nothing (tasks/specs/subtitle-timing-learning-2026-09-02.md).
+      let repairedWords;
+      if (hasEditorSavedSubs) {
+        repairedWords = (s.words || []).map((w) => ({ ...w }));
+      } else {
+        const rawWords = mergeWordTokens(s.words, s.text);
+        const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
+        repairedWords = autoCapitalizeWords(cleanWordTimestamps(validatedWords));
+      }
 
       if (i === 0) {
         log(`[initSegments] First seg (source-abs): [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${(s.text || "").slice(0, 40)}"`);

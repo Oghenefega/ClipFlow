@@ -23,6 +23,11 @@ import json
 import argparse
 import numpy as np
 
+# #356: word-start refinement lives beside this script (shipped via the same
+# extraResources rule — see package.json build.extraResources).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from word_timing import refine_word_timing
+
 # Redirect HuggingFace cache to D: drive
 os.environ.setdefault("HF_HOME", r"D:\whisper\hf_cache")
 
@@ -584,6 +589,17 @@ def transcribe_one(model, audio_path, output_path, language, initial_prompt):
         audio_np = audio_np.reshape(-1, n_channels).mean(axis=1)
 
     segments = postprocess_timestamps(segments, audio_np, sr=sr)
+
+    # ── Word-start refinement (#356) ──
+    # WhisperX forced alignment as a second opinion + silence-edge snap for long words.
+    # Scored on Fega's approved clips; see tools/word_timing.py. Never raises.
+    try:
+        import torch as _torch
+        _dev = "cuda" if _torch.cuda.is_available() else "cpu"
+    except Exception:
+        _dev = "cpu"
+    segments, timing_stats = refine_word_timing(segments, audio_np, sr, device=_dev)
+    print(f"[TIMING] {timing_stats}", file=sys.stderr)
 
     output = {"segments": segments, "text": " ".join(full_text_parts)}
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
