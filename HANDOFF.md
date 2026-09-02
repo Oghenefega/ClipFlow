@@ -2,8 +2,8 @@
 
 ## Current State
 
-**#354 and #355 built, verified in the dev app, committed. Not yet in an installer — both wait
-for Fega to see them (`status: untested`).**
+**#354 and #355 built, verified in the dev app, committed, and cut as alpha.21 (feed live,
+alpha.20 pruned). Both wait for Fega to try them (`status: untested`).**
 
 - **#354 Queue:** `Schedule` button on every unscheduled row, left of `Post`. It opens the
   date/time picker in a strip directly under the row (`rowSched` state in `QueueView.js`),
