@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-02 (session 231) — Subtitle timing learned from 129 approved clips (#356, analysis only)
+
+### Added
+- **Subtitle timing study (#356).** Fega's 129 approved clips were measured word by word: his saved edits (`clip.subtitles.sub1`) against the raw stable-ts timings the app starts from, plus the mic audio of every clip. The write-up is `tasks/specs/subtitle-timing-learning-2026-09-02.md`; the scoring scripts are in `tasks/spikes/subtitle-timing/` so any future timing change can be scored against the same dataset instead of eyeballed. Headline: the raw timings are already right for 78% of words; the one real defect is the FIRST word of a pill starting too early (14% of pills, median 0.37 s early) because stable-ts stretches an utterance-initial word back over the pause — that single defect is both "pill appears early" and "first word swallows the pill". Chunking and linger already match what Fega does by hand; the app's own cleanup passes are a net wash but disturb 6-7% of good words. A silence-edge snap on long first words fixes about half of the early pills at 2-3% collateral; WhisperX as a gated second opinion pushes overall agreement to 80%. No code changed this session — the fix plan is on the issue and waits for Fega's go-ahead.
+
 ## [0.4.0-alpha.21] — 2026-09-02 (session 230) — alpha.21: Queue row Schedule, Post, timeline merge dots
 
 ### Changed

@@ -1,68 +1,59 @@
-# HANDOFF — Session 230 (2026-09-02)
+# HANDOFF — Session 231 (2026-09-02)
 
 ## Current State
 
-**Session done: #354 and #355 built, verified, cut as alpha.21, and CONFIRMED by Fega
-("both work") — both CLOSED. alpha.21 is the installed daily driver.**
+**Analysis session, no code changed. #356 filed with the findings + a three-part fix plan that
+waits for Fega's go-ahead.** alpha.21 stays the installed daily driver.
 
-- **#354 Queue:** `Schedule` button on every unscheduled row, left of `Post`. It opens the
-  date/time picker in a strip directly under the row (`rowSched` state in `QueueView.js`),
-  prefilled from `autoSuggestSlot()`, and saves through the existing `scheduleClipOnly`. The
-  picker is now ONE function, `renderSchedulePicker(clip, onCancel)`, used by both the row strip
-  and the expanded panel. Action column widened 150 → 215px (header + row).
-- **#354 rename:** every Queue ACTION says Post (`Post`, `Post now`, `Confirm post`,
-  `Posting to N platforms`, `Posting…/Post results/Posted`, tooltips). STATUS nouns deliberately
-  unchanged: `Published` badge, `Published Today`, `Published` section, `Publish Log`,
-  Settings → Publishing. Fega chose that split.
-- **#355 timeline:** a selected subtitle block draws a dot at each top corner
-  (`SegmentBlock.js`, props `onMerge`/`canMergePrev`/`canMergeNext`). `TimelinePanelNew.js`
-  owns the guard (`subMergeTargets`: the RAW neighbour must be in the mapped/visible list, same
-  rule as the left panel's #217 guard) and the action (`handleSubtitleMerge`: activates the
-  survivor, calls the store's `mergeSegment`, re-selects the survivor). Dots skipped when the
-  block is under 36px wide. Fega rejected a right-click-menu version before this was built.
+Fega asked: "look at all my approved clips and learn from them ... subtitles appear too early,
+misaligned, first word swallows the 3-word pill". Measured on 129 approved clips (121 with both
+raw `clip.transcription` and editor-saved `sub1`), 3,354 matchable words, mic audio extracted for
+every clip. Full write-up: `tasks/specs/subtitle-timing-learning-2026-09-02.md`. Scripts:
+`tasks/spikes/subtitle-timing/` (repro.js reproduces the app pipeline; hybrid_eval.py /
+onset_exp.py score rules against Fega's finals; align_exp.py runs WhisperX / stable-ts variants
+in the whisper venv; chunk_exp.js scores chunker variants).
 
-E2E (`e2e-354-355.js` in this session's scratchpad `bde0ed93…`) passes all 8 steps: row
-Schedule → picker under the row without expanding → Save lands in SCHEDULED at the suggested
-time (checked on disk too) → Unschedule; first/middle/last block dot rules; right dot merges
-"um," + "JP is" → "um, JP is"; left dot merges into the previous; Ctrl+Z restores both. 223
-unit tests green. Proof shots: `q-picker.png`, `t-dots.png`.
+Headline numbers (word start within 100 ms of Fega's final):
+- raw stable-ts 78.4% · current app pipeline 77.1% (disturbs 6-7% of good words) ·
+  silence-edge snap on long first words 79.5% · snap + WhisperX agreement 80.2%.
+- THE defect: first word of a pill starts too early — 194 of 1,380 first words, median +0.37 s;
+  raw duration >0.5 s after a pause is wrong 42-71% of the time. Inner words are mostly fine.
+- Chunker reproduces 77% of his pills (every variant tried is worse); linger 0.4 s = his median.
+- Small real bug: reopening an edited clip still runs cleanWordTimestamps on saved words
+  (9 starts / 17 ends of 4,150 change).
 
 ## Key Decisions
 
-- **On-block control, not a menu, for timeline edits** (lesson in tasks/lessons.md s230).
-- **Post = the verb, Published = the state.** Don't sweep the status nouns without an ask.
-- **No Schedule/Reschedule on the SCHEDULED row** — not asked for; the old "edit a scheduled
-  clip's time" wish (memory `project_queue_reschedule`) is still open.
+- **No replacement aligner.** WhisperX / stable-ts align / VAD / adjust_by_silence all score
+  below raw overall; only gated touches on suspicious first words help. Recorded in memory
+  `project_subtitle_timing_learning`.
+- **Don't touch segmentWords or LINGER_DURATION** — the data says they already match Fega.
+- The stable-ts adjust_by_silence job was stopped at 36/121 clips: partial numbers were already
+  no better than the simple rule.
 
 ## Next Steps
 
-1. #353 Batch B (project subtitles/sounds/overlays per section) is still the big open item;
-   backlog from s228 stands (#350, #297/#299, quick-wins #307/#304/#320/#303, #341/#342).
+1. Fega decides on #356's plan (1: gate cleanup off editor-saved subs + drop Pass 4 anchors;
+   2: silence-edge snap in tools/transcribe.py; 3: optional WhisperX second opinion). Build →
+   rerun repro.js + hybrid_eval.py → report the three numbers → cut an installer.
+2. If he wants "perfect": score CrisperWhisper or a forced aligner (MFA/NeMo) on the same
+   dataset — each is a model download, ask first.
+3. Backlog from s228/s230 stands (#353 Batch B, #350, #297/#299, quick-wins).
 
 ## Watch Out For
 
-- **Row `Schedule` on a placeholder-named clip ("Clip 3") raises a native `window.confirm`**
-  (the #71 warning inside `scheduleClipOnly`). Fine for users; in a CDP run it freezes every
-  `Runtime.evaluate` and CDP reports "No dialog is showing". Find it with a user32 EnumWindows
-  for class `#32770` and post WM_CLOSE (script in this session's transcript), or avoid
-  placeholder titles in the fixture.
-- **A text-based "click the nav item named Queue" finder is dangerous inside the editor** — in
-  run 1 it matched an editor element and started a real render of the fixture's Clip 2 (which
-  then became approved + queued). Reload to the main tab before navigating, or scope the finder
-  to the bottom nav.
-- The subtitle-overlay window (`build/subtitle-overlay/index.html`) matches an `index.html`
-  target filter — `cdp.js`/`shot.js` now exclude `overlay`. Copy those, not older versions.
+- The per-clip WAVs (121 × 16 kHz) and aligner JSON outputs live only in this session's
+  scratchpad (`d924fd93…/scratchpad/audio`, `/align`); re-extract with the ffmpeg line in
+  `tasks/spikes/subtitle-timing/` (mic = `-map 0:a:1`, i.e. `transcriptionAudioTrack` 1).
+- `approved_clips.json` / `auto_repro.json` are scratchpad-only too; repro.js rebuilds them from
+  the prod projectsRoot (`W:\...\Vertical Recordings Onwards\.clipflow\projects`). Read-only —
+  nothing under the projects tree was written.
+- Word matching is text + nearest start within 1.5 s; repeated words ("ha, ha, ha") can
+  mis-pair — the plots filter to unique words for that reason.
 
 ## Logs/Debugging
 
-- Dev boot (from the REPO root): `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-features=CalculateNativeWinOcclusion --disable-renderer-backgrounding
-  --disable-background-timer-throttling`. Kill with `taskkill //F //IM electron.exe` (Corva.exe is
-  the daily driver — never by image name).
-- Fixture: copy of s227's AR rejected-clip project at `bde0ed93…/scratchpad/fixture`, with
-  `clip_…_zawr` flipped to approved (title "Fixture approved clip") so the Queue had a row;
-  `clip_…_sfa6` stayed rejected for the editor. Dev `projectsRoot/watchFolder/outputFolder` were
-  repointed at it and RESTORED from `dev-settings-orig.json` at wrap. Dev tokens `{"accounts":{}}`
-  before and after.
-- Timeline zoom in a script: click the `svg.lucide-zoom-in` button (×9 ≈ 7.5×); the slider is a
-  Radix component, not an `<input type=range>`.
+- Whisper venv: `D:\whisper\betterwhisperx-venv\Scripts\python.exe` (stable-ts 2.19.1,
+  whisperx, torch 2.7.1 cu126, matplotlib; system python has numpy but no matplotlib).
+- GPU RTX 3090; WhisperX align ≈1.4 s/clip, stable-ts transcribe+refine ≈5-10 s/clip.
+- Set `PYTHONIOENCODING=utf-8` for any script printing clip titles (cp1252 console).
