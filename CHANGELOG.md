@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.21] — 2026-09-02 (session 230) — alpha.21: Queue row Schedule, Post, timeline merge dots
+
+### Changed
+- **Version bumped to 0.4.0-alpha.21 and an installer cut** on Fega's ask, promoting the session-230 batch below (#354 row Schedule + Post rename, #355 merge dots) — the only code change since alpha.20. Both issues stay open until Fega sees them in the app.
+
 ## [Unreleased] — 2026-09-02 (session 230) — Schedule from the Queue row, "Post" not "Publish", merge dots on the timeline (#354, #355)
 
 ### Added

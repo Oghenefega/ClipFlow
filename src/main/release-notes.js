@@ -12,6 +12,17 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.21",
+    date: "2026-09-02",
+    added: [
+      "Schedule a clip straight from the Queue. Every unscheduled clip now has a Schedule button next to Post; click it and the date and time picker opens right under that row, already set to your next free slot.",
+      "Merge subtitles on the timeline. Click a subtitle block and two small green dots appear on its top corners: the right dot joins it with the next subtitle, the left dot joins it with the previous one. Ctrl+Z undoes it.",
+    ],
+    changed: [
+      "Publish is now Post. The Queue's buttons and confirmation say Post, since that is what you do on social media.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.20",
     date: "2026-09-01",
     fixed: [
