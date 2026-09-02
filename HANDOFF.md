@@ -2,7 +2,7 @@
 
 ## Current State
 
-**#356 round two built, pushed and CUT as alpha.22 (on the feed, 2026-09-02 12:27). NOT yet seen by Fega on a fresh recording.**
+**#356 round two built, pushed and CUT as alpha.22 (on the feed, 2026-09-02 12:27). CONFIRMED by Fega on a fresh Valorant recording: "much cleaner, tighter, shows on exact words". #356 CLOSED.**
 alpha.22 is offered on next launch. Fega's ask this session: "not only the first word —
 middle and last words too, and look at how I group words." Study: `tasks/specs/
 subtitle-timing-learning-2026-09-02.md` §9; scripts in `tasks/spikes/subtitle-timing/`.
@@ -36,7 +36,7 @@ app (needs a new recording or a Retranscribe click).
 
 ## Next Steps
 
-1. alpha.22 is cut; ask Fega to judge
+1. DONE — Fega confirmed on a fresh clip (#356 closed). Still worth asking what "not perfect" means on the next one, then judge
    pills on a FRESH clip (old clips keep their saved sub1). Proof = `[TIMING]` line in the log.
 2. #357: customer runtime needs whisperx + wav2vec2 checkpoint AND `qwen-asr` + the 1.8 GB
    Qwen model (pre-download next to the whisper model). Check the `qwen-asr` dependency size
