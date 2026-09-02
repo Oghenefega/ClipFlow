@@ -2,58 +2,71 @@
 
 ## Current State
 
-**Analysis session, no code changed. #356 filed with the findings + a three-part fix plan that
-waits for Fega's go-ahead.** alpha.21 stays the installed daily driver.
+**#356 built and pushed (d4c3473), NOT yet cut as an installer, NOT yet seen by Fega in the
+app.** alpha.21 is still the installed daily driver. Fega's ask: "learn from my approved clips,
+subtitles appear too early / misaligned / first (or middle, or last) word swallows the pill".
 
-Fega asked: "look at all my approved clips and learn from them ... subtitles appear too early,
-misaligned, first word swallows the 3-word pill". Measured on 129 approved clips (121 with both
-raw `clip.transcription` and editor-saved `sub1`), 3,354 matchable words, mic audio extracted for
-every clip. Full write-up: `tasks/specs/subtitle-timing-learning-2026-09-02.md`. Scripts:
-`tasks/spikes/subtitle-timing/` (repro.js reproduces the app pipeline; hybrid_eval.py /
-onset_exp.py score rules against Fega's finals; align_exp.py runs WhisperX / stable-ts variants
-in the whisper venv; chunk_exp.js scores chunker variants).
+Shipped in the repo:
+- `tools/word_timing.py` (new) + `tools/transcribe.py`: after stable-ts post-processing,
+  `refine_word_timing` runs WhisperX forced alignment of the same text as a second opinion
+  (override when > 150 ms apart, +31 ms bias correction) and snaps long words to their silence
+  edge when WhisperX agrees. Without WhisperX: snap only. Logs `[TIMING] {...}` to stderr.
+- `src/renderer/editor/utils/resolveSubtitles.js`: editor-saved words pass through untouched
+  (0 of 4,150 saved words change on reopen, was 26); fresh transcription no longer gets the
+  anchored Pass 4 redistribution.
+- Docs: `tasks/specs/subtitle-timing-learning-2026-09-02.md` (the whole study incl. Fega's
+  correction that inner/last words are wrong too), scripts in `tasks/spikes/subtitle-timing/`.
 
-Headline numbers (word start within 100 ms of Fega's final):
-- raw stable-ts 78.4% · current app pipeline 77.1% (disturbs 6-7% of good words) ·
-  silence-edge snap on long first words 79.5% · snap + WhisperX agreement 80.2%.
-- THE defect: first word of a pill starts too early — 194 of 1,380 first words, median +0.37 s;
-  raw duration >0.5 s after a pause is wrong 42-71% of the time. Inner words are mostly fine.
-- Chunker reproduces 77% of his pills (every variant tried is worse); linger 0.4 s = his median.
-- Small real bug: reopening an edited clip still runs cleanWordTimestamps on saved words
-  (9 starts / 17 ends of 4,150 change).
+Scored through the real function on all 121 clips (word start within 100 ms of Fega's finals,
+both directions): raw 78.4% → shipped 80.8% (snap-only fallback 79.6%); 33% of the first words
+and 36% of the inner words he used to move now land; 6-8% of good words shift >100 ms.
+
+Verification done: 223 jest green, `npm run build:renderer` ok, dev-profile boot clean
+(window loads, 0 errors in app.log), `score_production.py` reproduces the numbers.
+NOT done: a real transcription through the app (needs a new recording or a Retranscribe click)
+— the `[TIMING]` stderr line is the proof to look for in the pipeline log.
+
+CrisperWhisper: downloaded to `D:\whisper\hf_cache` (3.2 GB, licence cc-by-nc-4.0 = cannot ship
+commercially without a licence from nyra health). Needs transformers 4.44 (side folder
+`D:\whisper\crisper-tf`, prepended to sys.path with the venv's numpy/torch imported first and
+`sys.modules["torchcodec"]=None`). SCORED (spec doc section 8): best single aligner (83.5% of
+matched words within 100 ms, 73% of Fega's moved first words, 77% of moved inner words), but as a
+gated second opinion only +1 point over what shipped (81.7% vs 80.8%). Not adopted: licence +
+3 GB model for one point. Ceiling for automatic timing on this data ≈ 82-83%; the rest is taste.
 
 ## Key Decisions
 
-- **No replacement aligner.** WhisperX / stable-ts align / VAD / adjust_by_silence all score
-  below raw overall; only gated touches on suspicious first words help. Recorded in memory
-  `project_subtitle_timing_learning`.
-- **Don't touch segmentWords or LINGER_DURATION** — the data says they already match Fega.
-- The stable-ts adjust_by_silence job was stopped at 36/121 clips: partial numbers were already
-  no better than the simple rule.
+- **Both directions, always.** The first pass counted only words pushed later and missed that
+  the LAST word is usually too late (15.5% of pills) — Fega caught it. Memory + spec updated.
+- **WhisperX as a gated second opinion, never a replacement** (full replacement = 80.6% but
+  disturbs 12-14% of good words).
+- **Leave `segmentWords` and `LINGER_DURATION` alone** — they already match his hand edits.
+- Customer machines get snap-only until #357 (runtime lacks whisperx + wav2vec2 checkpoint).
 
 ## Next Steps
 
-1. Fega decides on #356's plan (1: gate cleanup off editor-saved subs + drop Pass 4 anchors;
-   2: silence-edge snap in tools/transcribe.py; 3: optional WhisperX second opinion). Build →
-   rerun repro.js + hybrid_eval.py → report the three numbers → cut an installer.
-2. If he wants "perfect": score CrisperWhisper or a forced aligner (MFA/NeMo) on the same
-   dataset — each is a model download, ask first.
-3. Backlog from s228/s230 stands (#353 Batch B, #350, #297/#299, quick-wins).
+1. Cut an installer (alpha.22) so Fega's next recording goes through the new timing; ask him to
+   judge the pills on a fresh clip rather than an old one (old clips keep their saved sub1).
+2. #357: add whisperx + the wav2vec2 checkpoint to the customer runtime.
+3. If CrisperWhisper scores clearly above 80.8% on the early/inner sets, it becomes the next
+   candidate — but only with a commercial licence.
+4. Backlog from s228/s230 stands (#353 Batch B, #350, #297/#299, quick-wins).
 
 ## Watch Out For
 
-- The per-clip WAVs (121 × 16 kHz) and aligner JSON outputs live only in this session's
-  scratchpad (`d924fd93…/scratchpad/audio`, `/align`); re-extract with the ffmpeg line in
-  `tasks/spikes/subtitle-timing/` (mic = `-map 0:a:1`, i.e. `transcriptionAudioTrack` 1).
-- `approved_clips.json` / `auto_repro.json` are scratchpad-only too; repro.js rebuilds them from
-  the prod projectsRoot (`W:\...\Vertical Recordings Onwards\.clipflow\projects`). Read-only —
-  nothing under the projects tree was written.
-- Word matching is text + nearest start within 1.5 s; repeated words ("ha, ha, ha") can
-  mis-pair — the plots filter to unique words for that reason.
+- `tools/word_timing.py` ships via `build.extraResources` (`tools` → `tools`) — same rule as
+  transcribe.py; verify it is in `dist/win-unpacked/resources/tools/` after the next build.
+- WhisperX's first use downloads WAV2VEC2_ASR_BASE_960H (~360 MB) into the torch hub cache; on
+  Fega's desktop it is already there (`~/.cache/torch/hub/checkpoints`).
+- Scratchpad-only data (per-clip WAVs, aligner JSON, approved_clips.json) is regenerated by the
+  spike scripts; nothing under the projects tree was written.
+- Word matching in every scorer = normalized text + nearest start within 1.5 s; repeated words
+  can mis-pair.
 
 ## Logs/Debugging
 
-- Whisper venv: `D:\whisper\betterwhisperx-venv\Scripts\python.exe` (stable-ts 2.19.1,
-  whisperx, torch 2.7.1 cu126, matplotlib; system python has numpy but no matplotlib).
-- GPU RTX 3090; WhisperX align ≈1.4 s/clip, stable-ts transcribe+refine ≈5-10 s/clip.
-- Set `PYTHONIOENCODING=utf-8` for any script printing clip titles (cp1252 console).
+- Whisper venv `D:\whisper\betterwhisperx-venv\Scripts\python.exe`; RTX 3090; WhisperX align
+  ≈1.4 s/clip; `score_production.py <scratchpad> whisperx|snap` prints the five-line score.
+- `PYTHONIOENCODING=utf-8` for scripts printing clip titles.
+- Dev boot: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`; kill with
+  `taskkill //F //IM electron.exe`. Dev tokens are `{"accounts":{}}`.

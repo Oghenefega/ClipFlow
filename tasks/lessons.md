@@ -1834,3 +1834,11 @@ complaining about in the left panel.
 block (handle, knob, dot, edge zone — the way the trim handles and word teeth already work), with
 the menu as the secondary path at most. When Fega sketches the control, the sketch IS the spec:
 build the dot where he drew it. Pairs with s229's "the reference NLE's interaction is the spec".
+
+## Session 231 (2026-09-02) — measure corrections in BOTH directions
+
+**What happened:** The subtitle-timing study defined "a word Fega moved" as "final start more than 150 ms LATER than raw". That found the first-word-too-early defect and I reported it as the one real problem. Fega pushed back: middle and last words are wrong too. Re-counting with |final − raw| > 100 ms in either direction showed the LAST word off in 22% of pills, mostly too late (pulled EARLIER by him) — the "middle word swallows the pill" symptom I had explained away.
+
+**Why:** I picked the metric from the first symptom I understood ("appears early") and let it define the dataset. A one-sided threshold silently drops every correction in the other direction.
+
+**Rule:** When learning from a user's edits, the first metric is always symmetric (|Δ| > threshold), broken down by position/category, with both directions reported side by side. Only after that pick the story. And when the user says "it's not just X", re-run the count before defending X.

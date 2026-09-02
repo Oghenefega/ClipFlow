@@ -205,5 +205,29 @@ Re-scored in both directions (all 121 clips):
   constraints file pins 3.8.2) and the wav2vec2 model is a ~360 MB torch-hub download on first
   use, so customers get the snap-only path until #146's runtime adds both. Filed separately.
 - CrisperWhisper (cc-by-nc-4.0, NON-commercial licence — usable for scoring, not for shipping
-  without a licence from nyra health): downloaded (3.2 GB) and run over the clips; see the
-  final section of this document for its score.
+  without a licence from nyra health): downloaded (3.2 GB) and run over the clips; section 8.
+
+## 8. CrisperWhisper (all 121 clips)
+
+Runs only on its own transformers fork (`D:\whisper\crisper-tf-fork`, 4.37-based, with
+tokenizers 0.15.2 beside it, `sys.modules["torchcodec"]=None`, venv numpy/torch imported first).
+~15 s per clip on the 3090. It transcribes verbatim (every "ha,", every filler), so 331 of 3,354
+words did not match Fega's text by nearest-word matching; those count as "left at raw" below.
+
+| Method | first words Fega moved | inner words Fega moved | untouched disturbed (first / inner) | all words <= 100 ms |
+|---|---|---|---|---|
+| CrisperWhisper alone, matched words only (n=3,023) | **73%** | **77%** | 19.5% / 9.0% | **83.5%** |
+| CrisperWhisper alone, unmatched left at raw (n=3,354) | 58% | 68% | 18% / 8.4% | 81.6% |
+| CrisperWhisper where it disagrees with stable-ts by > 150 ms | 40% | 33% | 9.3% / 3.0% | 81.7% |
+| ... and WhisperX agrees with it within 150 ms | 27% | 30% | 3.2% / 2.4% | 82.5% |
+| shipped (WhisperX second opinion, section 6) | 33% | 36% | 7.8% / 5.5% | 80.8% |
+
+Reading: CrisperWhisper is the best single aligner tested and the first one whose stand-alone
+timing beats raw stable-ts overall. But every aligner, including this one, still disagrees with
+Fega on ~17-20% of words — and they disagree with EACH OTHER on those same words (three
+independent aligners each land within 100 ms of him ~80% of the time). The residual is not a
+missing tool; it is the band where Fega's ear, not the acoustics, decides where the pill fires.
+So: (a) the shipped rule stands, (b) CrisperWhisper would add roughly one point at the cost of a
+non-commercial licence and a 3 GB model — worth revisiting only with a licence, (c) the honest
+ceiling for automatic timing on this data is ~82-83% of words within 100 ms; after that the
+remaining fixes are taste and belong in the editor.
