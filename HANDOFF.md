@@ -2,8 +2,8 @@
 
 ## Current State
 
-**#356 round two built and pushed, NOT yet cut as an installer, NOT yet seen by Fega in the app.**
-alpha.21 is still the installed daily driver. Fega's ask this session: "not only the first word —
+**#356 round two built, pushed and CUT as alpha.22 (on the feed, 2026-09-02 12:27). NOT yet seen by Fega on a fresh recording.**
+alpha.22 is offered on next launch. Fega's ask this session: "not only the first word —
 middle and last words too, and look at how I group words." Study: `tasks/specs/
 subtitle-timing-learning-2026-09-02.md` §9; scripts in `tasks/spikes/subtitle-timing/`.
 
@@ -36,7 +36,7 @@ app (needs a new recording or a Retranscribe click).
 
 ## Next Steps
 
-1. Cut an installer (alpha.22) so Fega's next recording goes through median3; ask him to judge
+1. alpha.22 is cut; ask Fega to judge
    pills on a FRESH clip (old clips keep their saved sub1). Proof = `[TIMING]` line in the log.
 2. #357: customer runtime needs whisperx + wav2vec2 checkpoint AND `qwen-asr` + the 1.8 GB
    Qwen model (pre-download next to the whisper model). Check the `qwen-asr` dependency size
