@@ -424,3 +424,45 @@ full-recording pass (its words feed detection/SRT, never subtitles). That remove
 the full pass and adds ~5-6 s per clip for Vosk + Parakeet, so a 20-clip run lands at about
 today's total or below. Running Vosk/Parakeet over a 30-minute file would add 6-7 minutes and
 must not happen.
+
+### 10f. Session 234: the port, scored through the real function
+
+`tools/word_timing.py` now votes raw + HuBERT-large (`HUBERT_ASR_LARGE` through `whisperx.align`)
++ Vosk + Parakeet with the TRUE median (even count = mean of the two middles); Qwen is gone.
+Biases from the s233 dumps on untouched words, identical on both halves: HuBERT +25 ms, Vosk 0,
+Parakeet +20 ms. Every ladder row below is `score_production.py <s233 scratchpad> <mode>` — the
+production `refine_word_timing` on the 121 clips with live models in the engine venv
+(`D:\whisper\betterwhisperx-venv` + vosk 0.3.45 + sherpa-onnx 1.13.7, Parakeet fp16, 3090).
+
+| voters available → method | all ≤100 ms | first moved | inner/last moved | first untouched disturbed | inner/last untouched disturbed | time / 121 clips |
+|---|---|---|---|---|---|---|
+| **hubert+vosk+parakeet → median4 (ships)** | **86.1%** | 55% | 66% | 7.8% | 5.6% | 884 s |
+| hubert+vosk → median3 | 85.1% | 48% | 65% | 7.8% | 6.4% | 568 s |
+| vosk+parakeet → median3 (no torch) | 83.8% | 51% | 52% | 9.4% | 5.5% | 631 s |
+| hubert+parakeet → median3 | 83.7% | 43% | 54% | 7.3% | 5.6% | 539 s |
+| vosk → vosk+snap (gated) | 83.3% | 45% | 38% | 7.1% | 4.0% | 430 s |
+| hubert → hubert+snap (gated) | 81.7% | 37% | 39% | 7.6% | 5.2% | 122 s |
+| parakeet alone → snap (not trusted) | 79.6% | 23% | 3% | 2.9% | 1.9% | — |
+| nothing → snap | 79.6% | 23% | 3% | 2.9% | 1.9% | 1 s |
+| for reference: alpha.22 median3 (raw+whisperx+qwen), s232 | 84.1% | 45% | 57% | | | |
+
+Reading:
+- **86.1%, not the harness's 86.8%.** Feeding the production voting logic the identical s233
+  dumps (`score_dumps.py`, s234 scratchpad) gives 86.2% with the production 1.0 s match window
+  and 86.3% with the harness's 1.5 s; the live models add 0.1. The rest of the gap is that
+  `combo2.py` matches every voter's word against Fega's FINAL position, while production matches
+  against the transcript's — the harness is ~0.5-0.7 optimistic for every set (s232 saw the same
+  0.5). The 1.5 s window and the "lone opinion = mean with raw" variant are each worth ≤0.1 (three
+  words) and were not adopted. Relative ordering of the sets is unchanged.
+- Vosk is the voter that carries the two-voter rows: both rows without it fall below the
+  alpha.22 median3. HuBERT alone beats WhisperX-base alone (81.7% vs 80.8%). Parakeet alone is
+  correctly routed to the snap.
+- Per-clip cost warm on this machine: HuBERT 1.3 s (GPU), Vosk 3.0 s, Parakeet 1.6 s
+  (fp16, 8 threads) — about 6 s per 25 s clip on top of stable-ts.
+- **Correction to 10e's "never subtitles":** `resolveSubtitles.js` still reads
+  `project.transcription` for a clip whose own retranscription failed, and for the audio a clip
+  is EXTENDED into past its original range (extras merge). With `--word-timing` off on the full
+  pass those words now carry raw stable-ts timing (78%) instead of the previous whisperx+snap
+  (81%) until the clip is retranscribed. Surfaced to Fega; not changed.
+- Unit tests: `tools/tests/test_word_timing.py` (median semantics, ladder selection with stubbed
+  voters, Parakeet chunk offsets, `_enforce_order`) — `python -m unittest`, any venv with numpy.

@@ -1,54 +1,71 @@
-# HANDOFF — Session 233 (2026-09-02/03)
+# HANDOFF — Session 234 (2026-09-03)
 
 ## Current State
 
-**Aligner census done, option 3 chosen, port PLANNED (not built).** Plan:
-`tasks/specs/subtitle-timing-port-option3-2026-09-03.md` — Session A (code + scoring), Session B
-(#357 packaging + alpha.23). Study §10 has the census (14 free voters, all subsets), §10e the
-30-min benchmark. Fega's decision: raw + HuBERT-large + Vosk + Parakeet = 86.8% (shipped 84.1%,
-pre-upgrade 77.1%). No product code changed this session.
+**Session A of the word-timing port is BUILT and scored; Session B (packaging, alpha.23) is
+next.** `tools/word_timing.py` votes raw + HuBERT-large + Vosk + Parakeet (true median), Qwen is
+gone, the voters run in clip retranscription only (`--word-timing`, #359), and the transcribe
+child's `[INFO]`/`[TIMING]` lines reach the pipeline log (#358). Scored through the real function
+on the 121 clips: **86.1%** (alpha.22 84.1%); every ladder row in study §10f. 17 unit tests,
+jest 223 green, renderer builds, dev profile boots. NOT cut into an installer — Fega's daily
+driver is still alpha.22 and has none of this.
 
-Filed: #359 (full-recording pass: Qwen OOMs on 30-min audio → silent whisperx+snap, ~100 s
-wasted; voters must run per clip only). #358 (stderr → pipeline log) folds into Session A.
+Also this session: #297/#298/#299 (crash-safe writes, zombie lock, honest autosave) closed on
+field evidence — fixed since alpha.5, `clipflow.db.bak` rotating on prod.
 
 ## Key Decisions
 
-- Option 3 over option 2: same GPU time (36 s vs 32 s per 30 min), steadier on the split-half
-  test (86.8/86.9 vs 85.8/87.7), +0.9 GB download; only CPU-only machines pay 2x per clip.
-- Plain per-word median stays; trim = same, gate loses, 5-7 voters no gain. Ceiling ≈ 87%.
-- Whisper-family voters (large-v3, distil, st_vad, st_align) LOWER every set — never add one.
-- Parakeet/FastConformer never alone; Qwen leaves the runtime entirely.
-- Word timing runs in clip retranscription only; the full-recording pass gets no refine.
+- 86.1% accepted over the plan's 86.3% target: the production logic on the identical s233 dumps
+  scores 86.2-86.3%, so the harness's 86.8% is matching optimism (~0.5-0.7, same as s232), not a
+  port defect. The two ≤0.1 knobs (1.5 s match window, lone-opinion mean) were NOT adopted.
+- Method labels: `median4` / `median3` / `hubert+snap` / `vosk+snap` / `snap`, plus a `voters`
+  list in every `[TIMING]` line.
+- Model paths come from `CORVA_ALIGN_MODEL` / `CORVA_VOSK_MODEL` / `CORVA_PARAKEET_MODEL`, dev
+  defaults `HUBERT_ASR_LARGE`, `D:\whisper\vosk-models\...lgraph`,
+  `D:\whisper\sherpa-models\...parakeet...-fp16`. The loader accepts int8/fp16/plain onnx names.
+- Engine venv `D:\whisper\betterwhisperx-venv` now has vosk 0.3.45 + sherpa-onnx 1.13.7
+  (only srt + websockets came along; onnxruntime/numpy untouched) — that IS Session B's B1
+  venv step, already done.
 
 ## Next Steps
 
-1. **Session A** (fresh session, read the plan first): A1 word_timing.py voters + true median +
-   ladder; A2 `--word-timing` flag (clip-only); A3 #358 stderr forwarding; A4 score every row
-   with `score_production.py` on the s233 scratchpad (≥ 86.3% target); A5 tests; §10f numbers.
-2. **Session B**: engine venv + zip v1.1.0 via `scripts/build-runtime.ps1` + `scripts/publish-runtime.ps1`,
-   R2 model mirrors, Finish Setup downloads, alpha.23, laptop check, rewrite #357, close #359.
-3. Then the old backlog (#353 Batch B, #350, #297/#299, word ENDS if pills linger wrong).
+1. **Ask Fega** (surfaced in the wrap, unanswered): the full-recording words still feed subtitles
+   for (a) clips whose retranscription failed and (b) extended-into audio; they are raw (78%)
+   now vs whisperx+snap (81%) before. Leave as is, or run a cheap snap-only pass on the full
+   recording?
+2. **Session B** — plan `tasks/specs/subtitle-timing-port-option3-2026-09-03.md`: download the
+   Parakeet **int8** model (`sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8`, ~600 MB, needs Fega's
+   OK for the download) and re-score `median` once with it; `tools/runtime/requirements.txt` +=
+   whisperx, vosk, sherpa-onnx, regenerate constraints, `scripts/build-runtime.ps1` /
+   `publish-runtime.ps1` → v1.1.0; R2 model mirrors (HuBERT .pth under `TORCH_HOME`, Vosk dir,
+   Parakeet dir) + Finish Setup downloads (`download_model.py` extra phase, `MODEL_RESERVE_BYTES`);
+   `stable-ts.js` passes `TORCH_HOME` + the three `CORVA_*` vars like `HF_HOME`; alpha.23;
+   laptop check (first clip logs `median4`); rewrite #357, close #359 with a full-pass timing.
+3. Then the old backlog (#353 Batch B, #350).
 
 ## Watch Out For
 
-- `apply_median` uses the upper-middle value for even counts; the 86.8% assumed the true
-  median. Score both before trusting the number (plan A1).
-- Vosk drops words outside its lexicon (4.2%); not a custom-words fix, measure it.
-- Parakeet crashes on multi-minute chunks (bad_alloc); ≤ 60 s chunks. Vosk on a 30-min file =
-  194 s — never on the full pass.
-- All voter dumps + audio + `mc_full.wav`/`val_full.wav` + benchmark scripts live in THIS
-  session's scratchpad (`22638acc-...`); copy forward, don't regenerate (~7 min per voter).
-- Halves A/B uneven (2170/1184 words); sanity check only.
-- `D:\whisper\aligners-venv` (vosk, sherpa-onnx) is a spike venv, not the engine venv.
+- `score_production.py` modes changed: `median` | `snap` | any `+`-joined subset of
+  `hubert`/`vosk`/`parakeet`. Old `whisperx`/`qwen` modes are gone.
+- Vosk prints "Ignoring word missing in vocabulary" per clip on stderr (gaming words, "fega");
+  harmless, not forwarded (only `[TAG]` lines are).
+- whisperx's own WARNING lines go to STDOUT, not stderr — never parse transcribe.py's stdout.
+- Single-slash `taskkill /IM` in Git Bash is path-mangled and kills nothing (memory trap 45);
+  use `MSYS_NO_PATHCONV=1` or double slashes, and never suppress its output.
+- Bash heredocs JSON-decode backslashes: a JS file written that way lost `D:\\whisper` → use
+  the Write tool or forward slashes for any source with Windows paths.
+- Voter dumps + audio for scoring still live in the s233 scratchpad
+  (`22638acc-c8d2-4230-861d-76b836143fab`); `score_dumps.py` (dump-fed production logic) and the
+  two Node harnesses that drive `stable-ts.js` outside Electron are in THIS session's scratchpad
+  (`aca3f1cd-705a-4e91-a99a-ad021d539d21`).
 
 ## Logs/Debugging
 
-- Scoring: `combo2.py <S> v1,v2,... [maxk] [top] [median|trim|gateNN]`, `compare.py <S> "a+b"`,
-  `score_production.py <S> median` (whisper venv, `PYTHONIOENCODING=utf-8`).
-- Runners: `ctc_run.py <S> <tag> <model>` (whisper venv), `vosk_run.py`, `sherpa_run.py <S>
-  parakeet|fcctc` (aligners venv), `bench_gpu.py`/`bench_cpu.py <wav> <project.json>`.
-- Models: `~/.cache/torch/hub/checkpoints/hubert_fairseq_large_ll60k_asr_ls960.pth`,
-  `D:\whisper\vosk-models\vosk-model-en-us-0.22-lgraph`, `D:\whisper\sherpa-models\...parakeet...fp16`
-  (int8 variant still to download for customers).
-- Pipeline logs: `%APPDATA%\clipflow\processing\logs\<video>_<ts>.log` — `[DONE] Transcription
-  (Ns)` and `[DONE] Clip Retranscription (Ns)` are the like-for-like timing lines.
+- Score: `PYTHONIOENCODING=utf-8 HF_HOME=D:/whisper/hf_cache D:/whisper/betterwhisperx-venv/Scripts/python.exe tasks/spikes/subtitle-timing/score_production.py <s233 scratchpad> median` (~15 min).
+- Tests: `D:/whisper/betterwhisperx-venv/Scripts/python.exe -m unittest tools/tests/test_word_timing.py`.
+- Direct: `python tools/transcribe.py --audio x.wav --output x.json --word-timing` → stderr shows
+  `[TIMING] {'method': 'median4', 'voters': [...]}`; without the flag no TIMING line.
+- Pipeline log now carries `[PY]  [TIMING] ...` per clip in the Clip Retranscription step;
+  Retranscribe button → `app.log` `(subtitles) retranscribe [TIMING] ...`.
+- Dev boot: `CLIPFLOW_PROFILE=dev npx electron .` (tokens file confirmed `{"accounts":{}}`),
+  kill with `MSYS_NO_PATHCONV=1 taskkill /F /IM electron.exe`.

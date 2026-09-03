@@ -517,13 +517,16 @@ def split_mega_segments(segments, max_duration=10.0):
 #  MAIN
 # ════════════════════════════════════════════════════════════════════════════
 
-def transcribe_one(model, audio_path, output_path, language, initial_prompt):
+def transcribe_one(model, audio_path, output_path, language, initial_prompt, word_timing=False):
     """
     Transcribe a single audio file using an already-loaded stable-ts model.
     Writes a JSON result to output_path. Returns segment count on success.
     Used both by single-clip mode and by batch mode (#75: model loaded once,
     reused across all clips in a pipeline run to avoid per-clip ~5-8s of
     Python+CUDA+model-load overhead × N clips).
+    word_timing: run the #356 word-start voters. Clip retranscription only — the
+    full-recording pass feeds detection and the SRT, no subtitle reads its words,
+    and the voters cost ~100 s (or OOM) on 30 minutes of audio (#359).
     """
     transcribe_kwargs = {
         "language": language,
@@ -591,15 +594,16 @@ def transcribe_one(model, audio_path, output_path, language, initial_prompt):
     segments = postprocess_timestamps(segments, audio_np, sr=sr)
 
     # ── Word-start refinement (#356) ──
-    # WhisperX forced alignment as a second opinion + silence-edge snap for long words.
-    # Scored on Fega's approved clips; see tools/word_timing.py. Never raises.
-    try:
-        import torch as _torch
-        _dev = "cuda" if _torch.cuda.is_available() else "cpu"
-    except Exception:
-        _dev = "cpu"
-    segments, timing_stats = refine_word_timing(segments, audio_np, sr, device=_dev)
-    print(f"[TIMING] {timing_stats}", file=sys.stderr)
+    # Median of stable-ts + HuBERT + Vosk + Parakeet word starts, silence-edge snap as
+    # the floor. Scored on Fega's approved clips; see tools/word_timing.py. Never raises.
+    if word_timing:
+        try:
+            import torch as _torch
+            _dev = "cuda" if _torch.cuda.is_available() else "cpu"
+        except Exception:
+            _dev = "cpu"
+        segments, timing_stats = refine_word_timing(segments, audio_np, sr, device=_dev)
+        print(f"[TIMING] {timing_stats}", file=sys.stderr)
 
     output = {"segments": segments, "text": " ".join(full_text_parts)}
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -620,6 +624,8 @@ def main():
     parser.add_argument("--compute_type", default="float16", help="Compute type (float16, int8, etc.)")
     parser.add_argument("--hf_token", default=None, help="HuggingFace token (unused by stable-ts, kept for CLI compat)")
     parser.add_argument("--initial_prompt", default=None, help="Initial prompt to seed vocabulary hints (slang, proper nouns)")
+    parser.add_argument("--word-timing", action="store_true",
+                        help="Refine word starts with the #356 voters (clip retranscription only, see #359)")
     args = parser.parse_args()
 
     # Validate args: either --batch OR (--audio + --output) required.
@@ -682,7 +688,8 @@ def main():
                 pct = 15 + int(((i + 1) / n_total) * 85)
                 print_progress(pct, f"Clip {i + 1}/{n_total}")
                 try:
-                    n_segs = transcribe_one(model, audio_path, output_path, args.language, args.initial_prompt)
+                    n_segs = transcribe_one(model, audio_path, output_path, args.language, args.initial_prompt,
+                                            word_timing=args.word_timing)
                     success_count += 1
                     print(f"[INFO] Batch {i + 1}/{n_total} done: {n_segs} segments → {output_path}", file=sys.stderr)
                 except Exception as e:
@@ -696,7 +703,8 @@ def main():
         else:
             # ── Single-clip mode (unchanged behavior) ──
             print_progress(20, "Transcribing...")
-            n_segs = transcribe_one(model, args.audio, args.output, args.language, args.initial_prompt)
+            n_segs = transcribe_one(model, args.audio, args.output, args.language, args.initial_prompt,
+                                    word_timing=args.word_timing)
             print_progress(100, "Done")
             print(json.dumps({"success": True, "segments": n_segs}), file=sys.stderr)
 

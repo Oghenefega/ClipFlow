@@ -2689,6 +2689,8 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
       computeType: "float16",
       hfToken: store.get("hfToken") || "",
       hfHome: store.get("hfHome") || appPaths.defaultHfHome(),
+      wordTiming: true, // clip audio — the voters run (#359); proof line goes to app.log (#358)
+      onLog: (line) => logger.info(logger.MODULES.subtitles, `retranscribe ${line}`),
       onProgress: (pct) => {
         if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 + Math.floor(pct * 0.6) });
       },

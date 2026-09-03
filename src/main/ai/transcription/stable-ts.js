@@ -72,6 +72,30 @@ function checkSetup(config = {}) {
 }
 
 /**
+ * Forward the Python side's stderr to the caller: progress ("NN%") to
+ * onProgress, and the tagged status lines ([INFO]/[TIMING]/[WARN]/[ERROR])
+ * to onLog so the pipeline log carries the word-timing proof line (#358).
+ * Per-segment [REPAIR]/[KEEP] chatter is deliberately not forwarded.
+ */
+function forwardStderr(proc, opts) {
+  if (!proc.stderr || (!opts.onProgress && !opts.onLog)) return;
+  let rest = "";
+  proc.stderr.on("data", (data) => {
+    const str = data.toString();
+    if (opts.onProgress) {
+      const pctMatch = str.match(/(\d+)%/);
+      if (pctMatch) opts.onProgress(parseInt(pctMatch[1], 10));
+    }
+    if (!opts.onLog) return;
+    const lines = (rest + str).split(/\r?\n/);
+    rest = lines.pop();
+    for (const line of lines) {
+      if (/^\[(INFO|TIMING|WARN|ERROR)\]/.test(line)) opts.onLog(line);
+    }
+  });
+}
+
+/**
  * Transcribe an audio file using stable-ts via tools/transcribe.py.
  * Returns word-level timestamps and segment data.
  *
@@ -85,7 +109,10 @@ function checkSetup(config = {}) {
  * @param {string} [opts.hfToken] - HuggingFace token
  * @param {string} [opts.initialPrompt] - Vocabulary hints
  * @param {string} [opts.hfHome] - HuggingFace cache dir
+ * @param {boolean} [opts.wordTiming] - Run the #356 word-start voters. Clip audio
+ *   only: the full-recording pass never sets it (#359).
  * @param {function} [opts.onProgress] - Progress callback(percentage)
+ * @param {function} [opts.onLog] - Receives each tagged status line from stderr
  * @returns {Promise<{segments: Array, text: string}>}
  */
 function transcribe(wavPath, opts = {}) {
@@ -136,6 +163,7 @@ function transcribe(wavPath, opts = {}) {
       cmd += ` --hf_token ${opts.hfToken}`;
     }
     cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
+    if (opts.wordTiming) cmd += " --word-timing";
     cmd += `"`;
 
     const proc = exec(cmd, {
@@ -166,16 +194,7 @@ function transcribe(wavPath, opts = {}) {
       }
     });
 
-    // Track progress from stderr
-    if (opts.onProgress && proc.stderr) {
-      proc.stderr.on("data", (data) => {
-        const str = data.toString();
-        const pctMatch = str.match(/(\d+)%/);
-        if (pctMatch) {
-          opts.onProgress(parseInt(pctMatch[1], 10));
-        }
-      });
-    }
+    forwardStderr(proc, opts);
   });
 }
 
@@ -236,6 +255,8 @@ function transcribeBatch(items, opts = {}) {
     cmd += ` --compute_type ${computeType}`;
     if (opts.hfToken) cmd += ` --hf_token ${opts.hfToken}`;
     cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
+    // Batch = clip retranscription, the only place the word-timing voters run (#359).
+    cmd += " --word-timing";
     cmd += `"`;
 
     const proc = exec(cmd, {
@@ -259,13 +280,7 @@ function transcribeBatch(items, opts = {}) {
       resolve({ completed, total: items.length });
     });
 
-    if (opts.onProgress && proc.stderr) {
-      proc.stderr.on("data", (data) => {
-        const str = data.toString();
-        const pctMatch = str.match(/(\d+)%/);
-        if (pctMatch) opts.onProgress(parseInt(pctMatch[1], 10));
-      });
-    }
+    forwardStderr(proc, opts);
   });
 }
 

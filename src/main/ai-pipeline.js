@@ -649,6 +649,8 @@ async function runAIPipeline({
       hfToken: store.get("hfToken") || "",
       hfHome: store.get("hfHome") || defaultHfHome(),
       gameVocab,
+      // #358: the Python side's [INFO]/[TIMING] lines land in this run's log.
+      onLog: (line) => logger.logOutput("PY", line),
       onProgress: (pct) => {
         sendProgress("transcribing", 10 + Math.round(pct * 0.3), `Transcribing... ${pct}%`);
       },
@@ -1061,6 +1063,9 @@ async function runAIPipeline({
       try {
         const batchResult = await whisper.transcribeBatch(manifest, {
           ...whisperOpts,
+          // Word-start voters run on clip audio only (#359); the batch provider
+          // forces the flag itself, this covers the per-clip fallback path.
+          wordTiming: true,
           onProgress: (pct) => {
             const overall = 95 + Math.round((pct / 100) * 2);
             sendProgress("transcribing-clips", overall, `Retranscribing clips... ${pct}%`);
