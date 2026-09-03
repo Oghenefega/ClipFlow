@@ -401,3 +401,26 @@ stable-ts with a different Whisper backbone (large-v3, transcribe + refine) scor
 mode (long words stretched over pauses), so it adds a correlated vote, not a new one. Same for
 `st_vad` / `st_align` from s231. Only CTC aligners, the HMM recogniser and the transducer bring
 independent evidence.
+
+### 10e. Cost on the real 30-minute recording (Fega's 3090, 2026-08-31 MC Day2 Pt1, 1804 s, 505 segments, 3,732 words)
+
+| step | time | note |
+|---|---|---|
+| stable-ts transcribe + refine (every option pays this) | 205 s | model load 7 s |
+| shipped `refine_word_timing` on the FULL recording | 149 s cold / 95 s warm | **Qwen OOMs on 30 min of audio (asks for 74 GB) → method silently = whisperx+snap**, invisible because of #358. Clips (25 s) are unaffected and do get median3. |
+| WhisperX base align alone | 32 s | |
+| HuBERT-large align alone | 36 s | GPU: +4 s per 30 min. The "2x slower" was CPU-only (2.0 vs 4.1 s per 25 s clip). |
+| Qwen alone (25 s clips) | 0.13 s/clip | fails on the full file |
+| Vosk, full recording, 3,700-word grammar | 194 s CPU | per 25 s clip ≈ 2-3 s |
+| Parakeet, full recording | crashes on 5-min chunks (bad alloc) | per 25 s clip ≈ 3 s; needs ≤ 60 s chunks |
+
+Pipeline logs, like for like (30-min recordings): pre-upgrade alpha.20 (JC Day6 Pt1, 08-28)
+transcription 253 s, 18-clip retranscription 76 s (4.2 s/clip), total 604 s. alpha.22 (MC Day2
+Pt1, 09-02) transcription 274 s, 20-clip retranscription 138 s (6.9 s/clip), total 676 s.
+
+Consequence for the port: **run the voters in clip retranscription only** (that is where
+`clip.transcription`, the subtitle input, comes from) and drop `refine_word_timing` from the
+full-recording pass (its words feed detection/SRT, never subtitles). That removes ~95-150 s from
+the full pass and adds ~5-6 s per clip for Vosk + Parakeet, so a 20-clip run lands at about
+today's total or below. Running Vosk/Parakeet over a 30-minute file would add 6-7 minutes and
+must not happen.
