@@ -31,12 +31,13 @@ installed copy until the cut.
 
 ## Next Steps
 
-1. **Ask Fega — two open questions (in the wrap message):** (a) OK to download
-   `sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` (~600 MB, GitHub k2-fsa/sherpa-onnx asr-models
-   release) to `D:\whisper\sherpa-models\`? (b) s234's carry-over: full-recording words still
-   feed subtitles for failed-retranscription and extended-into audio at raw timing (78% vs 81%
-   before) — leave, or add a cheap snap pass?
-2. After (a): re-score once — `score_production.py <s233 scratchpad> median` with
+1. **Ask Fega:** OK to download `sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` (~600 MB, GitHub
+   k2-fsa/sherpa-onnx asr-models release) to `D:\whisper\sherpa-models\`? (Unanswered at wrap.)
+   **Answered at wrap: the full-recording words must NOT stay raw** — "if 100 s is the price, pay
+   it". Filed as #360 with two routes (full-pass `hubert+snap` vs re-running the clip voters on
+   extension/failure); pick one and build it BEFORE or WITH alpha.23, scored via
+   `score_production.py`.
+2. After the download: re-score once — `score_production.py <s233 scratchpad> median` with
    `CORVA_PARAKEET_MODEL` pointed at the int8 dir (fp16 = 86.1%; ship fp16 if int8 loses more
    than ~0.3) → `scripts/build-models.ps1` → `scripts/publish-runtime.ps1` (manifest then lists
    three models) → study §10g one paragraph.

@@ -13,6 +13,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **The transcribe child gets the model paths.** `app-paths.js` owns the layout (`TIMING_MODELS`) and `timingModelEnv(store)` returns `TORCH_HOME` / `CORVA_VOSK_MODEL` / `CORVA_PARAKEET_MODEL` for every model with a valid marker; `stable-ts.js` spreads that into both the single-file and batch transcribe env. No marker → no variable → `word_timing.py` keeps its dev defaults. Proven end-to-end on the dev profile seeded as a managed 1.1.0 engine: the models-only screen rendered (1.5 GB, 3.2 GB needed), downloaded at ~98 MB/s, unpacked, markers written, `setupGetState` flipped to not-needed; then a harness with bogus `TORCH_HOME`/`CORVA_VOSK_MODEL` in the process env still loaded HuBERT and Vosk from the engine root (`median4`). Jest: 3 new tests on the env/marker logic (226 green).
 
 ### Changed
+- **Decision at wrap (#360):** Fega rejected leaving the full-recording words at raw timing for failed/extended clips — "if 100 s is the price, pay it". Two routes are written up in the issue (time the full pass with HuBERT + snap, or re-run the clip voters where those words are used); one of them ships with or before alpha.23.
 - **Alpha.23 is NOT cut.** Fega's daily driver stays on alpha.22; nothing in this entry reaches an installed copy until the cut. Cutting it waits on the Parakeet int8 download + re-score.
 
 ## [Unreleased] — 2026-09-03 (session 234) — Word timing ported to raw + HuBERT-large + Vosk + Parakeet; voters run per clip only (#357 Session A, #358, #359)
