@@ -38,8 +38,9 @@ jest 226 green, 17 Python unit tests green. `D:\tmp\corva-dev-engine` deleted.
    `median4` in the pipeline log, note per-clip seconds; a >10-min recording's Transcription step
    → `'method': 'snap', 'cpu_cap': 600`. If the overlay does not appear, the DependencyBanner has
    no "Finish Setup" button for this case (s235 note) — it only re-offers at next boot.
-3. CPU-cap proof run on the desktop's cpu runtime was in flight at wrap (see Logs); its
-   `[TIMING]` line should read snap + cpu_cap. Paste the total into §10g if wanted.
+3. CPU-cap proof run DONE: `[TIMING] {'method': 'snap', 'cpu_cap': 600}` as designed — but the
+   whole 30-min pass took **9,680 s (2.7 h)** on this desktop's CPU runtime (stable-ts refine on
+   CPU, not the timing step). Filed #362; the laptop check must record its full-pass time.
 4. Then the old backlog (#353 Batch B, #350). #361 (publish-runtime Range verify) is a chore.
 
 ## Watch Out For

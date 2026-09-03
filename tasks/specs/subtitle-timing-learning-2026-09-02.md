@@ -508,3 +508,8 @@ words go from 68% to 77%.
 the laptop will be slower), so `transcribe.py` `LIGHT_CPU_MAX_SEC = 600`: on CPU the light pass
 runs HuBERT only for recordings up to 10 minutes (~90 s) and keeps the snap (74.0%) above that,
 reporting `cpu_cap` in the `[TIMING]` line. Clip retranscription is unaffected (median4 everywhere).
+Proof run on the packaged CPU runtime (`--compute_type int8`, same 30-min file, 8 threads, a
+5-min installer build overlapping): `[TIMING] {'snapped': 382, 'method': 'snap', 'voters': [],
+'cpu_cap': 600}` — and **9,680 s total (2.7 h)**. The timing step is irrelevant next to that: it is
+stable-ts `refine` (many re-inferences) on CPU. Filed as #362; the laptop's per-recording time is
+the number to read there.

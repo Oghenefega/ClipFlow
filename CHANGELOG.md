@@ -15,7 +15,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **CPU-only machines cap the light pass.** HuBERT on 30 minutes of audio costs 234 s warm / 267 s cold on this desktop's 8 CPU threads (the laptop will be slower), so `transcribe.py` `LIGHT_CPU_MAX_SEC = 600` runs it on CPU only for recordings up to 10 minutes (~90 s) and keeps the free snap above that, with `cpu_cap` in the `[TIMING]` line. The What's New entry for alpha.23 covers the timing port, the model download and this.
 
 ### Fixed
-- Nothing user-facing beyond the above. Filed #361: `publish-runtime.ps1`'s Range verify throws on a Cloudflare cache miss (200 instead of 206) after everything is uploaded; the app's downloader already restarts on a 200, so a resume just starts over.
+- **Found, not fixed (#362):** the CPU-cap proof run on the packaged CPU runtime showed the cap working (`[TIMING] {'method': 'snap', 'cpu_cap': 600}`) but the whole 30-minute full-recording pass took **9,680 s (2.7 h)** on this desktop's 8 CPU threads, against 302 s on the 3090. The cost is stable-ts `refine` re-running inference on CPU, not the timing voters; a CPU-only customer waits hours per recording. The laptop's first real pass must be timed, then decide whether to skip or coarsen refine on CPU (scored first).
+- Nothing else user-facing. Filed #361: `publish-runtime.ps1`'s Range verify throws on a Cloudflare cache miss (200 instead of 206) after everything is uploaded; the app's downloader already restarts on a 200, so a resume just starts over.
 
 ## [Unreleased] — 2026-09-03 (session 235) — Engine runtime v1.1.0 with the word-timing voters, model mirrors on R2, Finish Setup downloads them (#357 Session B, packaging)
 
