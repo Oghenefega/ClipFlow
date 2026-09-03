@@ -1,51 +1,54 @@
-# HANDOFF — Session 233 (2026-09-02)
+# HANDOFF — Session 233 (2026-09-02/03)
 
 ## Current State
 
-**Aligner census done, no product code changed.** Fega asked, before #357, whether a free voter
-(or a different SET of voters) beats the shipped median-of-three. Answer in study §10
-(`tasks/specs/subtitle-timing-learning-2026-09-02.md`): 14 free-to-sell aligners run over the
-121 clips, all 4,943 subsets ≤5 scored + split-half. Winning structure = raw + one
-wav2vec2/HuBERT + **Vosk** + **Parakeet** = 86.8% (shipped 84.6%, CrisperWhisper set 86.1%).
-raw + Vosk + Parakeet = 84.7% with NO torch in the runtime. Ceiling ≈ 87%; no 90% exists.
-#357 has a comment with the four options; **Fega has not picked yet.**
+**Aligner census done, option 3 chosen, port PLANNED (not built).** Plan:
+`tasks/specs/subtitle-timing-port-option3-2026-09-03.md` — Session A (code + scoring), Session B
+(#357 packaging + alpha.23). Study §10 has the census (14 free voters, all subsets), §10e the
+30-min benchmark. Fega's decision: raw + HuBERT-large + Vosk + Parakeet = 86.8% (shipped 84.1%,
+pre-upgrade 77.1%). No product code changed this session.
+
+Filed: #359 (full-recording pass: Qwen OOMs on 30-min audio → silent whisperx+snap, ~100 s
+wasted; voters must run per clip only). #358 (stderr → pipeline log) folds into Session A.
 
 ## Key Decisions
 
-- Vote rule stays plain per-word median (trim = same, gate80 loses a point, 5-7 voters no gain).
-- Whisper-family voters (large-v3, distil, st_vad, st_align) are correlated with raw and LOWER
-  every set — never add one as a voter.
-- Parakeet/FastConformer are transcription timestamps, not forced alignment: terrible alone
-  (68%/63%), useful only inside a median. Never use alone or as a fallback.
-- Non-commercial models (CrisperWhisper, MMS, ctc-forced-aligner) stay out; AGPL tools too.
+- Option 3 over option 2: same GPU time (36 s vs 32 s per 30 min), steadier on the split-half
+  test (86.8/86.9 vs 85.8/87.7), +0.9 GB download; only CPU-only machines pay 2x per clip.
+- Plain per-word median stays; trim = same, gate loses, 5-7 voters no gain. Ceiling ≈ 87%.
+- Whisper-family voters (large-v3, distil, st_vad, st_align) LOWER every set — never add one.
+- Parakeet/FastConformer never alone; Qwen leaves the runtime entirely.
+- Word timing runs in clip retranscription only; the full-recording pass gets no refine.
 
 ## Next Steps
 
-1. Fega picks a set from §10c (torch-free 84.7% / +WhisperX 86.4% / +HuBERT-large 86.8%).
-2. Then: port the pick into `tools/word_timing.py` (Vosk = grammar-pinned KaldiRecognizer on the
-   16 kHz mic wav; Parakeet = sherpa-onnx OfflineRecognizer, words from ▁-tokens; bias-correct
-   each on untouched words as today), run `score_production.py <scratch> median`, then rewrite
-   #357's "done means" around the chosen packages (vosk + sherpa-onnx wheels, model folders next
-   to the whisper model, int8 Parakeet).
-3. Vosk custom-words list for gaming vocabulary (4.2% unknown → raw).
-4. #358 (transcribe stderr → pipeline log), word ENDS not re-timed (s232 note), backlog.
+1. **Session A** (fresh session, read the plan first): A1 word_timing.py voters + true median +
+   ladder; A2 `--word-timing` flag (clip-only); A3 #358 stderr forwarding; A4 score every row
+   with `score_production.py` on the s233 scratchpad (≥ 86.3% target); A5 tests; §10f numbers.
+2. **Session B**: engine venv + zip v1.1.0 (recover the v1.0.0 build procedure, write it down),
+   R2 model mirrors, Finish Setup downloads, alpha.23, laptop check, rewrite #357, close #359.
+3. Then the old backlog (#353 Batch B, #350, #297/#299, word ENDS if pills linger wrong).
 
 ## Watch Out For
 
-- All voter dumps (`align/<voter>/`) + audio + dataset live in THIS session's scratchpad
-  (`22638acc-...`); copy forward, don't regenerate (Parakeet/Vosk/HuBERT runs ≈ 7 min each).
-- Halves A/B are uneven (2170/1184 words, md5 of clipId) — fine for a sanity check, not a CV.
-- Word matching = normalized text + nearest start within 1.5 s; repeated words can mis-pair.
-- `combo2.py` even-count votes = mean of the middle two; 4-voter sets are NOT strict medians.
-- sherpa-onnx models were launched mid-extraction once (error 13) — wait for `tar` to finish.
+- `apply_median` uses the upper-middle value for even counts; the 86.8% assumed the true
+  median. Score both before trusting the number (plan A1).
+- Vosk drops words outside its lexicon (4.2%); not a custom-words fix, measure it.
+- Parakeet crashes on multi-minute chunks (bad_alloc); ≤ 60 s chunks. Vosk on a 30-min file =
+  194 s — never on the full pass.
+- All voter dumps + audio + `mc_full.wav`/`val_full.wav` + benchmark scripts live in THIS
+  session's scratchpad (`22638acc-...`); copy forward, don't regenerate (~7 min per voter).
+- Halves A/B uneven (2170/1184 words); sanity check only.
+- `D:\whisper\aligners-venv` (vosk, sherpa-onnx) is a spike venv, not the engine venv.
 
 ## Logs/Debugging
 
-- Voter runtimes: whisper venv `D:\whisper\betterwhisperx-venv` (CTC backbones via
-  `ctc_run.py <S> <tag> <model>`, `st_run.py`), `D:\whisper\aligners-venv` (`vosk_run.py`,
-  `sherpa_run.py <S> parakeet|fcctc`); models in `D:\whisper\vosk-models`, `D:\whisper\sherpa-models`,
-  torch hub `~/.cache/torch/hub/checkpoints`, HF `D:\whisper\hf_cache`.
-- Scoring: `combo2.py <S> v1,v2,... [maxk] [top] [median|trim|gateNN]`; `compare.py <S> "a+b" "c+d"`
-  for tolerances/positions; `score_production.py` for the real function. `PYTHONIOENCODING=utf-8`.
-- Logs in scratchpad: `ctc_log.txt`, `st_log.txt`, `vosk_log.txt`, `parakeet_log.txt`,
-  `combo_full13.txt` (the full table), `combo_trim.txt`, `combo_gate80.txt`.
+- Scoring: `combo2.py <S> v1,v2,... [maxk] [top] [median|trim|gateNN]`, `compare.py <S> "a+b"`,
+  `score_production.py <S> median` (whisper venv, `PYTHONIOENCODING=utf-8`).
+- Runners: `ctc_run.py <S> <tag> <model>` (whisper venv), `vosk_run.py`, `sherpa_run.py <S>
+  parakeet|fcctc` (aligners venv), `bench_gpu.py`/`bench_cpu.py <wav> <project.json>`.
+- Models: `~/.cache/torch/hub/checkpoints/hubert_fairseq_large_ll60k_asr_ls960.pth`,
+  `D:\whisper\vosk-models\vosk-model-en-us-0.22-lgraph`, `D:\whisper\sherpa-models\...parakeet...fp16`
+  (int8 variant still to download for customers).
+- Pipeline logs: `%APPDATA%\clipflow\processing\logs\<video>_<ts>.log` — `[DONE] Transcription
+  (Ns)` and `[DONE] Clip Retranscription (Ns)` are the like-for-like timing lines.
