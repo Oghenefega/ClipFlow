@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-03 (session 236) — Parakeet int8 published, full-recording words timed with HuBERT (#360), alpha.23 cut
+
+### Added
+- **Parakeet int8 is the third timing model on R2 (#357).** `sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` downloaded to `D:\whisper\sherpa-models\`, re-scored through the production function with the other voters live: **86.0% of word starts within 100 ms** of Fega's finals against fp16's 86.1% — inside the 0.3 tolerance at half the size. `build-models.ps1` zipped it (631 MB, stored) and `publish-runtime.ps1` uploaded it; `engine.flowve.app/engine/manifest.json` now lists HuBERT, Vosk and Parakeet, so Finish Setup on a customer machine downloads all three.
+- **`score_production.py` can score the full-recording words.** `FULLPASS=1` swaps the clip's own retranscription for the 30-minute pass's words shifted to the clip range (`projTranscriptionSegs`, 124 of the 129 dumped clips have them) — the words `resolveSubtitles` reads for a failed retranscription or an extended clip — and a new `raw` mode scores the input untouched. Study §10g has the table.
+
+### Changed
+- **The full-recording pass times its words with HuBERT + silence snap (#360, Fega's decision: "if 100 s is the price, pay it").** New `transcribe.py --word-timing-light`, set only by the pipeline's full-recording transcription (`ai-pipeline.js` `wordTiming: "light"`; `stable-ts.js` maps it to the flag). Measured on the full-pass words of the 121 approved clips they were far worse than the issue assumed: **raw 68.3%** within 100 ms (the "78%" was the clip number), snap alone 74.0%, **HuBERT + snap 77.0%** — so a stretch you extend a clip into, or a clip whose own retranscription failed, goes from 68 to 77 instead of staying raw. Adding Parakeet would reach 80.0% but costs 140 s of CPU per 30-minute recording on top of HuBERT's 50 s, outside the budget Fega named, so it is documented as a one-line flip in `transcribe.py` and not shipped; Vosk (194 s) stays clip-only. Cost on the 3090: HuBERT + snap 50 s warm / 66 s cold on the 30-minute MC Day2 Pt1 file (GPU peak 1.5 GB); the whole full-recording transcription through the packaged 1.1.0 CUDA runtime measured **302 s** with process start and model load included (the same harness put alpha.22 at ~361 s: 212 s stable-ts plus the 149 s silently failing Qwen refine; its pipeline log showed 274 s for the step). Clip retranscription is unchanged: median4 with all three voters.
+- **CPU-only machines cap the light pass.** HuBERT on 30 minutes of audio costs 234 s warm / 267 s cold on this desktop's 8 CPU threads (the laptop will be slower), so `transcribe.py` `LIGHT_CPU_MAX_SEC = 600` runs it on CPU only for recordings up to 10 minutes (~90 s) and keeps the free snap above that, with `cpu_cap` in the `[TIMING]` line. The What's New entry for alpha.23 covers the timing port, the model download and this.
+
+### Fixed
+- Nothing user-facing beyond the above. Filed #361: `publish-runtime.ps1`'s Range verify throws on a Cloudflare cache miss (200 instead of 206) after everything is uploaded; the app's downloader already restarts on a 200, so a resume just starts over.
+
 ## [Unreleased] — 2026-09-03 (session 235) — Engine runtime v1.1.0 with the word-timing voters, model mirrors on R2, Finish Setup downloads them (#357 Session B, packaging)
 
 ### Added

@@ -12,6 +12,18 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.23",
+    date: "2026-09-03",
+    added: [
+      "The subtitle timing engine now ships with Corva. After this update the app offers one more download (about 2 GB: three small speech models) under \"Update Corva's AI engine\". Click Finish Setup once and every new clip gets the improved word timing on any PC, with or without an NVIDIA card. Until that download finishes, subtitles keep the previous timing.",
+    ],
+    changed: [
+      "Word timing now takes four independent opinions instead of three, and the fourth is a different kind of listener (a Kaldi speech recogniser pinned to your transcript). On the clips you have hand-timed, 86 in 100 word starts now land where you put them, up from 84.",
+      "A clip you stretch on the timeline past its original range, or one whose own transcription failed, no longer falls back to rough word timing: the full-recording pass now runs a lighter timing step too.",
+      "The full-recording transcription pass is a little faster. It used to spend about 100 seconds on word timing it never used; the lighter step above costs about 50 seconds on an NVIDIA card. On a PC without one it only runs for recordings under 10 minutes, so long sessions do not pay extra.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.22",
     date: "2026-09-02",
     changed: [

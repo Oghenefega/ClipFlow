@@ -498,10 +498,11 @@ points for 140 s of CPU. Fega's budget was "~100 s"; HuBERT alone fits it, HuBER
 one-line flip in `transcribe.py`. Vosk on the full file (194 s, §10e) is out.
 
 Cost, like for like, MC Day2 Pt1 through the packaged 1.1.0 CUDA runtime (`transcribe.py`
-single-file, model load included): with HuBERT+Parakeet light 453 s; with HuBERT-only light see
-the changelog for the measured number (expected ≈ 205 s stable-ts + 7 s load + 50 s). alpha.22's
-pipeline log had 274 s for the same step (with the silently-failing Qwen refine), so the shipped
-full pass lands at or under alpha.22 while its words go from 68% to 77%.
+single-file, model load included): with HuBERT+Parakeet light 453 s; with HuBERT-only light **302 s**
+(run alone; the `[TIMING]` line moved 655 starts, snapped 20, 83 unmatched of 3,700). The same
+harness put alpha.22 at ~361 s (212 s stable-ts + the 149 s silently failing Qwen refine) and its
+pipeline log showed 274 s for the step, so the shipped full pass is faster than alpha.22 while its
+words go from 68% to 77%.
 
 **CPU cap.** A CPU-only machine pays 234-267 s for HuBERT on 30 minutes (this desktop's 8 threads;
 the laptop will be slower), so `transcribe.py` `LIGHT_CPU_MAX_SEC = 600`: on CPU the light pass
