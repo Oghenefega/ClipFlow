@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-02 (session 233) — Every free aligner, every vote combination (study §10, feeds #357)
+
+### Added
+- **Aligner census for subtitle word timing (no product code changed).** Ran twelve more free-to-sell aligners over the same 121 approved clips (HuBERT-large/xlarge, four large wav2vec2 variants, Vosk, NVIDIA Parakeet and FastConformer via sherpa-onnx, stable-ts with large-v3 and distil backbones) and scored every combination of up to five voters with a split-half check. Result: raw + one wav2vec2/HuBERT model + Vosk + Parakeet puts 86.8% of word starts within 100 ms of Fega's finals (shipped median-of-three 84.6%; the non-commercial CrisperWhisper set 86.1%), and raw + Vosk + Parakeet alone matches today's 84.6% with no PyTorch, WhisperX or Qwen in the runtime at all. Votes larger than four, trimmed means and gated medians do not help; the ceiling in this family is ~87%. Written up as §10 of `tasks/specs/subtitle-timing-learning-2026-09-02.md`; scripts in `tasks/spikes/subtitle-timing/` (`ctc_run.py`, `vosk_run.py`, `sherpa_run.py`, `st_run.py`, `combo2.py`, `compare.py`). Decision on which set to package is Fega's and reshapes #357.
+
 ## [Unreleased] — 2026-09-02 (session 232) — alpha.22 cut
 
 ### Changed

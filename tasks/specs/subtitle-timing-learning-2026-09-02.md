@@ -308,3 +308,96 @@ pill sizes are 1:2:3 = 36/35/30% (13 four-word pills in 2,074): MAX_WORDS 3 stan
   {stable-ts, WhisperX, Qwen}; WhisperX alone → gated rule + snap tie-break; otherwise snap.
 - `segmentWords.js`: vocatives in FILLERS, FORWARD_LOOK_GAP 0.4.
 - Customer runtime (#357) now needs `qwen-asr` + the 1.8 GB model as well as whisperx.
+
+## 10. Session 233: every free-to-sell aligner, every combination
+
+Fega's question: is there a free voter (or a different SET of voters) that beats the shipped
+median-of-three, before #357 packages the current set into the customer runtime? Method: run
+each candidate over the same 121 clips (`tasks/spikes/subtitle-timing/ctc_run.py`, `vosk_run.py`,
+`sherpa_run.py`, `st_run.py`), then `combo2.py` scores EVERY subset of up to 5 voters (plain
+per-word median, bias-corrected on untouched words) on all clips and on two clip halves (pick on
+one half, read the other) so a winner is not a lucky fit. `compare.py` re-reads the finalists at
+50/150/200 ms and per pill position.
+
+### 10a. Candidates (licence checked on the package / model card, not from memory)
+
+| voter | what it is | licence | download | alone (<=100 ms) | untouched disturbed |
+|---|---|---|---|---|---|
+| raw | stable-ts as transcribed (large-v3-turbo) | MIT | shipped | 78.4% | 0% |
+| whisperx | wav2vec2 BASE 960h CTC forced alignment (shipped s231) | BSD-2 / weights BSD | 378 MB | 80.6% | 13.1% |
+| qwen | Qwen3-ForcedAligner-0.6B (shipped s232) | Apache-2.0 | 1.8 GB + `qwen-asr` | 76.8% | 18.8% |
+| **vosk** | Kaldi GMM/HMM recogniser, grammar pinned to the transcript (`vosk-model-en-us-0.22-lgraph`) | Apache-2.0 | 205 MB model + 52 MB pip, CPU only, no torch | **83.0%** | 12.3% |
+| hubert_l | HuBERT-large CTC via torchaudio, through whisperx.align | MIT (fairseq) | 1.2 GB | 82.1% | 12.2% |
+| hubert_xl | HuBERT-xlarge CTC | MIT | 3.9 GB | 82.3% | 12.5% |
+| wx_large960 | wav2vec2 LARGE 960h CTC | MIT | 1.2 GB | 81.8% | 12.7% |
+| wx_lv60k | wav2vec2 LARGE LV60k CTC | MIT | 1.2 GB | 81.6% | 12.6% |
+| lv60_self | facebook/wav2vec2-large-960h-lv60-self (HF) | Apache-2.0 | 1.2 GB | 80.3% | 14.8% |
+| robust_swbd | facebook/wav2vec2-large-robust-ft-swbd-300h (conversational) | Apache-2.0 | 1.2 GB | 80.7% | 13.3% |
+| xlsr_en | jonatasgrosman/wav2vec2-large-xlsr-53-english | Apache-2.0 | 1.2 GB | 79.2% | 14.5% |
+| parakeet | NVIDIA parakeet-tdt-0.6b-v2 via sherpa-onnx, free transcription, token timestamps | CC-BY-4.0 (attribution) + Apache-2.0 runtime | 1.2 GB fp16 (600 MB int8), CPU, no torch | 67.8% | 28.5% |
+| fcctc | NVIDIA FastConformer-CTC via sherpa-onnx | CC-BY-4.0 | 438 MB | 62.9% | 32.5% |
+| crisper | CrisperWhisper (reference only) | **CC-BY-NC — cannot ship** | 3 GB | 81.6% | 13.3% |
+| st_v3 / st_distil | stable-ts with large-v3 / distil-large-v3 backbones | Apache / MIT | — | see 10d | |
+
+Rejected without running: Meta MMS forced aligner and the popular `ctc-forced-aligner` package
+(both CC-BY-NC), whisper-timestamped and aeneas (AGPL), Montreal Forced Aligner (MIT but conda-only,
+no way to ship it inside the runtime), NeMo toolkit itself (Windows install; sherpa-onnx carries
+the same models as ONNX).
+
+### 10b. Combinations (plain median, all 121 clips; half A / half B in the last columns)
+
+| vote set | all words <=100 ms | moved words fixed | untouched disturbed | A | B |
+|---|---|---|---|---|---|
+| shipped s232: raw+whisperx+qwen | 84.6% | 52% | 6.5% | 84.7% | 84.0% |
+| raw+whisperx+qwen+crisper (the "cannot ship" 86%) | 86.1% | 60% | 6.8% | 86.0% | 86.1% |
+| **raw+hubert_l+vosk+parakeet** | **86.8%** | 63% | 6.8% | 86.8% | 86.9% |
+| raw+lv60_self+vosk+parakeet | 86.9% | 63% | 6.7% | 86.8% | 87.1% |
+| raw+<any other large wav2vec2>+vosk+parakeet | 86.6% | 63% | 6.9% | | |
+| raw+whisperx+vosk+parakeet (keep the shipped wav2vec2, add two, drop Qwen) | 86.4% | 62% | 6.9% | 85.8% | 87.7% |
+| raw+whisperx+qwen+vosk+parakeet (add two to the shipped three) | 86.2% | 67% | 8.6% | 86.3% | 86.6% |
+| raw+vosk+parakeet (NO torch at all) | 84.7% | 55% | 7.3% | 84.1% | 86.2% |
+| raw+vosk (two voters = mean) | 84.2% | 38% | 3.0% | 84.4% | 83.8% |
+| best of 4,943 subsets incl. crisper: raw+robust_swbd+vosk+crisper | 86.9% | 65% | 6.9% | 86.9% | 86.9% |
+
+Reading:
+- **The structure that wins is raw + one wav2vec2/HuBERT CTC aligner + Vosk + Parakeet.** Which
+  CTC backbone barely matters (86.4-86.9%, noise). The two new voters are the gain: Vosk is a
+  different technology (HMM, no neural net) and the best single voter of all; Parakeet is awful
+  alone (token-emission times, 28% disturbance) but its errors are uncorrelated with everyone
+  else's, so it helps inside a median.
+- Votes of 5-7 do not beat votes of 4 (best 6-voter 86.7%). Trimmed mean = median; a "only move
+  if the vote differs from raw by > 80 ms" gate LOSES ~1 point. Plain median stays.
+- The honest ceiling is ~87%, with or without CrisperWhisper: the best of all 4,943 subsets
+  including the non-commercial model is 86.9%, the best free set is 86.8-86.9%. There is no 90%
+  in this family; the residual is the taste band described in section 8.
+- The picture holds at other tolerances (raw+hubert_l+vosk+parakeet vs shipped: 93.5% vs 92.1%
+  at 150 ms, 96.0% vs 94.2% at 200 ms) and in every pill position (single 78/76, first 89/85,
+  mid 90/91, last 88/85). Clips with >=90% of words right: 50/114 vs 36/114.
+
+### 10c. What it means for #357 (decision for Fega)
+
+Three shippable options, by cost:
+
+1. **raw + Vosk + Parakeet — 84.7%, same as today, NO torch/whisperx/Qwen in the runtime.**
+   Two pip packages (vosk 52 MB, sherpa-onnx 28 MB + onnxruntime) and two model folders
+   (205 MB + 600 MB int8). Both run on CPU in ~2-3 s per 25 s clip. The whole wav2vec2/Qwen
+   dependency chain (torchaudio, transformers, qwen-asr with gradio/fastapi, 2.2 GB of weights)
+   disappears from #357.
+2. **raw + WhisperX (as shipped) + Vosk + Parakeet — 86.4%.** Option 1 plus the already-shipped
+   whisperx path; Qwen and its 1.8 GB go. Cheapest way to the ~86% tier.
+3. **raw + HuBERT-large + Vosk + Parakeet — 86.8%.** Option 2 with the 378 MB base wav2vec2
+   swapped for the 1.2 GB HuBERT-large (same whisperx.align code, `model_name="HUBERT_ASR_LARGE"`).
+   +0.4 over option 2 for +0.9 GB; within noise on the half-split.
+
+Not done this session: the winner has not been run through the real `refine_word_timing`
+(`score_production.py`), and Vosk's vocabulary misses gaming words ("3v1", "Fega", "fivefive" —
+4.2% of words fall back to raw; a custom-words list would close some of that).
+
+### 10d. Whisper-family voters are not independent enough
+
+stable-ts with a different Whisper backbone (large-v3, transcribe + refine) scores 65.4% alone,
+26% of untouched words disturbed, and LOWERS every set it joins (raw+hubert_l+vosk+parakeet+st_v3
+86.0% vs 86.8% without it). Cross-attention timing from any Whisper model shares raw's failure
+mode (long words stretched over pauses), so it adds a correlated vote, not a new one. Same for
+`st_vad` / `st_align` from s231. Only CTC aligners, the HMM recogniser and the transducer bring
+independent evidence.
