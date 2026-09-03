@@ -6,7 +6,8 @@
 0.4.0-alpha.23.exe`, alpha.22 pruned). It carries everything since alpha.22: the four-voter word
 timing (Session A), runtime 1.1.0 + model downloads in Finish Setup (Session B), and this
 session's #360. Fega's desktop and the laptop will offer the "Update available" banner on next
-launch. Nothing has been verified on an installed copy yet.
+launch. **Desktop verified the same day** (Pt2/Pt3 logs: cuda, one `hubert+snap` line, `median4`
+on every clip; #359 closed). Laptop still pending.
 
 This session: Parakeet int8 downloaded to `D:\whisper\sherpa-models\sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8`,
 re-scored (86.0% vs fp16 86.1% → ships), zipped and published — the hosted engine manifest lists
@@ -28,10 +29,9 @@ jest 226 green, 17 Python unit tests green. `D:\tmp\corva-dev-engine` deleted.
 
 ## Next Steps
 
-1. **Desktop:** install alpha.23 from the banner (desktop is a hand-pointed venv — no engine
-   screen expected). Next real 30-min run: Transcription step should log ONE
-   `[PY] [TIMING] {'method': 'hubert+snap', 'voters': ['hubert']}` and every clip in Clip
-   Retranscription `median4`. Post the step time on #359 and close it; confirm #360.
+1. **Desktop: DONE.** Pt3 (28 min, 20 clips): Transcription 275 s, `hubert+snap`, 20/20 `median4`;
+   Clip Retranscription 282 s (~14 s/clip, was 6.9 — Vosk + Parakeet are CPU-only, HuBERT on GPU;
+   Fega accepted). #360 stays `status: untested` until he judges an extended clip's subtitles.
 2. **Laptop (fresh-customer machine, CPU only, engine 1.0.0):** after the banner install it must
    auto-open "Update Corva's AI engine" (cpu 1.1.0 runtime 0.5 GB + HuBERT 1.26 GB + Vosk 214 MB
    + Parakeet 661 MB ≈ 2.7 GB; disk preflight needs unpacked + largest zip). Then one clip →
