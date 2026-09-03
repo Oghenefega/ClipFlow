@@ -110,8 +110,9 @@ function forwardStderr(proc, opts) {
  * @param {string} [opts.hfToken] - HuggingFace token
  * @param {string} [opts.initialPrompt] - Vocabulary hints
  * @param {string} [opts.hfHome] - HuggingFace cache dir
- * @param {boolean} [opts.wordTiming] - Run the #356 word-start voters. Clip audio
- *   only: the full-recording pass never sets it (#359).
+ * @param {boolean|"light"} [opts.wordTiming] - Run the #356 word-start voters.
+ *   true = all of them (clip audio, #359); "light" = HuBERT + snap only, what the
+ *   full-recording pass runs so its words never stay raw (#360).
  * @param {function} [opts.onProgress] - Progress callback(percentage)
  * @param {function} [opts.onLog] - Receives each tagged status line from stderr
  * @returns {Promise<{segments: Array, text: string}>}
@@ -164,7 +165,8 @@ function transcribe(wavPath, opts = {}) {
       cmd += ` --hf_token ${opts.hfToken}`;
     }
     cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
-    if (opts.wordTiming) cmd += " --word-timing";
+    if (opts.wordTiming === "light") cmd += " --word-timing-light";
+    else if (opts.wordTiming) cmd += " --word-timing";
     cmd += `"`;
 
     const proc = exec(cmd, {

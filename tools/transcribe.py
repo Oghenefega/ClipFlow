@@ -31,6 +31,13 @@ from word_timing import refine_word_timing
 # Redirect HuggingFace cache to D: drive
 os.environ.setdefault("HF_HOME", r"D:\whisper\hf_cache")
 
+# #360: the light (full-recording) timing pass on a CPU-only machine. HuBERT-large
+# measured 267 s for 30 min of audio on an 8-thread desktop CPU (~9 s per audio
+# minute; 50 s on a 3090), so above this length a CPU machine keeps the free
+# silence-edge snap (74.0% on the full-recording words vs 68.3% raw) instead of
+# paying five-plus minutes per recording.
+LIGHT_CPU_MAX_SEC = 600
+
 
 def print_progress(pct, msg=""):
     """Print progress to stderr in a format the Node.js handler can parse."""
@@ -524,9 +531,16 @@ def transcribe_one(model, audio_path, output_path, language, initial_prompt, wor
     Used both by single-clip mode and by batch mode (#75: model loaded once,
     reused across all clips in a pipeline run to avoid per-clip ~5-8s of
     Python+CUDA+model-load overhead × N clips).
-    word_timing: run the #356 word-start voters. Clip retranscription only — the
-    full-recording pass feeds detection and the SRT, no subtitle reads its words,
-    and the voters cost ~100 s (or OOM) on 30 minutes of audio (#359).
+    word_timing: run the #356 word-start voters. True = all of them (clip
+    retranscription, ~6 s per 25 s clip). "light" = HuBERT-large + silence snap,
+    for the full-recording pass (#360): its words reach subtitles when a clip's
+    own retranscription failed or the clip was extended past its range, and
+    HuBERT is the one voter inside Fega's ~100 s budget for 30 minutes of audio
+    (50 s on a 3090). Measured on the same file: chunked Parakeet 140 s (CPU),
+    Vosk with a 3,700-word grammar 194 s — both stay clip-only (#359). Scored
+    on the full-recording words of the 121 approved clips: raw 68.3%, snap
+    74.0%, hubert+snap 77.0%; adding Parakeet would give 80.0% for +140 s
+    (flip use_parakeet below if that trade is ever wanted).
     """
     transcribe_kwargs = {
         "language": language,
@@ -602,7 +616,13 @@ def transcribe_one(model, audio_path, output_path, language, initial_prompt, wor
             _dev = "cuda" if _torch.cuda.is_available() else "cpu"
         except Exception:
             _dev = "cpu"
-        segments, timing_stats = refine_word_timing(segments, audio_np, sr, device=_dev)
+        light = word_timing == "light"
+        cpu_too_long = light and _dev == "cpu" and len(audio_np) / sr > LIGHT_CPU_MAX_SEC
+        segments, timing_stats = refine_word_timing(segments, audio_np, sr, device=_dev,
+                                                    use_whisperx=not cpu_too_long, use_vosk=not light,
+                                                    use_parakeet=not light)
+        if cpu_too_long:
+            timing_stats["cpu_cap"] = LIGHT_CPU_MAX_SEC
         print(f"[TIMING] {timing_stats}", file=sys.stderr)
 
     output = {"segments": segments, "text": " ".join(full_text_parts)}
@@ -626,7 +646,10 @@ def main():
     parser.add_argument("--initial_prompt", default=None, help="Initial prompt to seed vocabulary hints (slang, proper nouns)")
     parser.add_argument("--word-timing", action="store_true",
                         help="Refine word starts with the #356 voters (clip retranscription only, see #359)")
+    parser.add_argument("--word-timing-light", action="store_true",
+                        help="HuBERT-large + silence snap only — the full-recording pass (#360)")
     args = parser.parse_args()
+    word_timing = "light" if args.word_timing_light else args.word_timing
 
     # Validate args: either --batch OR (--audio + --output) required.
     if args.batch:
@@ -689,7 +712,7 @@ def main():
                 print_progress(pct, f"Clip {i + 1}/{n_total}")
                 try:
                     n_segs = transcribe_one(model, audio_path, output_path, args.language, args.initial_prompt,
-                                            word_timing=args.word_timing)
+                                            word_timing=word_timing)
                     success_count += 1
                     print(f"[INFO] Batch {i + 1}/{n_total} done: {n_segs} segments → {output_path}", file=sys.stderr)
                 except Exception as e:
@@ -704,7 +727,7 @@ def main():
             # ── Single-clip mode (unchanged behavior) ──
             print_progress(20, "Transcribing...")
             n_segs = transcribe_one(model, args.audio, args.output, args.language, args.initial_prompt,
-                                    word_timing=args.word_timing)
+                                    word_timing=word_timing)
             print_progress(100, "Done")
             print(json.dumps({"success": True, "segments": n_segs}), file=sys.stderr)
 

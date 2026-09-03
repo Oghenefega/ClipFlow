@@ -466,3 +466,44 @@ Reading:
   (81%) until the clip is retranscribed. Surfaced to Fega; not changed.
 - Unit tests: `tools/tests/test_word_timing.py` (median semantics, ladder selection with stubbed
   voters, Parakeet chunk offsets, `_enforce_order`) — `python -m unittest`, any venv with numpy.
+
+### 10g. Session 236: Parakeet int8, and the full-recording words (#360)
+
+**Parakeet int8 ships.** `score_production.py <s233> median` with `CORVA_PARAKEET_MODEL` on
+`sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` (631 MB unpacked, 661 MB zip on R2): **86.0%**
+all-words (fp16 86.1%; first moved 55.1% / inner-last moved 66.7% / untouched disturbed 8.0% /
+5.7%). Inside the 0.3 tolerance, half the download of fp16. The engine manifest now lists three
+models.
+
+**The full-recording words were worse than assumed.** `score_production.py` gained `FULLPASS=1`
+(score `projTranscriptionSegs` — the full 30-min pass's words shifted to the clip range, what
+`resolveSubtitles` reads for a failed retranscription or an extended clip) and a `raw` mode. On
+the same 121 clips, same finals, same metric:
+
+| full-recording words → method | all ≤100 ms | first moved | inner/last moved | first untouched disturbed | inner/last untouched disturbed | cost / 30 min (3090 + 8-thread CPU) |
+|---|---|---|---|---|---|---|
+| raw stable-ts (what #359 left) | 68.3% | 0% | 0% | 0% | 0% | 0 |
+| snap | 74.0% | 32% | 3% | 2.8% | 1.2% | 1 s |
+| **hubert → hubert+snap (ships, `--word-timing-light`)** | **77.0%** | 45% | 32% | 5.6% | 4.3% | **50 s GPU warm / 66 s cold (1.5 GB); 234 s warm / 267 s cold on CPU** |
+| hubert+parakeet → median3 | 80.0% | 46% | 52% | 4.9% | 3.9% | +140 s CPU (chunked int8, 8 threads) → ~190 s |
+| for reference: the clip's own retranscription, raw | 78.4% | | | | | |
+
+Reading: the "raw 78%" in #360 was the CLIP number; words from the 30-minute pass start ten
+points lower (68.3%) — Whisper's timing on a long file is simply worse than on a 25 s cut, and
+that is what an extended stretch or a failed clip was showing. The pre-#359 whisperx+snap full pass
+was never scored on these words, so "≥81%" in #360's done-means was a clip-number target; on
+full-pass words HuBERT+snap lifts 68.3 → 77.0 (+8.7) for 50 s, and Parakeet would add three more
+points for 140 s of CPU. Fega's budget was "~100 s"; HuBERT alone fits it, HuBERT+Parakeet
+(~190 s) does not, so the light pass ships HuBERT-only with the Parakeet trade documented as a
+one-line flip in `transcribe.py`. Vosk on the full file (194 s, §10e) is out.
+
+Cost, like for like, MC Day2 Pt1 through the packaged 1.1.0 CUDA runtime (`transcribe.py`
+single-file, model load included): with HuBERT+Parakeet light 453 s; with HuBERT-only light see
+the changelog for the measured number (expected ≈ 205 s stable-ts + 7 s load + 50 s). alpha.22's
+pipeline log had 274 s for the same step (with the silently-failing Qwen refine), so the shipped
+full pass lands at or under alpha.22 while its words go from 68% to 77%.
+
+**CPU cap.** A CPU-only machine pays 234-267 s for HuBERT on 30 minutes (this desktop's 8 threads;
+the laptop will be slower), so `transcribe.py` `LIGHT_CPU_MAX_SEC = 600`: on CPU the light pass
+runs HuBERT only for recordings up to 10 minutes (~90 s) and keeps the snap (74.0%) above that,
+reporting `cpu_cap` in the `[TIMING]` line. Clip retranscription is unaffected (median4 everywhere).

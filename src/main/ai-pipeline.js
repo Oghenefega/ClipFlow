@@ -649,6 +649,12 @@ async function runAIPipeline({
       hfToken: store.get("hfToken") || "",
       hfHome: store.get("hfHome") || defaultHfHome(),
       gameVocab,
+      // #360: the full-recording words reach subtitles when a clip's retranscription
+      // failed or the clip is extended past its range (resolveSubtitles extras), so
+      // they get the one voter affordable on 30 minutes of audio: HuBERT + snap
+      // (50 s on a 3090; a CPU-only machine caps it, see transcribe.py). Vosk and
+      // Parakeet stay clip-only (#359).
+      wordTiming: "light",
       // #358: the Python side's [INFO]/[TIMING] lines land in this run's log.
       onLog: (line) => logger.logOutput("PY", line),
       onProgress: (pct) => {
