@@ -109,9 +109,9 @@ this, criterion 2 cannot be checked on a customer log.
 - `tools/runtime/requirements.txt` += whisperx, vosk, sherpa-onnx; regenerate both
   constraints files from the venv (`pip freeze`), CUDA and CPU.
 - Rebuild `clipflow-runtime-{cuda,cpu}-v1.1.0.zip`, publish to R2 `engine/v1.1.0/`, bump
-  `manifest.json` (`sizeBytes`, `unpackedBytes`, sha256). The build procedure is not in the
-  repo — recover it from the s2xx session that produced v1.0.0 (CHANGELOG #146) and write it
-  down this time (`docs/engine-build.md`).
+  `manifest.json` (`sizeBytes`, `unpackedBytes`, sha256). The build and publish procedure IS
+  in the repo: `scripts/build-runtime.ps1` (zip from the venv + requirements/constraints) and
+  `scripts/publish-runtime.ps1` (R2 upload + manifest). Read both before touching the venv.
 
 ### B2. Model pre-download (Finish Setup)
 

@@ -25,7 +25,7 @@ wasted; voters must run per clip only). #358 (stderr → pipeline log) folds int
 1. **Session A** (fresh session, read the plan first): A1 word_timing.py voters + true median +
    ladder; A2 `--word-timing` flag (clip-only); A3 #358 stderr forwarding; A4 score every row
    with `score_production.py` on the s233 scratchpad (≥ 86.3% target); A5 tests; §10f numbers.
-2. **Session B**: engine venv + zip v1.1.0 (recover the v1.0.0 build procedure, write it down),
+2. **Session B**: engine venv + zip v1.1.0 via `scripts/build-runtime.ps1` + `scripts/publish-runtime.ps1`,
    R2 model mirrors, Finish Setup downloads, alpha.23, laptop check, rewrite #357, close #359.
 3. Then the old backlog (#353 Batch B, #350, #297/#299, word ENDS if pills linger wrong).
 
