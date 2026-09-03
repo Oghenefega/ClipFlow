@@ -397,7 +397,7 @@ Not done this session: the winner has not been run through the real `refine_word
 
 stable-ts with a different Whisper backbone (large-v3, transcribe + refine) scores 65.4% alone,
 26% of untouched words disturbed, and LOWERS every set it joins (raw+hubert_l+vosk+parakeet+st_v3
-86.0% vs 86.8% without it). Cross-attention timing from any Whisper model shares raw's failure
+86.0% vs 86.8% without it); distil-large-v3 is the same story (67.4% alone, 86.0% in that set). Cross-attention timing from any Whisper model shares raw's failure
 mode (long words stretched over pauses), so it adds a correlated vote, not a new one. Same for
 `st_vad` / `st_align` from s231. Only CTC aligners, the HMM recogniser and the transducer bring
 independent evidence.
