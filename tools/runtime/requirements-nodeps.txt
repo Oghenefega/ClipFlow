@@ -1,0 +1,6 @@
+# Installed with --no-deps (#357, v1.1.0). whisperx 3.8.2's metadata demands
+# torch~=2.8.0, but the known-good venv (D:/whisper/betterwhisperx-venv) runs it
+# on torch 2.7.1+cu126 -- the combination Session 234 scored at 86.1%. Its real
+# imports are pinned in requirements.txt, so nothing is left unresolved; only
+# the torch version check is bypassed. Re-evaluate when torch moves.
+whisperx==3.8.2

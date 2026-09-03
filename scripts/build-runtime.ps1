@@ -14,7 +14,7 @@
 
 param(
   [ValidateSet("cuda", "cpu")] [string]$Variant = "cuda",
-  [string]$RuntimeVersion = "1.0.0",
+  [string]$RuntimeVersion = "1.1.0",
   # Full Python used to download/pre-build wheels (the embeddable Python cannot
   # build source-only packages -- its ._pth breaks pip's build isolation).
   # Any full Python 3.12 install works; defaults to the known-good venv.
@@ -35,6 +35,7 @@ $buildDir  = Join-Path $repo "vendor\runtime-build\$Variant"
 $distDir   = Join-Path $repo "vendor\runtime-dist"
 $reqFile   = Join-Path $repo "tools\runtime\requirements.txt"
 $conFile   = Join-Path $repo "tools\runtime\constraints-$Variant.txt"
+$noDepsFile = Join-Path $repo "tools/runtime/requirements-nodeps.txt"  # whisperx, see that file (#357)
 
 New-Item -ItemType Directory -Force -Path $downloads, $distDir | Out-Null
 
@@ -87,19 +88,25 @@ if ($Variant -eq "cuda") { $wheelArgs += @("--extra-index-url", $TorchIdx) }
 Write-Host "Collecting wheels ($Variant)... this downloads several GB, be patient."
 & $BuilderPython @wheelArgs
 if ($LASTEXITCODE -ne 0) { throw "wheel collection failed" }
+& $BuilderPython -m pip wheel -r $noDepsFile --no-deps -w $wheelhouse --no-cache-dir
+if ($LASTEXITCODE -ne 0) { throw "wheel collection (no-deps) failed" }
 
 & $py -m pip install --no-index --find-links $wheelhouse -r $reqFile -c $conFile --no-warn-script-location
 if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+& $py -m pip install --no-index --find-links $wheelhouse --no-deps -r $noDepsFile --no-warn-script-location
+if ($LASTEXITCODE -ne 0) { throw "pip install (no-deps) failed" }
 Remove-Item -Recurse -Force $wheelhouse  # ~3 GB; reclaim before zipping
 
 # -- 6) Prune bytecode caches (regenerate on the user's machine as needed) ---
 Get-ChildItem -Path $buildDir -Recurse -Directory -Filter "__pycache__" |
   Remove-Item -Recurse -Force
 
-# -- 7) Smoke test: every import the four scripts need, from the built bytes -
+# -- 7) Smoke test: every import the pipeline scripts need, from the built bytes
+# (v1.1.0 adds the word-timing voters: whisperx, vosk, sherpa_onnx -- #357)
 $smoke = @"
 import stable_whisper, torch, faster_whisper, librosa, soundfile
 from ai_edge_litert.interpreter import Interpreter
+import whisperx.alignment, vosk, sherpa_onnx  # .alignment: the real import path (whisperx/__init__ is lazy)
 print('stable_ts=' + stable_whisper.__version__)
 print('torch=' + torch.__version__)
 print('cuda=' + str(torch.cuda.is_available()))

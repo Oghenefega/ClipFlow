@@ -3,6 +3,10 @@
 # Repeatable: zips already on R2 with matching size are skipped; the manifest is
 # rebuilt and re-uploaded every run (it is tiny and this keeps it authoritative).
 #
+# #357: also publishes the word-timing voter models packaged by build-models.ps1
+# (vendor\runtime-dist\manifest-models.json) to r2:<bucket>/models/ and lists
+# them as "models" in the combined manifest. No manifest-models.json = no models.
+#
 # Prereqs (one-time, done session 168+1):
 #   - rclone installed (winget) with an [r2] remote in %APPDATA%\rclone\rclone.conf
 #   - credentials file at C:\Users\IAmAbsolute\.claude\r2_credentials.txt (public_url line used here)
@@ -69,12 +73,36 @@ foreach ($v in @("cuda", "cpu")) {
     }
 }
 
+# --- word-timing voter models (#357) ---
+$models = @()
+$modelsPath = Join-Path $DistDir "manifest-models.json"
+if (Test-Path $modelsPath) {
+    foreach ($m in (Get-Content $modelsPath -Raw | ConvertFrom-Json)) {
+        $zipPath = Join-Path $DistDir $m.file
+        if (-not (Test-Path $zipPath)) { throw "Missing model zip: $zipPath -- run build-models.ps1" }
+        $actualSize = (Get-Item $zipPath).Length
+        if ($actualSize -ne [int64]$m.sizeBytes) { throw "$($m.file): on-disk size $actualSize != manifest sizeBytes $($m.sizeBytes)" }
+        $models += [ordered]@{
+            id            = $m.id
+            file          = $m.file
+            url           = "$publicUrl/models/$($m.file)"
+            sha256        = $m.sha256
+            sizeBytes     = [int64]$m.sizeBytes
+            unpackedBytes = [int64]$m.unpackedBytes
+        }
+    }
+    Write-Host "[OK] $($models.Count) timing model(s) from $modelsPath"
+} else {
+    Write-Warning "no manifest-models.json in $DistDir -- publishing without timing models"
+}
+
 # --- build combined manifest ---
 $manifest = [ordered]@{
     name        = "clipflow-runtime"
     version     = $version
     publishedAt = (Get-Date -Format "yyyy-MM-ddTHH:mm:sszzz")
     variants    = [ordered]@{ cuda = $variants["cuda"]; cpu = $variants["cpu"] }
+    models      = @($models)
 }
 $manifestPath = Join-Path $DistDir "manifest.json"
 $json = $manifest | ConvertTo-Json -Depth 10
@@ -97,6 +125,25 @@ foreach ($v in @("cuda", "cpu")) {
     Write-Host "[UPLOAD] $f ..."
     & $rclone copyto (Join-Path $DistDir $f) "$remoteDir/$f" --s3-chunk-size 64M --s3-upload-concurrency 4 --stats 60s --stats-one-line -v
     if ($LASTEXITCODE -ne 0) { throw "rclone upload failed for $f" }
+}
+
+# --- upload model zips (same size-skip) ---
+if ($models.Count -gt 0) {
+    $modelsRemote = "r2:$Bucket/models"
+    $remoteModelsRaw = & $rclone lsjson $modelsRemote 2>$null
+    $remoteModelsBySize = @{}
+    if ($LASTEXITCODE -eq 0 -and $remoteModelsRaw) {
+        foreach ($e in ($remoteModelsRaw | ConvertFrom-Json)) { $remoteModelsBySize[$e.Name] = [int64]$e.Size }
+    }
+    foreach ($m in $models) {
+        if ($remoteModelsBySize.ContainsKey($m.file) -and $remoteModelsBySize[$m.file] -eq $m.sizeBytes) {
+            Write-Host "[SKIP] $($m.file) already on R2 with matching size"
+            continue
+        }
+        Write-Host "[UPLOAD] $($m.file) ..."
+        & $rclone copyto (Join-Path $DistDir $m.file) "$modelsRemote/$($m.file)" --s3-chunk-size 64M --s3-upload-concurrency 4 --stats 60s --stats-one-line -v
+        if ($LASTEXITCODE -ne 0) { throw "rclone upload failed for $($m.file)" }
+    }
 }
 
 # --- upload manifest (always) ---
@@ -125,6 +172,13 @@ foreach ($v in @("cuda", "cpu")) {
     Write-Host "[OK] $v size + Range verified: $u"
 }
 
+foreach ($m in $models) {
+    $head = Invoke-WebRequest -UseBasicParsing -Uri $m.url -Method Head
+    $len = [int64]$head.Headers["Content-Length"]
+    if ($len -ne $m.sizeBytes) { throw "$($m.id) HEAD Content-Length $len != $($m.sizeBytes) at $($m.url)" }
+    Write-Host "[OK] model $($m.id) size verified: $($m.url)"
+}
+
 if ($DeepVerify) {
     $cpuUrl = $variants["cpu"].url
     $tmp = Join-Path $env:TEMP "clipflow-deepverify-cpu.zip"
@@ -140,3 +194,4 @@ Write-Host ""
 Write-Host "=== PUBLISHED ==="
 Write-Host "manifest: $manifestUrl"
 foreach ($v in @("cuda", "cpu")) { Write-Host ("{0,-5} : {1}" -f $v, $variants[$v].url) }
+foreach ($m in $models) { Write-Host ("{0,-8} : {1}" -f $m.id, $m.url) }

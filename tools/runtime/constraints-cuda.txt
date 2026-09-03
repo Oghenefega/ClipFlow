@@ -94,11 +94,14 @@ safetensors==0.7.0
 scikit-learn==1.8.0
 scipy==1.17.1
 setuptools==82.0.1
+sherpa-onnx==1.13.7
+sherpa-onnx-core==1.13.7
 six==1.17.0
 sortedcontainers==2.4.0
 soundfile==0.13.1
 soxr==1.0.0
 SQLAlchemy==2.0.48
+srt==3.5.3
 stable-ts==2.19.1
 sympy==1.14.0
 threadpoolctl==3.6.0
@@ -115,6 +118,8 @@ transformers==4.57.6
 typing_extensions==4.15.0
 tzdata==2025.3
 urllib3==2.6.3
+vosk==0.3.45
+websockets==17.1
 wheel==0.46.3
 whisperx==3.8.2
 yarl==1.23.0

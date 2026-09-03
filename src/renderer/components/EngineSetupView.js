@@ -31,7 +31,9 @@ const KEYFRAMES = `
 `;
 
 export default function EngineSetupView({ onClose }) {
-  // ui: loading | offline | ready | download | unpack | verify | model | done | error
+  // ui: loading | offline | ready | download | unpack | verify | model | timing | done | error
+  // (#357: "timing" = the word-timing voter models; state.mode says whether this
+  // machine needs the whole engine, an engine upgrade, or only those models)
   const [ui, setUi] = useState("loading");
   const [state, setState] = useState(null);       // setup:getState payload
   const [prog, setProg] = useState(null);         // last setup:progress event
@@ -55,7 +57,7 @@ export default function EngineSetupView({ onClose }) {
       startedRef.current = true;
       setState((prev) => (r.needed ? r : prev || r));
       const ph = r.active.phase;
-      setUi(["download", "unpack", "verify", "model"].includes(ph) ? ph : "download");
+      setUi(["download", "unpack", "verify", "model", "timing"].includes(ph) ? ph : "download");
       return;
     }
     if (!r.needed) { onCloseRef.current(true); return; }
@@ -111,7 +113,8 @@ export default function EngineSetupView({ onClose }) {
 
   const v = state?.manifest?.variants?.[state?.variant];
   const diskShort = state && state.freeBytes != null && state.requiredBytes != null && state.freeBytes < state.requiredBytes;
-  const working = ["download", "unpack", "verify", "model"].includes(ui);
+  const working = ["download", "unpack", "verify", "model", "timing"].includes(ui);
+  const mode = state?.mode || "fresh";
   const interrupted = ui === "error";
 
   // ── shared bits ──────────────────────────────────────────────────────────
@@ -135,10 +138,12 @@ export default function EngineSetupView({ onClose }) {
   );
 
   const stepState = (step) => {
-    const order = { download: 0, unpack: 1, verify: 1, model: 2 };
-    const idx = { download: 0, install: 1, model: 2 }[step];
+    const order = { download: 0, unpack: 1, verify: 1, model: 2, timing: 3 };
+    const idx = { download: 0, install: 1, model: 2, timing: 3 }[step];
     if (ui === "done") return "done";
-    const cur = order[ui] ?? (errInfo ? order[errInfo.errorPhase] ?? 0 : 0);
+    // a machine that only needs the voter models starts on the last step (#357)
+    const base = mode === "models" ? 3 : 0;
+    const cur = Math.max(base, order[ui] ?? (errInfo ? order[errInfo.errorPhase] ?? 0 : 0));
     if (idx < cur) return "done";
     if (idx === cur) return "active";
     return "pending";
@@ -146,11 +151,11 @@ export default function EngineSetupView({ onClose }) {
 
   const Steps = (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-      {[["download", "Download"], ["install", "Install"], ["model", "Speech model"]].map(([id, label], i) => {
+      {[["download", "Download"], ["install", "Install"], ["model", "Speech model"], ["timing", "Subtitle timing"]].map(([id, label], i) => {
         const s = stepState(id);
         return (
           <React.Fragment key={id}>
-            {i > 0 && <div style={{ width: 26, height: 1, background: T.borderHover }} />}
+            {i > 0 && <div style={{ width: 18, height: 1, background: T.borderHover }} />}
             <div style={{
               display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600,
               letterSpacing: "0.09em", textTransform: "uppercase",
@@ -217,25 +222,43 @@ export default function EngineSetupView({ onClose }) {
     );
   } else if (ui === "ready") {
     const isCpu = state.variant === "cpu";
-    title = "Set up Corva's AI engine";
-    sub = <>One-time download so transcription and clip detection run <b style={{ color: T.text }}>entirely on this PC</b> — your footage never leaves your machine.</>;
+    if (mode === "upgrade") {
+      title = "Update Corva's AI engine";
+      sub = <>This version of Corva comes with a newer engine that places each subtitle word exactly where it's said. One download, then you're set.</>;
+    } else if (mode === "models") {
+      title = "One more download for subtitles";
+      sub = <>Corva now uses three small models to place each subtitle word exactly where it's said. One download, then you're set.</>;
+    } else {
+      title = "Set up Corva's AI engine";
+      sub = <>One-time download so transcription and clip detection run <b style={{ color: T.text }}>entirely on this PC</b> — your footage never leaves your machine.</>;
+    }
     body = (
       <>
         <div style={{ width: "100%", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: "4px 18px", marginBottom: 22, textAlign: "left" }}>
-          <Row k="Graphics card">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: isCpu ? T.yellow : T.green }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: isCpu ? T.yellow : T.green, boxShadow: `0 0 7px ${isCpu ? T.yellow : T.green}` }} />
-              {isCpu ? "No NVIDIA card found" : state.gpuName}
-            </span>
+          {mode !== "models" && (
+            <Row k="Graphics card">
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: isCpu ? T.yellow : T.green }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: isCpu ? T.yellow : T.green, boxShadow: `0 0 7px ${isCpu ? T.yellow : T.green}` }} />
+                {isCpu ? "No NVIDIA card found" : state.gpuName}
+              </span>
+            </Row>
+          )}
+          {mode !== "models" && (
+            <Row k="Engine">{isCpu ? "Processor engine" : <>GPU engine <span style={{ color: T.textTertiary, fontWeight: 500 }}>· fastest</span></>}</Row>
+          )}
+          <Row k="Download">
+            {mode === "models"
+              ? <>{fmtGB(state.timingBytes)} <span style={{ color: T.textTertiary, fontWeight: 500 }}>subtitle timing</span></>
+              : <>{fmtGB(v?.sizeBytes)} <span style={{ color: T.textTertiary, fontWeight: 500 }}>+ {mode === "fresh" ? "1.6 GB speech model + " : ""}{fmtGB(state.timingBytes)} subtitle timing</span></>}
           </Row>
-          <Row k="Engine">{isCpu ? "Processor engine" : <>GPU engine <span style={{ color: T.textTertiary, fontWeight: 500 }}>· fastest</span></>}</Row>
-          <Row k="Download">{fmtGB(v?.sizeBytes)} <span style={{ color: T.textTertiary, fontWeight: 500 }}>+ 1.6 GB speech model</span></Row>
           <Row k="Install to">
             <span style={{ display: "inline-flex", alignItems: "baseline", gap: 9, maxWidth: 310 }}>
               <span title={state.engineRoot} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12.5, fontWeight: 500, color: T.textSecondary }}>
                 {state.engineRoot}
               </span>
-              <button onClick={chooseLocation} style={{ ...ghostStyle, color: CY, fontWeight: 600, padding: 0, flexShrink: 0 }}>Change</button>
+              {mode === "fresh" && (
+                <button onClick={chooseLocation} style={{ ...ghostStyle, color: CY, fontWeight: 600, padding: 0, flexShrink: 0 }}>Change</button>
+              )}
             </span>
           </Row>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, padding: "11px 0", fontSize: 13 }}>
@@ -246,7 +269,7 @@ export default function EngineSetupView({ onClose }) {
             </span>
           </div>
         </div>
-        {isCpu && (
+        {isCpu && mode === "fresh" && (
           <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
             <span style={{ color: T.yellow, fontWeight: 700 }}>⚠</span>
             <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textSecondary, margin: 0 }}>
@@ -271,7 +294,7 @@ export default function EngineSetupView({ onClose }) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 13 }}>
           {diskShort
             ? <button style={btnStyle} onClick={loadState}>Check again</button>
-            : <button style={btnStyle} onClick={start}>{state.resumeBytes > 0 ? "Resume download" : "Download and install"}</button>}
+            : <button style={btnStyle} onClick={start}>{state.resumeBytes > 0 ? "Resume download" : mode === "upgrade" ? "Update the engine" : mode === "models" ? "Download" : "Download and install"}</button>}
           <button style={ghostStyle} onClick={() => onClose(false)}>Set up later</button>
         </div>
         <div style={{ marginTop: 26, fontSize: 11.5, color: T.textMuted }}>
@@ -326,12 +349,30 @@ export default function EngineSetupView({ onClose }) {
         <button style={{ ...ghostStyle, fontSize: 13, color: T.textSecondary }} onClick={() => onClose(false)}>Hide — keep downloading in background</button>
       </>
     );
+  } else if (ui === "timing") {
+    title = "Downloading the subtitle timing models";
+    sub = "Three small models that vote on exactly when each word is said, so subtitles land on the beat. Last step.";
+    body = (
+      <>
+        <div style={{ width: "100%", marginBottom: 22 }}>
+          <Bar pct={prog?.pct ?? null} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: T.textTertiary }}>
+            <span style={{ color: T.textSecondary, fontWeight: 600 }}>
+              {prog?.bytesDone != null && prog?.bytesTotal ? `${fmtGB(prog.bytesDone)} of ${fmtGB(prog.bytesTotal)}` : (prog?.message || "Downloading…")}
+            </span>
+            <span>{[fmtSpeed(prog?.speedBps), fmtEta(prog?.etaSec)].filter(Boolean).join(" · ")}</span>
+          </div>
+        </div>
+        <button style={{ ...ghostStyle, fontSize: 13, color: T.textSecondary }} onClick={() => onClose(false)}>Hide — keep downloading in background</button>
+      </>
+    );
   } else if (ui === "done") {
     title = "Your AI engine is ready";
     sub = <>Transcription and clip detection now run fully on this machine.<br /><b style={{ color: T.text }}>Your footage never leaves your PC.</b></>;
     body = <button style={btnStyle} onClick={() => onClose(true)}>Start creating</button>;
   } else if (ui === "error") {
-    const dl = errInfo?.errorPhase === "download" || errInfo?.errorPhase === "manifest";
+    const dl = errInfo?.errorPhase === "download" || errInfo?.errorPhase === "manifest"
+      || (errInfo?.errorPhase === "timing" && errInfo?.resumable);
     title = dl ? "Download interrupted" : "Setup hit a snag";
     sub = dl
       ? "Looks like the connection dropped. Nothing is lost — the download picks up right where it stopped."

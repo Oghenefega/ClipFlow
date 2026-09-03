@@ -79,4 +79,59 @@ function bundledGatewayToken() {
   }
 }
 
-module.exports = { BUNDLED_FFMPEG_DIR, FFMPEG_BIN, FFPROBE_BIN, envWithBundledFfmpeg, defaultHfHome, bundledGatewayToken };
+/**
+ * Engine root (#146/#261): the engineRoot setting ("" = default) lets the
+ * multi-GB engine + models live off the system drive. Lazy electron access.
+ */
+function runtimeRoot(store) {
+  return store.get("engineRoot") || path.join(require("electron").app.getPath("userData"), "runtime");
+}
+
+/**
+ * #357: the word-timing voter models Finish Setup installs under the engine
+ * root. `dir` is where the model zip unpacks (and where the marker lives);
+ * `env` is the variable transcribe.py reads, pointing at `envDir` (defaults
+ * to `dir`). HuBERT is fetched by torchaudio through TORCH_HOME/hub/checkpoints,
+ * so its zip unpacks two levels down while the env var names the root.
+ */
+const TIMING_MODELS = {
+  hubert:   { dir: path.join("torch_home", "hub", "checkpoints"), envDir: "torch_home", env: "TORCH_HOME" },
+  vosk:     { dir: path.join("models", "vosk"), env: "CORVA_VOSK_MODEL" },
+  parakeet: { dir: path.join("models", "parakeet"), env: "CORVA_PARAKEET_MODEL" },
+};
+// Written into a model's dir after a verified unpack: { id, sha256 }. The
+// sha256 is the zip's, so a republished model re-downloads by itself.
+const MODEL_MARKER = ".corva-model.json";
+
+function timingModelDir(store, id) {
+  return path.join(runtimeRoot(store), TIMING_MODELS[id].dir);
+}
+
+function installedModelSha(dir) {
+  try {
+    const sha = JSON.parse(fs.readFileSync(path.join(dir, MODEL_MARKER), "utf8")).sha256;
+    return typeof sha === "string" ? sha.toLowerCase() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Env for the transcribe child: one variable per installed voter model.
+ * Machines without them (a hand-pointed venv, or Finish Setup not yet run)
+ * get nothing, so word_timing.py falls back to its own defaults.
+ */
+function timingModelEnv(store) {
+  const env = {};
+  if (!store) return env;
+  const root = runtimeRoot(store);
+  for (const [id, m] of Object.entries(TIMING_MODELS)) {
+    if (installedModelSha(path.join(root, m.dir))) env[m.env] = path.join(root, m.envDir || m.dir);
+  }
+  return env;
+}
+
+module.exports = {
+  BUNDLED_FFMPEG_DIR, FFMPEG_BIN, FFPROBE_BIN, envWithBundledFfmpeg, defaultHfHome, bundledGatewayToken,
+  runtimeRoot, TIMING_MODELS, MODEL_MARKER, timingModelDir, installedModelSha, timingModelEnv,
+};

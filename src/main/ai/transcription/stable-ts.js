@@ -17,7 +17,8 @@ const fs = require("fs");
 const { app } = require("electron");
 const { registerProvider, getStore } = require("../transcription-provider");
 // #251: per-user cache default + bundled FFmpeg for WhisperX's audio loader.
-const { envWithBundledFfmpeg, defaultHfHome } = require("../../app-paths");
+// #357: TORCH_HOME / CORVA_*_MODEL for the word-timing voters Finish Setup installed.
+const { envWithBundledFfmpeg, defaultHfHome, timingModelEnv } = require("../../app-paths");
 
 // Plain-language setup error (#251, repointed #146) — surfaced straight to
 // the user when transcription starts without a configured AI engine.
@@ -170,7 +171,7 @@ function transcribe(wavPath, opts = {}) {
       timeout: 3600000, // 60 minutes max
       maxBuffer: 100 * 1024 * 1024,
       // WhisperX loads audio by shelling out to ffmpeg — resolve the bundled copy (#251)
-      env: envWithBundledFfmpeg(),
+      env: { ...envWithBundledFfmpeg(), ...timingModelEnv(store) },
     }, (err, stdout, stderr) => {
       if (err) {
         const errOutput = (stderr || "").slice(-2000);
@@ -263,7 +264,7 @@ function transcribeBatch(items, opts = {}) {
       timeout: 3600000, // 60 minutes max for the whole batch
       maxBuffer: 100 * 1024 * 1024,
       // WhisperX loads audio by shelling out to ffmpeg — resolve the bundled copy (#251)
-      env: envWithBundledFfmpeg(),
+      env: { ...envWithBundledFfmpeg(), ...timingModelEnv(store) },
     }, (err, stdout, stderr) => {
       try { fs.unlinkSync(manifestPath); } catch (_) {}
       if (err) {

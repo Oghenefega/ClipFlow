@@ -5,11 +5,14 @@
  * bucket (engine.flowve.app), unpacks it into userData\runtime, verifies the
  * install with the existing stable-ts importability probe, points
  * whisperPythonPath at the new python.exe, then pre-downloads the Whisper
- * model so the first transcription isn't ambushed by a 1.6 GB fetch.
+ * model so the first transcription isn't ambushed by a 1.6 GB fetch, and
+ * finally the word-timing voter models (#357: HuBERT, Vosk, Parakeet).
  *
  * Design:
- *  - Offered ONLY when whisperPythonPath is unset or dangling — machines with
- *    the #251 D:\ venv migration (Fega's) never see this flow.
+ *  - Offered when whisperPythonPath is unset or dangling, and again when a
+ *    managed engine (engineRuntime set) is older than the hosted runtime or
+ *    lacks a voter model (#357). Hand-pointed venvs (Fega's #251 D:\ machines,
+ *    engineRuntime null) never see this flow.
  *  - Download resumes: partial file kept as <zip>.part, continued with an
  *    HTTP Range request; SHA-256 is re-computed over the existing bytes first
  *    so the final checksum still covers every byte on disk.
@@ -25,7 +28,9 @@ const { execFile, spawn } = require("child_process");
 const { app } = require("electron");
 const logger = require("./logger");
 const whisper = require("./whisper");
-const { defaultHfHome } = require("./app-paths");
+const {
+  defaultHfHome, runtimeRoot, TIMING_MODELS, MODEL_MARKER, timingModelDir, installedModelSha,
+} = require("./app-paths");
 
 const MANIFEST_URL = "https://engine.flowve.app/engine/manifest.json";
 // Space the model pre-download will need on top of the engine itself, plus a
@@ -36,11 +41,34 @@ const DISK_MARGIN_BYTES = 0.5e9;
 // ── module state: at most one active job ──────────────────────────────────
 let job = null; // { phase, cancelRequested, request, child, webContents }
 
-// #261: engineRoot setting ("" = default) lets the multi-GB engine + model
-// live off the system drive. whisperPythonPath is stored absolute, so the
+// #261: engineRoot setting ("" = default) lets the multi-GB engine + models
+// live off the system drive — runtimeRoot() in app-paths.js, shared with the
+// transcribe env since #357. whisperPythonPath is stored absolute, so the
 // rest of the pipeline never resolves this again after setup.
-function runtimeRoot(store) {
-  return store.get("engineRoot") || path.join(app.getPath("userData"), "runtime");
+
+// "1.1.0" newer than "1.0.0"? Plain dotted integers — the runtime version is ours.
+function isNewerVersion(a, b) {
+  const pa = String(a).split(".").map(Number);
+  const pb = String(b).split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
+
+// Voter models the manifest lists that this machine lacks — or holds a
+// different build of: the marker carries the zip's sha256 (#357).
+function missingTimingModels(store, manifest) {
+  return (manifest.models || []).filter((m) =>
+    TIMING_MODELS[m.id] && installedModelSha(timingModelDir(store, m.id)) !== String(m.sha256).toLowerCase());
+}
+
+// Space the voter models still need: every unpacked tree, plus the largest
+// zip (each zip coexists with its files only until its own unpack is done).
+function timingReserveBytes(models) {
+  return models.reduce((sum, m) => sum + (m.unpackedBytes || 0), 0)
+    + models.reduce((max, m) => Math.max(max, m.sizeBytes || 0), 0);
 }
 
 /**
@@ -160,15 +188,15 @@ function freeDiskBytes(dir) {
 /**
  * Free bytes the setup still needs at its worst moment (#261). Disk usage
  * peaks either while unpacking (zip + unpacked tree coexist) or during the
- * model download (zip already deleted, model landing). The old sum stacked
- * the model on top of a zip that's gone by then — over-asking by ~1.8 GB.
- * `zipOnDiskBytes` (the .part or a complete zip) is already spent, so it
- * offsets the post-delete term.
+ * model downloads (zip already deleted, models landing — `reserveBytes`).
+ * The old sum stacked the model on top of a zip that's gone by then —
+ * over-asking by ~1.8 GB. `zipOnDiskBytes` (the .part or a complete zip) is
+ * already spent, so it offsets the post-delete term.
  */
-function requiredFreeBytes(downloadBytes, zipOnDiskBytes, unpackedBytes) {
+function requiredFreeBytes(downloadBytes, zipOnDiskBytes, unpackedBytes, reserveBytes) {
   return Math.max(
     downloadBytes + unpackedBytes,
-    unpackedBytes - zipOnDiskBytes + MODEL_RESERVE_BYTES
+    unpackedBytes - zipOnDiskBytes + reserveBytes
   ) + DISK_MARGIN_BYTES;
 }
 
@@ -176,16 +204,20 @@ function requiredFreeBytes(downloadBytes, zipOnDiskBytes, unpackedBytes) {
  * Everything the setup screen needs to render its first frame.
  * Cheap where possible; the manifest fetch is the only network hit and is
  * reported separately so an offline machine still gets a usable answer.
+ * `mode`: "fresh" (no engine), "upgrade" (managed engine older than the
+ * hosted runtime), "models" (engine current, voter models missing) (#357).
  */
 async function getState(store) {
   const pythonPath = store.get("whisperPythonPath");
-  const needed = !pythonPath || !fs.existsSync(pythonPath);
+  const engineValid = !!pythonPath && fs.existsSync(pythonPath);
+  const managed = engineValid ? store.get("engineRuntime") : null;
   const active = job ? { phase: job.phase } : null;
 
-  if (!needed) {
-    // active can outlive needed: whisperPythonPath is set BEFORE the model
-    // phase runs, so a still-running job must keep reporting itself or the
-    // screen closes early (caught live in the session-168+1 E2E).
+  // A hand-pointed engine is never offered anything — and never costs a
+  // manifest fetch at boot. (active can outlive needed: whisperPythonPath is
+  // set BEFORE the model phases run, so a still-running job must keep
+  // reporting itself or the screen closes early — session-168+1 E2E.)
+  if (engineValid && !managed) {
     return { needed: false, pythonPath, active };
   }
 
@@ -200,27 +232,49 @@ async function getState(store) {
     manifestError = err.message;
   }
 
+  // Managed engine: needed only when the hosted runtime moved past the
+  // installed one (v1.1.0 carries the voters) or a voter model is missing.
+  let mode = "fresh";
+  if (engineValid) {
+    if (!manifest) return { needed: false, pythonPath, active };
+    const upgrade = isNewerVersion(manifest.version, managed.version);
+    if (!upgrade && missingTimingModels(store, manifest).length === 0) {
+      return { needed: false, pythonPath, active };
+    }
+    mode = upgrade ? "upgrade" : "models";
+  }
+
   const root = runtimeRoot(store);
   const freeBytes = freeDiskBytes(root);
   let requiredBytes = null;
   let resumeBytes = 0;
-  if (manifest && manifest.variants && manifest.variants[variant]) {
-    const v = manifest.variants[variant];
-    const partPath = path.join(root, ".download", `${v.file}.part`);
-    const zipPath = path.join(root, ".download", v.file);
-    // Clear failed-attempt leftovers before measuring (#256) — but never while
-    // a job is live (unpack/download write into these paths).
-    if (!job) reclaimDebris(root, variant, manifest.version, zipPath, v.sizeBytes);
-    try { resumeBytes = fs.statSync(partPath).size; } catch (_) { /* no partial */ }
-    // Space still needed FROM HERE: bytes already saved (.part) or a fully
-    // downloaded zip don't need downloading again (#256).
-    const haveZip = zipReady(zipPath, v.sizeBytes);
-    const downloadBytes = haveZip ? 0 : Math.max(0, v.sizeBytes - resumeBytes);
-    requiredBytes = requiredFreeBytes(downloadBytes, haveZip ? v.sizeBytes : resumeBytes, v.unpackedBytes);
+  let timingBytes = 0;
+  if (manifest) {
+    const timing = missingTimingModels(store, manifest);
+    timingBytes = timing.reduce((sum, m) => sum + (m.sizeBytes || 0), 0);
+    // an existing engine already holds the speech model; only the voters are still to land
+    const reserve = timingReserveBytes(timing) + (mode === "fresh" ? MODEL_RESERVE_BYTES : 0);
+    if (mode === "models") {
+      requiredBytes = reserve + DISK_MARGIN_BYTES;
+    } else if (manifest.variants && manifest.variants[variant]) {
+      const v = manifest.variants[variant];
+      const partPath = path.join(root, ".download", `${v.file}.part`);
+      const zipPath = path.join(root, ".download", v.file);
+      // Clear failed-attempt leftovers before measuring (#256) — but never while
+      // a job is live (unpack/download write into these paths).
+      if (!job) reclaimDebris(root, variant, manifest.version, zipPath, v.sizeBytes);
+      try { resumeBytes = fs.statSync(partPath).size; } catch (_) { /* no partial */ }
+      // Space still needed FROM HERE: bytes already saved (.part) or a fully
+      // downloaded zip don't need downloading again (#256).
+      const haveZip = zipReady(zipPath, v.sizeBytes);
+      const downloadBytes = haveZip ? 0 : Math.max(0, v.sizeBytes - resumeBytes);
+      requiredBytes = requiredFreeBytes(downloadBytes, haveZip ? v.sizeBytes : resumeBytes, v.unpackedBytes, reserve);
+    }
   }
 
   return {
     needed: true,
+    mode,
     engineRoot: root,
     variant,
     gpuName,
@@ -229,6 +283,7 @@ async function getState(store) {
     freeBytes,
     requiredBytes,
     resumeBytes,
+    timingBytes,
     active,
   };
 }
@@ -258,7 +313,9 @@ function hashExistingPart(partPath, onTick) {
 // progress bar forever, since only real socket errors reject (#258).
 const STALL_TIMEOUT_MS = 60000;
 
-function downloadWithResume({ url, partPath, totalBytes, webContents }) {
+// `phase` labels the progress events; `onProgress(bytesDone, speedBps)` takes
+// over reporting when the caller folds several files into one bar (#357).
+function downloadWithResume({ url, partPath, totalBytes, webContents, phase = "download", onProgress }) {
   return new Promise(async (resolveRaw, rejectRaw) => {
     let stallTimer = null;
     const resolve = (v) => { clearTimeout(stallTimer); resolveRaw(v); };
@@ -269,7 +326,7 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
       if (fs.existsSync(partPath)) {
         const size = fs.statSync(partPath).size;
         if (size > 0 && size <= totalBytes) {
-          sendProgress(webContents, { phase: "download", pct: null, message: "Checking saved download..." });
+          sendProgress(webContents, { phase, pct: null, message: "Checking saved download..." });
           const res = await hashExistingPart(partPath, () => {});
           hash = res.hash;
           startAt = res.bytes;
@@ -291,7 +348,7 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
         clearTimeout(stallTimer); // the retry runs its own watchdog (#258)
         res.destroy();
         try { fs.rmSync(partPath, { force: true }); } catch (_) {}
-        return downloadWithResume({ url, partPath, totalBytes, webContents }).then(resolve, reject);
+        return downloadWithResume({ url, partPath, totalBytes, webContents, phase, onProgress }).then(resolve, reject);
       }
       if (res.statusCode !== 200 && res.statusCode !== 206) {
         res.resume();
@@ -317,6 +374,7 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
           lastSent = now;
           const [t0, b0] = samples[0];
           const speedBps = now > t0 ? ((done - b0) * 1000) / (now - t0) : 0;
+          if (onProgress) { onProgress(done, speedBps); return; }
           sendProgress(webContents, {
             phase: "download",
             pct: Math.floor((done / totalBytes) * 100),
@@ -371,12 +429,12 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
 }
 
 // ── unpack via bsdtar (ships with Windows 10+; zero npm deps) ──────────────
-function unpackZip(zipPath, destDir, webContents) {
+function unpackZip(zipPath, destDir, webContents, phase = "unpack") {
   return new Promise((resolve, reject) => {
     fs.rmSync(destDir, { recursive: true, force: true });
     fs.mkdirSync(destDir, { recursive: true });
     const tarExe = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe");
-    sendProgress(webContents, { phase: "unpack", pct: null, message: "Unpacking files..." });
+    sendProgress(webContents, { phase, pct: null, message: "Unpacking files..." });
     const child = spawn(tarExe, ["-xf", zipPath, "-C", destDir]);
     job.child = child;
     let stderr = "";
@@ -434,11 +492,55 @@ function downloadModel(pythonExe, store, webContents) {
   });
 }
 
+// ── word-timing voter models (#357) ───────────────────────────────────────
+// Same download / checksum / unpack path as the engine, one model at a time,
+// reported as a single bar across every model still missing. Each zip is
+// deleted right after its unpack; the marker makes a rerun skip what landed.
+async function downloadTimingModels(store, manifest, webContents) {
+  const todo = missingTimingModels(store, manifest);
+  const allBytes = todo.reduce((sum, m) => sum + m.sizeBytes, 0);
+  const root = runtimeRoot(store);
+  let doneBytes = 0;
+  for (const m of todo) {
+    const zipPath = path.join(root, ".download", m.file);
+    const partPath = `${zipPath}.part`;
+    fs.mkdirSync(path.dirname(zipPath), { recursive: true });
+    if (!zipReady(zipPath, m.sizeBytes)) {
+      const digest = await downloadWithResume({
+        url: m.url, partPath, totalBytes: m.sizeBytes, webContents, phase: "timing",
+        onProgress: (got, speedBps) => sendProgress(webContents, {
+          phase: "timing",
+          pct: Math.floor(((doneBytes + got) / allBytes) * 100),
+          bytesDone: doneBytes + got,
+          bytesTotal: allBytes,
+          speedBps,
+          etaSec: speedBps > 0 ? Math.round((allBytes - doneBytes - got) / speedBps) : null,
+        }),
+      });
+      if (digest !== String(m.sha256).toLowerCase()) {
+        try { fs.rmSync(partPath, { force: true }); } catch (_) {}
+        throw new Error("A timing model didn't verify — it may have been corrupted in transit. The download was cleared; try again.");
+      }
+      fs.renameSync(partPath, zipPath);
+    }
+    const dest = timingModelDir(store, m.id);
+    await unpackZip(zipPath, dest, webContents, "timing");
+    fs.writeFileSync(path.join(dest, MODEL_MARKER), JSON.stringify({
+      id: m.id, sha256: String(m.sha256).toLowerCase(), installedAt: new Date().toISOString(),
+    }));
+    try { fs.rmSync(zipPath, { force: true }); } catch (_) {}
+    doneBytes += m.sizeBytes;
+    logger.info(logger.MODULES.system, `Timing model installed: ${m.id}`, { dir: dest });
+  }
+}
+
 /**
  * Run the whole setup. Progress streams over "setup:progress"; the returned
- * promise is the final word. Retry-friendly: if the engine is already
- * installed and verified (whisperPythonPath valid), skips straight to the
- * model phase — so a model-only failure never re-downloads 2.7 GB.
+ * promise is the final word. Retry-friendly: a valid engine that is current
+ * (or hand-pointed, no engineRuntime record) skips straight to the model
+ * phases — so a model-only failure never re-downloads 2.7 GB. A managed
+ * engine older than the hosted runtime is replaced first (#357: v1.1.0
+ * carries the voters), then the old engine dir is reclaimed.
  */
 async function start(store, webContents) {
   if (job) return { success: false, error: "Setup is already running.", phase: job.phase };
@@ -459,20 +561,6 @@ async function start(store, webContents) {
   };
 
   try {
-    // ── existing valid engine? → only the model phase is left ──
-    const existingPython = store.get("whisperPythonPath");
-    if (existingPython && fs.existsSync(existingPython)) {
-      job.phase = "model";
-      try {
-        await downloadModel(existingPython, store, webContents);
-      } catch (err) {
-        return fail("model", err);
-      }
-      sendProgress(webContents, { phase: "done" });
-      job = null;
-      return { success: true };
-    }
-
     job.phase = "manifest";
     let manifest, variant;
     try {
@@ -483,78 +571,97 @@ async function start(store, webContents) {
       err.resumable = true;
       return fail("manifest", err);
     }
-    const v = manifest.variants && manifest.variants[variant];
-    if (!v) return fail("manifest", new Error(`manifest has no "${variant}" variant`));
 
-    // ── disk preflight ──
-    const root = runtimeRoot(store);
-    const partPath = path.join(root, ".download", `${v.file}.part`);
-    const zipPath = path.join(root, ".download", v.file);
-    reclaimDebris(root, variant, manifest.version, zipPath, v.sizeBytes); // failed-attempt leftovers must not sink the preflight (#256)
-    const haveZip = zipReady(zipPath, v.sizeBytes);
-    const free = freeDiskBytes(root);
-    let already = 0;
-    try { already = fs.statSync(partPath).size; } catch (_) {}
-    const required = requiredFreeBytes(haveZip ? 0 : Math.max(0, v.sizeBytes - already), haveZip ? v.sizeBytes : already, v.unpackedBytes);
-    if (free !== null && free < required) {
-      const needGb = (required / 1e9).toFixed(1);
-      const freeGb = (free / 1e9).toFixed(1);
-      return fail("disk", new Error(`Not enough disk space: setup needs about ${needGb} GB free, this drive has ${freeGb} GB.`));
-    }
+    const existingPython = store.get("whisperPythonPath");
+    const managed = store.get("engineRuntime");
+    const engineValid = !!existingPython && fs.existsSync(existingPython);
+    const upgrade = engineValid && !!managed && isNewerVersion(manifest.version, managed.version);
+    let pythonExe = existingPython;
 
-    // ── download + checksum (skipped when a checksummed zip is already on disk, #256) ──
-    if (!haveZip) {
-      job.phase = "download";
-      fs.mkdirSync(path.dirname(partPath), { recursive: true });
-      let digest;
+    if (!engineValid || upgrade) {
+      const v = manifest.variants && manifest.variants[variant];
+      if (!v) return fail("manifest", new Error(`manifest has no "${variant}" variant`));
+
+      // ── disk preflight ──
+      const root = runtimeRoot(store);
+      const partPath = path.join(root, ".download", `${v.file}.part`);
+      const zipPath = path.join(root, ".download", v.file);
+      reclaimDebris(root, variant, manifest.version, zipPath, v.sizeBytes); // failed-attempt leftovers must not sink the preflight (#256)
+      const haveZip = zipReady(zipPath, v.sizeBytes);
+      const free = freeDiskBytes(root);
+      let already = 0;
+      try { already = fs.statSync(partPath).size; } catch (_) {}
+      // an upgrade already holds the speech model; only the voters are still to land
+      const reserve = timingReserveBytes(missingTimingModels(store, manifest)) + (upgrade ? 0 : MODEL_RESERVE_BYTES);
+      const required = requiredFreeBytes(haveZip ? 0 : Math.max(0, v.sizeBytes - already), haveZip ? v.sizeBytes : already, v.unpackedBytes, reserve);
+      if (free !== null && free < required) {
+        const needGb = (required / 1e9).toFixed(1);
+        const freeGb = (free / 1e9).toFixed(1);
+        return fail("disk", new Error(`Not enough disk space: setup needs about ${needGb} GB free, this drive has ${freeGb} GB.`));
+      }
+
+      // ── download + checksum (skipped when a checksummed zip is already on disk, #256) ──
+      if (!haveZip) {
+        job.phase = "download";
+        fs.mkdirSync(path.dirname(partPath), { recursive: true });
+        let digest;
+        try {
+          digest = await downloadWithResume({ url: v.url, partPath, totalBytes: v.sizeBytes, webContents });
+        } catch (err) {
+          return fail("download", err);
+        }
+        if (digest !== v.sha256.toLowerCase()) {
+          try { fs.rmSync(partPath, { force: true }); } catch (_) {}
+          return fail("checksum", new Error("The downloaded file didn't verify — it may have been corrupted in transit. The download was cleared; try again."));
+        }
+        fs.renameSync(partPath, zipPath);
+      }
+
+      // ── unpack to staging, then move into place ──
+      job.phase = "unpack";
+      const stagingDir = path.join(root, ".staging");
+      const finalDir = path.join(root, `engine-${variant}-v${manifest.version}`);
       try {
-        digest = await downloadWithResume({ url: v.url, partPath, totalBytes: v.sizeBytes, webContents });
+        await unpackZip(zipPath, stagingDir, webContents);
+        fs.rmSync(finalDir, { recursive: true, force: true });
+        fs.renameSync(stagingDir, finalDir);
       } catch (err) {
-        return fail("download", err);
+        return fail("unpack", err);
       }
-      if (digest !== v.sha256.toLowerCase()) {
-        try { fs.rmSync(partPath, { force: true }); } catch (_) {}
-        return fail("checksum", new Error("The downloaded file didn't verify — it may have been corrupted in transit. The download was cleared; try again."));
+
+      // ── verify with the existing importability probe ──
+      job.phase = "verify";
+      sendProgress(webContents, { phase: "verify", pct: null, message: "Checking everything works..." });
+      pythonExe = path.join(finalDir, "python.exe");
+      // 3-minute budget: the first import runs while Defender scans the freshly
+      // unpacked binaries — 30s fails cold machines whose engine is fine (#256).
+      const check = await whisper.checkWhisper(pythonExe, { timeoutMs: 180000 });
+      if (!check.installed) {
+        return fail("verify", new Error(`The engine unpacked but failed its self-check: ${check.error || "unknown"}`));
       }
-      fs.renameSync(partPath, zipPath);
+      logger.info(logger.MODULES.system, "Engine runtime verified", { variant, version: manifest.version, probe: check.version });
+
+      // ── configure + reclaim the zip's disk space before the models land ──
+      store.set("whisperPythonPath", pythonExe);
+      store.set("engineRuntime", { variant, version: manifest.version, installedAt: new Date().toISOString() });
+      // Custom install location → the speech model follows the engine onto the
+      // same drive (#261). Only when hfHome was never set: an established cache
+      // must not be abandoned and re-downloaded elsewhere.
+      if (store.get("engineRoot") && !store.get("hfHome")) {
+        store.set("hfHome", path.join(root, "hf_cache"));
+      }
+      try { fs.rmSync(zipPath, { force: true }); } catch (_) {}
+      if (upgrade) {
+        // the replaced engine is debris now that the new one is verified and configured
+        const oldDir = path.join(root, `engine-${managed.variant}-v${managed.version}`);
+        if (path.resolve(oldDir) !== path.resolve(finalDir)) {
+          try { fs.rmSync(oldDir, { recursive: true, force: true }); } catch (_) {}
+        }
+        logger.info(logger.MODULES.system, "Engine runtime upgraded", { from: managed.version, to: manifest.version });
+      }
     }
 
-    // ── unpack to staging, then move into place ──
-    job.phase = "unpack";
-    const stagingDir = path.join(root, ".staging");
-    const finalDir = path.join(root, `engine-${variant}-v${manifest.version}`);
-    try {
-      await unpackZip(zipPath, stagingDir, webContents);
-      fs.rmSync(finalDir, { recursive: true, force: true });
-      fs.renameSync(stagingDir, finalDir);
-    } catch (err) {
-      return fail("unpack", err);
-    }
-
-    // ── verify with the existing importability probe ──
-    job.phase = "verify";
-    sendProgress(webContents, { phase: "verify", pct: null, message: "Checking everything works..." });
-    const pythonExe = path.join(finalDir, "python.exe");
-    // 3-minute budget: the first import runs while Defender scans the freshly
-    // unpacked binaries — 30s fails cold machines whose engine is fine (#256).
-    const check = await whisper.checkWhisper(pythonExe, { timeoutMs: 180000 });
-    if (!check.installed) {
-      return fail("verify", new Error(`The engine unpacked but failed its self-check: ${check.error || "unknown"}`));
-    }
-    logger.info(logger.MODULES.system, "Engine runtime verified", { variant, version: manifest.version, probe: check.version });
-
-    // ── configure + reclaim the zip's disk space before the model lands ──
-    store.set("whisperPythonPath", pythonExe);
-    store.set("engineRuntime", { variant, version: manifest.version, installedAt: new Date().toISOString() });
-    // Custom install location → the speech model follows the engine onto the
-    // same drive (#261). Only when hfHome was never set: an established cache
-    // must not be abandoned and re-downloaded elsewhere.
-    if (store.get("engineRoot") && !store.get("hfHome")) {
-      store.set("hfHome", path.join(root, "hf_cache"));
-    }
-    try { fs.rmSync(zipPath, { force: true }); } catch (_) {}
-
-    // ── model pre-download ──
+    // ── speech model pre-download ──
     job.phase = "model";
     try {
       await downloadModel(pythonExe, store, webContents);
@@ -562,6 +669,14 @@ async function start(store, webContents) {
       // Engine is installed and configured — a model failure is retryable on
       // its own (start() re-enters at the model phase next time).
       return fail("model", err);
+    }
+
+    // ── word-timing voter models (#357) ──
+    job.phase = "timing";
+    try {
+      await downloadTimingModels(store, manifest, webContents);
+    } catch (err) {
+      return fail("timing", err);
     }
 
     sendProgress(webContents, { phase: "done" });

@@ -2,6 +2,9 @@
 #
 # Only what the four pipeline scripts import:
 #   transcribe.py        -> stable_whisper (stable-ts) via load_faster_whisper, torch, numpy
+#   word_timing.py       -> whisperx (HuBERT CTC align), vosk, sherpa_onnx (Parakeet) (#357)
+#                           whisperx itself lives in requirements-nodeps.txt (see there);
+#                           its runtime deps are listed here so the resolver still pins them.
 #   energy_scorer.py     -> stdlib only (shells out to ffprobe)
 #   signals/yamnet_events.py -> numpy, soundfile, ai_edge_litert
 #   signals/pitch_spike.py   -> numpy, librosa
@@ -15,3 +18,12 @@ faster-whisper==1.2.1
 librosa==0.11.0
 soundfile==0.13.1
 ai-edge-litert==2.1.4
+vosk==0.3.45
+sherpa-onnx==1.13.7
+# whisperx.alignment's own imports, pinned here because whisperx installs
+# --no-deps (requirements-nodeps.txt). Measured 2026-09-03 in the venv: the
+# alignment path never loads pyannote-audio (diarization only), so that
+# tree -- and its torch>=2.8 pin -- stays out of the runtime on purpose.
+nltk==3.9.3
+pandas==3.0.1
+transformers==4.57.6
