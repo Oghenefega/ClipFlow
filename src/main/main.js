@@ -1461,6 +1461,11 @@ ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
     fs.renameSync(oldPath, newPath);
     return { success: true };
   } catch (err) {
+    // #150: a locked file (OBS still writing, open in a player or the editor) used to
+    // surface as a raw EBUSY/EPERM string. Same translation as file:moveToTestMode.
+    if (err.code === "EBUSY" || err.code === "EPERM" || err.code === "EACCES") {
+      return { error: "File is in use (still recording, or open in a player or the editor?) — close it and try again.", locked: true };
+    }
     return { error: err.message };
   }
 });
