@@ -1631,9 +1631,10 @@ async function handleWatcherFileAdded(filePath, addEvent) {
     const stableSize = await waitForStable(filePath);
     if (stableSize === null) return; // file gone or never stabilized
 
-    // pendingImports dedupe (drag-and-drop path owns this filename+size)
+    // pendingImports dedupe (drag-and-drop path owns this filename+size).
+    // #303: a null size is an import still being converted — name alone owns it.
     for (const entry of pendingImports) {
-      if (entry.filename === name && entry.sizeBytes === stableSize) return;
+      if (entry.filename === name && (entry.sizeBytes === null || entry.sizeBytes === stableSize)) return;
     }
 
     // #174/#264: a path already in the library is not a new recording. Old
@@ -2445,7 +2446,7 @@ ipcMain.handle("thumbs:preview", async (_, filePath) => {
 });
 
 // ============ IMPORT EXTERNAL FILE (Drag-and-Drop) ============
-ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, testMode = false) => {
+ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, testMode = false, convertToMp4 = false) => {
   try {
     if (!sourcePath || !watchFolder) return { error: "Missing sourcePath or watchFolder" };
 
@@ -2516,11 +2517,43 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, tes
       readStream.pipe(writeStream);
     });
 
+    // #303: the Recordings drop turns an MKV into a real MP4 right here, so the
+    // quick-import flow (rename, split, pipeline) only ever handles an MP4 and
+    // the #300 invariant holds: no MKV bytes under a .mp4 name. Same remux the
+    // Rename tab runs on rename (fs:convertAndRename); that tab keeps its own
+    // timing and does not pass the flag. Import is a copy, so a failed
+    // conversion just removes the copy — the user's original is untouched.
+    let finalPath = targetPath;
+    let finalName = filename;
+    if (convertToMp4 && ext !== ".mp4") {
+      const mp4Path = path.join(targetDir, `${path.basename(filename, ext)}.mp4`);
+      mainWindow?.webContents.send("import:progress", { filename, copiedBytes: totalBytes, totalBytes, pct: 100, converting: true });
+      // Suppress the output by name from its first byte: the watcher may finish
+      // its stability wait before the remux ends, and the size is only known then.
+      importEntry.filename = path.basename(mp4Path);
+      importEntry.sizeBytes = null;
+      try {
+        const result = await ffmpeg.remuxToMp4(targetPath, mp4Path);
+        logger.info(logger.MODULES.videoProcessing,
+          `#303 converted import ${filename} → ${path.basename(mp4Path)}${result.audioReencoded ? " (audio re-encoded to AAC)" : ""}`);
+      } catch (convErr) {
+        logger.error(logger.MODULES.videoProcessing, `#303 import convert failed for ${filename}: ${convErr.message}`);
+        try { if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath); } catch (_) {}
+        pendingImports.delete(importEntry);
+        // A probe failure means ffprobe couldn't read it at all — say that, not the command line.
+        const reason = /^ffprobe failed/.test(convErr.message) ? "not a readable video file" : convErr.message;
+        return { error: `couldn't convert ${ext.slice(1).toUpperCase()} to MP4 — ${reason}` };
+      }
+      finalPath = mp4Path;
+      finalName = path.basename(mp4Path);
+      importEntry.sizeBytes = fs.statSync(mp4Path).size;
+    }
+
     // #263: imports have no process context — let the AI judge the footage.
     // Fire-and-forget; the result reaches the renderer via gameDetect:result.
-    queueGameSniff(targetPath);
+    queueGameSniff(finalPath);
 
-    return { success: true, targetPath, filename, testMode: !!testMode, importEntry: { filename, sizeBytes: srcStat.size } };
+    return { success: true, targetPath: finalPath, filename: finalName, testMode: !!testMode, importEntry: { filename: importEntry.filename, sizeBytes: importEntry.sizeBytes } };
   } catch (err) {
     return { error: err.message };
   }

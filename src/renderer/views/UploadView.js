@@ -722,7 +722,12 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
 
     const file = droppedFiles[0];
-    if (!file.name.toLowerCase().endsWith(".mp4")) return;
+    // #303: same gate as the Rename tab — and say so instead of ignoring the drop.
+    if (!/\.(mp4|mkv)$/i.test(file.name)) {
+      setMoveError("Only .mp4 and .mkv files are supported");
+      setTimeout(() => setMoveError(null), 5000);
+      return;
+    }
     const filePath = window.clipflow.getPathForFile(file);
     if (!filePath) return;
 
@@ -788,20 +793,25 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     // file lands in the correct root (watchFolder vs testWatchFolder).
     setImporting({ filename: quickImport.filename, pct: 0 });
     const progressHandler = (data) => {
-      setImporting({ filename: data.filename, pct: data.pct });
+      setImporting({ filename: data.filename, pct: data.pct, converting: !!data.converting });
     };
     window.clipflow.onImportProgress(progressHandler);
 
+    // #303: an MKV is converted to a real MP4 inside the import, so everything
+    // below (rename, split, pipeline) only ever sees an MP4.
     const importResult = await window.clipflow.importExternalFile(
       quickImport.sourcePath,
       quickImport.watchFolder,
-      !!quickImport.isTest
+      !!quickImport.isTest,
+      true
     );
 
     window.clipflow.removeImportProgressListener();
     setImporting(null);
 
     if (!importResult || importResult.error) {
+      setMoveError(`Import failed: ${importResult?.error || "unknown error"}`);
+      setTimeout(() => setMoveError(null), 8000);
       setQuickImport(null);
       return;
     }
@@ -1012,7 +1022,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           }}>
             <div style={{ color: T.accentLight, fontSize: 16, fontWeight: 700, textAlign: "center" }}>
               Drop recording to generate clips
-              <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
+              <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 or .mkv files only</div>
             </div>
           </div>
         )}
@@ -1027,7 +1037,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             Rename files in the Rename tab first, then they'll appear here.
           </div>
           <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>
-            Or drag and drop an .mp4 file here to quick-generate clips
+            Or drag and drop an .mp4 or .mkv file here to quick-generate clips
           </div>
         </Card>
         {quickImport && renderQuickImportModal()}
@@ -1234,7 +1244,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         }}>
           <div style={{ color: T.accentLight, fontSize: 16, fontWeight: 700, textAlign: "center" }}>
             Drop recording to generate clips
-            <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
+            <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 or .mkv files only</div>
           </div>
         </div>
       )}
@@ -1242,7 +1252,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       {/* Import progress banner */}
       {importing && (
         <div style={{ padding: "10px 16px", borderRadius: 8, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
+          <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>{importing.converting ? `Converting ${importing.filename} to MP4...` : `Importing ${importing.filename}... ${importing.pct}%`}</span>
           <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
             <div style={{ height: "100%", borderRadius: 2, background: T.accent, width: `${importing.pct}%`, transition: "width 0.3s ease" }} />
           </div>

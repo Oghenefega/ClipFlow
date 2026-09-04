@@ -274,7 +274,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   generatePreviewFrames: (filePath) => ipcRenderer.invoke("thumbs:preview", filePath),
 
   // Import external file (drag-and-drop)
-  importExternalFile: (sourcePath, watchFolder, testMode = false) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder, testMode),
+  // #303: convertToMp4 remuxes an MKV into a real MP4 as part of the import (Recordings drop).
+  importExternalFile: (sourcePath, watchFolder, testMode = false, convertToMp4 = false) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder, testMode, convertToMp4),
   importClearSuppression: (filename, sizeBytes) => ipcRenderer.invoke("import:clearSuppression", filename, sizeBytes),
   onImportProgress: (callback) => {
     ipcRenderer.on("import:progress", (_, data) => callback(data));
