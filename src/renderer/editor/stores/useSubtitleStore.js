@@ -474,6 +474,9 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
       nleSegments: _snapshotNle(),
+      // #162: the mode dropdown is state too — undoing a mode switch used to put the
+      // old chunking back under the NEW mode label.
+      segmentMode: state.segmentMode,
     };
     set({ _undoStack: [...state._undoStack.slice(-50), snapshot], _redoStack: [], _lastUndoPushTime: now });
   },
@@ -485,11 +488,15 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
       nleSegments: _snapshotNle(),
+      // #162: the mode dropdown is state too — undoing a mode switch used to put the
+      // old chunking back under the NEW mode label.
+      segmentMode: state.segmentMode,
     };
     set({
       _undoStack: state._undoStack.slice(0, -1),
       _redoStack: [...state._redoStack, current],
       editSegments: prev.editSegments,
+      segmentMode: prev.segmentMode,
     });
     _restoreStyling(prev.styling, set);
     _restoreNle(prev.nleSegments);
@@ -502,11 +509,15 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
       nleSegments: _snapshotNle(),
+      // #162: the mode dropdown is state too — undoing a mode switch used to put the
+      // old chunking back under the NEW mode label.
+      segmentMode: state.segmentMode,
     };
     set({
       _redoStack: state._redoStack.slice(0, -1),
       _undoStack: [...state._undoStack, current],
       editSegments: next.editSegments,
+      segmentMode: next.segmentMode,
     });
     _restoreStyling(next.styling, set);
     _restoreNle(next.nleSegments);
