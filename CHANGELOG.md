@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-04 (session 238) — 0.4.0-alpha.24 cut: the two autonomous passes reach the installed copies
+
+### Changed
+- **Bumped to 0.4.0-alpha.24 and cut the installer**, published to the update feed. Everything on master since the alpha.23 bump (2124bac) is in it — session 237's seven fixes (#288 Corva folder rename can finish, #289 re-tag moves taste rows, #303 `.mkv` drop on Recordings, #304 dead STAGE_LABELS/onSignalProgress removed, #307 real Split key in the context menu, #323 Retry covers newly enabled platforms, #361 publish script Range verify) and session 238's four (#287 YouTube description for every entry + Add path, #162 undo restores the subtitle mode dropdown, #150 locked-file rename message, #155 Facebook token refresh). The What's New entry lists the user-visible ones. **First boot on the desktop fires the #288 migration** (`%APPDATA%\clipflow` → `%APPDATA%\Corva`, stray shell parked); on the laptop the #287 backfill gives Just Chatting its starter description.
+
 ## [Unreleased] — 2026-09-04 (session 238) — Autonomous pass two: board truth restored on 24 issues, #332 root-caused, four more fixes for the alpha.24 batch (#287, #162, #150, #155)
 
 Same mode as session 237 ("you're in charge"). Nothing was cut; everything below joins the seven session-237 fixes waiting for alpha.24.

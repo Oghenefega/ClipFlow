@@ -12,7 +12,7 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
+    version: "0.4.0-alpha.24",
     date: "2026-09-04",
     fixed: [
       "Dropping an .mkv recording on the Recordings tab now works. Corva converts it to a real MP4 as it imports (the video itself is untouched), then renames and clips it like any other recording. A file that isn't a video says so instead of the drop doing nothing.",
