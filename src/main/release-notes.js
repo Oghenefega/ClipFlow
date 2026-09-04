@@ -12,6 +12,16 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "2026-09-04",
+    fixed: [
+      "Dropping an .mkv recording on the Recordings tab now works. Corva converts it to a real MP4 as it imports (the video itself is untouched), then renames and clips it like any other recording. A file that isn't a video says so instead of the drop doing nothing.",
+      "Changing a clip's game in Projects now moves what Corva learned from that clip (your keep or skip decision) to the new game, so a mis-tag you correct no longer keeps teaching the wrong game.",
+      "Retry Failed in the Queue now also posts to a platform you switched on after the first attempt failed, so a clip can't end up posted everywhere except one platform with nothing left in the Queue to show for it.",
+      "The timeline's right-click menu shows the real Split key (U, or whatever you rebound it to) instead of S.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.23",
     date: "2026-09-03",
     added: [
