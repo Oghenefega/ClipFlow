@@ -2947,8 +2947,12 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
     // let the feedback DB react at this single choke point — every surface that
     // approves/rejects a clip funnels through this handler.
     const isStatusChange = Object.prototype.hasOwnProperty.call(updates || {}, "status");
-    const before = isStatusChange ? projects.loadProject(watchFolder, projectId) : null;
-    const prevStatus = before?.clips?.find((c) => c.id === clipId)?.status;
+    // #289: a re-tag is reconcilable at the same choke point — the taste rows
+    // already written for this clip must follow it to the new game.
+    const isTagChange = Object.prototype.hasOwnProperty.call(updates || {}, "gameTag");
+    const before = (isStatusChange || isTagChange) ? projects.loadProject(watchFolder, projectId) : null;
+    const clipBefore = before?.clips?.find((c) => c.id === clipId);
+    const prevStatus = clipBefore?.status;
     const result = projects.updateClip(watchFolder, projectId, clipId, updates);
     if (isStatusChange && before && result?.clip) {
       try {
@@ -2956,6 +2960,19 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
       } catch (e) {
         // Non-critical: never block the clip update on a feedback write.
         console.error("[feedback] status transition failed:", e.message);
+      }
+    }
+    if (isTagChange && before && result?.clip) {
+      // Same effective tag entryFromClip stamps: the clip's own, else the session's.
+      const from = clipBefore?.gameTag || before.gameTag || "";
+      const to = result.clip.gameTag || before.gameTag || "";
+      if (from !== to) {
+        try {
+          const { moved } = feedbackDb.retagClip(before, result.clip, to);
+          if (moved) logger.info(logger.MODULES.system, "#289 taste rows re-tagged with the clip", { clipId, from, to, moved });
+        } catch (e) {
+          console.error("[feedback] retag failed:", e.message);
+        }
       }
     }
     return result;

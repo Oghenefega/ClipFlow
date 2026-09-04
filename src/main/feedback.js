@@ -105,6 +105,24 @@ function deleteDecision({ videoId, clipStart, clipEnd, decision }) {
   return { success: true };
 }
 
+/**
+ * #289: a clip re-tagged after the fact takes its taste rows with it — left
+ * behind, the old game keeps training on footage that is not that game. Rows
+ * are matched by identity (video, cut window) like updateReasons, so decisions
+ * made in earlier sessions move too. Returns how many rows moved.
+ */
+function retagClip(project, clip, newTag) {
+  const db = database.getDb();
+  if (!db) return { error: "Database not initialized" };
+  db.run(
+    `UPDATE feedback SET game_tag = ? WHERE video_id = ? AND clip_start = ? AND clip_end = ?`,
+    [newTag || "", project?.name || "", fmtHMS(clip.startTime), fmtHMS(clip.endTime)]
+  );
+  const moved = db.getRowsModified();
+  if (moved > 0) database.save();
+  return { moved };
+}
+
 function entryFromClip(project, clip, decision) {
   return {
     videoId: project?.name || "",
@@ -295,6 +313,7 @@ function getApprovalStats(rollingProjects = 10) {
 module.exports = {
   logFeedback,
   handleStatusTransition,
+  retagClip,
   updateReasons,
   getApprovedClips,
   getRejectedClips,
