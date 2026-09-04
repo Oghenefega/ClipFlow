@@ -1255,9 +1255,21 @@ export default function QueueView({
       return { allSuccess: false };
     }
     publishingRef.current = true;
+    // Account keys (plat.key) of every platform this clip is switched on for.
+    const enabledKeys = getEnabledPlatforms(clip)
+      .map((pk) => activePlat.find((p) => accountToPlatformKey(p) === pk)?.key)
+      .filter(Boolean);
     const failedKeys = Object.entries(ps.platforms)
       .filter(([k, st]) => st !== "done" && st !== "pending" && st !== "publishing" && (!opts.restrictToKey || k === opts.restrictToKey))
       .map(([k]) => k);
+    // #323: a platform switched on AFTER the failed run has no entry at all — it
+    // was never attempted. Left out, the retry could end with every attempted
+    // platform live, everyDone below false (no tracker entry) and no error for
+    // the RETRY card to show: live somewhere, visible nowhere. Retry means
+    // "finish the publish", so untried enabled platforms join the run.
+    if (!opts.restrictToKey) {
+      for (const k of enabledKeys) if (!(k in ps.platforms)) failedKeys.push(k);
+    }
     if (failedKeys.length === 0) { publishingRef.current = false; return { allSuccess: false }; }
     const publishPath = opts.videoPath || clip.renderPath;
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "publishing" } }));
@@ -1342,9 +1354,6 @@ export default function QueueView({
     // If retry brought every enabled platform on this clip to success, the publish run
     // is now complete — log to tracker so the clip moves out of the queue.
     if (allSuccess) {
-      const enabledKeys = getEnabledPlatforms(clip)
-        .map((pk) => activePlat.find((p) => accountToPlatformKey(p) === pk)?.key)
-        .filter(Boolean);
       const everyDone = enabledKeys.every((k) => nextPublishState[k] === "success");
       if (everyDone) logPostAtFirstSuccess(clip);
     }
