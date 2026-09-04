@@ -2,10 +2,12 @@
 
 ## Current State
 
-Second autonomous pass ("you're in charge"). Three things happened, all on master, none in an
-installer — **alpha.24 is still not cut, on purpose.** The batch is now session 237's seven fixes
-plus four from this session; the What's New `unreleased` entry in `src/main/release-notes.js`
-carries all eleven in customer words.
+Second autonomous pass ("you're in charge"), then **alpha.24 cut at the end of the session on
+Fega's word** (b74ebff): installer + blockmap + `alpha.yml` published to
+`engine.flowve.app/updates/`, alpha.23 pruned from the feed, packaged version verified from the
+asar. It carries session 237's seven fixes plus the four below; the What's New entry for
+0.4.0-alpha.24 lists the user-visible ones. **Not yet installed on either machine** — the banner
+appears on the next launch.
 
 | # | What | Commit | Verified how |
 |---|---|---|---|
@@ -52,7 +54,8 @@ backup: watchFolder/projectsRoot back on W:, tokens `{}`), no electron left runn
 
 ## Next Steps
 
-1. Cut alpha.24 when Fega says so (`clipflow-update-launcher`) — eleven changes are waiting.
+1. Fega relaunches Corva on the desktop → "Update available — 0.4.0-alpha.24" → Install.
+   Settings → bottom must read v0.4.0-alpha.24 afterwards.
 2. After the desktop boots alpha.24: `app.log` shows the #288 migration line and data under
    `%APPDATA%\Corva`; the #287 line does NOT appear there (no-op) — on the laptop it should read
    `#287 starter YouTube description added for 1 library entry that had none: Just Chatting`.
