@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useLayoutEffect } from "react";
 import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, splitKey, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -42,7 +42,7 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
         onClick={() => { onSplit(); onClose(); }}
       >
         <Scissors className={`h-3.5 w-3.5 ${splitDisabledReason ? "text-muted-foreground/40" : "text-blue-400"}`} /> Split at playhead
-        <span className="ml-auto text-muted-foreground text-[10px]">{splitDisabledReason || "S"}</span>
+        <span className="ml-auto text-muted-foreground text-[10px]">{splitDisabledReason || splitKey || "U"}</span>
       </button>
       {track === "sub" && onAddWord && (
         <button

@@ -141,6 +141,8 @@ export default function TimelinePanelNew() {
   const sfxLaneOn = laneEnabled?.sfx !== false;
   const mediaLaneOn = laneEnabled?.media !== false;
   const disableKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.toggleDisable));
+  // #307: the context menu's hint must be the key that actually splits (and follow a rebind).
+  const splitKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.split));
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -2142,6 +2144,7 @@ export default function TimelinePanelNew() {
           } : undefined}
           isDisabled={menuSeg?.enabled === false}
           disableKey={disableKeyLabel}
+          splitKey={splitKeyLabel}
           onMoveEarlier={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx - 1) : undefined}
           onMoveLater={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx + 1) : undefined}
           canMoveEarlier={nleIdx > 0}
