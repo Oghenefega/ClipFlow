@@ -58,7 +58,8 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
    handoff claiming five issues when two had already gone out in the previous cut. An installer is a
    full build of master, never a delta — everything merged is in it. To test one specific fix, use
    `git merge-base --is-ancestor <commit> <bump-commit>`; to test whether Fega has RUN a version,
-   read `lastSeenVersion` in `%APPDATA%\clipflow` settings (stamped only by `whatsnew:ack`).
+   read `lastSeenVersion` in `%APPDATA%\Corva` settings (stamped only by `whatsnew:ack`; an
+   install that has not yet migrated (#288) still has them in `%APPDATA%\clipflow`).
    - **Also cut the What's New entry (#330):** in `src/main/release-notes.js`, rename the
      `"unreleased"` entry to the exact new version string and stamp its `date`. If the batch has
      no `"unreleased"` entry, write one now covering what's shipping. These lines are shown to
@@ -119,7 +120,7 @@ manual copying.
 ## What Fega does (tell him this)
 
 > Relaunch ClipFlow → banner: "Update available — <version>" → click **Install** → it downloads,
-> restarts itself on the new version. Real data in `%APPDATA%\clipflow\` is preserved.
+> restarts itself on the new version. Real data in `%APPDATA%\Corva\` is preserved.
 
 After it relaunches, **Settings → bottom** reads **ClipFlow v<version>** — that confirms the
 promotion took.

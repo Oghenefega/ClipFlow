@@ -6,7 +6,7 @@ const path = require("path");
 const fs = require("fs");
 
 const CLIPFLOW_PROFILE = process.env.CLIPFLOW_PROFILE === "dev" ? "dev" : "prod";
-let userDataMigrationOutcome = null; // set on prod boots, logged once the logger exists
+let userDataMigration = null; // set on prod boots, logged once the logger exists
 if (CLIPFLOW_PROFILE === "dev") {
   const devUserData = path.join(app.getPath("appData"), "clipflow-dev");
   app.setPath("userData", devUserData);
@@ -24,7 +24,7 @@ if (CLIPFLOW_PROFILE === "dev") {
   if (migration.outcome === "use-old") {
     app.setPath("userData", migration.oldDir);
   }
-  userDataMigrationOutcome = migration.outcome;
+  userDataMigration = migration;
 }
 
 // One running app per profile (#156). MUST come after the profile redirect above:
@@ -148,8 +148,14 @@ const publishScheduler = require("./publish");
 const { buildTrackerRow } = require("../shared/trackerRow");
 const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
-if (userDataMigrationOutcome && userDataMigrationOutcome !== "noop") {
-  logger.info(logger.MODULES.system, `Corva userData migration (#268): ${userDataMigrationOutcome}`, { userData: app.getPath("userData") });
+if (userDataMigration && userDataMigration.outcome !== "noop") {
+  // #288: say WHY a boot stayed on the old folder, and where a stray shell went.
+  logger.info(logger.MODULES.system, `Corva userData migration (#268): ${userDataMigration.outcome}`, {
+    userData: app.getPath("userData"),
+    ...(userDataMigration.parked ? { parked: userDataMigration.parked } : {}),
+    ...(userDataMigration.reason ? { reason: userDataMigration.reason } : {}),
+    ...(userDataMigration.error ? { error: userDataMigration.error.message } : {}),
+  });
 }
 const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");

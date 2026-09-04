@@ -74,12 +74,12 @@ Two isolated profiles via `CLIPFLOW_PROFILE` env var so dev experiments never to
 
 | Profile | userData | DB | How to launch |
 |---|---|---|---|
-| **prod** (daily) | `%APPDATA%\clipflow\` | `%APPDATA%\clipflow\data\clipflow.db` (packaged) or `<repo>/data/` (source) | Start Menu (installed exe) or `npm start` |
+| **prod** (daily) | `%APPDATA%\Corva\` (a legacy `%APPDATA%\clipflow\` is renamed into place on first boot, #268/#288) | `<userData>\data\clipflow.db` (packaged) or `<repo>/data/` (source) | Start Menu (installed exe) or `npm start` |
 | **dev** | `%APPDATA%\clipflow-dev\` | `%APPDATA%\clipflow-dev\data\clipflow.db` | `npm run dev` |
 
 The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path.
 
-**Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json` + `CHANGELOG.md` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\clipflow\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
+**Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json` + `CHANGELOG.md` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\Corva\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
 
 **Sentry** caches `userData` at `require()` time (getsentry/sentry-electron#796) — `app.setPath('userData')` MUST happen at the top of `main.js` BEFORE `require('@sentry/electron/main')`. Don't reorder.
 
