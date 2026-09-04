@@ -372,6 +372,7 @@ module.exports = {
   startFacebookOAuthFlow,
   startInstagramOAuthFlow,
   refreshLongLivedToken,
+  fetchPages,
   REDIRECT_URI,
   GRAPH_API_VERSION,
 };

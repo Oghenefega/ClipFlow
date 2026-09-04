@@ -5277,10 +5277,44 @@ async function publishFacebook({ accountId, videoPath, title, caption, clipId, i
       return { error: err };
     }
 
+    let pageAccessToken = account.pageAccessToken;
+    // #155: every other platform refreshes an expired login before it publishes;
+    // Facebook went straight to the Graph call with whatever was stored. expiresAt
+    // is the USER token's 60-day life and the Page token is derived from it, so
+    // refresh the user token and re-derive the Page token from the fresh one — the
+    // same shape as publishInstagram's Facebook-login branch, same dead-token exit.
+    if (account.expiresAt && Date.now() > account.expiresAt) {
+      require("electron-log/main").scope("facebook").info("Token expired, refreshing");
+      const appId = store.get("metaAppId");
+      const appSecret = store.get("metaAppSecret");
+      if (!appId || !appSecret) {
+        const err = "Cannot refresh token — Meta App ID/Secret missing. Please reconnect in Settings.";
+        publishLog.logPublish({ ...logBase, status: "failed", error: err });
+        return { error: err };
+      }
+      const refreshResult = await metaOAuth.refreshLongLivedToken(appId, appSecret, account.accessToken);
+      if (refreshResult.error || !refreshResult.access_token) {
+        tokenStore.setNeedsReconnect(accountId);
+        const err = deadTokenError("Facebook");
+        publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
+        return { error: err };
+      }
+      const pages = await metaOAuth.fetchPages(refreshResult.access_token).catch((e) => ({ error: e.message }));
+      const page = (pages?.data || []).find((p) => p.id === account.pageId);
+      if (!page?.access_token) {
+        tokenStore.setNeedsReconnect(accountId);
+        const err = deadTokenError("Facebook");
+        publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: pages });
+        return { error: err };
+      }
+      tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000, { pageAccessToken: page.access_token });
+      pageAccessToken = page.access_token;
+    }
+
     require("electron-log/main").scope("facebook").info("Starting publish", { title, accountId, pageName: account.pageName });
 
     const result = await facebookPublish.publish(
-      account.pageAccessToken,
+      pageAccessToken,
       account.pageId,
       videoPath,
       { title: title || "", description: caption || title || "" },

@@ -164,13 +164,15 @@ function removeAccount(id) {
 
 /**
  * Update tokens for an account (e.g., after refresh).
+ * #155: `extra.pageAccessToken` stores a re-derived Facebook Page token alongside the user token.
  */
-function updateTokens(id, accessToken, refreshToken, expiresAt) {
+function updateTokens(id, accessToken, refreshToken, expiresAt, extra = {}) {
   const accounts = tokenStore.get("accounts") || {};
   if (!accounts[id]) return false;
   accounts[id].accessToken = encrypt(accessToken);
   if (refreshToken) accounts[id].refreshToken = encrypt(refreshToken);
   if (expiresAt) accounts[id].expiresAt = expiresAt;
+  if (extra.pageAccessToken) accounts[id].pageAccessToken = encrypt(extra.pageAccessToken);
   // #244: a successful refresh proves the connection is alive again.
   delete accounts[id].needsReconnect;
   tokenStore.set("accounts", accounts);
