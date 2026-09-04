@@ -149,21 +149,6 @@ function pickWorkingLines() {
   return out;
 }
 
-const STAGE_LABELS = {
-  probing: "Analyzing file",
-  creating: "Creating project",
-  extracting: "Extracting audio",
-  transcribing: "Transcribing",
-  energy: "Analyzing energy",
-  signals: "Extracting signals",
-  frames: "Extracting frames",
-  claude: "Claude analyzing",
-  cutting: "Cutting clips",
-  saving: "Saving project",
-  complete: "Complete",
-  failed: "Failed",
-};
-
 // #74: the single line the card shows. Never names a stage, a signal or a model.
 // The technical record lives in the pipeline log (ai-pipeline.js logger.failStep).
 function statusHeadline(progress, workLines) {

@@ -214,14 +214,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   removePipelineProgressListener: () => {
     ipcRenderer.removeAllListeners("pipeline:progress");
   },
-  // Per-signal progress events (Issue #72 Phase 1). Payload shape:
-  //   { signal, status, progress, elapsed_ms, failureReason? }
-  onSignalProgress: (callback) => {
-    ipcRenderer.on("pipeline:signalProgress", (_, data) => callback(data));
-  },
-  removeSignalProgressListener: () => {
-    ipcRenderer.removeAllListeners("pipeline:signalProgress");
-  },
   // Non-strict ask-degrade modal (Issue #72 Phase 1). Main fires the event with
   // { requestId, failed: [{ signal, failureReason }, ...] }; renderer responds
   // via pipelineDegradeAnswer(requestId, "yes" | "no").
