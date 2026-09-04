@@ -19,6 +19,10 @@ module.exports = [
       "Changing a clip's game in Projects now moves what Corva learned from that clip (your keep or skip decision) to the new game, so a mis-tag you correct no longer keeps teaching the wrong game.",
       "Retry Failed in the Queue now also posts to a platform you switched on after the first attempt failed, so a clip can't end up posted everywhere except one platform with nothing left in the Queue to show for it.",
       "The timeline's right-click menu shows the real Split key (U, or whatever you rebound it to) instead of S.",
+      "Every game in your library now has a YouTube description to start from. The Just Chatting entry Corva adds on first run never got one, so its clips went out with only the title as the description; that is filled in on the next start, and Captions & Descriptions now lists every game, with an Add chip on any that has no description yet so you can create one from the template. Deleting a description asks first.",
+      "In the editor, Undo after switching subtitle mode (3 Words / 1 Word) now puts the dropdown back too, not just the subtitles.",
+      "Renaming a recording that is still in use (OBS still writing, or open in a player) now tells you so in plain words instead of showing a raw file-system error.",
+      "Publishing to Facebook after your login has expired now refreshes it first, the way TikTok, Instagram and YouTube already did, instead of failing with a Meta error.",
     ],
   },
   {
