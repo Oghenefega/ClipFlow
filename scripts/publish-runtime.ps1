@@ -37,6 +37,24 @@ function Find-Rclone {
 
 $rclone = Find-Rclone
 
+# #361: true once a 1 KB Range request answers 206. Retries across a short
+# pause because a cache MISS at the edge answers 200 for a while after upload.
+function Test-RangeSupport([string]$u, [int]$Attempts = 3, [int]$PauseSec = 15) {
+    for ($i = 1; $i -le $Attempts; $i++) {
+        $req = [System.Net.HttpWebRequest]::Create($u)
+        $req.AddRange(0, 1023)
+        $resp = $req.GetResponse()
+        $status = [int]$resp.StatusCode
+        $resp.Close()
+        if ($status -eq 206) { return $true }
+        if ($i -lt $Attempts) {
+            Write-Host "[WAIT] Range request returned $status (attempt $i/$Attempts), retrying in ${PauseSec}s..."
+            Start-Sleep -Seconds $PauseSec
+        }
+    }
+    return $false
+}
+
 # --- public URL from creds file ---
 if (-not (Test-Path $CredsFile)) { throw "Credentials file not found: $CredsFile" }
 $publicUrl = (Get-Content $CredsFile | Where-Object { $_ -match "^public_url=" } | Select-Object -First 1) -replace "^public_url=", ""
@@ -162,14 +180,18 @@ foreach ($v in @("cuda", "cpu")) {
     $head = Invoke-WebRequest -UseBasicParsing -Uri $u -Method Head
     $len = [int64]$head.Headers["Content-Length"]
     if ($len -ne $variants[$v].sizeBytes) { throw "$v HEAD Content-Length $len != $($variants[$v].sizeBytes) at $u" }
-    # Range support is required for download resume in the app
-    $req = [System.Net.HttpWebRequest]::Create($u)
-    $req.AddRange(0, 1023)
-    $resp = $req.GetResponse()
-    $status = [int]$resp.StatusCode
-    $resp.Close()
-    if ($status -ne 206) { throw "$v Range request returned $status (want 206 Partial Content) at $u" }
-    Write-Host "[OK] $v size + Range verified: $u"
+    # Range support is required for download resume in the app. #361: a freshly
+    # uploaded object can answer a Range request with 200 + full body while the
+    # Cloudflare cache is still MISS (Accept-Ranges advertised, 206 only once the
+    # object is cached). That is a cache-warmth artefact, not a broken upload --
+    # everything above is already published -- so retry a few times and warn
+    # instead of throwing. The app restarts a resume that gets a 200 from zero
+    # (setup-runtime.js), which is correct, just slower.
+    if (Test-RangeSupport $u) {
+        Write-Host "[OK] $v size + Range verified: $u"
+    } else {
+        Write-Warning "$v Range request still answers 200 (cache MISS) at $u -- resume will restart from zero until the edge caches it. Re-check later: curl -r 0-1023 -sI $u"
+    }
 }
 
 foreach ($m in $models) {
