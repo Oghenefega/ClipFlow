@@ -124,6 +124,7 @@ const database = require("./database");
 const feedbackDb = require("./feedback");
 const namingPresets = require("./naming-presets");
 const fileMigration = require("./file-migration");
+const ytDescriptionBackfill = require("./yt-description-backfill");
 const reconcile = require("./reconcile");
 const subtitlePollutionMigration = require("./subtitle-pollution-migration");
 const renderCollisionRepair = require("./render-collision-repair");
@@ -1190,6 +1191,10 @@ app.whenReady().then(async () => {
 
   // Run one-time migrations for rename redesign
   fileMigration.migrateStoreData(store);
+  // #287: entries that reached gamesDb outside handleNewGame (the Just Chatting
+  // content type above, survivors of the #262 reset) get the starter YouTube
+  // description every other entry has. One-shot — a later Del stays deleted.
+  ytDescriptionBackfill.backfillYtDescriptions(store, (msg) => logger.info(logger.MODULES.system, msg));
 
   // #183: seed the title/caption training table from the publish log and
   // tracker rows the app has been accumulating all along.

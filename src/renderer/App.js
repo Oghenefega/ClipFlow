@@ -22,7 +22,7 @@ import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
 import { evaluateRollover, localISO } from "./utils/trackerEngine";
-import { buildStarterYtDescription } from "./utils/ytDescriptionTemplate";
+import { buildStarterYtDescription } from "../shared/ytDescriptionTemplate";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============

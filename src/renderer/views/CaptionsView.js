@@ -3,7 +3,7 @@ import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
 import { CopyIconButton, GamePill, TagInput } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
-import { buildStarterYtDescription } from "../utils/ytDescriptionTemplate";
+import { buildStarterYtDescription } from "../../shared/ytDescriptionTemplate";
 import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 
 const PLATFORMS = [
@@ -79,7 +79,14 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   // The scoped game's gamesDb record — where the per-game tag line lives (#346).
   const gameRecord = gamesDb.find((g) => g.name === activeGame) || null;
   const hasEntry = !!data;
-  const otherGames = Object.keys(ytDescriptions).filter((g) => g !== activeGame).sort();
+  // #287: every library entry, not only the ones that already have a description —
+  // a migration-injected entry (Just Chatting) or one deleted with Del could never
+  // be opened again otherwise. Entries without one are marked in the list and open
+  // onto the "Create one from the template" state above. Legacy ytDescriptions keys
+  // with no gamesDb record still show, as before.
+  const otherGames = [...new Set([...gamesDb.map((g) => g?.name), ...Object.keys(ytDescriptions)])]
+    .filter((g) => g && g !== activeGame)
+    .sort();
   // With nothing scoped there is no content above, so the list opens itself —
   // the panel is never a dead end.
   const othersOpen = showOthers || !activeGame;
@@ -162,7 +169,13 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
               <div style={{ marginLeft: "auto", display: "flex", gap: 5 }}>
                 {hasEntry && (
                   <button
-                    onClick={() => { setYtDescriptions((p) => { const n = { ...p }; delete n[activeGame]; return n; }); setPinned(null); }}
+                    onClick={() => {
+                      // #287: one click used to drop the description for good, with no
+                      // way back. Same native confirm the placeholder-title publish check uses.
+                      if (!window.confirm(`Delete ${activeGame}'s YouTube description and tags?\n\nIts clips will publish with just the title until you add one again from "Other games".`)) return;
+                      setYtDescriptions((p) => { const n = { ...p }; delete n[activeGame]; return n; });
+                      setPinned(null);
+                    }}
                     title={`Delete ${activeGame}'s description`}
                     style={{ ...BTN, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red }}
                   >Del</button>
@@ -405,7 +418,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
             <div style={{ padding: "12px 15px", fontSize: 11, color: T.textMuted, fontStyle: "italic" }}>No other games set up.</div>
           )}
           {otherGames.map((g) => {
-            const d = ytDescriptions[g] || {};
+            const d = ytDescriptions[g] || null;
             return (
               <div
                 key={g}
@@ -414,10 +427,19 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                 onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.025)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
-                <span style={{ fontSize: 12, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g}</span>
-                <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary, flexShrink: 0 }}>
-                  {d.tags?.length ? `${d.tags.length} tag${d.tags.length === 1 ? "" : "s"}` : "no tags"}
-                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: d ? T.text : T.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g}</span>
+                {d ? (
+                  <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary, flexShrink: 0 }}>
+                    {d.tags?.length ? `${d.tags.length} tag${d.tags.length === 1 ? "" : "s"}` : "no tags"}
+                  </span>
+                ) : (
+                  // #287: an entry with no description yet — opening it lands on the
+                  // "Create one from the template" state.
+                  <>
+                    <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary, fontStyle: "italic", flexShrink: 0 }}>no description</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.3, padding: "1px 7px", borderRadius: 20, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, flexShrink: 0 }}>+ Add</span>
+                  </>
+                )}
               </div>
             );
           })}
