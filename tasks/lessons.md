@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-05 (s239) -- Session 239: one self-caught backslash-path lesson (re-occurrence), appended to memory feedback_bash_backslash_collapse; no user corrections this session -->
+> <!-- DISTILLED-THROUGH: 2026-09-05 (s240) -- Session 240: one self-caught lesson (stems stop read video.paused from an earlier effect) -> clipflow-editor-patterns Misc rule + clipflow-code-review No-Regressions line; backslash-in-heredoc bit twice more (patch scripts), already in memory feedback_bash_backslash_collapse; no user corrections this session -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 

@@ -99,6 +99,20 @@ the same commit so a Projects batch render sees the recording default (traced, n
 - #273 (volume keyframes) should reuse `StemPlayer` + the `sourceMix` graph; a static level is a
   keyframe-less track.
 
+## Key Decisions (s240)
+
+- **Slot claiming window = 30 min, nearest slot, many-to-one.** Wide enough for "posted at 2:31 for
+  the 2:30 slot", narrow enough that hourly slots never share a post. A scheduled clip claiming a
+  slot removes that drop target — accepted, same class as the old exact-match case.
+- **Elapsed empty slots vanish live** (the `now` tick); retro logging moved to one "+ Log a post"
+  row per started day with an editable time — Fega chose this over keeping the holes.
+- **Off days = slim strip, expanding to a dim column only when they hold posts.** "Off means off":
+  no logging onto an off day from the strip; toggle it on first.
+- **Sunday off by default, `activeDays` on the template**, lenient reads (missing = Mon–Sat), so
+  every stored template behaves exactly as before the change.
+- **What's New = Variant 2 (rail)**, picked from two HTML mockups; titles derived from the first
+  sentence rather than changing the notes' data shape (objects `{title, body}` are accepted too).
+
 ## Next Steps
 
 0. Next installer cut carries fbbaf69 + the What's New redesign; the `"unreleased"` entry in
