@@ -1862,3 +1862,11 @@ build the dot where he drew it. Pairs with s229's "the reference NLE's interacti
 
 **Rule:** before declaring a ceiling from single-model scores, score the cheapest ensemble (median or agreement vote of the models already on disk). Only if the vote lands where the singles land is the residual really taste.
 
+
+## Session 240 (2026-09-05) — a "stop" that reads the thing it is racing
+
+**What happened:** s239's recording-level stems (#272) stop by calling `syncStems(video)` when `playing` flips false, and `sync` derives "is playing" from `video.paused`. That effect is declared ABOVE the effect that actually calls `video.pause()`, so at the moment it ran the element was still playing; the stems saw "playing", kept going, and nothing ever called them again. Fega: pause the viewer, the audio keeps playing with no way to stop it.
+
+**Why:** I verified the stems FOLLOWING the picture (seek, cut, drift) and treated "stop with the picture" as the same check. It isn't: the stop path depends on effect ordering, which I never read. The end-of-clip path worked (it pauses the element first), so the one case I exercised passed.
+
+**Rule:** a stop/teardown must be driven by the state that requested it (`playing === false`), never inferred from a sibling side effect (`video.paused`) that another effect produces. Put the stop call in the same effect as the side effect it depends on, or pass the intent explicitly. And when adding a new sound source, the verification list is play / pause button / Space / end of clip / seek while paused — every way sound stops, not just the ways it moves.
