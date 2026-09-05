@@ -6,8 +6,12 @@ Second autonomous pass ("you're in charge"), then **alpha.24 cut at the end of t
 Fega's word** (b74ebff): installer + blockmap + `alpha.yml` published to
 `engine.flowve.app/updates/`, alpha.23 pruned from the feed, packaged version verified from the
 asar. It carries session 237's seven fixes plus the four below; the What's New entry for
-0.4.0-alpha.24 lists the user-visible ones. **Not yet installed on either machine** — the banner
-appears on the next launch.
+0.4.0-alpha.24 lists the user-visible ones. **Installed on the desktop the same evening** (Fega:
+"settings says alpha.24"; `lastSeenVersion` stamped). **The #288 migration fired on that boot**:
+`app.log` `Corva userData migration (#268): migrated`, stray shell parked as
+`Corva.stray-2026-09-04T23-54-02-001Z`, `%APPDATA%\clipflow` gone — desktop data, DB and logs now
+live under `%APPDATA%\Corva`. #288 closed on that proof. The #287 backfill was the expected
+no-op on the desktop (flag set, 16 keys untouched). **Laptop not yet updated.**
 
 | # | What | Commit | Verified how |
 |---|---|---|---|
@@ -54,12 +58,15 @@ backup: watchFolder/projectsRoot back on W:, tokens `{}`), no electron left runn
 
 ## Next Steps
 
-1. Fega relaunches Corva on the desktop → "Update available — 0.4.0-alpha.24" → Install.
-   Settings → bottom must read v0.4.0-alpha.24 afterwards.
-2. After the desktop boots alpha.24: `app.log` shows the #288 migration line and data under
-   `%APPDATA%\Corva`; the #287 line does NOT appear there (no-op) — on the laptop it should read
+1. **Desktop is on alpha.24 and migrated — measure everything under `%APPDATA%\Corva` from now
+   on** (`Corva\data\clipflow.db`, `Corva\logs\app.log`, `Corva\clipflow-settings.json`). The
+   `clipflow-dev` profile is unchanged. `Corva.stray-2026-09-04T23-54-02-001Z` is the parked
+   harness shell (a `logs/main.log` and Chromium caches) — safe to delete by hand whenever.
+2. Laptop: update to alpha.24 → its `app.log` should show the #288 `migrated` line AND
    `#287 starter YouTube description added for 1 library entry that had none: Just Chatting`.
-3. Laptop check from s236 still pending (engine 1.1.0 + models + `median4`, the #362 full-pass time).
+   Then the s236 checks (engine 1.1.0 + models + `median4`, the #362 full-pass time).
+3. The ten other alpha.24 fixes stay `status: untested` until Fega meets them in use
+   (#289 #303 #304 #307 #323 #361 #287 #162 #150 #155).
 4. Next autonomous candidates, in order: #105 (Option A approved), #127 (serif `i` glyph → SVG),
    #114 (preview vs editor line-break divergence — segmentation, tread carefully), chores #179 /
    #149 / #121. Needs Fega first: #157 format, #165 zoom cap, #254 / #342 / #340 / #277.
