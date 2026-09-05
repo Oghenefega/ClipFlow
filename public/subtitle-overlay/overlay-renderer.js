@@ -411,15 +411,87 @@ window.__seekTo__ = function (timestamp) {
   renderCaption(timestamp);
 };
 
+// Resolves once the DOM as it stands now has been painted. The first
+// requestAnimationFrame callback runs just before the next paint; the second
+// runs after that paint has been committed to the compositor. Only then is a
+// capturePage() guaranteed to see the new picture (#363).
+function afterPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 // Seek that reports whether the picture changed since the last rendered frame.
 // Returns "same" without touching the DOM when the frame would be identical.
+// Otherwise rebuilds the DOM and resolves AFTER the new picture has been
+// painted, with what the caller should expect to find in the capture:
+//   empty — nothing is meant to be visible (no active subtitle, no caption)
+//   major — a different subtitle line or caption set than the previous frame
+//           (not just a pop/progress step), so the pixels must differ from it
+//   wordChanged — the highlighted word (karaoke on) or the visible group of
+//           words (karaoke off) moved, so the pixels must differ from the
+//           previous frame as well; a pop/progress-only step is neither
+// #363: the old contract returned "changed" immediately; the main process then
+// slept 20 ms and captured, which under load photographed the PREVIOUS frame
+// (an empty canvas on frame 0) and cached it for the whole title card.
+let lastMajorSig = null;
+let lastWordSig = null;
+
+// Which character-limit chunk of the segment is on screen for this word —
+// the same split renderSubtitle draws, so a chunk change is a text change.
+function visibleChunkIndex(seg, wordIdx) {
+  const words = (seg && seg.words) || [];
+  if (words.length === 0) return 0;
+  const chunks = buildCharChunks(words);
+  const activeIdx = wordIdx >= 0 ? wordIdx : 0;
+  let cumulative = 0;
+  for (let c = 0; c < chunks.length; c++) {
+    if (activeIdx < cumulative + chunks[c].length) return c;
+    cumulative += chunks[c].length;
+  }
+  return 0;
+}
+
 window.__renderFrame__ = function (timestamp) {
-  const sig = subtitleSignature(timestamp) + "|" + captionSignature(timestamp);
+  const subSig = subtitleSignature(timestamp);
+  const capSig = captionSignature(timestamp);
+  const sig = subSig + "|" + capSig;
   if (sig === lastRenderedSig) return "same";
   lastRenderedSig = sig;
+  // Segment index is the first term of the subtitle signature; caption
+  // signature is the active caption index list.
+  const segTerm = subSig.split(":")[0];
+  const majorSig = segTerm + "|" + capSig;
+  const major = majorSig !== lastMajorSig;
+  lastMajorSig = majorSig;
+  // Word-level: with karaoke the active word flips colour, so its index is
+  // the visual unit; without it only the visible chunk of words is.
+  let wordSig = "x";
+  if (subSig !== "x") {
+    const wordIdx = parseInt(subSig.split(":")[1], 10);
+    const karaoke = (subtitleStyle.subMode || "karaoke") === "karaoke";
+    if (karaoke) {
+      wordSig = segTerm + ":" + wordIdx;
+    } else {
+      const seg = subtitleSegments[parseInt(segTerm, 10)];
+      wordSig = segTerm + ":c" + visibleChunkIndex(seg, wordIdx);
+    }
+  }
+  const wordChanged = wordSig !== lastWordSig;
+  lastWordSig = wordSig;
   renderSubtitle(timestamp);
   renderCaption(timestamp);
-  return "changed";
+  // "x" = no overlay of that kind exists at all, "" = a caption overlay with
+  // nothing active right now — both mean nothing is meant to be visible.
+  const empty = subSig === "x" && (capSig === "" || capSig === "x");
+  return afterPaint().then(() => ({ state: "changed", empty, major, wordChanged }));
+};
+
+// Waits one more painted frame — used by the main process when a capture
+// came back stale (blank where content was expected, or identical to the
+// previous frame across a major change) before it photographs again.
+window.__afterPaint__ = function () {
+  return afterPaint().then(() => "painted");
 };
 
 window.__initOverlay__ = function () {
@@ -452,6 +524,8 @@ window.__initOverlay__ = function () {
   subOverlay = null;
   capOverlay = null;
   lastRenderedSig = null;
+  lastMajorSig = null;
+  lastWordSig = null;
 
   // Create overlays
   const subY = subtitleStyle.yPercent ?? 80;

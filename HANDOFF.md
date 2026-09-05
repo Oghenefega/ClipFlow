@@ -1,4 +1,32 @@
-# HANDOFF — Session 240 (2026-09-05)
+# HANDOFF — Session 241 (2026-09-05)
+
+## Current State
+
+**Session 241: #363 fixed on master — title cards/captions were dropping out of exports.**
+
+Fega's eight 100T posts today: four had no opening title card, one had it pop in at the first
+spoken word. Cause: `subtitle-overlay-renderer.js` slept 20 ms after `__renderFrame__` and
+`capturePage()`d — under load (FFmpeg starting) that photographed the previous, empty frame,
+and the identical-frame cache replayed it for the whole card. Only bites when nothing animates
+under the card; every earlier clip spoke from frame 0. Subtitles and audio were never wrong
+(checked frame-by-frame and by cross-correlation against the source).
+
+Fix (two files): `public/subtitle-overlay/overlay-renderer.js` `__renderFrame__` now resolves
+after a double rAF with `{ state, empty, major, wordChanged }`; `src/main/subtitle-overlay-renderer.js`
+`captureExpected` rejects a capture that is blank where content is expected, or byte-identical to
+the previous frame across a line/caption/word change, and re-captures after one more paint
+(bounded 6 / 3). Offscreen window paints at 60 Hz; a warm-up capture after init. `captureFrameAt`
+(thumbnails) shares the path. **Measured:** the paint wait alone was NOT enough — the offscreen
+window still returned a stale picture on ~1 changed frame in 20 under load and always on frame 0;
+the content guards are the fix. Probes: `scripts/dev/overlay-first-frame-probe.js` (7/25 blank
+under load before → 0/45 after) and `scripts/dev/render-e2e-probe.js` (real `renderClip`; 3/8
+card-only renders lost the card before → 0/20 after; word-heavy 73lp 15.4 s → 14.5–17.6 s).
+
+Fega must re-render and re-post the five affected clips once the installer with this fix is on.
+
+Session 240's state follows unchanged.
+
+# HANDOFF — Session 240 (2026-09-05) (previous)
 
 ## Current State
 

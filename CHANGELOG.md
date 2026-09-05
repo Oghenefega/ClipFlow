@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 241) — Title cards and captions are photographed only after they are drawn (#363)
+
+### Fixed
+- **The opening title card no longer goes missing from the export.** Fega's eight 100T posts today: four went out with no title card at all, one with the card popping in at the first spoken word. The render draws captions in a hidden browser window and photographs it frame by frame; after changing the picture it waited a fixed 20 ms and took the photo, which under load (FFmpeg starting up) returned the previous, empty picture — and that empty photo was then reused for every frame that "looked the same", i.e. the whole card when no words move underneath it. Word-by-word subtitles were never affected because their pop animation forces a fresh photo every frame. Now the page reports back only once the new picture has been drawn (two animation frames), and every photo is checked against what the page says is on screen: a blank photo where content is expected, or an identical photo across a line, caption or highlighted-word change, is rejected and retaken after one more paint (bounded, never a hang). Thumbnails use the same path. Measured with the two probes now under `scripts/dev/` (`overlay-first-frame-probe.js`, `render-e2e-probe.js`): before, 7 of 25 first frames blank under load and 3 of 8 real card-only renders with no card; after, 0 of 45 and 0 of 20 — and the check caught a stale photo on roughly one changed frame in twenty under load, which the old code would have shipped. Render time on a word-heavy 12 s clip is unchanged within noise (15.4 s before, 14.5–17.6 s after across runs).
+
 ## [Unreleased] — 2026-09-05 (session 240) — What's New and Release history redesigned as a wide release page with a rail
 
 ### Changed

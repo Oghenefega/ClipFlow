@@ -219,7 +219,11 @@ async function createOverlaySession(params) {
 
   // Force exact content size — Windows may constrain the window to screen height
   win.setContentSize(width, height);
-  win.webContents.setFrameRate(OVERLAY_FPS);
+  // #363: the window's own paint rate, NOT the capture rate. Every changed
+  // frame now waits for two paints before it is photographed (see
+  // __renderFrame__ in overlay-renderer.js), so a higher paint rate keeps that
+  // wait short; a static page between frames repaints nothing regardless.
+  win.webContents.setFrameRate(60);
 
   // Log renderer console messages for debugging
   win.webContents.on("console-message", (_, level, message) => {
@@ -268,6 +272,11 @@ async function createOverlaySession(params) {
     // Wait for fonts to load
     await win.webContents.executeJavaScript(`document.fonts.ready.then(() => true)`);
     await new Promise((r) => setTimeout(r, 150));
+    // #363: the first capturePage() of a fresh offscreen window comes back
+    // empty whatever the page shows — the display has not drawn yet. Take
+    // and discard one now so frame 0 is photographed like every other frame.
+    await win.webContents.executeJavaScript(`window.__afterPaint__()`);
+    await win.webContents.capturePage();
   } catch (err) {
     try { if (!win.isDestroyed()) win.destroy(); } catch (_) {}
     throw err;
@@ -285,6 +294,85 @@ async function createOverlaySession(params) {
    * @param {function} [opts.shouldCancel] - #140: () => boolean — bail cleanly when true
    * @returns {Promise<{captured: number, skipped: number, canceled: boolean}>}
    */
+  // ── #363: photograph only what has been painted ──
+  // Seek the page to `t`. Resolves "same" (picture identical to the previous
+  // frame, nothing touched) or { state: "changed", empty, major } AFTER the
+  // page has painted the new DOM. A page whose paint loop is dead would never
+  // resolve, so the handshake is bounded: on timeout the render carries on
+  // (with the capture guards below still in force) and says so in the log.
+  const PAINT_TIMEOUT_MS = 2000;
+  async function seekPainted(t) {
+    const exec = win.webContents.executeJavaScript(`
+      try { window.__renderFrame__(${t}); } catch(e) { "err:" + e.message; }
+    `);
+    const result = await Promise.race([
+      exec,
+      new Promise((r) => setTimeout(() => r("timeout"), PAINT_TIMEOUT_MS)),
+    ]);
+    if (result === "timeout") {
+      console.warn(`[OverlayRenderer] Paint handshake timed out at t=${t.toFixed(3)}s — capturing anyway`);
+      return { state: "changed", empty: false, major: true, timedOut: true };
+    }
+    if (typeof result === "string" && result.startsWith("err:")) {
+      throw new Error("Overlay frame render failed: " + result);
+    }
+    return result; // "same" | { state: "changed", empty, major }
+  }
+
+  async function waitOnePaint() {
+    await Promise.race([
+      win.webContents.executeJavaScript(`window.__afterPaint__()`),
+      new Promise((r) => setTimeout(r, PAINT_TIMEOUT_MS)),
+    ]);
+  }
+
+  // Any opaque pixel at all? Strided scan of the BGRA bitmap — a caption or a
+  // word covers thousands of pixels, so sampling one in 64 cannot miss it.
+  function hasOpaquePixels(image) {
+    const bmp = image.toBitmap();
+    for (let i = 3; i < bmp.length; i += 256) {
+      if (bmp[i] > 0) return true;
+    }
+    return false;
+  }
+
+  // Photograph the page for a frame the page reported as changed. The capture
+  // is rejected as stale and retried after one more paint when it contradicts
+  // what the page says is on screen: fully transparent where content is
+  // expected, or byte-identical to the previous frame when the line, the
+  // caption set or the highlighted word changed (those cannot produce the
+  // same pixels). Bounded, so two consecutive lines with identical text cost a
+  // few frames, never a hang; a word-only change gets fewer retries because
+  // a highlight colour equal to the text colour would otherwise pay on every word.
+  // Measured (s241): the offscreen window hands back the previous picture on
+  // roughly one changed frame in twenty under load and always on frame 0; one
+  // extra paint has been enough every time, so the bounds are headroom.
+  const MAX_STALE_RETRIES = 6;
+  const MAX_WORD_RETRIES = 3;
+  let staleRecaptures = 0;
+  async function captureExpected(expect, prevBuf, t) {
+    let attempt = 0;
+    const maxRetries = expect.major ? MAX_STALE_RETRIES : MAX_WORD_RETRIES;
+    for (;;) {
+      const image = await win.webContents.capturePage();
+      const buf = image.toPNG();
+      const blank = !expect.empty && !hasOpaquePixels(image);
+      const mustDiffer = expect.major || expect.wordChanged;
+      const unchanged = mustDiffer && prevBuf != null && buf.equals(prevBuf);
+      const limit = blank ? MAX_STALE_RETRIES : maxRetries;
+      if ((!blank && !unchanged) || attempt >= limit) {
+        if (blank || unchanged) {
+          console.warn(`[OverlayRenderer] Capture still ${blank ? "blank" : "unchanged"} at t=${t.toFixed(3)}s after ${attempt} retries — keeping it`);
+        }
+        return { image, buf };
+      }
+      attempt++;
+      staleRecaptures++;
+      console.log(`[OverlayRenderer] Stale capture at t=${t.toFixed(3)}s (${blank ? "blank where content expected" : expect.major ? "unchanged across a line change" : "unchanged across a word change"}) — waiting one more paint (attempt ${attempt})`);
+      await waitOnePaint();
+    }
+  }
+
   async function captureFrames({ writeFrame, onProgress, shouldCancel }) {
     console.log("[OverlayRenderer] Starting frame capture:", totalFrames, "frames");
     let lastBuf = null;
@@ -299,23 +387,17 @@ async function createOverlaySession(params) {
       }
       const t = i / OVERLAY_FPS; // time relative to clip start (0-based)
 
-      // Seek the overlay to this timestamp; the page reports "same" when the
-      // picture is identical to the previously rendered frame.
-      const state = await win.webContents.executeJavaScript(`
-        try { window.__renderFrame__(${t}); } catch(e) { "err:" + e.message; }
-      `);
-      if (typeof state === "string" && state.startsWith("err:")) {
-        throw new Error("Overlay frame render failed: " + state);
-      }
+      const state = await seekPainted(t);
 
       if (state !== "same" || !lastBuf) {
-        // Small delay for DOM to settle before capture
-        await new Promise((r) => setTimeout(r, 20));
-        const image = await win.webContents.capturePage();
-        lastBuf = image.toPNG();
+        // #363: a "same" verdict with no buffer yet can only be frame 0 of a
+        // page that starts empty — capture it, expecting nothing on it.
+        const expect = state === "same" ? { empty: true, major: false } : state;
+        const { image, buf } = await captureExpected(expect, lastBuf, t);
+        lastBuf = buf;
         captured++;
         if (captured === 1) {
-          console.log("[OverlayRenderer] First frame:", lastBuf.length, "bytes, size:", image.getSize().width, "x", image.getSize().height);
+          console.log("[OverlayRenderer] First frame:", lastBuf.length, "bytes, size:", image.getSize().width, "x", image.getSize().height, expect.empty ? "(expected empty)" : "(expected content)");
         }
       } else {
         skipped++;
@@ -328,26 +410,22 @@ async function createOverlaySession(params) {
       }
     }
 
-    console.log(`[OverlayRenderer] Frame capture complete: ${captured} captured, ${skipped} skipped of ${totalFrames}`);
-    return { captured, skipped, canceled: false };
+    console.log(`[OverlayRenderer] Frame capture complete: ${captured} captured, ${skipped} skipped of ${totalFrames}, ${staleRecaptures} stale re-capture(s)`);
+    return { captured, skipped, canceled: false, staleRecaptures };
   }
 
   /**
    * Capture a single frame at an arbitrary timeline time (seconds) — used by
    * renderThumbnail for the WYSIWYG viewer screenshot. Returns a PNG buffer.
+   * Same painted-frame handshake and blank guard as captureFrames (#363).
    * @param {number} t
    * @returns {Promise<Buffer>}
    */
   async function captureFrameAt(t) {
-    const state = await win.webContents.executeJavaScript(`
-      try { window.__renderFrame__(${t}); "ok"; } catch(e) { "err:" + e.message; }
-    `);
-    if (typeof state === "string" && state.startsWith("err:")) {
-      throw new Error("Overlay frame render failed: " + state);
-    }
-    await new Promise((r) => setTimeout(r, 20));
-    const image = await win.webContents.capturePage();
-    return image.toPNG();
+    const state = await seekPainted(t);
+    const expect = state === "same" ? { empty: true, major: false } : state;
+    const { buf } = await captureExpected(expect, null, t);
+    return buf;
   }
 
   return {

@@ -22,6 +22,7 @@ module.exports = [
       "What's new and Release history got a proper screen. The release you're reading fills a wide card: version, date and a count of what changed up top, then one card per change with the headline in bold. Several releases show as a list on the left — click one, or use the up and down arrow keys.",
     ],
     fixed: [
+      "Title cards and captions always make it into the export. A clip that opens with a title card and no words underneath could render with the card missing, or appearing only at the first spoken word. The render now takes each picture only after it has been drawn and double-checks it before using it.",
       "No more holes in the week log. A post a few minutes off a slot now fills that slot, and an empty slot whose time has passed simply isn't shown — the current week reads like a past week. Later today and future days keep their empty slots for scheduling.",
     ],
   },
