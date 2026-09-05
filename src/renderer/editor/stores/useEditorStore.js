@@ -11,6 +11,7 @@ import { createSegment, createInitialSegments, cloneSegments } from "../models/s
 import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource, segmentIdAtTimeline } from "../models/timeMapping";
 import { normalizePlacements, resolvePlacements, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDIA_TRACK_CAP } from "../models/mediaPlacements";
+import { normalizeMix, setLevel as setMixLevel, resolveClipAudioMix } from "../models/audioMix"; // #272
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight, rollCut } from "../models/segmentOps";
 import { resolveReframeStyle, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
 
@@ -168,6 +169,15 @@ const useEditorStore = create((set, get) => ({
   // render already had and never honoured (#295).
   laneEnabled: { cap: true, music: true, sfx: true, media: true },
   sourceAudioMuted: false,
+  // #272: recording levels. `audioMix` is THIS clip's own { trackIndex: dB }
+  // (null = inherit project.audioMix — see models/audioMix.js). The popover
+  // being open loads the preview stems even at flat levels, so the first drag
+  // is audible at once. `audioMixInfo` is what the preview learned about the
+  // file (calibration, track count, which stems are silent here) — UI state,
+  // never persisted.
+  audioMix: null,
+  audioMixPanelOpen: false,
+  audioMixInfo: null,
   // #210: bumped whenever something outside the Audio panel edits the asset
   // LIBRARY (not a placement) — saving a sound's default volume from the
   // timeline popover, for one. The panel owns `assets` in its own state, so
@@ -261,6 +271,8 @@ const useEditorStore = create((set, get) => ({
         sfxTrackCount: 1,
         laneEnabled: { cap: true, music: true, sfx: true, media: true },
         sourceAudioMuted: false,
+        audioMix: null,
+        audioMixPanelOpen: false,
         sourceStartTime: 0,
         sourceEndTime: 0,
         sourceDuration: 0,
@@ -292,7 +304,7 @@ const useEditorStore = create((set, get) => ({
       const newClipId = editorContext?.clipId || null;
       useAIStore.getState().swapToClip(oldClipId, newClipId);
     } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], mediaPlacements: [], mediaTrackCount: 1, musicTrackCount: 1, sfxTrackCount: 1, laneEnabled: { cap: true, music: true, sfx: true, media: true }, sourceAudioMuted: false });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], mediaPlacements: [], mediaTrackCount: 1, musicTrackCount: 1, sfxTrackCount: 1, laneEnabled: { cap: true, music: true, sfx: true, media: true }, sourceAudioMuted: false, audioMix: null, audioMixPanelOpen: false });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -376,6 +388,7 @@ const useEditorStore = create((set, get) => ({
         media: clip?.laneEnabled?.media !== false,
       },
       sourceAudioMuted: clip?.sourceAudioMuted === true,
+      audioMix: normalizeMix(clip?.audioMix), // #272: null = inherit the recording's
       sourceStartTime: sourceStart,
       sourceEndTime: sourceEnd,
       sourceDuration: sourceDur,
@@ -948,6 +961,52 @@ const useEditorStore = create((set, get) => ({
   toggleSourceAudioMuted: () => {
     set({ sourceAudioMuted: !get().sourceAudioMuted });
     get().markDirty();
+  },
+
+  // ── #272 Recording levels ──
+  // The popover edits THIS clip's levels (an override the autosave persists);
+  // "Apply to every clip" promotes them to the recording's default and clears
+  // every clip's own, the way applyReframeToAllClips does for layouts.
+  setAudioMixLevel: (trackIndex, db) => {
+    const { audioMix, clip, project } = get();
+    // First touch of a clip that inherits starts from the recording's levels,
+    // so dragging one slider doesn't silently zero the others.
+    const base = audioMix ?? resolveClipAudioMix(clip, project) ?? {};
+    set({ audioMix: setMixLevel(base, trackIndex, db) });
+    get().markDirty();
+  },
+  resetAudioMix: () => {
+    set({ audioMix: null });
+    get().markDirty();
+  },
+  setAudioMixPanelOpen: (open) => set({ audioMixPanelOpen: !!open }),
+  setAudioMixInfo: (info) => set({ audioMixInfo: info }),
+  applyAudioMixToRecording: async () => {
+    const { project, clip, audioMix } = get();
+    if (!project?.id) return { error: "No project" };
+    const eff = audioMix ?? resolveClipAudioMix(clip, project) ?? {};
+    const result = await window.clipflow.projectApplyAudioMixAllClips(project.id, eff);
+    if (result?.error) return result;
+    if (get().project?.id !== project.id) return { error: "Project changed during save" };
+    // Patch state locally (never swap in the disk copy of the open clip — it
+    // may be behind the in-memory edits the autosave hasn't flushed yet).
+    const norm = normalizeMix(eff);
+    const projectMix = norm && Object.keys(norm).length > 0 ? norm : undefined;
+    const dropMix = (c) => {
+      if (!c || c.audioMix === undefined) return c;
+      const { audioMix: _drop, ...rest } = c;
+      return rest;
+    };
+    set({
+      audioMix: null,
+      clip: dropMix(get().clip),
+      project: {
+        ...get().project,
+        audioMix: projectMix,
+        clips: (get().project.clips || []).map(dropMix),
+      },
+    });
+    return { success: true };
   },
 
   /**
@@ -1631,7 +1690,7 @@ const useEditorStore = create((set, get) => ({
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
-      const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, musicTrackCount, sfxTrackCount, laneEnabled, sourceAudioMuted } = get();
+      const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, musicTrackCount, sfxTrackCount, laneEnabled, sourceAudioMuted, audioMix } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
@@ -1706,6 +1765,7 @@ const useEditorStore = create((set, get) => ({
         sfxTrackCount, //   #312: how many SFX lanes this clip shows
         laneEnabled, // #296: Caption / Music / SFX lane switches
         sourceAudioMuted, // #296: Audio lane mute (the clip's own sound)
+        audioMix, // #272: this clip's recording levels (null = inherit the recording's)
         audioSegments: audioSegments, // legacy — kept for backwards compatibility
         subtitleStyle,
         captionStyle,

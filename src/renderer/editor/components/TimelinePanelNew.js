@@ -11,7 +11,7 @@ import { resolveMediaPlacements, MEDIA_TRACK_CAP, DEFAULT_VIDEO_VOLUME } from ".
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
   PanelBottomClose, Music, Volume2, VolumeX, Eye, EyeOff, Trash2, Copy, RotateCcw, Check,
-  Image as ImageIcon, Film, Video as VideoIcon, Plus, Minus,
+  Image as ImageIcon, Film, Video as VideoIcon, Plus, Minus, SlidersHorizontal,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -37,6 +37,8 @@ import SegmentBlock from "./timeline/SegmentBlock";
 import SoundBlock from "./timeline/SoundBlock";
 import MediaBlock from "./timeline/MediaBlock";
 import WaveformTrack from "./timeline/WaveformTrack";
+import RecordingLevelsPopover from "./timeline/RecordingLevelsPopover"; // #272
+import { resolveClipAudioMix, isFlat } from "../models/audioMix";
 import Ruler from "./timeline/Ruler";
 import { TimelinePlayhead, TimelineTimecode } from "./timeline/TimelinePlayhead";
 
@@ -135,6 +137,13 @@ export default function TimelinePanelNew() {
   // subtitle on/off, not two competing ones.
   const laneEnabled = useEditorStore((s) => s.laneEnabled);
   const sourceAudioMuted = useEditorStore((s) => s.sourceAudioMuted);
+  // #272: recording levels — the Audio lane's sliders icon and its "levels
+  // are on" tint. Hidden once the file is known to carry a single track.
+  const audioMix = useEditorStore((s) => s.audioMix);
+  const tlProject = useEditorStore((s) => s.project);
+  const audioMixInfo = useEditorStore((s) => s.audioMixInfo);
+  const levelsOn = !isFlat(resolveClipAudioMix({ audioMix }, tlProject));
+  const levelsAvailable = audioMixInfo?.trackCount == null || audioMixInfo.trackCount > 1;
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const capLaneOn = laneEnabled?.cap !== false;
   const musicLaneOn = laneEnabled?.music !== false;
@@ -162,6 +171,8 @@ export default function TimelinePanelNew() {
   // #310 media lanes: same arrangement — the block owns its drag, this owns the
   // right-click settings popover.
   const [mediaPopover, setMediaPopover] = useState(null); // { id, x, y, pushed }
+  // #272: the Audio lane's recording-levels popover.
+  const [levelsPopover, setLevelsPopover] = useState(null); // { x, y }
 
   // Refs
   const scrollRef = useRef(null);
@@ -1676,7 +1687,25 @@ export default function TimelinePanelNew() {
               onClick={() => useEditorStore.getState().toggleSourceAudioMuted()}
             >
               <span className={`text-[12px] font-medium truncate ${sourceAudioMuted ? "text-muted-foreground/40 line-through" : "text-muted-foreground"}`}>Audio</span>
-              <LaneToggle on={!sourceAudioMuted} family="sound" title="Clip audio" />
+              <span className="flex items-center gap-1 shrink-0">
+                {/* #272: recording levels. Stops propagation — the header itself is the mute. */}
+                {levelsAvailable && (
+                  <button
+                    type="button"
+                    className={`p-0 leading-none transition-colors ${levelsOn ? "text-primary hover:opacity-80" : "text-muted-foreground/45 hover:text-foreground"}`}
+                    title="Recording levels — balance the mic, game and other tracks"
+                    aria-label="Recording levels"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const r = e.currentTarget.getBoundingClientRect();
+                      setLevelsPopover({ x: r.left - 8, y: r.top - 6 });
+                    }}
+                  >
+                    <SlidersHorizontal className="h-3 w-3" />
+                  </button>
+                )}
+                <LaneToggle on={!sourceAudioMuted} family="sound" title="Clip audio" />
+              </span>
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {nleSegments.map((seg, segIdx) => {
@@ -1739,6 +1768,10 @@ export default function TimelinePanelNew() {
 
       {/* ── Sound settings popover (#202) — opened by RIGHT-click, like every
              other option on the timeline. Left-click just selects the block. ── */}
+      {/* #272: recording levels — opens upward from the Audio lane header */}
+      {levelsPopover && (
+        <RecordingLevelsPopover x={levelsPopover.x} y={levelsPopover.y} onClose={() => setLevelsPopover(null)} />
+      )}
       {soundPopover && (() => {
         const p = resolvedSounds.find((x) => x.id === soundPopover.id);
         if (!p) return null;

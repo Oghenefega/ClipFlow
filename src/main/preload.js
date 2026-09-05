@@ -160,6 +160,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   audioExtractTrackSample: (filePath, trackIndex, offsetFraction) =>
     ipcRenderer.invoke("audio:extractTrackSample", filePath, trackIndex, offsetFraction),
   audioSaveCalibration: (setup) => ipcRenderer.invoke("audio:saveCalibration", setup),
+  // Recording levels (#272): per-track stems for the editor's live preview
+  audioExtractStems: (filePath, startSec, endSec, trackIndexes) =>
+    ipcRenderer.invoke("audio:extractStems", filePath, startSec, endSec, trackIndexes),
   audioCleanupSamples: () => ipcRenderer.invoke("audio:cleanupSamples"),
   audioCalibrationAnswer: (requestId, completed) =>
     ipcRenderer.invoke("audio:calibrationAnswer", requestId, completed),
@@ -204,6 +207,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectUpdateReframe: (projectId, reframe) => ipcRenderer.invoke("project:updateReframe", projectId, reframe),
   projectUpdateClipReframe: (projectId, clipId, reframe) => ipcRenderer.invoke("project:updateClipReframe", projectId, clipId, reframe),
   projectApplyReframeAllClips: (projectId, reframe) => ipcRenderer.invoke("project:applyReframeAllClips", projectId, reframe),
+  projectApplyAudioMixAllClips: (projectId, mix) => ipcRenderer.invoke("project:applyAudioMixAllClips", projectId, mix), // #272
   reframeDetect: (projectId, ranges) => ipcRenderer.invoke("reframe:detect", projectId, ranges),
 
   // Pipeline

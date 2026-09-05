@@ -7,6 +7,7 @@ const { createOverlaySession } = require("./subtitle-overlay-renderer");
 const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
 const { resolvePlacements } = require("../renderer/editor/models/audioPlacements");
 const { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } = require("../renderer/editor/models/mediaPlacements");
+const { resolveClipAudioMix, isFlat, buildSourceMix } = require("../renderer/editor/models/audioMix");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe } = require("../renderer/editor/utils/reframeStyle");
@@ -125,6 +126,18 @@ function probeDurationSec(filePath) {
 function probeHasAudio(filePath) {
   return require("./ffmpeg").probeAudioTracks(filePath)
     .then((info) => info.trackCount > 0)
+    .catch(() => null);
+}
+
+/**
+ * How many audio tracks the source carries (#272). The recording levels are
+ * only honoured when the saved audio setup describes THIS file's layout; a
+ * failed probe reads as "unknown" and the mix track is kept.
+ * @returns {Promise<number|null>}
+ */
+function probeAudioTrackCount(filePath) {
+  return require("./ffmpeg").probeAudioTracks(filePath)
+    .then((info) => info.trackCount)
     .catch(() => null);
 }
 
@@ -322,6 +335,31 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   const n = nleSegments.length;
   const filters = [];
 
+  // #272: the source's own sound. Without recording levels an input's audio is
+  // its first stream — [i:a], OBS's full-mix track — exactly as before. With
+  // them, the audio is rebuilt from the file's individual tracks at the user's
+  // levels and summed. Either way the result lands on the same label, so the
+  // concat, the #202 sound mix and the #296 mute below never know which.
+  const sourceMix = Array.isArray(opts.sourceMix) && opts.sourceMix.length > 0 ? opts.sourceMix : null;
+  const emitSourceAudio = (inputIdx, outLabel) => {
+    if (!sourceMix) {
+      filters.push(`[${inputIdx}:a]asetpts=PTS-STARTPTS[${outLabel}]`);
+      return;
+    }
+    const stems = sourceMix.map((t) => {
+      const label = `s${inputIdx}_${t.index}`;
+      filters.push(`[${inputIdx}:a:${t.index}]volume=${+Math.max(0, t.gain).toFixed(4)}[${label}]`);
+      return `[${label}]`;
+    });
+    if (stems.length === 1) {
+      filters.push(`${stems[0]}asetpts=PTS-STARTPTS[${outLabel}]`);
+    } else {
+      // normalize=0: a plain sum, like OBS's own mix track — amix would
+      // otherwise scale everything down by 1/N.
+      filters.push(`${stems.join("")}amix=inputs=${stems.length}:duration=longest:normalize=0,asetpts=PTS-STARTPTS[${outLabel}]`);
+    }
+  };
+
   // #349: one effective layout per section. Callers that know the sections
   // (renderClip) pass `opts.segmentReframes` aligned to nleSegments; everyone
   // else (thumbnail, tests, render:batch) gets today's behaviour — the one
@@ -339,12 +377,12 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   if (n === 1) {
     // Single segment: input 0 is already the trimmed range — normalize PTS only
     filters.push(`[0:v]setpts=PTS-STARTPTS[base_v]`);
-    if (withAudio) filters.push(`[0:a]asetpts=PTS-STARTPTS[base_a]`);
+    if (withAudio) emitSourceAudio(0, "base_a");
   } else if (!mixed) {
     // Multi-segment: each input is one pre-seeked segment — normalize + concat
     for (let i = 0; i < n; i++) {
       filters.push(`[${i}:v]setpts=PTS-STARTPTS[v${i}]`);
-      filters.push(`[${i}:a]asetpts=PTS-STARTPTS[a${i}]`);
+      emitSourceAudio(i, `a${i}`);
     }
     const concatInputs = Array.from({ length: n }, (_, i) => `[v${i}][a${i}]`).join("");
     filters.push(`${concatInputs}concat=n=${n}:v=1:a=1[base_v][base_a]`);
@@ -360,7 +398,7 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     const donorStyle = resolveReframeStyle(segReframes.find((r) => isReframeActive(r)).style);
     for (let i = 0; i < n; i++) {
       filters.push(`[${i}:v]setpts=PTS-STARTPTS[v${i}]`);
-      filters.push(`[${i}:a]asetpts=PTS-STARTPTS[a${i}]`);
+      emitSourceAudio(i, `a${i}`);
       const rf = isReframeActive(segReframes[i])
         ? segReframes[i]
         : fitToScreenReframe(sourceWidth, sourceHeight, donorStyle);
@@ -697,6 +735,28 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const sourceFps = await probeFps(srcFile);
       console.log("[Render] Source FPS:", sourceFps);
 
+      // ── #272: recording levels ── resolved exactly as the editor and the
+      // preview resolve them (clip override > recording default). Flat means
+      // the mix track as before and a byte-identical graph. Built only when
+      // the saved audio setup describes this file's track layout — the labels
+      // are what say which track is the mic, and guessing would be worse than
+      // keeping the mix.
+      let sourceMix = null;
+      const audioMix = resolveClipAudioMix(clipData, projectData);
+      if (!isFlat(audioMix)) {
+        if (!useNle) {
+          console.warn("[Render] Recording levels are set but this clip is rendering via the legacy (no-NLE) path — mix track kept");
+        } else {
+          const trackCount = await probeAudioTrackCount(srcFile);
+          sourceMix = buildSourceMix(options.audioSetup, audioMix, trackCount);
+          if (sourceMix) {
+            console.log(`[Render] Recording levels: ${sourceMix.map((t) => `track ${t.index + 1} ×${+t.gain.toFixed(3)}`).join(", ")}`);
+          } else {
+            console.warn(`[Render] Recording levels are set but the audio setup doesn't describe this file (${trackCount ?? "?"} tracks) — mix track kept`);
+          }
+        }
+      }
+
       // ── Subtitle segments ── (shared with renderThumbnail)
       const subtitleSegments = resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments);
 
@@ -969,6 +1029,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
             mediaAssets: activeMediaAssets,
             outputWidth: mediaOutputWidth,
             segmentReframes: segReframes, // #349
+            sourceMix, // #272
           }
         );
         args.push("-filter_complex", filterComplex);

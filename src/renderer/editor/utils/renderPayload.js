@@ -64,6 +64,9 @@ export function buildRenderPayload() {
     media: editorState.mediaPlacements || [],
     laneEnabled: lanes,
     sourceAudioMuted: editorState.sourceAudioMuted === true,
+    // #272: the levels as currently set (possibly unsaved) — null inherits
+    // the recording's, which rides along on `project` below.
+    audioMix: editorState.audioMix,
   };
   // Full subtitle style — every property the overlay renderer needs
   // Includes both store names (subFontFamily) and engine names (fontFamily)

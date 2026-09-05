@@ -2106,6 +2106,61 @@ ipcMain.handle("audio:cleanupSamples", async () => {
   return { success: true };
 });
 
+// ============ RECORDING LEVELS — PREVIEW STEMS (#272) ============
+// The editor's live preview of the recording levels plays the file's individual
+// OBS tracks through Web Audio instead of the mix track. One WAV per track over
+// the clip's range, handed over as bytes (a decoded buffer, not a file:// media
+// element — so no CORS question) and gone from disk before the reply. The
+// window is capped: each stem lands in the renderer as float32 (~23 MB/min),
+// and a clip is seconds, not hours.
+const STEMS_MAX_SEC = 300;
+
+/** Peak sample (0..1) of a 16-bit PCM WAV — walks the RIFF chunks to the data
+ *  chunk, since ffmpeg writes a LIST chunk ahead of it. 0 = silent stem. */
+function wavPeak(buf) {
+  let off = 12;
+  while (off + 8 <= buf.length) {
+    const id = buf.toString("ascii", off, off + 4);
+    const size = buf.readUInt32LE(off + 4);
+    if (id === "data") {
+      let peak = 0;
+      const end = Math.min(buf.length, off + 8 + size);
+      for (let i = off + 8; i + 1 < end; i += 2) {
+        const v = Math.abs(buf.readInt16LE(i));
+        if (v > peak) peak = v;
+      }
+      return peak / 32768;
+    }
+    off += 8 + size + (size & 1);
+  }
+  return 0;
+}
+
+ipcMain.handle("audio:extractStems", async (_, filePath, startSec, endSec, trackIndexes) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return { error: "Source video not found on disk" };
+    const idxs = Array.isArray(trackIndexes)
+      ? [...new Set(trackIndexes.filter((i) => Number.isInteger(i) && i >= 0))]
+      : [];
+    if (idxs.length === 0) return { error: "No tracks requested" };
+    const start = Math.max(0, Number(startSec) || 0);
+    const dur = Math.min(STEMS_MAX_SEC, Math.max(0.1, (Number(endSec) || 0) - start));
+    const dir = path.join(os.tmpdir(), "clipflow-stems", `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    try {
+      const t0 = Date.now();
+      const paths = await ffmpeg.extractStems(filePath, dir, idxs, start, dur);
+      const tracks = paths.map((p, i) => {
+        const wav = fs.readFileSync(p);
+        return { index: idxs[i], wav, peak: wavPeak(wav) };
+      });
+      logger.info(logger.MODULES.videoProcessing, `[stems] ${idxs.length} track(s) × ${dur.toFixed(1)}s from ${start.toFixed(1)}s in ${Date.now() - t0}ms`);
+      return { success: true, rangeStart: start, rangeEnd: start + dur, tracks };
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {}
+    }
+  } catch (err) { return { error: err.message }; }
+});
+
 // Calibration gate state — mirrors the askDegrade pattern. Single-flight so
 // concurrent generateClips calls (batch / split children) share one wizard.
 // A cancel suppresses re-asks for 60s so backing out of a batch doesn't
@@ -3096,6 +3151,14 @@ ipcMain.handle("project:updateClipReframe", async (_, projectId, clipId, reframe
 ipcMain.handle("project:applyReframeAllClips", async (_, projectId, reframe) => {
   try {
     return projects.applyReframeToAllClips(libraryRoot(), projectId, reframe);
+  } catch (err) { return { error: err.message }; }
+});
+
+// #272: make one set of recording levels the project's default and drop every
+// clip's own — "Apply to every clip from this recording".
+ipcMain.handle("project:applyAudioMixAllClips", async (_, projectId, mix) => {
+  try {
+    return projects.applyAudioMixToAllClips(libraryRoot(), projectId, mix);
   } catch (err) { return { error: err.message }; }
 });
 
@@ -4411,6 +4474,9 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
       captionStyle: options?.captionStyle || {},
       captionSegments: options?.captionSegments || [],
       encoder: options?.encoder,
+      // #272: which track is the mic / game / browser — the render only
+      // rebuilds the mix when this describes the file's track layout.
+      audioSetup: store.get("audioSetup"),
       onProgress: emit,
     });
 

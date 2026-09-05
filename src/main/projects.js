@@ -3,6 +3,7 @@ const fs = require("fs");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
 // so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
 const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
+const { normalizeMix } = require("../renderer/editor/models/audioMix"); // #272
 // #299: project.json is rewritten whole about once a second while editing.
 // In-place writes left a truncated file if the process died mid-write, which
 // drops the project out of the Projects tab entirely.
@@ -209,6 +210,9 @@ function listProjects(watchFolder) {
         // #164: reframe + probe dims are tiny and consumers beyond the editor
         // (Queue, Projects previews) read from this summary — never strip them.
         reframe: proj.reframe ?? null,
+        // #272: the recording's default levels — a render started from this
+        // summary (Queue / batch) must mix them like the editor does.
+        ...(proj.audioMix && typeof proj.audioMix === "object" ? { audioMix: proj.audioMix } : {}),
         sourceWidth: proj.sourceWidth ?? null,
         sourceHeight: proj.sourceHeight ?? null,
         sourceFps: proj.sourceFps ?? null,
@@ -506,6 +510,26 @@ function applyReframeToAllClips(watchFolder, projectId, reframe) {
 }
 
 /**
+ * #272: make one set of recording levels the project's default and drop every
+ * clip's own — "Apply to every clip from this recording". A flat/empty mix
+ * clears the default. Same shape as applyReframeToAllClips.
+ * @param {object|null} mix - { "<trackIndex>": dB }
+ * @returns {{ success: true, project: object }|{ error: string }}
+ */
+function applyAudioMixToAllClips(watchFolder, projectId, mix) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+
+  const norm = normalizeMix(mix);
+  if (norm && Object.keys(norm).length > 0) project.audioMix = norm;
+  else delete project.audioMix;
+  for (const c of project.clips || []) delete c.audioMix;
+
+  saveProject(watchFolder, project);
+  return { success: true, project };
+}
+
+/**
  * Add a clip to a project.
  * @param {string} watchFolder
  * @param {string} projectId
@@ -717,6 +741,7 @@ module.exports = {
   updateReframe,
   updateClipReframe,
   applyReframeToAllClips,
+  applyAudioMixToAllClips,
   addClip,
   duplicateClip,
   repostClip,

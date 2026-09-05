@@ -302,6 +302,35 @@ function extractTrackSample(videoPath, wavPath, trackIndex, startSec, durSec) {
 }
 
 /**
+ * One WAV per requested audio track over a source window (#272). The editor's
+ * live preview of the recording levels plays these stems through Web Audio in
+ * place of the file's mix track. ONE ffmpeg run: input-seeked, so a window deep
+ * into a 20 GB recording decodes only that window, and every -map writes its
+ * own output. 48 kHz stereo 16-bit — the AudioContext's own rate, so the
+ * renderer's decodeAudioData does no resampling.
+ * @param {string} videoPath
+ * @param {string} outDir - created if missing; one `t<index>.wav` per track
+ * @param {number[]} trackIndexes - 0-based audio stream indexes
+ * @param {number} startSec
+ * @param {number} durSec
+ * @returns {Promise<string[]>} WAV paths, in trackIndexes order
+ */
+function extractStems(videoPath, outDir, trackIndexes, startSec, durSec) {
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  const outputs = trackIndexes.map((idx) => path.join(outDir, `t${idx}.wav`));
+  const args = ["-y", "-ss", String(startSec), "-t", String(durSec), "-i", videoPath];
+  trackIndexes.forEach((idx, i) => {
+    args.push("-map", `0:a:${idx}`, "-acodec", "pcm_s16le", "-ar", "48000", "-ac", "2", outputs[i]);
+  });
+  return new Promise((resolve, reject) => {
+    execFile(FFMPEG_BIN, args, { timeout: 120000 }, (err) => {
+      if (err) return reject(new Error(`Stem extraction failed: ${err.message}`));
+      resolve(outputs);
+    });
+  });
+}
+
+/**
  * Extract audio from a video file as WAV (16kHz mono — optimal for Whisper).
  * @param {string} videoPath - Source video
  * @param {string} wavPath - Output WAV path
@@ -881,6 +910,7 @@ module.exports = {
   probe,
   probeAudioTracks,
   extractTrackSample,
+  extractStems,
   extractAudio,
   extractAudioRange,
   generateThumbnail,

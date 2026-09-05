@@ -185,3 +185,72 @@ describe("buildNleFilterComplex — #202 audio asset mixing", () => {
     expect(filterComplex).toContain("afade=t=out:st=0:d=0.4");
   });
 });
+
+// #272: recording levels — the source's own audio rebuilt from the file's
+// individual OBS tracks at the user's levels, in place of the full-mix track.
+describe("buildNleFilterComplex — #272 recording levels (sourceMix)", () => {
+  const MIX = [{ index: 1, gain: 0.5012 }, { index: 3, gain: 7.9433 }];
+
+  test("single section: the file's tracks are leveled and summed into base_a", () => {
+    const { filterComplex, mapArgs } = buildNleFilterComplex([SEGS_2[0]], false, null, undefined, undefined, {
+      sourceMix: MIX,
+    });
+    expect(filterComplex).toBe(
+      "[0:v]setpts=PTS-STARTPTS[base_v];" +
+      "[0:a:1]volume=0.5012[s0_1];[0:a:3]volume=7.9433[s0_3];" +
+      "[s0_1][s0_3]amix=inputs=2:duration=longest:normalize=0,asetpts=PTS-STARTPTS[base_a]"
+    );
+    expect(mapArgs).toEqual(["-map", "[base_v]", "-map", "[base_a]"]);
+  });
+
+  test("multi section: every input is rebuilt before the concat", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, false, null, undefined, undefined, { sourceMix: MIX });
+    expect(filterComplex).toContain(
+      "[1:a:1]volume=0.5012[s1_1];[1:a:3]volume=7.9433[s1_3];" +
+      "[s1_1][s1_3]amix=inputs=2:duration=longest:normalize=0,asetpts=PTS-STARTPTS[a1]"
+    );
+    expect(filterComplex).toContain("[v0][a0][v1][a1]concat=n=2:v=1:a=1[base_v][base_a]");
+    expect(filterComplex).not.toContain("[0:a]asetpts");
+  });
+
+  test("one mixable track: leveled, no amix stage", () => {
+    const { filterComplex } = buildNleFilterComplex([SEGS_2[0]], false, null, undefined, undefined, {
+      sourceMix: [{ index: 2, gain: 2 }],
+    });
+    expect(filterComplex).toContain("[0:a:2]volume=2[s0_2];[s0_2]asetpts=PTS-STARTPTS[base_a]");
+    expect(filterComplex).not.toContain("amix");
+  });
+
+  test("levels and placed sounds compose: the rebuilt base feeds the #202 mix", () => {
+    const { filterComplex } = buildNleFilterComplex([SEGS_2[0]], false, null, undefined, undefined, {
+      sourceMix: MIX,
+      audioAssets: [{ inputIndex: 1, kind: "sfx", volume: 1, delaySec: 0 }],
+    });
+    expect(filterComplex).toContain("[base_a]aformat=sample_rates=48000:channel_layouts=stereo[base_af]");
+    expect(filterComplex).toContain("[base_af][mixin0]amix=inputs=2:duration=first:normalize=0[mix_a]");
+  });
+
+  test("the #296 mute still applies on top of the rebuilt base", () => {
+    const { filterComplex } = buildNleFilterComplex([SEGS_2[0]], false, null, undefined, undefined, {
+      sourceMix: MIX, sourceMuted: true,
+    });
+    expect(filterComplex).toContain("[base_a]volume=0[base_am]");
+  });
+
+  test("absent / empty sourceMix: graph is byte-identical to today's", () => {
+    const plain = buildNleFilterComplex(SEGS_2, false, null);
+    for (const sourceMix of [undefined, null, []]) {
+      const out = buildNleFilterComplex(SEGS_2, false, null, undefined, undefined, { sourceMix });
+      expect(out.filterComplex).toBe(plain.filterComplex);
+      expect(out.mapArgs).toEqual(plain.mapArgs);
+    }
+  });
+
+  test("thumbnail path (audio:false) ignores sourceMix", () => {
+    const { filterComplex, mapArgs } = buildNleFilterComplex([SEGS_2[0]], false, null, undefined, undefined, {
+      audio: false, sourceMix: MIX,
+    });
+    expect(filterComplex).not.toContain(":a:");
+    expect(mapArgs).toEqual(["-map", "[base_v]"]);
+  });
+});

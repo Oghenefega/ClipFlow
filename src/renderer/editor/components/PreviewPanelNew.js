@@ -7,6 +7,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
 import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
+import useSourceStems from "./preview/useSourceStems"; // #272
 import { sourceToTimelineNear, segmentIndexAtTimeline } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
@@ -963,6 +964,9 @@ export default function PreviewPanelNew() {
   // wholesale on every toggle, so plain reference equality re-renders correctly.
   const laneEnabled = useEditorStore((s) => s.laneEnabled);
   const sourceAudioMuted = useEditorStore((s) => s.sourceAudioMuted);
+  // #272: recording levels. While the stems are active they ARE the clip's
+  // sound and the video element is muted; `syncStems` is stable.
+  const { active: stemsActive, sync: syncStems } = useSourceStems();
   const subColor = useSubtitleStore((s) => s.subColor);
   const setSubColor = useSubtitleStore((s) => s.setSubColor);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
@@ -1315,11 +1319,13 @@ export default function PreviewPanelNew() {
   // the standby becomes the active element at every cut, so muting only the
   // visible one would let the sound back in the moment the timeline crossed a
   // section boundary. Re-runs on videoSrc because a src swap reloads both.
+  // #272: while the recording-level stems play, the element's own track (OBS's
+  // full mix) is muted too — the stems replace it, they don't sit on top.
   useEffect(() => {
     for (const vid of [videoElARef.current, videoElBRef.current]) {
-      if (vid) vid.muted = sourceAudioMuted;
+      if (vid) vid.muted = sourceAudioMuted || stemsActive;
     }
-  }, [sourceAudioMuted, videoSrc]);
+  }, [sourceAudioMuted, stemsActive, videoSrc]);
 
   // ── #164 B4: first-recording auto-offer ──
   // Offer a vertical-layout setup once per project open when the source is
@@ -1716,7 +1722,8 @@ export default function PreviewPanelNew() {
   useEffect(() => {
     if (playing) return;
     syncAssetAudio(usePlaybackStore.getState().currentTime, false);
-  }, [playing, syncAssetAudio]);
+    syncStems(videoRef.current); // #272: the stems stop with the picture
+  }, [playing, syncAssetAudio, syncStems]);
 
   // Full teardown on unmount
   useEffect(() => () => {
@@ -1761,6 +1768,7 @@ export default function PreviewPanelNew() {
         setCurrentTime(result.timelineTime);
         setPlaying(false);
         syncAssetAudio(result.timelineTime, false); // #202: silence SFX/music too
+        syncStems(video); // #272
         return;
       }
 
@@ -1822,11 +1830,12 @@ export default function PreviewPanelNew() {
       // Update store with timeline time (not source time)
       setCurrentTime(result.timelineTime);
       syncAssetAudio(result.timelineTime, true); // #202: SFX/music follow the clock
+      syncStems(videoRef.current); // #272: the stems follow the picture (post-swap element)
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [playing, setCurrentTime, setPlaying, mapSourceTime, nleSegments, syncAssetAudio]);
+  }, [playing, setCurrentTime, setPlaying, mapSourceTime, nleSegments, syncAssetAudio, syncStems]);
 
   // Video event handlers — only enforce bounds when paused (seek while paused).
   // All of them ignore events from the hidden standby buffer (parking seeks

@@ -1,109 +1,112 @@
-# HANDOFF — Session 238 (2026-09-04)
+# HANDOFF — Session 239 (2026-09-05)
 
 ## Current State
 
-Second autonomous pass ("you're in charge"), then **alpha.24 cut at the end of the session on
-Fega's word** (b74ebff): installer + blockmap + `alpha.yml` published to
-`engine.flowve.app/updates/`, alpha.23 pruned from the feed, packaged version verified from the
-asar. It carries session 237's seven fixes plus the four below; the What's New entry for
-0.4.0-alpha.24 lists the user-visible ones. **Installed on the desktop the same evening** (Fega:
-"settings says alpha.24"; `lastSeenVersion` stamped). **The #288 migration fired on that boot**:
-`app.log` `Corva userData migration (#268): migrated`, stray shell parked as
-`Corva.stray-2026-09-04T23-54-02-001Z`, `%APPDATA%\clipflow` gone — desktop data, DB and logs now
-live under `%APPDATA%\Corva`. #288 closed on that proof. The #287 backfill was the expected
-no-op on the desktop (flag set, 16 keys untouched). **Laptop not yet updated.**
+**Recording levels (#272) built and verified; alpha.25 is the delivery.** Fega's 2026-09-04
+100T recording has the mic ~21 dB over the browser tab (Valorant + commentator) — measured on
+Pt1 1267–1294 s: mix −21.8 LUFS, mic −21.8, game silent, "other" (the browser) −42.8, empty
+silent. The mix track IS the mic. Instead of a DaVinci re-export of four 3 GB files, Corva now
+balances the recording's own OBS tracks:
 
-| # | What | Commit | Verified how |
-|---|---|---|---|
-| #287 | One-shot starter YouTube description for library entries that never got one (the migration-injected Just Chatting, #262-reset survivors); Captions "Other games" lists every entry, *no description / + Add* rows open onto "Create one from the template"; Del asks first | fa03012 | dev profile with the JC key stripped: log line, key + flag written; Del cancel/accept, Add, Create, persisted; 5 jest tests |
-| #162 | Undo/redo snapshots carry `segmentMode` so the dropdown follows the segments | 74b302c | dev editor on a rejected fixture clip: label + list flip together on undo, redo, undo |
-| #150 | `fs:renameFile` translates EBUSY/EPERM/EACCES into "File is in use … close it and try again." + `locked: true` (part 2, the banner, had already shipped) | 5c94b3e | dev profile, file held under `FileShare.None` → friendly error; free file renamed |
-| #155 | `publishFacebook` refreshes an expired user token, re-fetches `/me/accounts`, publishes with the fresh Page token; failure → `needsReconnect` + the shared "connection expired" message | c6730a1 | logic only — no Facebook tokens on any profile |
+- **Model** `src/renderer/editor/models/audioMix.js` (CJS, shared by editor / render.js /
+  projects.js): `{ "<trackIndex>": dB }`, clip override > `project.audioMix` default, `isFlat`,
+  `buildSourceMix(audioSetup, mix, fileTrackCount)` → `[{index, gain}]` or null when the setup
+  doesn't describe the file.
+- **Render** `render.js` `buildNleFilterComplex` `opts.sourceMix`: `[i:a:N]volume=g` per track
+  summed with `amix … normalize=0` in place of `[i:a]`, for all three graph branches; flat →
+  byte-identical graph. `renderClip` resolves the mix, probes the track count, warns and keeps the
+  mix track on mismatch / legacy path. `main.js` `doRenderClip` passes `audioSetup` (covers
+  render:clip AND render:batch).
+- **Preview** `components/preview/useSourceStems.js` + `utils/stemPlayer.js`: IPC
+  `audio:extractStems` (one FFmpeg pass, 48 kHz stereo WAV per track, bytes over IPC, temp files
+  deleted, `peak` per stem for "silent here"), decoded into Web Audio, one GainNode per track;
+  the video element is muted while stems are active. Stems wanted when the popover is open OR the
+  effective mix isn't flat; range = sections' union ± 5 s, re-extracted when a trim/extend leaves
+  it. Sync = one drift check per rAF tick (restart > 60 ms), stems scheduled a 10 ms lead ahead
+  AND that much further into the buffer so they land on the picture.
+- **Store** `useEditorStore`: `audioMix` (clip's own, null = inherit), `audioMixPanelOpen`,
+  `audioMixInfo` (UI only), `setAudioMixLevel`, `resetAudioMix`, `applyAudioMixToRecording`
+  (IPC `project:applyAudioMixAllClips` → `projects.applyAudioMixToAllClips`). `audioMix` rides
+  the autosave payload and `buildRenderPayload`.
+- **UI** `timeline/RecordingLevelsPopover.js`, opened from a `SlidersHorizontal` icon on the
+  Audio lane header (tinted sky when levels are on; hidden for single-track files). Rows named via
+  `trackLabelText` ("Other…" → "Other"), −24…+24 dB, per-row reset, footer "Use the recording's"
+  / "Reset" + "Apply to every clip", status "This clip" / "Recording". No/mismatched setup → one
+  line pointing at Settings.
 
-**Board hygiene:** the 24 issues the 2026-08-23 audit called "already fixed, never closed" were
-re-verified against master @ 1e78b15 by three helper agents (spot-checked), then each got a
-comment with the fixing commit + current `file:line` citations and `status: untested`. **Nothing
-was closed.** #282/#281 already had the label and were not touched. Surfaced on the way: #176
-was fixed under #267, #154 under #228, #159 by 28c8a46 as a side effect, #156's standing comment
-is stale (lock landed 25 min later in 8d77c6e), #240's code is done but its own close gate (the
-6-step OpusClip run) was never executed.
+**Verified:** jest 267 green (14 suites; new `audioMix.test.js`, `stemPlayer.test.js`, 7 render
+graph tests). Graph run directly on the Pt1 recording: mic −60 / browser +18 → −24.8 LUFS,
+all flat → −21.8 (identical to the mix track). Dev profile against a scratch copy of the
+0-approved **Pt2** project (`proj_1788551120819_9oyrwh`): popover rows/readouts, sliders driven by
+keyboard, autosave wrote `{"1":-3,"3":18}` on the clip, reset-to-flat + close unmuted both video
+elements, Mic −24 + Apply wrote `project.audioMix {"1":-24}` and stripped the clip's, a 3.5 s
+playback probe (CDP WebAudio domain) created exactly 4 AudioBufferSource nodes and nothing else
+(no drift restarts), and a real in-app render with Mic −24 measured **−37.2 LUFS** where the
+flat mix is −20.3 (mic stem −20.3, browser −37.6 → arithmetic predicts −36.8).
 
-**#332 root-caused, no code change:** the ~120 MB GPU process in streaming mode is Chromium's.
-Bare Electron with zero windows keeps it at ~90 MB indefinitely; killing it by pid respawns it in
-2 s. Findings on #332, the #329 measurement table amended by comment. Left open for Fega to close.
-
-jest 240 green (235 + 5), renderer builds, dev profile restored (settings from the pristine
-backup: watchFolder/projectsRoot back on W:, tokens `{}`), no electron left running.
+**Not yet done at the time of writing this file:** commit, #272 close (`status: untested`),
+alpha.25 cut, dev-profile restore. See Next Steps — whichever of those the session log shows
+done, the rest is the next session's first move.
 
 ## Key Decisions
 
-- **#287 backfill is one-shot and general**: every gamesDb entry without a key gets the starter,
-  once, behind `ytDescriptionsBackfilled`. Not restricted to content entries and deliberately
-  NOT idempotent-by-condition — after it runs, a missing key means the user pressed Del, and the
-  Add path is how it comes back. It runs after both `runStoreMigrations` (the #262 reset) and
-  `migrateStoreData` (the JC injection), so both injection paths are covered. On this desktop it
-  is a no-op (11 keys / 11 entries); on the laptop and fresh installs JC gets its starter.
-- **The starter template lives in `src/shared/` (CJS)** now, like `captionResolve`; the renderer
-  file under `src/renderer/utils/` is gone (two importers repointed). `src/shared/**` is already
-  in `build.files`.
-- **#155 re-derives the Page token** rather than only refreshing the user token: the stored
-  `expiresAt` is the user token's 60-day life and the Page token is derived from it. `updateTokens`
-  grew an optional `{ pageAccessToken }`; `fetchPages` is exported from `meta.js`.
-- **#157 (dead Transcript Download button) was NOT wired** — the issue says Fega picks .txt vs
-  .srt first. #105 (over-trim auto-remove, Option A already approved in s83) was left for a
-  session with more room; it is the best next "clear fix" candidate.
-- **#332 options rejected**: `--disable-gpu`/`--in-process-gpu` (launch-time, process-global),
-  kill-on-demand (respawns; counts toward Chromium's GPU-crash budget; Sentry would log it),
-  `app.relaunch()` headless (design change, needs a plan).
+- **Per clip, plus a recording default** (the #348 layout shape), not per-clip only as #272's
+  "done means" said: today's case is 20 clips from one recording. `clip.audioMix` absent/null =
+  inherit; `{}` = explicitly flat.
+- **Sum of all non-mix tracks at unity reproduces OBS's mix track exactly** (measured: −21.8 LUFS
+  both, same peak), so "all sliders at 0" and "no mixer" are the same sound, and untouched clips
+  keep the old graph.
+- **Preview stems are AudioBuffers from IPC bytes, not `<audio>` elements**: gains above 1.0 are
+  needed (+18 dB on the browser), which `<audio>.volume` can't do, and `createMediaElementSource`
+  on a file:// media in a file:// page risks the CORS taint (silence). Decoding costs ~23 MB/min
+  per stem; the extraction window is capped at 5 min.
+- **No limiter/normaliser** on the rebuilt mix: what the preview plays is what exports.
+- **Refuse rather than guess**: no audio setup, or a setup for a different track count, keeps the
+  mix track (render log says why; popover says "run the audio setup"). The OBS mix track is never
+  a slider.
+- #273 (volume keyframes) should reuse `StemPlayer` + the `sourceMix` graph; a static level is a
+  keyframe-less track.
 
 ## Next Steps
 
-1. **Desktop is on alpha.24 and migrated — measure everything under `%APPDATA%\Corva` from now
-   on** (`Corva\data\clipflow.db`, `Corva\logs\app.log`, `Corva\clipflow-settings.json`). The
-   `clipflow-dev` profile is unchanged. `Corva.stray-2026-09-04T23-54-02-001Z` is the parked
-   harness shell (a `logs/main.log` and Chromium caches) — safe to delete by hand whenever.
-2. Laptop: update to alpha.24 → its `app.log` should show the #288 `migrated` line AND
-   `#287 starter YouTube description added for 1 library entry that had none: Just Chatting`.
-   Then the s236 checks (engine 1.1.0 + models + `median4`, the #362 full-pass time).
-3. The ten other alpha.24 fixes stay `status: untested` until Fega meets them in use
-   (#289 #303 #304 #307 #323 #361 #287 #162 #150 #155).
-4. Next autonomous candidates, in order: #105 (Option A approved), #127 (serif `i` glyph → SVG),
-   #114 (preview vs editor line-break divergence — segmentation, tread carefully), chores #179 /
-   #149 / #121. Needs Fega first: #157 format, #165 zoom cap, #254 / #342 / #340 / #277.
+1. If not already done: commit (message references #272, no "Fix" keyword), close #272 with
+   `status: untested`, comment on #273 about the shared mechanism, cut **alpha.25** via the
+   `clipflow-update-launcher` skill, restore `%APPDATA%\clipflow-dev\clipflow-settings.json` from
+   `clipflow-settings.json.bak-s239` (projectsRoot/watchFolder/outputFolder are pointed at the
+   session scratchpad), kill any dev electron.
+2. Fega, on alpha.25: open a 100T Day3 clip → sliders icon on the Audio lane → drag *Other* up
+   (~+18) and *Mic* down a touch, hear it live, **Apply to every clip**, render one, listen.
+3. Watch for: stems taking long on very long clips (extraction is one FFmpeg pass over the
+   sections' range; 44 s took ~1 s); memory if a clip is minutes long (23 MB/min/stem in the
+   renderer); any audible click on seeks (buffer sources restart without a crossfade — add a
+   5 ms gain ramp if it shows).
+4. Laptop still not on alpha.24/25 — the #288 migration line and the #287 backfill are pending
+   there.
 
 ## Watch Out For
 
-- **`scripts/dev/` is new**: `cdp.js "<expr>"` evaluates in the main window over CDP 9222
-  (Node 24, no deps), `cdp-shot.js out.png` screenshots it, `hunks.js <file> '#N'` prints the
-  hunks of a shared file that mention an issue for `git apply --cached`. They used to be retyped
-  every session from a lost scratchpad.
-- Bash-tool quoting bit twice (see memory `feedback_bash_backslash_collapse`, s238 note): an
-  apostrophe inside `node -e '…'`, and a heredoc followed by `'$(cygpath …)'` on the same
-  command. Payloads with apostrophes go through the Write tool. `main.js`, `main.js`-adjacent
-  files are CRLF in the working tree — node patch scripts must detect the EOL before anchoring.
-- The Edit tool needs a Read-tool read of the file first; `sed`/`cat` reads do not count.
-- The What's New modal ("Got it") is up on every dev boot now; synthetic CDP clicks pass through
-  it, but dismiss it before a screenshot.
-- `git commit` after `git rm` — do not re-`git add` the deleted path (pathspec error aborts the
-  chain; the deletion is already staged).
+- **Bash tool eats backslashes in paths**: writing dev settings with `"\\levels-fixture"` produced
+  `scratchpadlevels-fixture`; use `path.win32.normalize(scr + "/x")` in node instead.
+- `taskkill //F //IM electron.exe` (double slash) kills only source runs; the installed daily
+  driver is `Corva.exe` and was running the whole session — never kill it by image name.
+- The CDP WebAudio domain (`WebAudio.enable` → `contextCreated` / `audioNodeCreated`) is the way
+  to see the stems from outside without exposing the player: node counts per type over a play
+  window are the restart-storm detector. Script: session scratchpad `cdp-play-probe.js`,
+  `cdp-webaudio.js`.
+- Radix sliders take synthetic `keydown` (`ArrowLeft/Right`, `Home/End`) on the `[role=slider]`
+  thumb from a `Runtime.evaluate`; popover close = `pointerdown` on the `div.fixed.inset-0.z-40`
+  backdrop.
+- A dev render writes to the dev `outputFolder` — pointed at the scratchpad this session; if the
+  settings backup isn't restored, the next dev render lands there too.
 
-## Logs/Debugging
+## Logs / Debugging
 
-- #287: `(system) #287 starter YouTube description added for N library entries that had none: …`
-  — only when N > 0; the flag is set silently otherwise. Store keys: `ytDescriptions`,
-  `ytDescriptionsBackfilled`. Module `src/main/yt-description-backfill.js`, tests
-  `src/main/__tests__/ytDescriptionBackfill.test.js`.
-- #150: `fs:renameFile` → `{ error: "File is in use (still recording, or open in a player or the
-  editor?) — close it and try again.", locked: true }`. Lock a file for testing with
-  `[System.IO.File]::Open(path, 'Open', 'Read', 'None')` in a background PowerShell.
-- #155: `(facebook) Token expired, refreshing` then either `Starting publish` or a publish-log
-  `failed` row with `apiResponse` = the refresh or `/me/accounts` reply.
-- #162: nothing logged; the proof is the dropdown label after Ctrl+Z.
-- Dev boot with CDP: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-features=CalculateNativeWinOcclusion` (background), wait for
-  `curl -s 127.0.0.1:9222/json | grep index.html`, then `node scripts/dev/cdp.js "<expr>"`.
-  Editor fixture that is safe to mutate: copy
-  `W:\…\Vertical Recordings Onwards\.clipflow\projects\proj_1785192672631_n1tazq` (3 clips, all
-  rejected, 1 MB; source mp4 stays on W:) into `<scratch>/projects/.clipflow/projects/` and point
-  dev `projectsRoot` there. Restore the settings backup after the kill.
-- jest: `npx jest` (240).
+- Render: `[Render] Recording levels: track 2 ×0.063, …` (main stdout / the launch log) and the
+  `FFmpeg args` line show `[0:a:1]volume=…` stems + `amix`; `Recording levels are set but …` warns
+  when the mix track was kept and why.
+- Stems: `[stems] 4 track(s) × 54.0s from 355.0s in 1010ms` in `app.log` (videoProcessing).
+- Editor state from CDP: `button[aria-label="Recording levels"]` className carries `text-sky-400`
+  when levels are on; `[role=slider][aria-valuemin="-24"]` are the mixer rows; both `<video>`
+  elements read `muted: true` while stems are active.
+- Fixture copy used this session: `<scratchpad>\levels-fixture\.clipflow\projects\proj_1788551120819_9oyrwh`
+  (its `project.json` now carries `audioMix {"1":-24}` and a rendered Clip 1) — disposable.

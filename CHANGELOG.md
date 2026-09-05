@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 239) — Recording levels: balance the mic, game and browser tracks inside Corva (#272)
+
+Fega's 2026-09-04 100T session recorded the mic ~21 dB over the browser tab (Valorant + commentator), and the only fix was a DaVinci re-export of four 3 GB files. The recording's individual OBS tracks were there all along — Corva just always played and exported track 1, the full mix.
+
+### Added
+- **Recording levels (#272).** A sliders icon on the timeline's Audio lane opens a "Recording levels" popover with one −24…+24 dB slider per OBS track of the source recording, named by the audio setup (Mic, Game/Desktop, custom names) — the full-mix track is never a row, it is what the levels replace. Tracks that are silent in the open clip read *silent here*. Levels save with the clip; **Apply to every clip** makes them the recording's default (new clips from that recording inherit it; "Use the recording's" drops a clip's own). A clip with nothing turned renders exactly as before — the FFmpeg graph is byte-identical, guarded by the existing tests.
+- **You hear the levels live.** While the popover is open, or any level is turned, the clip's range of each track is pulled out of the recording (one FFmpeg pass, ~1 s), decoded into Web Audio and played through a gain per track in step with the picture; the video element's own sound is muted meanwhile. The stems follow seeks, section cuts and the A/B element swap through one drift check per frame (restart beyond 60 ms) — a 3.5 s playback probe created exactly one buffer source per stem and nothing else. Closing the popover with everything at 0 dB tears the stems down and the video's sound comes back. The #296 mute covers the stems.
+- **The export mixes the same levels**, on the editor render and the Projects batch render alike (one shared render handler; the lightweight project list now carries the recording default so a render started from it sees the levels — traced in code, the batch path was not run this session): each section's audio is rebuilt from the file's tracks (`[i:a:N]volume=…` summed with `amix … normalize=0`) in place of `[i:a]`, then the placed sounds, the mute, the reframe and the subtitles chain off it unchanged. Honoured only when the saved audio setup describes the file's track layout — otherwise (no setup, a different track count, the legacy no-NLE path) the mix track is kept and the render log says why, rather than guessing which track is the mic.
+- Verified: 267 jest tests (new: `audioMix` model, `stemPlayer` sync arithmetic, the render graph with/without a mix); the graph run directly on the 100T Day3 Pt1 recording lands where the arithmetic says (mic −60 / browser +18 → −24.8 LUFS; all flat → −21.8 LUFS, identical to the mix track); on the dev profile against a scratch copy of the 0-approved Pt2 project, the popover rows/readouts/status, autosave (`audioMix` on the clip), Apply to every clip (project default written, clip overrides stripped), video mute/unmute, and a real in-app render with Mic at −24 dB measuring −37.2 LUFS where the flat mix is −20.3 LUFS (that range's mic stem alone is −20.3, the browser stem −37.6, so the arithmetic predicts −36.8).
+
+### Changed
+- `projects.js`, `render.js` and the editor share one levels model, `src/renderer/editor/models/audioMix.js` (CJS, already in `build.files`); the stems player lives in `src/renderer/editor/utils/stemPlayer.js` with a fake-AudioContext test.
+
 ## [Unreleased] — 2026-09-04 (session 238) — 0.4.0-alpha.24 cut: the two autonomous passes reach the installed copies
 
 ### Changed
