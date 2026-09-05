@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.4.0-alpha.27",
+    date: "2026-09-05",
     added: [
       "Pick the days you post on. Edit slots on the Tracker now starts with seven day chips, Sunday included. Turn a day off and it shrinks to a slim strip so your posting days keep their room; turn Sunday on for a one-off weekend and the week, the pace line and the Queue's date list all follow. Days save with the week, the default and your presets, just like the times.",
       "A quiet \"+ Log a post\" row at the bottom of each day that has started, for posts you made by hand. It opens the usual log popup with a time you can edit.",

@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 241) — 0.4.0-alpha.27 cut: the title-card fix reaches the installed copies
+
+### Changed
+- **Bumped to 0.4.0-alpha.27 and cut the installer**, published to the update feed. Everything on master since the alpha.26 bump (af6f8d5) is in it: the #363 fix (title cards and captions are photographed only after they are drawn, and every photo is checked before it ships), the Tracker's posting-day toggles, Sunday and hole-free week log (#161), and the redesigned What's New / Release history screen. Cut on Fega's ask after today's posts went out without their title cards.
+
 ## [Unreleased] — 2026-09-05 (session 241) — Title cards and captions are photographed only after they are drawn (#363)
 
 ### Fixed
