@@ -4,7 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-09-05 (session 240) — Tracker: no more holes, Sunday and toggleable days (#161)
+## [Unreleased] — 2026-09-05 (session 240) — What's New and Release history redesigned as a wide release page with a rail
+
+### Changed
+- **What's New / Release history are no longer a 520px text column.** Fega: "bland, mobile-shaped, an eyesore". Both now share one wide card (up to 1040px, 85% of the window height): a header band with the version large, its date, a one-line summary ("8 fixes in this update") and count chips in the Added/Changed/Fixed colours; below it each change is a card — category tag, the first sentence in bold, the rest as the explanation (a note that is one long sentence splits at its first clause break, never inside parentheses; one with no usable break shows as a paragraph). When more than one release is on screen a rail on the left lists them (version, date, one coloured tick per change, newest marked Latest) — click or ↑/↓ to move, Escape closes. A single-version update hides the rail and shows its change as one full-width card. Mocked in HTML first; Fega picked the rail variant over stacked sections. Release notes may now be authored as `{ title, body }` objects as well as plain strings. No IPC or data-shape changes; "Got it" still acks, Release history still never does.
+
+, Sunday and toggleable days (#161)
 
 ### Added
 - **Days you post on are now yours to choose (#161).** "Edit this week's days & slots" opens with seven day chips (Mon–Sun, green = on). Sunday is in the week grid for the first time; it starts off, so nothing changes until you turn it on. Days ride along with the times: per week, "Set as default", and saved presets all carry them. An off day collapses to a slim dim strip so your posting days keep their width; if a post exists on an off day anyway, that column opens (dimmed) and shows it, with no empty slots. The last remaining day can't be turned off. Pace and the "Hit N more by …" line follow the days you have on ("by Sunday" when Sunday is on), and the Queue's upcoming-date list and next-free-slot suggestion skip your off days instead of always skipping Sunday. Stored templates gain `grid.Sunday` and `activeDays` through a main-process store migration (idempotent; missing fields read as Mon–Sat).

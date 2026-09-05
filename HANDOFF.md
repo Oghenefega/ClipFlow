@@ -2,15 +2,33 @@
 
 ## Current State
 
-**Session 240 (short, urgent): alpha.25 broke pause; alpha.26 fixes it and is on the feed.**
-With recording levels in play the stems' stop call ran in an effect declared before the one
-that calls `video.pause()`, so it read a still-playing element and left the buffer sources
-running (`PreviewPanelNew.js`, fix eed2031: the call now sits right after `pause()`; the
-effect that pauses placement audio no longer touches the stems). Verified on the dev profile
-against the s239 fixture by patching `AudioBufferSourceNode.prototype.start/stop`: 4 starts on
-play, 4 stops in the same frame as the pause, no restarts, for Space and the transport button.
-Cut as 0.4.0-alpha.26 (af6f8d5), feed pruned to it. Fega has NOT yet confirmed on the daily
-driver. Lesson in `tasks/lessons.md` (s240). Session 239's state follows unchanged.
+**Session 240: alpha.26 (pause fix) is on the feed; tracker holes/Sunday/day toggles and the
+What's New redesign are on master, NOT yet cut.**
+
+1. **Pause regression (alpha.25 → alpha.26, af6f8d5).** The stems' stop call ran in an effect
+   declared before the one that calls `video.pause()`, so it read a still-playing element
+   (`PreviewPanelNew.js`, fix eed2031: the call now sits right after `pause()`). Verified by
+   patching `AudioBufferSourceNode.prototype.start/stop` over CDP: 4 starts on play, 4 stops in the
+   pause frame, for Space and the transport button. Fega has NOT yet confirmed on the daily driver.
+2. **Tracker (#161 closed `status: untested`, fbbaf69).** Pure modules `utils/trackerDayRows.js`
+   (claiming: an item within 30 min takes its nearest slot; elapsed unclaimed slots on the current
+   week draw nothing; future weeks keep every open slot; past weeks none) and `utils/trackerTemplate.js`
+   (`activeDays` on the template, lenient reads, `normalizeTemplate` fixed key order for the preset
+   compare, `paceForTemplate`); 116 jest tests. TrackerView: 7 columns, off day = 28px strip unless it
+   holds posts (then a dim column), day chips in Edit slots (`toggleDay`, last day refused with a
+   toast), "+ Log a post" row per started day → popover with `<input type="time">`. App.js
+   `migrateTemplate` normalises; main.js `runStoreMigrations` adds `grid.Sunday` + `activeDays`
+   (ran on dev: "3 template(s) upgraded"). QueueView `getUpcomingDates(isActive)` skips off days —
+   traced, not exercised (the schedule dropdown needs a clip selected).
+3. **What's New / Release history (WhatsNewModal.js).** One wide card (1040 max, 85vh): header
+   band + count chips, change cards (category → `splitItem` first sentence bold → rest; long single
+   sentences split at a clause break outside parentheses, else paragraph weight 500), rail when >1
+   entry (click / ↑↓, Escape closes). Notes may be `{ title, body }` objects. Mockup Fega chose:
+   scratchpad `whatsnew-mockup.html` Variant 2. Verified on dev with `lastSeenVersion` forced to
+   alpha.23 (3-entry rail, Got it acks) and Settings → About → history (18 releases). Single-entry
+   (no rail, hero card) path not exercised live — same component, `showRail=false` branch.
+
+Session 239's state follows unchanged.
 
 **Recording levels (#272) built and verified; alpha.25 is the delivery.** Fega's 2026-09-04
 100T recording has the mic ~21 dB over the browser tab (Valorant + commentator) — measured on
@@ -83,6 +101,9 @@ the same commit so a Projects batch render sees the recording default (traced, n
 
 ## Next Steps
 
+0. Next installer cut carries fbbaf69 + the What's New redesign; the `"unreleased"` entry in
+   `release-notes.js` already describes both. Then Fega: Tracker → Edit slots → toggle Sun, check the
+   week reads without holes; Settings → About → View release history for the new screen.
 1. Fega updates the desktop to alpha.26 (banner on relaunch → Install; Settings bottom reads
    v0.4.0-alpha.26) and confirms pause stops the sound with levels on. The laptop is still on alpha.23 or earlier — same banner path.
 2. Fega, on alpha.26: open a 100T Day3 clip → sliders icon on the Audio lane → drag *Other* up
@@ -112,6 +133,18 @@ the same commit so a Projects batch render sees the recording default (traced, n
 
 ## Logs / Debugging
 
+- Tracker week grid from CDP: the day grid is the `div` with `style.display==="grid"` and
+  `style.padding==="5px 12px 6px"`; its `gridTemplateColumns` has 7 tracks (`28px` = off strip).
+  Slot tiles are `+` spans (current week) / `○` (future week); retro row text "Log a post".
+- Store migration line: `Weekly templates gained Sunday + activeDays (#161): N template(s) upgraded`
+  in `app.log` (system). The dev store's `weeklyTemplate` is the LEGACY day-array shape (no
+  `timeSlots`), so only its 3 overrides were upgraded by main; App.js normalises the rest on read.
+- What's New forcing: with the app closed set `lastSeenVersion` in the profile's
+  `clipflow-settings.json` to an older version; `whatsnew:get` then returns every newer entry.
+  "Got it" writes the current version back.
+- Scratchpad helpers this session: `drv.js` (Runtime.evaluate), `shot.js` (Page.captureScreenshot),
+  `repoint.js` (dev projectsRoot ↔ fixture), `seed-tracker.js` (this-week entries, restores from
+  `clipflow-settings.backup-s240-seed.json`).
 - Render: `[Render] Recording levels: track 2 ×0.063, …` (main stdout / the launch log) and the
   `FFmpeg args` line show `[0:a:1]volume=…` stems + `amix`; `Recording levels are set but …` warns
   when the mix track was kept and why.

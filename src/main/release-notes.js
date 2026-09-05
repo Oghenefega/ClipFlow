@@ -18,6 +18,9 @@ module.exports = [
       "Pick the days you post on. Edit slots on the Tracker now starts with seven day chips, Sunday included. Turn a day off and it shrinks to a slim strip so your posting days keep their room; turn Sunday on for a one-off weekend and the week, the pace line and the Queue's date list all follow. Days save with the week, the default and your presets, just like the times.",
       "A quiet \"+ Log a post\" row at the bottom of each day that has started, for posts you made by hand. It opens the usual log popup with a time you can edit.",
     ],
+    changed: [
+      "What's new and Release history got a proper screen. The release you're reading fills a wide card: version, date and a count of what changed up top, then one card per change with the headline in bold. Several releases show as a list on the left — click one, or use the up and down arrow keys.",
+    ],
     fixed: [
       "No more holes in the week log. A post a few minutes off a slot now fills that slot, and an empty slot whose time has passed simply isn't shown — the current week reads like a past week. Later today and future days keep their empty slots for scheduling.",
     ],
