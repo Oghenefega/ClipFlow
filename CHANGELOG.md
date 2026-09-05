@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 240) — 0.4.0-alpha.26 cut: the pause fix reaches the installed copies
+
+### Changed
+- **Bumped to 0.4.0-alpha.26 and cut the installer**, published to the update feed. Everything on master since the alpha.25 bump (c97253f) is in it — that is the one change, the pause fix for the recording-level stems (eed2031). Cut on Fega's explicit ask: alpha.25 left him unable to pause while editing.
+
 ## [Unreleased] — 2026-09-05 (session 240) — Pause stops the recording-level stems again (#272 regression)
 
 ### Fixed

@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.26",
+    date: "2026-09-05",
+    fixed: [
+      "Pausing a clip in the editor stops the sound again. With recording levels in use, the pause button and Space froze the picture but the audio kept playing with no way to stop it.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.25",
     date: "2026-09-05",
     added: [
