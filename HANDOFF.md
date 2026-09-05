@@ -1,6 +1,16 @@
-# HANDOFF — Session 239 (2026-09-05)
+# HANDOFF — Session 240 (2026-09-05)
 
 ## Current State
+
+**Session 240 (short, urgent): alpha.25 broke pause; alpha.26 fixes it and is on the feed.**
+With recording levels in play the stems' stop call ran in an effect declared before the one
+that calls `video.pause()`, so it read a still-playing element and left the buffer sources
+running (`PreviewPanelNew.js`, fix eed2031: the call now sits right after `pause()`; the
+effect that pauses placement audio no longer touches the stems). Verified on the dev profile
+against the s239 fixture by patching `AudioBufferSourceNode.prototype.start/stop`: 4 starts on
+play, 4 stops in the same frame as the pause, no restarts, for Space and the transport button.
+Cut as 0.4.0-alpha.26 (af6f8d5), feed pruned to it. Fega has NOT yet confirmed on the daily
+driver. Lesson in `tasks/lessons.md` (s240). Session 239's state follows unchanged.
 
 **Recording levels (#272) built and verified; alpha.25 is the delivery.** Fega's 2026-09-04
 100T recording has the mic ~21 dB over the browser tab (Valorant + commentator) — measured on
@@ -73,9 +83,9 @@ the same commit so a Projects batch render sees the recording default (traced, n
 
 ## Next Steps
 
-1. Fega updates the desktop to alpha.25 (banner on relaunch → Install; Settings bottom reads
-   v0.4.0-alpha.25). The laptop is still on alpha.23 or earlier — same banner path.
-2. Fega, on alpha.25: open a 100T Day3 clip → sliders icon on the Audio lane → drag *Other* up
+1. Fega updates the desktop to alpha.26 (banner on relaunch → Install; Settings bottom reads
+   v0.4.0-alpha.26) and confirms pause stops the sound with levels on. The laptop is still on alpha.23 or earlier — same banner path.
+2. Fega, on alpha.26: open a 100T Day3 clip → sliders icon on the Audio lane → drag *Other* up
    (~+18) and *Mic* down a touch, hear it live, **Apply to every clip**, render one, listen.
 3. Watch for: stems taking long on very long clips (extraction is one FFmpeg pass over the
    sections' range; 44 s took ~1 s); memory if a clip is minutes long (23 MB/min/stem in the
