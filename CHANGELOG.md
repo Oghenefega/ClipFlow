@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 239) — 0.4.0-alpha.25 cut: recording levels reach the installed copies
+
+### Changed
+- **Bumped to 0.4.0-alpha.25 and cut the installer**, published to the update feed. Everything on master since the alpha.24 bump (b74ebff) is in it — that is the one session-239 change, recording levels (#272, f6afdc7), plus the alpha.24 close-out commits. The What's New entry describes it in product words. Cut right after the build because Fega needs it for the 100T Day3 shorts today; the "batch ~10 changes" rule yields to an explicit need.
+
 ## [Unreleased] — 2026-09-05 (session 239) — Recording levels: balance the mic, game and browser tracks inside Corva (#272)
 
 Fega's 2026-09-04 100T session recorded the mic ~21 dB over the browser tab (Valorant + commentator), and the only fix was a DaVinci re-export of four 3 GB files. The recording's individual OBS tracks were there all along — Corva just always played and exported track 1, the full mix.

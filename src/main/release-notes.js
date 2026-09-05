@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.25",
+    date: "2026-09-05",
+    added: [
+      "Recording levels: balance your mic, game and browser tracks without leaving Corva. In the editor, the small sliders icon on the Audio lane opens one slider per audio track of your recording (Mic, Game/Desktop, and any track you named in the audio setup). Turn the browser up or the mic down and you hear it live as you drag; the finished clip exports at the same levels. Levels save with the clip, and \"Apply to every clip\" makes them the default for every clip from that recording. Tracks with no sound in the clip say \"silent here\". Clips you never touch sound exactly as before.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.24",
     date: "2026-09-04",
     fixed: [

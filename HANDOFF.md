@@ -44,9 +44,13 @@ playback probe (CDP WebAudio domain) created exactly 4 AudioBufferSource nodes a
 (no drift restarts), and a real in-app render with Mic −24 measured **−37.2 LUFS** where the
 flat mix is −20.3 (mic stem −20.3, browser −37.6 → arithmetic predicts −36.8).
 
-**Not yet done at the time of writing this file:** commit, #272 close (`status: untested`),
-alpha.25 cut, dev-profile restore. See Next Steps — whichever of those the session log shows
-done, the rest is the next session's first move.
+**Closed out the same session:** feature committed as f6afdc7 and pushed; #272 closed with
+`status: untested` (shipped-in note on the issue, #273 got a note on reusing the stems + sourceMix
+mechanism); **0.4.0-alpha.25 cut and published to the feed** (exe + blockmap + `alpha.yml`,
+packaged version verified from the asar); dev profile restored from the s239 backup
+(projectsRoot/watchFolder/outputFolder back on W:, tokens `{}`), no electron left running.
+The project-list summary (`listProjects`) is a field whitelist — `audioMix` was added to it in
+the same commit so a Projects batch render sees the recording default (traced, not run).
 
 ## Key Decisions
 
@@ -69,11 +73,8 @@ done, the rest is the next session's first move.
 
 ## Next Steps
 
-1. If not already done: commit (message references #272, no "Fix" keyword), close #272 with
-   `status: untested`, comment on #273 about the shared mechanism, cut **alpha.25** via the
-   `clipflow-update-launcher` skill, restore `%APPDATA%\clipflow-dev\clipflow-settings.json` from
-   `clipflow-settings.json.bak-s239` (projectsRoot/watchFolder/outputFolder are pointed at the
-   session scratchpad), kill any dev electron.
+1. Fega updates the desktop to alpha.25 (banner on relaunch → Install; Settings bottom reads
+   v0.4.0-alpha.25). The laptop is still on alpha.23 or earlier — same banner path.
 2. Fega, on alpha.25: open a 100T Day3 clip → sliders icon on the Audio lane → drag *Other* up
    (~+18) and *Mic* down a touch, hear it live, **Apply to every clip**, render one, listen.
 3. Watch for: stems taking long on very long clips (extraction is one FFmpeg pass over the
