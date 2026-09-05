@@ -1722,8 +1722,7 @@ export default function PreviewPanelNew() {
   useEffect(() => {
     if (playing) return;
     syncAssetAudio(usePlaybackStore.getState().currentTime, false);
-    syncStems(videoRef.current); // #272: the stems stop with the picture
-  }, [playing, syncAssetAudio, syncStems]);
+  }, [playing, syncAssetAudio]);
 
   // Full teardown on unmount
   useEffect(() => () => {
@@ -1979,8 +1978,12 @@ export default function PreviewPanelNew() {
       });
     } else {
       videoRef.current.pause();
+      // #272: the stems read the element's paused state, so they must be told
+      // AFTER pause() — an earlier effect saw a still-playing element and left
+      // them running (s240 regression).
+      syncStems(videoRef.current);
     }
-  }, [playing, setPlaying]);
+  }, [playing, setPlaying, syncStems]);
 
   // Playback speed. Lives here rather than in the timeline panel because that
   // panel is unmounted while the timeline is collapsed, which would leave the

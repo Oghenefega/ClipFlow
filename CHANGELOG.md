@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 240) — Pause stops the recording-level stems again (#272 regression)
+
+### Fixed
+- **Pausing the editor left the sound running.** On alpha.25, with recording levels in play, the pause button and Space froze the picture but the clip's audio kept going with no way to stop it. The per-track stems were told to stop from an effect that ran before the one that actually pauses the video element, so they read a still-playing element and carried on; nothing asked them again once the frame loop was gone. The stop call now lives right after the element's own pause, so the stems stop with the picture on every path (pause button, Space, end of clip). Verified on the dev profile against the 0-approved 100T Day3 Pt2 fixture: four stem sources start on play and all four stop within the same frame as the pause, with no restart afterwards, for both Space and the transport button.
+
 ## [Unreleased] — 2026-09-05 (session 239) — 0.4.0-alpha.25 cut: recording levels reach the installed copies
 
 ### Changed
