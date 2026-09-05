@@ -2,9 +2,14 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-04 (s238) -- Session 238: one self-caught shell-quoting lesson, promoted to memory feedback_bash_backslash_collapse; no user corrections this session -->
+> <!-- DISTILLED-THROUGH: 2026-09-05 (s239) -- Session 239: one self-caught backslash-path lesson (re-occurrence), appended to memory feedback_bash_backslash_collapse; no user corrections this session -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
+
+## A backslash in a `node -e` path argument vanished again; print the written value before booting on it (2026-09-05, session 239, self-caught)
+**What happened:** repointing the dev profile at a scratch fixture, `node -e '… scr + "\\levels-fixture" …'` wrote `projectsRoot = …scratchpadlevels-fixture` — the separator was gone, one backslash level eaten by the tool's JSON decoding. Caught only because the script echoed the value it had written. Rewritten as `path.win32.normalize(scr + "/levels-fixture")` with a forward-slash base, it was right first time.
+**Why it matters:** the same class as s187/s210/s235 — a Windows path handed through the shell loses a level of escaping — and a wrong `projectsRoot` on a dev boot either fails silently (empty library) or, worse, stays on the real one. The cheap guard is the echo.
+**Rule:** never type a backslash into a path inside a shell command; build Windows paths from forward slashes with `path.win32.normalize` in node, and echo any setting you write before booting anything on it. Appended to memory `feedback_bash_backslash_collapse` (s239 note).
 
 ## Shell quoting cost two commands in one session; anything with an apostrophe or a `'$(…)'` goes through a file (2026-09-04, session 238, self-caught)
 **What happened:** (1) a `node -e '…'` patch whose comment string said "the USER token's" died with `Expected ','` — the apostrophe ended bash's single-quoted argument. (2) A 40-line quoted heredoc writing an HTML mock, followed on the same command line by `powershell "Start-Process '$(cygpath -w "$SP/x.html")'"`, failed with "unexpected EOF while looking for matching `'`" and wrote nothing. Both were retried once as files (the patch as `apply-155.js`, the mock via the Write tool) and worked first time.
