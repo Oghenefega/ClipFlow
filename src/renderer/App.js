@@ -22,6 +22,7 @@ import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
 import { evaluateRollover, localISO } from "./utils/trackerEngine";
+import { normalizeTemplate } from "./utils/trackerTemplate";
 import { buildStarterYtDescription } from "../shared/ytDescriptionTemplate";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
 
@@ -44,7 +45,11 @@ const DEFAULT_TEMPLATE = {
     Thursday: ["main","main","main"],
     Friday: ["main","main","main"],
     Saturday: ["main","main","main"],
+    Sunday: ["main","main","main"],
   },
+  // #161: which days the week posts on. Sunday exists in the grid but is off by
+  // default — toggled per week (or as the default) in the Tracker's Edit slots.
+  activeDays: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
 };
 const DEFAULT_WEEKLY_TARGET = DEFAULT_TIME_SLOTS.length * 6;
 
@@ -58,9 +63,11 @@ const LEGACY_TIME_SLOTS = ["12:30 PM","1:30 PM","2:30 PM","3:30 PM","4:30 PM","7
 // Migrate old template format (no timeSlots key) to new format
 const migrateTemplate = (tmpl) => {
   if (!tmpl) return JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
-  if (tmpl.timeSlots && tmpl.grid) return tmpl;
+  // #161: normalizeTemplate fills grid.Sunday and activeDays (Mon–Sat) on any
+  // template that predates them, so stored data keeps behaving exactly as before.
+  if (tmpl.timeSlots && tmpl.grid) return normalizeTemplate(tmpl);
   // Old format: { Monday: [...], Tuesday: [...], ... }
-  return { timeSlots: [...LEGACY_TIME_SLOTS], grid: { ...tmpl } };
+  return normalizeTemplate({ timeSlots: [...LEGACY_TIME_SLOTS], grid: { ...tmpl } });
 };
 
 // No more mock data — file metadata stored in SQLite, renameHistory is persisted

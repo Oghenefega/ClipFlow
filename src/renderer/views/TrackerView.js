@@ -3,14 +3,18 @@ import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
 import { toFileUrl } from "../components/shared";
 import {
-  ledgerTotal, rankForXp, weekEntries, paceInfo, computeRecap, localISO, addDaysISO, mondayISO,
+  ledgerTotal, rankForXp, weekEntries, computeRecap, localISO, addDaysISO, mondayISO,
   XP_PER_CLIP,
 } from "../utils/trackerEngine";
 import { renderRecapPng, downloadBlob, copyBlobToClipboard } from "../utils/recapCardImage";
 import { streakByWeek, weekAggregate, groupByLocalDate } from "../utils/trackerCalendarModel";
+import { WEEK_DAYS, WEEK_DAYS_SHORT, activeDaysOf, lastActiveDayName, paceForTemplate, normalizeTemplate, withDayToggled, sortTemplateByTime as sortTemplateByTimeShared } from "../utils/trackerTemplate";
+import { buildDayRows, retroLogVisible, suggestRetroLogTime, slotDateTimeIso, label12hTo24h, hhmmTo12hLabel } from "../utils/trackerDayRows";
 
-const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// #161: seven days. Sunday is in the grid; whether a day POSTS is the template's
+// activeDays (Edit slots), so these stay the plain Mon..Sun lists.
+const DAY_NAMES = WEEK_DAYS;
+const DAY_SHORT = WEEK_DAYS_SHORT;
 const PLATFORM_KEYS = ["tiktok", "youtube", "instagram", "facebook"];
 const PLATFORM_LABELS = { tiktok: "TikTok", youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" };
 const PLATFORM_BRAND_COLORS = { tiktok: "#00f2ea", youtube: "#FF0000", instagram: "#E1306C", facebook: "#1877F2" };
@@ -74,14 +78,8 @@ const rgba = (c, a) => {
 const cleanTitle = (t) => (t || "").replace(/\s*#[A-Za-z0-9_]+/g, "").trim() || (t || "");
 
 // Sort a template's time slots chronologically, reordering grid columns to match
-const sortTemplateByTime = (tmpl) => {
-  const indices = tmpl.timeSlots.map((s, i) => ({ s, i, m: parseTimeToMinutes(s) }));
-  indices.sort((a, b) => a.m - b.m);
-  return {
-    timeSlots: indices.map((x) => x.s),
-    grid: Object.fromEntries(DAY_NAMES.map((day) => [day, indices.map((x) => tmpl.grid[day][x.i])])),
-  };
-};
+// (#161: lives in utils/trackerTemplate.js now, where it also keeps activeDays).
+const sortTemplateByTime = (tmpl) => sortTemplateByTimeShared(tmpl, parseTimeToMinutes);
 
 const fmtNum = (n) => n.toLocaleString("en-US");
 
@@ -182,7 +180,12 @@ export default function TrackerView({
   }).length;
   const varietyCount = posted - mainCount;
 
-  const pace = useMemo(() => paceInfo({ posted, target, date: now }), [posted, target, now]);
+  const effectiveTemplate = weekTemplateOverrides?.[monday] || weeklyTemplate;
+  const hasOverride = !!(weekTemplateOverrides?.[monday]);
+  // #161: pace is prorated over the days this week actually posts on.
+  const activeDaySet = useMemo(() => new Set(activeDaysOf(effectiveTemplate)), [effectiveTemplate]);
+  const lastActiveDay = lastActiveDayName(effectiveTemplate);
+  const pace = useMemo(() => paceForTemplate({ posted, target, date: now, template: effectiveTemplate }), [posted, target, now, effectiveTemplate]);
 
   const totalXp = ledgerTotal(xpLedger);
   const rank = rankForXp(totalXp);
@@ -196,9 +199,6 @@ export default function TrackerView({
   const lostStreakLen = streakMap[prevMonday]?.lostStreak || 0;
   const prevWeekPosted = useMemo(() => weekEntries(trackerData, prevMonday).length, [trackerData, prevMonday]);
   const prevWeekTarget = weekMeta?.[prevMonday]?.target ?? weeklyTarget;
-
-  const effectiveTemplate = weekTemplateOverrides?.[monday] || weeklyTemplate;
-  const hasOverride = !!(weekTemplateOverrides?.[monday]);
 
   // #276: past weeks show the recap frozen at rollover; live computation is the
   // fallback for the current week (and past weeks from before recaps existed).
@@ -401,9 +401,13 @@ export default function TrackerView({
     return () => ro.disconnect();
   }, [popover]);
 
-  const openLogPopover = (dayIso, dayName, slotTime, rect) => {
+  // #161: `editableTime` — the retro "+ Log a post" row has no slot behind it, so
+  // the popover shows a time field (prefilled) instead of a fixed slot label.
+  const [logTimeVal, setLogTimeVal] = useState("");
+  const openLogPopover = (dayIso, dayName, slotTime, rect, opts = {}) => {
     setLogSelectedPlatforms([]);
-    setPopover({ type: "log", dayIso, dayName, slotTime, rect });
+    setLogTimeVal(label12hTo24h(slotTime));
+    setPopover({ type: "log", dayIso, dayName, slotTime, rect, editableTime: !!opts.editableTime });
   };
   // One popover for both card kinds; `isSched` swaps the source line and the footer
   // action (Remove makes no sense for something that hasn't posted yet).
@@ -415,12 +419,17 @@ export default function TrackerView({
 
   const logClip = (game) => {
     if (!popover || popover.type !== "log") return;
+    const logTime = popover.editableTime ? (hhmmTo12hLabel(logTimeVal) || popover.slotTime) : popover.slotTime;
+    if (popover.editableTime && popover.dayIso === todayIso) {
+      const iso = slotDateTimeIso(popover.dayIso, logTime);
+      if (iso && new Date(iso) > now) { toast("That time hasn't happened yet"); return; }
+    }
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const entry = {
       id,
       date: popover.dayIso,
       day: popover.dayName,
-      time: popover.slotTime,
+      time: logTime,
       title: "Manual entry",
       game: game.hashtag,
       type: game.tag === mainGameTag ? "main" : "other",
@@ -432,7 +441,7 @@ export default function TrackerView({
     setTrackerData((prev) => [...prev, entry]);
     awardXp(`clip:${id}`, XP_PER_CLIP, "clip", popover.dayIso);
     closePopover();
-    toast(`Logged ${game.name} · ${shortSlot(popover.slotTime)}`);
+    toast(`Logged ${game.name} · ${shortSlot(logTime)}`);
   };
 
   const removeEntry = (entry) => {
@@ -489,7 +498,7 @@ export default function TrackerView({
     if (!timeStr.trim()) return;
     setWeekTemplateOverrides((prev) => {
       const current = prev[monday] || JSON.parse(JSON.stringify(weeklyTemplate));
-      const updated = JSON.parse(JSON.stringify(current));
+      const updated = normalizeTemplate(current);
       updated.timeSlots.push(timeStr.trim());
       DAY_NAMES.forEach((day) => { updated.grid[day].push("main"); });
       return { ...prev, [monday]: sortTemplateByTime(updated) };
@@ -501,11 +510,19 @@ export default function TrackerView({
   const removeTimeSlot = (si) => {
     setWeekTemplateOverrides((prev) => {
       const current = prev[monday] || JSON.parse(JSON.stringify(weeklyTemplate));
-      const updated = JSON.parse(JSON.stringify(current));
+      const updated = normalizeTemplate(current);
       updated.timeSlots.splice(si, 1);
       DAY_NAMES.forEach((day) => { updated.grid[day].splice(si, 1); });
       return { ...prev, [monday]: updated };
     });
+  };
+
+  // #161: flip a posting day for this week. Refused when it would be the last one.
+  const toggleDay = (dayName) => {
+    const current = normalizeTemplate(weekTemplateOverrides?.[monday] || weeklyTemplate);
+    const next = withDayToggled(current, dayName);
+    if (next === current) { toast("Keep at least one day on"); return; }
+    setWeekTemplateOverrides((prev) => ({ ...prev, [monday]: next }));
   };
 
   const setAsDefault = () => setWeeklyTemplate(JSON.parse(JSON.stringify(effectiveTemplate)));
@@ -652,7 +669,7 @@ export default function TrackerView({
         streak: streakState?.current || 0,
         rankName: rank.name,
         rankColor: T.tiers[rank.tier] || T.accent,
-        weekLabel: `${wd[0].label} – ${wd[5].label}`,
+        weekLabel: `${wd[0].label} – ${wd[6].label}`,
       });
       downloadBlob(blob, `corva-rundown-${monday}.png`);
       const copied = await copyBlobToClipboard(blob);
@@ -768,16 +785,10 @@ export default function TrackerView({
     armEdge(0);
   };
 
-  const slotDateTime = (dayIso, slotTime) => {
-    const mins = parseTimeToMinutes(slotTime);
-    if (isNaN(mins)) return null;
-    return `${dayIso}T${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}:00`;
-  };
-
   const dropOnSlot = (dayIso, dayName, slotTime) => {
     const d = dragRef.current;
     if (!d) return;
-    const iso = slotDateTime(dayIso, slotTime);
+    const iso = slotDateTimeIso(dayIso, slotTime);
     endClipDrag();
     if (!iso) return;
     if (d.date === dayIso && norm12(d.time) === norm12(slotTime)) return; // dropped where it already was
@@ -1068,7 +1079,7 @@ export default function TrackerView({
 
       {/* Stakes bar (live week) / frozen-outcome or preview bar (#276) */}
       {viewMode === "current" ? (
-        <StakesBar posted={posted} target={target} streak={streakState?.current || 0} daysLeft={pace.daysLeft} now={now} streakOverVariant={streakOverVariant} lostStreakLen={lostStreakLen} prevWeekPosted={prevWeekPosted} prevWeekTarget={prevWeekTarget} gameColor={gameColor} />
+        <StakesBar posted={posted} target={target} streak={streakState?.current || 0} daysLeft={pace.daysLeft} now={now} lastDay={lastActiveDay} streakOverVariant={streakOverVariant} lostStreakLen={lostStreakLen} prevWeekPosted={prevWeekPosted} prevWeekTarget={prevWeekTarget} gameColor={gameColor} />
       ) : (
         <WeekStateBar mode={viewMode} outcome={outcome} posted={posted} target={target} sched={weekAgg.sched} recap={recap} streakAfter={weekAgg.streakAfter} lostStreak={weekAgg.lostStreak} onOpenQueue={onOpenQueue} />
       )}
@@ -1081,7 +1092,7 @@ export default function TrackerView({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px 7px", borderBottom: `1px solid ${T.border}`, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
-            <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.01em", color: T.text, minWidth: 150, textAlign: "center" }}>{wd[0].label} {"–"} {wd[5].label}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.01em", color: T.text, minWidth: 150, textAlign: "center" }}>{wd[0].label} {"–"} {wd[6].label}</span>
             <button onClick={() => goWeek(1)} title="Next week" style={weekNavBtnStyle}>{"›"}</button>
             {weekOffset === 0 ? (
               <SectionLbl>This week</SectionLbl>
@@ -1094,62 +1105,51 @@ export default function TrackerView({
             {viewMode === "current" && hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "5px 12px 6px" }}>
+        {/* #161: seven columns; an OFF day with nothing on it collapses to a slim strip
+            so the posting days keep their width. */}
+        <div style={{ display: "grid", gridTemplateColumns: wd.map((d) => (!activeDaySet.has(d.dayName) && !thisWeekEntries.some((e) => e.date === d.iso) && !(schedByDate.get(d.iso) || []).length && !(retryByDate.get(d.iso) || []).length) ? "28px" : "minmax(0,1fr)").join(" "), gap: 0, padding: "5px 12px 6px" }}>
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
             // #276: every day of a future week is upcoming; past weeks have no future days.
             const isFuture = viewMode === "future" ? true : (todayIdx >= 0 ? di > todayIdx : false);
             const dayEntries = thisWeekEntries.filter((e) => e.date === d.iso);
-            const norm = (t) => (t || "").replace(/\s/g, "");
-            const safeMinutes = (t) => { const m = parseTimeToMinutes(t || "12:00 AM"); return isNaN(m) ? 0 : m; };
-            const templateSlots = effectiveTemplate.timeSlots || [];
-            const sortedSlots = templateSlots.slice().sort((a, b) => safeMinutes(a) - safeMinutes(b));
-            const slotTimesNorm = new Set(sortedSlots.map(norm));
             // #218: clips scheduled from the Queue. They live on the clip as `scheduledAt`
             // and never reach trackerData until the scheduler fires, so this list is the
             // ONLY way the week log can show what's coming.
             const daySched = schedByDate.get(d.iso) || [];
             const dayRetry = retryByDate.get(d.iso) || [];
-
-            // Merge template slots (filled by an entry or a scheduled clip, else an open
-            // "+" tile) with anything whose time doesn't land on a template slot, into one
-            // time-ordered list. Open slots now render on future days too — an empty
-            // Fri/Sat column said nothing about what was still unbooked.
-            const dayRows = [];
-            sortedSlots.forEach((slot) => {
-              const matches = dayEntries.filter((e) => norm(e.time) === norm(slot));
-              const schedMatches = daySched.filter((s) => norm(s.time) === norm(slot));
-              const retryMatches = dayRetry.filter((r) => norm(r.time) === norm(slot));
-              matches.forEach((entry) => dayRows.push({ type: "entry", entry, minutes: safeMinutes(slot) }));
-              schedMatches.forEach((sched) => dayRows.push({ type: "sched", sched, minutes: safeMinutes(slot) }));
-              retryMatches.forEach((retry) => dayRows.push({ type: "retry", retry, minutes: safeMinutes(slot) }));
-              // #276: a frozen past week has nothing left to book — no open slots.
-              if (matches.length === 0 && schedMatches.length === 0 && retryMatches.length === 0 && viewMode !== "past") {
-                dayRows.push({ type: "slot", time: slot, minutes: safeMinutes(slot) });
-              }
-            });
-            dayEntries.filter((e) => !slotTimesNorm.has(norm(e.time))).forEach((entry) => {
-              dayRows.push({ type: "entry", entry, minutes: safeMinutes(entry.time) });
-            });
-            daySched.filter((s) => !slotTimesNorm.has(norm(s.time))).forEach((sched) => {
-              dayRows.push({ type: "sched", sched, minutes: safeMinutes(sched.time) });
-            });
-            dayRetry.filter((r) => !slotTimesNorm.has(norm(r.time))).forEach((retry) => {
-              dayRows.push({ type: "retry", retry, minutes: safeMinutes(retry.time) });
-            });
-            dayRows.sort((a, b) => a.minutes - b.minutes);
+            // #161: an OFF day has no slots to fill. Empty → a slim strip; with posts on
+            // it anyway → a dim column that still shows them (nothing ever vanishes).
+            const isOff = !activeDaySet.has(d.dayName);
+            const dayItems = [
+              ...dayEntries.map((e) => ({ kind: "entry", time: e.time, ref: e })),
+              ...daySched.map((sc) => ({ kind: "sched", time: sc.time, ref: sc })),
+              ...dayRetry.map((r) => ({ kind: "retry", time: r.time, ref: r })),
+            ];
+            const daySlots = isOff ? [] : (effectiveTemplate.timeSlots || []);
+            if (isOff && dayItems.length === 0) {
+              return (
+                <div key={d.iso} title="Off day — switch it on in Edit slots" style={{ borderRight: di < wd.length - 1 ? `1px solid ${T.border}` : "none", minHeight: 100, display: "flex", justifyContent: "center", paddingTop: 6 }}>
+                  <span style={{ writingMode: "vertical-rl", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: T.textMuted }}>{DAY_SHORT[di]} {"·"} off</span>
+                </div>
+              );
+            }
+            // A post at 2:31 fills the 2:30 slot, and a slot whose time has passed with
+            // nothing near it draws nothing — the day reads like a past week (s240).
+            const dayRows = buildDayRows({ slots: daySlots, items: dayItems, dayIso: d.iso, now, viewMode });
+            const showRetroLog = !isOff && retroLogVisible({ dayIso: d.iso, todayIso, viewMode });
 
             return (
               <div key={d.iso} style={{
-                padding: "0 8px", borderRight: di < 5 ? `1px solid ${T.border}` : "none", minHeight: 100,
+                padding: "0 8px", borderRight: di < wd.length - 1 ? `1px solid ${T.border}` : "none", minHeight: 100,
                 background: isToday ? `linear-gradient(180deg, ${T.accentDim}, transparent 60%)` : "transparent",
                 // Future days used to be empty, so 0.4 cost nothing. They now carry
                 // scheduled clips and open slots, and at 0.4 the ghost cards (already
                 // 0.62 themselves) were unreadable (#218).
-                borderRadius: isToday ? 6 : 0, opacity: isFuture ? 0.72 : 1,
+                borderRadius: isToday ? 6 : 0, opacity: isOff ? 0.55 : isFuture ? 0.72 : 1,
               }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "2px 4px 6px" }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: isToday ? T.accentLight : T.text }}>{DAY_SHORT[di]}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: isToday ? T.accentLight : T.text }}>{DAY_SHORT[di]}{isOff && <span style={{ marginLeft: 5, fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", color: T.textTertiary, textTransform: "uppercase" }}>off</span>}</span>
                   <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textTertiary }}>{d.label}</span>
                 </div>
                 {isFuture && <span style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textTertiary, fontWeight: 600, display: "block", padding: "0 4px 8px" }}>Upcoming</span>}
@@ -1165,7 +1165,7 @@ export default function TrackerView({
                     // history — it is live on some platforms right now, which is why it
                     // shows solid rather than ghosted like a scheduled card.
                     const isRetry = row.type === "retry";
-                    const item = isSched ? row.sched : isRetry ? row.retry : row.entry;
+                    const item = row.item;
                     const gd = resolveGameDisplay(item.game);
                     const isAuto = !isSched && !isRetry && item.source === "clipflow";
                     const dotColor = isRetry ? T.red : isSched ? T.yellow : (isAuto ? T.cyan : "#fff");
@@ -1226,7 +1226,7 @@ export default function TrackerView({
                   // #282: a drop is only legal on a slot that hasn't happened yet —
                   // a past `scheduledAt` would make the Queue's scheduler publish it on
                   // its very next tick. Past weeks render no open slots at all.
-                  const slotIso = slotDateTime(d.iso, row.time);
+                  const slotIso = slotDateTimeIso(d.iso, row.time);
                   const droppable = viewMode !== "past" && !!slotIso && new Date(slotIso).getTime() > now.getTime();
                   const resetSlot = (el) => {
                     el.style.borderColor = "rgba(var(--lift),0.08)"; el.style.borderStyle = "dashed";
@@ -1256,6 +1256,17 @@ export default function TrackerView({
                     </div>
                   );
                 })}
+                {showRetroLog && (
+                  <div
+                    onClick={(e) => openLogPopover(d.iso, d.dayName, suggestRetroLogTime({ slots: daySlots, items: dayItems, dayIso: d.iso, todayIso, now }), e.currentTarget.getBoundingClientRect(), { editableTime: true })}
+                    title="Log a post you made by hand"
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 6px", marginTop: 2, borderRadius: 6, cursor: "pointer", color: T.textMuted, fontSize: 9.5, fontWeight: 600, minHeight: 20 }}
+                    onMouseEnter={(ev) => { ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; }}
+                    onMouseLeave={(ev) => { ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; }}
+                  >
+                    <span style={{ fontSize: 12, lineHeight: 1 }}>+</span><span>Log a post</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1317,7 +1328,15 @@ export default function TrackerView({
         }}>
           {popover.type === "log" ? (
             <>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 11 }}>Log a clip {"·"} {DAY_SHORT[wd.findIndex((d) => d.iso === popover.dayIso)]} {popover.slotTime}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 11 }}>
+                <span>Log a clip {"·"} {DAY_SHORT[wd.findIndex((d) => d.iso === popover.dayIso)]}</span>
+                {popover.editableTime ? (
+                  <input type="time" value={logTimeVal} onChange={(e) => setLogTimeVal(e.target.value)}
+                    style={{ padding: "2px 6px", borderRadius: 4, border: `1px solid ${T.accentBorder}`, background: "rgba(var(--lift),0.06)", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none" }} />
+                ) : (
+                  <span>{popover.slotTime}</span>
+                )}
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
                 {activeGames.map((g) => (
                   <div key={g.tag} onClick={() => logClip(g)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 9px", borderRadius: 6, cursor: "pointer", border: "1px solid transparent" }}
@@ -1482,8 +1501,22 @@ export default function TrackerView({
           <div onClick={() => setShowTemplateEditor(false)} style={{ position: "absolute", inset: 0, background: "rgba(5,6,10,0.6)" }} />
           <div style={{ position: "relative", width: 360, maxHeight: "80vh", overflowY: "auto", background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 18, boxShadow: "0 20px 60px rgba(var(--shade),calc(0.7 * var(--shadeK)))" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Edit this week's slots</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Edit this week's days {"&"} slots</span>
               <button onClick={() => setShowTemplateEditor(false)} style={{ background: "none", border: "none", color: T.textTertiary, fontSize: 16, cursor: "pointer", lineHeight: 1 }}>{"×"}</button>
+            </div>
+
+            {/* #161: which days this week posts on. Green = on (ui-standards toggle rule). */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+              {WEEK_DAYS.map((day, i) => {
+                const on = activeDaySet.has(day);
+                return (
+                  <button key={day} onClick={() => toggleDay(day)} title={on ? `Posting on ${day}s — click to turn off` : `Not posting on ${day}s — click to turn on`}
+                    style={{ flex: 1, padding: "6px 0", borderRadius: 6, cursor: "pointer", fontFamily: T.font, fontSize: 11, fontWeight: 700,
+                      border: `1px solid ${on ? T.greenBorder : T.border}`, background: on ? T.greenDim : "transparent", color: on ? T.green : T.textMuted }}>
+                    {WEEK_DAYS_SHORT[i]}
+                  </button>
+                );
+              })}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
@@ -1577,7 +1610,7 @@ export default function TrackerView({
             )}
 
             <div>
-              <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>Corva Rundown {"·"} {wd[0].label} – {wd[5].label}</div>
+              <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>Corva Rundown {"·"} {wd[0].label} – {wd[6].label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
                 I posted <b style={{ color: gameColor }}>{recap.clips} clip{recap.clips === 1 ? "" : "s"}</b> to <b style={{ color: gameColor }}>{recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}</b> this week
               </div>
@@ -1696,7 +1729,7 @@ function WeekStateBar({ mode, outcome, posted, target, sched, recap, streakAfter
   );
 }
 
-function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, lostStreakLen, prevWeekPosted, prevWeekTarget, gameColor }) {
+function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, lostStreakLen, prevWeekPosted, prevWeekTarget, gameColor, lastDay }) {
   const remaining = Math.max(0, target - posted);
   const safe = remaining <= 0;
   const weekdayLabel = now.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -1736,8 +1769,8 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   }
 
   const hitMoreLine = streak === 0
-    ? <>Hit <b style={{ fontFamily: T.mono, color: gameColor }}>{remaining} more</b> by Saturday to start your streak.</>
-    : <>Hit <b style={{ fontFamily: T.mono, color: gameColor }}>{remaining} more</b> by Saturday to keep your {streak}-week streak alive.</>;
+    ? <>Hit <b style={{ fontFamily: T.mono, color: gameColor }}>{remaining} more</b> by {lastDay} to start your streak.</>
+    : <>Hit <b style={{ fontFamily: T.mono, color: gameColor }}>{remaining} more</b> by {lastDay} to keep your {streak}-week streak alive.</>;
 
   return (
     <div style={{

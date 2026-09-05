@@ -4,7 +4,16 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-09-05 (session 240) — 0.4.0-alpha.26 cut: the pause fix reaches the installed copies
+## [Unreleased] — 2026-09-05 (session 240) — Tracker: no more holes, Sunday and toggleable days (#161)
+
+### Added
+- **Days you post on are now yours to choose (#161).** "Edit this week's days & slots" opens with seven day chips (Mon–Sun, green = on). Sunday is in the week grid for the first time; it starts off, so nothing changes until you turn it on. Days ride along with the times: per week, "Set as default", and saved presets all carry them. An off day collapses to a slim dim strip so your posting days keep their width; if a post exists on an off day anyway, that column opens (dimmed) and shows it, with no empty slots. The last remaining day can't be turned off. Pace and the "Hit N more by …" line follow the days you have on ("by Sunday" when Sunday is on), and the Queue's upcoming-date list and next-free-slot suggestion skip your off days instead of always skipping Sunday. Stored templates gain `grid.Sunday` and `activeDays` through a main-process store migration (idempotent; missing fields read as Mon–Sat).
+- **"+ Log a post" per day.** Because past empty slots no longer show, every day that has started gets one quiet row at its bottom for logging something you posted by hand. It opens the usual log popup with a time field, prefilled with the latest missed slot (or the current time), and refuses a time that hasn't happened yet.
+
+### Fixed
+- **The week log no longer shows holes.** A post within 30 minutes of a template slot now fills that slot (a 2:31 PM post sits where "+ 2·30p" used to be, and still reads 2:31p), and an empty slot whose time has already passed draws nothing — the current week reads like a past week. Slots later today and on future days keep their "+" tiles for scheduling and drag-to-move. The row logic moved into two pure, jest-tested modules (`src/renderer/utils/trackerDayRows.js`, `trackerTemplate.js`, 116 tests) so the claiming window, elapsed-collapse and pace math are covered without the view.
+
+: the pause fix reaches the installed copies
 
 ### Changed
 - **Bumped to 0.4.0-alpha.26 and cut the installer**, published to the update feed. Everything on master since the alpha.25 bump (c97253f) is in it — that is the one change, the pause fix for the recording-level stems (eed2031). Cut on Fega's explicit ask: alpha.25 left him unable to pause while editing.

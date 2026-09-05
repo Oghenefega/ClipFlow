@@ -330,7 +330,9 @@ const STORE_DEFAULTS = {
       Thursday: ["main","main","main"],
       Friday: ["main","main","main"],
       Saturday: ["main","main","main"],
+      Sunday: ["main","main","main"],
     },
+    activeDays: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
   },
   trackerData: [],
   // #302: 3 slots x 6 days — derived from the starter schedule above rather
@@ -814,6 +816,39 @@ function runStoreMigrations(store) {
   // start at "").
   if (!store.get("lastSeenVersion")) {
     store.set("lastSeenVersion", app.getVersion());
+  }
+
+  // ── Migration (#161): weekly templates gain a Sunday row and activeDays ──
+  // Every stored template (the default, each week's override, each preset)
+  // gets `activeDays` = Mon–Sat and a `grid.Sunday` row, so a template written
+  // before Sunday existed keeps posting on exactly the days it did. Legacy
+  // shapes without `timeSlots` are left for the renderer's migrateTemplate, as
+  // before. Idempotent; fresh installs already carry both fields.
+  {
+    const WEEK_DAYS_MON_SAT = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const upgrade = (t) => {
+      if (!t || !Array.isArray(t.timeSlots) || !t.grid || typeof t.grid !== "object") return false;
+      let changed = false;
+      if (!Array.isArray(t.activeDays)) { t.activeDays = [...WEEK_DAYS_MON_SAT]; changed = true; }
+      if (!Array.isArray(t.grid.Sunday)) { t.grid.Sunday = Array(t.timeSlots.length).fill("main"); changed = true; }
+      return changed;
+    };
+    let n = 0;
+    const tmpl = store.get("weeklyTemplate");
+    if (upgrade(tmpl)) { store.set("weeklyTemplate", tmpl); n++; }
+    const overrides = store.get("weekTemplateOverrides");
+    if (overrides && typeof overrides === "object") {
+      let any = false;
+      for (const k of Object.keys(overrides)) if (upgrade(overrides[k])) { any = true; n++; }
+      if (any) store.set("weekTemplateOverrides", overrides);
+    }
+    const presets = store.get("savedTemplates");
+    if (Array.isArray(presets)) {
+      let any = false;
+      for (const p of presets) if (p && upgrade(p.template)) { any = true; n++; }
+      if (any) store.set("savedTemplates", presets);
+    }
+    if (n > 0) logger.info(logger.MODULES.system, `Weekly templates gained Sunday + activeDays (#161): ${n} template(s) upgraded`);
   }
 }
 

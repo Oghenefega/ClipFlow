@@ -10,6 +10,7 @@ import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
 import { localISO } from "../utils/trackerEngine";
+import { isActiveDay } from "../utils/trackerTemplate";
 import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -232,12 +233,14 @@ const getWeekDates = (refDate) => {
     return { dayName: name, iso: localISO(x), label: `${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}` };
   });
 };
-const getUpcomingDates = () => {
+// #161: `isActive(dayName, date)` says which days the schedule posts on — the
+// weekly template's activeDays (Sunday used to be skipped here unconditionally).
+const getUpcomingDates = (isActive) => {
   const d = [], n = new Date();
   for (let i = 0; i < 14; i++) {
     const x = new Date(n); x.setDate(n.getDate() + i);
     const dn = FULL_DAY_NAMES[x.getDay()];
-    if (dn === "Sunday") continue;
+    if (isActive && !isActive(dn, x)) continue;
     d.push({ label: `${dn} ${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}`, dayName: dn, iso: localISO(x) });
   }
   return d;
@@ -1199,8 +1202,12 @@ export default function QueueView({
   };
 
   // Phase 3: Auto-suggest next available time slot from weekly template
+  // #161: a date's own week decides which days are on (next week may carry a
+  // different override than this one).
+  const templateForDate = (x) => weekTemplateOverrides?.[getWeekDates(x)[0].iso] || weeklyTemplate;
+  const dayActive = (dn, x) => isActiveDay(templateForDate(x), dn);
   const autoSuggestSlot = () => {
-    const dates = getUpcomingDates();
+    const dates = getUpcomingDates(dayActive);
     const wd = getWeekDates(new Date());
     const mondayIso = wd[0].iso;
     const tmpl = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
@@ -1459,7 +1466,7 @@ export default function QueueView({
     };
   }, []);
 
-  const dates = getUpcomingDates();
+  const dates = getUpcomingDates(dayActive);
   const activePlat = platforms.filter((p) => p.connected);
 
   // #327: `time` is recorded VERBATIM. Manual publishes pass the real clock
