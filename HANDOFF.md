@@ -22,7 +22,7 @@ the content guards are the fix. Probes: `scripts/dev/overlay-first-frame-probe.j
 under load before → 0/45 after) and `scripts/dev/render-e2e-probe.js` (real `renderClip`; 3/8
 card-only renders lost the card before → 0/20 after; word-heavy 73lp 15.4 s → 14.5–17.6 s).
 
-Fega must re-render and re-post the five affected clips once the installer with this fix is on.
+**Confirmed by Fega on alpha.27:** updated, re-rendered the five affected clips, cards present. #363 closed, untested label removed.
 
 Session 240's state follows unchanged.
 
