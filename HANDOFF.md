@@ -24,6 +24,29 @@ card-only renders lost the card before → 0/20 after; word-heavy 73lp 15.4 s �
 
 **Confirmed by Fega on alpha.27:** updated, re-rendered the five affected clips, cards present. #363 closed, untested label removed.
 
+## Key Decisions (s241)
+
+- **Content-verified capture, not a better timer.** Measured: the double-rAF paint handshake alone still returned a stale picture (~1/20 changed frames under load, always frame 0). The guards in `captureExpected` (blank-where-content-expected, identical-across-a-line/word-change) are the fix; the handshake and the warm-up capture only reduce how often they fire.
+- **Bounded retries, never a hang:** major (line/caption) 6, word-level 3, 2 s handshake timeout with a warn. Render time unchanged within noise.
+- **alpha.27 cut on Fega's implicit ask** (posts were going out wrong), carrying #161 tracker + What's New redesign too.
+
+## Next Steps
+
+1. Fega: Tracker → Edit slots → toggle Sun, check the week reads without holes; Settings → About → View release history (both shipped in alpha.27, untested — #161 carries `status: untested`).
+2. #353 still projects a subtitle that straddles two sections once (the Bang clip's "Oh" at 744.93–745.73 shows only in section 1); editor and export agree, but neither shows it twice. Unchanged this session.
+3. Optional hardening: switch the overlay capture to the OSR `paint` event as the primary photo source (would cut the retries to ~0); the guards stay either way.
+
+## Watch Out For
+
+- `git stash pop` under autocrlf flipped the two overlay files to CRLF mid-session; scripted patches must normalise line endings before matching (patch4 failed on that alone).
+- The Bash tool eats one backslash level in heredocs (again): `"\r\n"` in an inline python became literal newlines. Write patch scripts with the Write tool; use `chr(13)`/`chr(10)` if it must be inline.
+- `scripts/dev/render-e2e-probe.js` reads Fega's REAL 100T Day3 Pt1 project (read-only, output to %TEMP%\corva-render-probe); override with `RENDER_PROBE_PROJECT` for a fixture.
+
+## Logs / Debugging
+
+- Render logs (`[Render]`, `[OverlayRenderer]`) go to the main-process console only — NOT to `%APPDATA%\Corva\logs\app.log`. Today's field failure was diagnosed from the output files (ffmpeg contact sheets: `-vf fps=4,scale=200:-1,tile=8x4`) and the project JSON, not logs. `[OverlayRenderer] Frame capture complete: … N stale re-capture(s)` and `Stale capture at t=…` lines now name every rejected photo when the console is visible (dev / harness runs).
+- Audio sync was ruled out by FFT cross-correlation of the export against the source at each section's offset (0 ms lag) — the recipe is in this session's transcript, worth a script if it comes up again.
+
 Session 240's state follows unchanged.
 
 # HANDOFF — Session 240 (2026-09-05) (previous)
