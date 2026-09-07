@@ -239,6 +239,37 @@ function buildCaptionWordOverrideCss(lineConfig, ov, scaleFactor) {
   return css;
 }
 
+// ── Per-line style overrides (#366) ──
+//
+// A caption block keeps the line breaks the user typed (white-space: pre-wrap),
+// so a "line" is one Enter-separated line. segment.lineStyles is keyed by line
+// index and carries the same flat override shape as wordStyles. Resolution per
+// word: block config < line override < word override. Every renderer (editor
+// preview, Projects preview, export overlay window) walks this one token list
+// so the picture cannot drift between them. Whitespace tokens come back with
+// ov: null; a word with nothing to override also comes back with ov: null.
+function buildCaptionTokens(text, wordStyles, lineStyles) {
+  const tokens = String(text || "").split(/(\s+)/);
+  const ws = wordStyles || {};
+  const ls = lineStyles || {};
+  const out = [];
+  let wordIdx = 0;
+  let lineIdx = 0;
+  for (const tok of tokens) {
+    if (tok === "") continue;
+    if (/^\s+$/.test(tok)) {
+      out.push({ text: tok, ov: null });
+      lineIdx += tok.split("\n").length - 1;
+      continue;
+    }
+    const lineOv = ls[lineIdx];
+    const wordOv = ws[wordIdx++];
+    const ov = lineOv || wordOv ? { ...(lineOv || {}), ...(wordOv || {}) } : null;
+    out.push({ text: tok, ov: hasOverride(ov) ? ov : null });
+  }
+  return out;
+}
+
 // ── Punctuation stripper ──
 
 function stripPunctuation(word, punctuationRemove) {
@@ -268,4 +299,5 @@ module.exports = {
   stripPunctuation,
   buildSubtitleWordOverrideCss,
   buildCaptionWordOverrideCss,
+  buildCaptionTokens,
 };

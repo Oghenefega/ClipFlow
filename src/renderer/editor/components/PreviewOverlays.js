@@ -16,6 +16,7 @@ import {
   stripPunctuation,
   buildSubtitleWordOverrideCss,
   buildCaptionWordOverrideCss,
+  buildCaptionTokens,
 } from "../utils/subtitleStyleEngine";
 import {
   findActiveWord,
@@ -299,41 +300,40 @@ export function SubtitleOverlay({
 
 
 // ════════════════════════════════════════════════════════════
-// CaptionText — caption text with per-word style overrides (#270)
+// CaptionText — caption text with per-word (#270) and per-line (#366) overrides
 // ════════════════════════════════════════════════════════════
 //
 // Shared by CaptionOverlay (Projects tab) and PreviewPanelNew (editor preview).
 // Words WITHOUT an override render as plain text nodes inheriting the block's
 // style — pixel-identical to the pre-#270 flat text. Overridden words become
-// inline spans carrying their merged style.
+// inline spans carrying their merged style (block < line < word); the token
+// walk lives in subtitleStyleEngine so the export overlay draws the same thing.
 //
 // Props:
-//   segment       — caption segment {text, wordStyles?}
+//   segment       — caption segment {text, wordStyles?, lineStyles?}
 //   captionStyle  — line config, same shape as clip.captionStyle
 //   scaleFactor   — containerWidth / 1080
 
 export function CaptionText({ segment, captionStyle, scaleFactor }) {
   const text = segment?.text || "";
   const wordStyles = segment?.wordStyles;
+  const lineStyles = segment?.lineStyles;
   const children = useMemo(() => {
-    if (!wordStyles || Object.keys(wordStyles).length === 0) return text;
-    const tokens = text.split(/(\s+)/);
-    let wordIdx = 0;
-    return tokens.map((tok, i) => {
-      if (tok === "" || /^\s+$/.test(tok)) return tok;
-      const idx = wordIdx++;
-      const ov = wordStyles[idx];
-      if (!ov) return tok;
+    const hasWords = wordStyles && Object.keys(wordStyles).length > 0;
+    const hasLines = lineStyles && Object.keys(lineStyles).length > 0;
+    if (!hasWords && !hasLines) return text;
+    return buildCaptionTokens(text, wordStyles, lineStyles).map((t, i) => {
+      if (!t.ov) return t.text;
       let css = null;
       try {
-        css = buildCaptionWordOverrideCss(captionStyle, ov, scaleFactor);
+        css = buildCaptionWordOverrideCss(captionStyle, t.ov, scaleFactor);
       } catch (err) {
         console.error("[CaptionText] word override error:", err);
       }
-      if (!css) return tok;
-      return <span key={i} style={css}>{tok}</span>;
+      if (!css) return t.text;
+      return <span key={i} style={css}>{t.text}</span>;
     });
-  }, [text, wordStyles, captionStyle, scaleFactor]);
+  }, [text, wordStyles, lineStyles, captionStyle, scaleFactor]);
   return children;
 }
 

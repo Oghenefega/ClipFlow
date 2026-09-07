@@ -325,30 +325,25 @@ function renderCaption(timestamp) {
   for (const seg of activeSegs) {
     const textDiv = document.createElement("div");
     applyStyles(textDiv, capStyle);
-    // #270: per-word style overrides — words without one stay plain text nodes
-    // inheriting the block style (pixel-identical to the flat render). Mirrors
-    // CaptionText in PreviewOverlays.
+    // #270/#366: per-word and per-line style overrides — words without one stay
+    // plain text nodes inheriting the block style (pixel-identical to the flat
+    // render). Same token walk as CaptionText in PreviewOverlays.
     const wordStyles = seg.wordStyles;
-    if (!wordStyles || Object.keys(wordStyles).length === 0) {
+    const lineStyles = seg.lineStyles;
+    const hasWords = wordStyles && Object.keys(wordStyles).length > 0;
+    const hasLines = lineStyles && Object.keys(lineStyles).length > 0;
+    if (!hasWords && !hasLines) {
       textDiv.textContent = seg.text;
     } else {
-      const tokens = (seg.text || "").split(/(\s+)/);
-      let wordIdx = 0;
-      for (const tok of tokens) {
-        if (tok === "") continue;
-        if (/^\s+$/.test(tok)) {
-          textDiv.appendChild(document.createTextNode(tok));
-          continue;
-        }
-        const ov = wordStyles[wordIdx++];
-        if (!ov) {
-          textDiv.appendChild(document.createTextNode(tok));
+      for (const t of styleEngine.buildCaptionTokens(seg.text, wordStyles, lineStyles)) {
+        if (!t.ov) {
+          textDiv.appendChild(document.createTextNode(t.text));
           continue;
         }
         const span = document.createElement("span");
-        const css = styleEngine.buildCaptionWordOverrideCss(captionStyleConfig, ov, getScaleFactor());
+        const css = styleEngine.buildCaptionWordOverrideCss(captionStyleConfig, t.ov, getScaleFactor());
         if (css) applyStyles(span, css);
-        span.textContent = tok;
+        span.textContent = t.text;
         textDiv.appendChild(span);
       }
     }

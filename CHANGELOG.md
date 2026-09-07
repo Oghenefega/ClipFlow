@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-06 (session 242) — Style one line of a caption (#366)
+
+### Added
+- **A single caption line can now be styled on its own (#366).** Captions keep the line breaks you type, and you could already style one word or the whole block; now each typed line has its own "Line N" chip in the Captions tab (shown once the caption has two or more lines). Click it for the same card you use on words: colour, font, size, glow, shadow, with Reset. A word's own style still wins over its line, and the line wins over the block. Line styles follow the text as you edit it, survive splitting the caption, and save with the clip. The editor preview, the Projects tab preview and the export all walk one shared token list, so the rendered video matches the preview; verified on a real render with `scripts/dev/caption-line-probe.js` (line 2 red, line 1 white, control run no red) and pinned by six new tests.
+
 ## [Unreleased] — 2026-09-06 (session 242) — "Apply to all clips" no longer wipes the clips you already edited (#365)
 
 ### Changed

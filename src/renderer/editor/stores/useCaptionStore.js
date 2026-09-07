@@ -12,30 +12,49 @@ function _pushCrossUndo() {
 
 let _nextCapId = 1;
 
-// ── Per-word style remap on text edits (#270) ──
-// wordStyles is keyed by whitespace-token index. When the token COUNT is
-// unchanged (typing inside a word, punctuation, caps) indexes stay positional so
-// the style sticks to the word being edited. When words are added/removed, match
-// surviving tokens by text (nearest position wins); unmatched styles drop.
-function _remapWordStyles(oldText, newText, wordStyles) {
-  if (!wordStyles || Object.keys(wordStyles).length === 0) return wordStyles;
-  const oldWords = (oldText || "").split(/\s+/).filter(Boolean);
-  const newWords = (newText || "").split(/\s+/).filter(Boolean);
-  if (oldWords.length === newWords.length) return wordStyles;
+// ── Per-word / per-line style remap on text edits (#270, #366) ──
+// wordStyles is keyed by whitespace-token index, lineStyles by Enter-separated
+// line index. When the item COUNT is unchanged (typing inside a word, punctuation,
+// caps) indexes stay positional so the style sticks to the item being edited.
+// When items are added/removed, match surviving items by text (nearest position
+// wins); unmatched styles drop.
+function _remapIndexedStyles(oldItems, newItems, styles) {
+  if (!styles || Object.keys(styles).length === 0) return styles;
+  if (oldItems.length === newItems.length) return styles;
   const next = {};
-  for (const [k, style] of Object.entries(wordStyles)) {
+  for (const [k, style] of Object.entries(styles)) {
     const idx = Number(k);
-    const w = oldWords[idx];
+    const w = oldItems[idx];
     if (w === undefined) continue;
     let best = -1;
-    for (let j = 0; j < newWords.length; j++) {
-      if (newWords[j] === w && next[j] === undefined &&
+    for (let j = 0; j < newItems.length; j++) {
+      if (newItems[j] === w && next[j] === undefined &&
           (best === -1 || Math.abs(j - idx) < Math.abs(best - idx))) {
         best = j;
       }
     }
     if (best >= 0) next[best] = style;
   }
+  return next;
+}
+const _words = (text) => (text || "").split(/\s+/).filter(Boolean);
+function _remapWordStyles(oldText, newText, wordStyles) {
+  return _remapIndexedStyles(_words(oldText), _words(newText), wordStyles);
+}
+function _remapLineStyles(oldText, newText, lineStyles) {
+  return _remapIndexedStyles((oldText || "").split("\n"), (newText || "").split("\n"), lineStyles);
+}
+
+// Lay `patch` over styles[idx]; null/undefined values remove that key (back to
+// inherit); an emptied entry is dropped from the map.
+function _patchStyleMap(map, idx, patch) {
+  const style = { ...((map || {})[idx] || {}), ...patch };
+  for (const k of Object.keys(style)) {
+    if (style[k] === null || style[k] === undefined) delete style[k];
+  }
+  const next = { ...(map || {}) };
+  if (Object.keys(style).length === 0) delete next[idx];
+  else next[idx] = style;
   return next;
 }
 
@@ -108,7 +127,7 @@ const useCaptionStore = create((set, get) => ({
     set((s) => {
       const segs = s.captionSegments.map((seg) =>
         seg.id === segId
-          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles) }
+          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles), lineStyles: _remapLineStyles(seg.text, text, seg.lineStyles) }
           : seg
       );
       // Keep captionText in sync with first segment
@@ -190,7 +209,8 @@ const useCaptionStore = create((set, get) => ({
         return [
           { ...s2, endSec: time },
           { id: newId, text: s2.text, startSec: time, endSec: s2.endSec,
-            ...(s2.wordStyles ? { wordStyles: { ...s2.wordStyles } } : {}) },
+            ...(s2.wordStyles ? { wordStyles: { ...s2.wordStyles } } : {}),
+            ...(s2.lineStyles ? { lineStyles: { ...s2.lineStyles } } : {}) },
         ];
       }),
     }));
@@ -199,25 +219,42 @@ const useCaptionStore = create((set, get) => ({
 
   setActiveCaptionId: (id) => set({ activeCaptionId: id }),
 
-  // ── Per-word style overrides (#270) ──
-  // Which caption word chip is selected in the Captions panel: { segId, wordIdx }
+  // ── Per-word (#270) and per-line (#366) style overrides ──
+  // Which chip is selected in the Captions panel — a word { segId, wordIdx } or
+  // a line { segId, lineIdx }; picking one clears the other.
   activeCaptionWord: null,
-  setActiveCaptionWord: (info) => set({ activeCaptionWord: info }),
+  activeCaptionLine: null,
+  setActiveCaptionWord: (info) => set({ activeCaptionWord: info, activeCaptionLine: null }),
+  setActiveCaptionLine: (info) => set({ activeCaptionLine: info, activeCaptionWord: null }),
 
   setCaptionWordStyle: (segId, wordIdx, patch) => {
     _pushCrossUndo();
     set((s) => ({
-      captionSegments: s.captionSegments.map((seg) => {
-        if (seg.id !== segId) return seg;
-        const style = { ...((seg.wordStyles || {})[wordIdx] || {}), ...patch };
-        // A patch value of null/undefined removes that key (back to inherit)
-        for (const k of Object.keys(style)) {
-          if (style[k] === null || style[k] === undefined) delete style[k];
-        }
-        const wordStyles = { ...(seg.wordStyles || {}) };
-        if (Object.keys(style).length === 0) delete wordStyles[wordIdx];
-        else wordStyles[wordIdx] = style;
-        return { ...seg, wordStyles };
+      captionSegments: s.captionSegments.map((seg) =>
+        seg.id === segId ? { ...seg, wordStyles: _patchStyleMap(seg.wordStyles, wordIdx, patch) } : seg
+      ),
+    }));
+  },
+
+  setCaptionLineStyle: (segId, lineIdx, patch) => {
+    _pushCrossUndo();
+    set((s) => ({
+      captionSegments: s.captionSegments.map((seg) =>
+        seg.id === segId ? { ...seg, lineStyles: _patchStyleMap(seg.lineStyles, lineIdx, patch) } : seg
+      ),
+    }));
+  },
+
+  clearCaptionLineStyle: (segId, lineIdx) => {
+    const seg = get().captionSegments.find((s) => s.id === segId);
+    if (!seg || !seg.lineStyles || !seg.lineStyles[lineIdx]) return;
+    _pushCrossUndo();
+    set((s) => ({
+      captionSegments: s.captionSegments.map((sg) => {
+        if (sg.id !== segId) return sg;
+        const lineStyles = { ...sg.lineStyles };
+        delete lineStyles[lineIdx];
+        return { ...sg, lineStyles };
       }),
     }));
   },
@@ -262,7 +299,7 @@ const useCaptionStore = create((set, get) => ({
       const targetId = s.activeCaptionId || s.captionSegments[0]?.id;
       const segs = s.captionSegments.map((seg) =>
         seg.id === targetId
-          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles) }
+          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles), lineStyles: _remapLineStyles(seg.text, text, seg.lineStyles) }
           : seg
       );
       const firstText = segs.length > 0 ? segs[0].text : "";
@@ -364,6 +401,7 @@ const useCaptionStore = create((set, get) => ({
         // #270: cap-N ids restart per clip — a stale word selection could match
         // the next clip's ids, so clear it on every open.
         activeCaptionWord: null,
+        activeCaptionLine: null,
       });
     } else {
       // Legacy: create single segment from captionText
@@ -374,6 +412,7 @@ const useCaptionStore = create((set, get) => ({
         captionSegments: text ? [{ id, text, startSec: 0, endSec: null }] : [],
         captionText: text,
         activeCaptionWord: null,
+        activeCaptionLine: null,
       });
     }
   },

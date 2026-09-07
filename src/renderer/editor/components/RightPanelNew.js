@@ -535,13 +535,14 @@ const STORE_KEY = "userEffectPresets";
 //  `style` is the word's override object ({} when none); `lineDefaults` supplies
 //  the inherited values the controls display before an override exists.
 // ════════════════════════════════════════════════════════════════
-function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear }) {
+// `label` is "Word" or "Line" (#366) — the card is otherwise identical.
+function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, label = "Word" }) {
   const merged = { ...lineDefaults, ...style };
   const hasStyle = Object.keys(style).length > 0;
   return (
     <div className="rounded-md border border-primary/40 bg-primary/5 p-2 space-y-2">
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[10px] uppercase tracking-wide text-primary font-semibold shrink-0">Word</span>
+        <span className="text-[10px] uppercase tracking-wide text-primary font-semibold shrink-0">{label}</span>
         <span className="text-xs text-foreground font-semibold truncate">“{word}”</span>
         <div className="flex-1" />
         {hasStyle && (
@@ -1503,6 +1504,20 @@ function TextPanel() {
     () => (captionText || "").split(/\s+/).filter(Boolean),
     [captionText]
   );
+  // #366: the same words grouped by typed line, each carrying its global word
+  // index (wordStyles is keyed across the whole block, not per line).
+  const capLines = useMemo(() => {
+    let wordIdx = 0;
+    return (captionText || "").split("\n").map((lineText, lineIdx) => ({
+      lineIdx,
+      text: lineText.trim(),
+      words: lineText.split(/\s+/).filter(Boolean).map((w) => ({ w, wordIdx: wordIdx++ })),
+    }));
+  }, [captionText]);
+  const activeCaptionLine = useCaptionStore((s) => s.activeCaptionLine);
+  const setActiveCaptionLine = useCaptionStore((s) => s.setActiveCaptionLine);
+  const setCaptionLineStyle = useCaptionStore((s) => s.setCaptionLineStyle);
+  const clearCaptionLineStyle = useCaptionStore((s) => s.clearCaptionLineStyle);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
@@ -1580,6 +1595,12 @@ function TextPanel() {
 
   const [align, setAlign] = useState("center");
 
+  // What a word/line inherits when it has no override of its own.
+  const blockDefaults = { color: captionColor, fontSize: captionFontSize, glowOn: captionGlowOn, glowColor: captionGlowColor, shadowOn: captionShadowOn, shadowColor: captionShadowColor };
+  const wordLineIdx = activeCaptionWord
+    ? capLines.find((l) => l.words.some((x) => x.wordIdx === activeCaptionWord.wordIdx))?.lineIdx
+    : undefined;
+
   return (
     <div className="flex flex-col h-full">
       {/* Sub tabs */}
@@ -1603,31 +1624,63 @@ function TextPanel() {
                 className="w-full px-3 py-2.5 text-sm rounded-md bg-secondary/30 border border-border/40 text-foreground outline-none resize-none placeholder:text-muted-foreground focus:border-primary/30" />
             </div>
 
-            {/* Per-word styling (#270): click a word chip, style just that word */}
+            {/* Per-word (#270) and per-line (#366) styling: one row per typed line.
+                With two or more lines a "Line N" chip leads each row and styles the
+                whole line; word chips style one word. Word beats line beats block. */}
             {targetCapSeg && capWords.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {capWords.map((w, i) => {
-                  const styled = !!targetCapSeg.wordStyles?.[i];
-                  const selected = activeCaptionWord?.segId === targetCapSeg.id && activeCaptionWord?.wordIdx === i;
+              <div className="space-y-1">
+                {capLines.filter((l) => l.words.length > 0).map((line) => {
+                  const lineStyled = !!targetCapSeg.lineStyles?.[line.lineIdx];
+                  const lineSelected = activeCaptionLine?.segId === targetCapSeg.id && activeCaptionLine?.lineIdx === line.lineIdx;
                   return (
-                    <button
-                      key={i}
-                      onClick={() => setActiveCaptionWord(selected ? null : { segId: targetCapSeg.id, wordIdx: i })}
-                      className={`px-1.5 py-0.5 text-xs rounded border transition-colors cursor-pointer ${selected ? "border-primary bg-primary/15 text-primary" : styled ? "border-primary/50 text-foreground hover:bg-secondary/60" : "border-border/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
-                      style={styled ? { boxShadow: `inset 0 -2px 0 ${targetCapSeg.wordStyles[i].color || "hsl(var(--primary))"}` } : undefined}
-                    >
-                      {w}
-                    </button>
+                    <div key={line.lineIdx} className="flex flex-wrap items-center gap-1">
+                      {capLines.length > 1 && (
+                        <button
+                          onClick={() => setActiveCaptionLine(lineSelected ? null : { segId: targetCapSeg.id, lineIdx: line.lineIdx })}
+                          title="Style this whole line"
+                          className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wide font-semibold rounded border transition-colors cursor-pointer ${lineSelected ? "border-primary bg-primary/15 text-primary" : lineStyled ? "border-primary/50 text-foreground hover:bg-secondary/60" : "border-border/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
+                          style={lineStyled ? { boxShadow: `inset 0 -2px 0 ${targetCapSeg.lineStyles[line.lineIdx].color || "hsl(var(--primary))"}` } : undefined}
+                        >
+                          Line {line.lineIdx + 1}
+                        </button>
+                      )}
+                      {line.words.map(({ w, wordIdx: i }) => {
+                        const styled = !!targetCapSeg.wordStyles?.[i];
+                        const selected = activeCaptionWord?.segId === targetCapSeg.id && activeCaptionWord?.wordIdx === i;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => setActiveCaptionWord(selected ? null : { segId: targetCapSeg.id, wordIdx: i })}
+                            className={`px-1.5 py-0.5 text-xs rounded border transition-colors cursor-pointer ${selected ? "border-primary bg-primary/15 text-primary" : styled ? "border-primary/50 text-foreground hover:bg-secondary/60" : "border-border/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
+                            style={styled ? { boxShadow: `inset 0 -2px 0 ${targetCapSeg.wordStyles[i].color || "hsl(var(--primary))"}` } : undefined}
+                          >
+                            {w}
+                          </button>
+                        );
+                      })}
+                    </div>
                   );
                 })}
               </div>
+            )}
+            {activeCaptionLine && targetCapSeg && activeCaptionLine.segId === targetCapSeg.id &&
+              capLines[activeCaptionLine.lineIdx] !== undefined && (
+              <WordStyleCard
+                label="Line"
+                word={capLines[activeCaptionLine.lineIdx].text}
+                style={targetCapSeg.lineStyles?.[activeCaptionLine.lineIdx] || {}}
+                lineDefaults={blockDefaults}
+                onPatch={(p) => { setCaptionLineStyle(targetCapSeg.id, activeCaptionLine.lineIdx, p); markDirty(); }}
+                onClear={() => { clearCaptionLineStyle(targetCapSeg.id, activeCaptionLine.lineIdx); markDirty(); }}
+              />
             )}
             {activeCaptionWord && targetCapSeg && activeCaptionWord.segId === targetCapSeg.id &&
               capWords[activeCaptionWord.wordIdx] !== undefined && (
               <WordStyleCard
                 word={capWords[activeCaptionWord.wordIdx]}
                 style={targetCapSeg.wordStyles?.[activeCaptionWord.wordIdx] || {}}
-                lineDefaults={{ color: captionColor, fontSize: captionFontSize, glowOn: captionGlowOn, glowColor: captionGlowColor, shadowOn: captionShadowOn, shadowColor: captionShadowColor }}
+                // A word inherits its line's override before the block (#366)
+                lineDefaults={{ ...blockDefaults, ...(wordLineIdx !== undefined ? targetCapSeg.lineStyles?.[wordLineIdx] || {} : {}) }}
                 onPatch={(p) => { setCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx, p); markDirty(); }}
                 onClear={() => { clearCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx); markDirty(); }}
               />
