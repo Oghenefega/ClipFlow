@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-07 (session 244) — Technical summary rebuilt against alpha.28; five findings filed (#373–#377)
+
+### Changed
+- **The external technical summary was rebuilt from scratch.** The previous version was written on 2026-08-23 against v0.4.0-alpha.4 and had fallen 210 commits / 217 files / +30,900 −6,917 lines behind. Six agents each read one subsystem against the current tree and every claim traces to a line someone read. Eleven defects the old version listed are now fixed and are marked as such so a reader carrying the old file in their head is corrected rather than confused — the unguarded `whenReady` bootstrap, non-atomic `database.save()`, silent autosave failure, the render ignoring audio-track calibration, MKV bytes under an `.mp4` name, the undefined `log` in `project:delete`, the un-rotatable gateway token, `"Fega"` in the Whisper decoder prompt, the personal caption seed, the "Fega Default" preset name, and "no test runner exists". One architectural claim is now the opposite of the truth and is marked `[inverted]`: the publish scheduler moved out of the renderer into the main process. Two subsystems that did not exist at the last rebuild got their own sections — media overlays with per-clip and per-section layouts (§2.7), and word timing (§2.4). Written to the canonical vault path; refresh logged in `docs/external-docs-log.md`, which also gained a retroactive entry for the 2026-08-23 rebuild that was never recorded.
+
+### Added
+- **Five issues filed from the rebuild's findings.** #373 — six test suites never run under `npm test` because the jest `testMatch` only picks up files inside `__tests__/` directories, and four of them ship inside the asar; the 464-line `segmentWords` suite covering the subtitle chunker has never executed. #374 — a disabled subtitle line burns into the video on every render path except the editor's own Render button, because only `renderPayload.js` filters `enabled !== false`. #375 — `refreshYoutubeViews` searches accounts for `"youtube"` while the OAuth flow stores `"YouTube"`, so the #183 view-count ranking has never had a single row of data. #376 — a decision for Fega: should the publish scheduler refuse to auto-fire when running from source, given that the mandated `npm start` verification ritual now boots a live publisher. #377 — four comments that describe architecture which has since changed, plus three orphaned `trackerEngine` functions still hardcoding `/6`.
+
 ## [Unreleased] — 2026-09-07 (session 244) — 0.4.0-alpha.28 cut: nine session 242/243 fixes reach the installed copies
 
 ### Changed
