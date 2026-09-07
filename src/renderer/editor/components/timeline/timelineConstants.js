@@ -71,7 +71,9 @@ export const MEDIA_COLORS = {
 };
 
 // ── Playhead & guides ──
-export const PLAYHEAD_COLOR = "#9ca3af";
+// #370: the theme accent (a DOM colour, so var() resolves) — the old grey read
+// as chrome, not as the cursor.
+export const PLAYHEAD_COLOR = "var(--accent)";
 export const SNAP_GUIDE_COLOR = "#22d3ee";
 
 // ── Surface colors ──

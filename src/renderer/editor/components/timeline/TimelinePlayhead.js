@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import usePlaybackStore from "../../stores/usePlaybackStore";
 import { fmtTime } from "../../utils/timeUtils";
-import { PLAYHEAD_COLOR, RULER_H, TRACK_H, AUDIO_TRACK_H, LABEL_W } from "./timelineConstants";
+import { PLAYHEAD_COLOR, LABEL_W } from "./timelineConstants";
 
 // ── Live playhead (#57) ──
 // Owns the 60fps rAF loop + smoothTime so the parent TimelinePanelNew does NOT
@@ -66,11 +66,13 @@ export function TimelinePlayhead({ effectiveDuration, clipContentWidth, scrollRe
   if (playheadPx > LABEL_W + clipContentWidth) return null;
 
   return (
+    // #370: top/bottom of the lane wrapper, never a summed lane list — the
+    // Media / Music / SFX lanes are count-driven, and the old fixed sum ended
+    // 2px into the Music lane. Same anchoring as the snap guides.
     <div
       className="absolute z-30 pointer-events-none"
       style={{
-        left: playheadPx, top: 0,
-        height: RULER_H + TRACK_H + TRACK_H + AUDIO_TRACK_H + TRACK_H,
+        left: playheadPx, top: 0, bottom: 0,
         transform: "translateX(-50%)",
       }}
     >
@@ -78,12 +80,12 @@ export function TimelinePlayhead({ effectiveDuration, clipContentWidth, scrollRe
         className="absolute -top-0.5 left-1/2 -translate-x-1/2"
         style={{
           width: 0, height: 0,
-          borderLeft: "5px solid transparent",
-          borderRight: "5px solid transparent",
-          borderTop: `6px solid ${PLAYHEAD_COLOR}`,
+          borderLeft: "4px solid transparent",
+          borderRight: "4px solid transparent",
+          borderTop: `5px solid ${PLAYHEAD_COLOR}`,
         }}
       />
-      <div style={{ width: 2, height: "100%", background: PLAYHEAD_COLOR, margin: "0 auto" }} />
+      <div style={{ width: 1, height: "100%", background: PLAYHEAD_COLOR, margin: "0 auto" }} />
     </div>
   );
 }
