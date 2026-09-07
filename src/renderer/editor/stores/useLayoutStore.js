@@ -11,6 +11,22 @@ function _pushCrossUndo() {
   } catch (_) {}
 }
 
+// #371: the dragged timeline height survives reopening the editor (the shell
+// remounts per clip), the same way the left/preview split does via its
+// autoSaveId. 0 / missing = as tall as the lanes.
+const TL_HEIGHT_KEY = "clipflow-editor-tlheight";
+function readTlHeight() {
+  try {
+    const v = parseInt(window.localStorage.getItem(TL_HEIGHT_KEY), 10);
+    return Number.isFinite(v) && v > 0 ? v : TL_DEFAULT;
+  } catch (_) {
+    return TL_DEFAULT;
+  }
+}
+function writeTlHeight(h) {
+  try { window.localStorage.setItem(TL_HEIGHT_KEY, String(Math.round(h))); } catch (_) {}
+}
+
 const useLayoutStore = create((set, get) => ({
   // ── Left panel ──
   lpTab: "transcript",
@@ -24,7 +40,7 @@ const useLayoutStore = create((set, get) => ({
 
   // ── Timeline ──
   tlCollapsed: false,
-  tlHeight: TL_DEFAULT,
+  tlHeight: readTlHeight(),
 
   // ── Timeline zoom ──
   tlZoom: 1,
@@ -56,7 +72,7 @@ const useLayoutStore = create((set, get) => ({
   },
 
   toggleTlCollapse: () => set((s) => ({ tlCollapsed: !s.tlCollapsed })),
-  setTlHeight: (h) => set({ tlHeight: h }),
+  setTlHeight: (h) => { writeTlHeight(h); set({ tlHeight: h }); },
   setTlZoom: (z) => set({ tlZoom: z }),
 
   setZoom: (z) => set({ zoom: z }),

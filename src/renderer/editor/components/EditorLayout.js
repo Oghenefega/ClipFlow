@@ -44,6 +44,7 @@ import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
 import { buildRenderPayload } from "../utils/renderPayload";
 import { TIMELINE_FIXED_H, MEDIA_TRACK_H, SOUND_TRACK_H } from "./timeline/timelineConstants";
+import { TL_MAX_FRACTION } from "../utils/constants";
 import {
   Tooltip,
   TooltipContent,
@@ -1130,10 +1131,48 @@ export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = 
   const mediaTrackCount = useEditorStore((s) => s.mediaTrackCount);
   const musicTrackCount = useEditorStore((s) => s.musicTrackCount);
   const sfxTrackCount = useEditorStore((s) => s.sfxTrackCount);
-  const timelineHeight =
+  const laneStackHeight =
     TIMELINE_FIXED_H
     + Math.max(1, mediaTrackCount || 1) * MEDIA_TRACK_H
     + (Math.max(1, musicTrackCount || 1) + Math.max(1, sfxTrackCount || 1)) * SOUND_TRACK_H;
+  // #371: the lane stack is the floor; a drag on the timeline's top edge can
+  // take it up to TL_MAX_FRACTION of the body. The extra room is empty track
+  // area — lane heights are constants shared by every block layout, so they
+  // don't scale. The body is measured (not window.innerHeight) so the cap
+  // follows a window resize.
+  const tlHeight = useLayoutStore((s) => s.tlHeight);
+  const bodyRef = useRef(null);
+  const [bodyH, setBodyH] = useState(0);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setBodyH(el.clientHeight));
+    ro.observe(el);
+    setBodyH(el.clientHeight);
+    return () => ro.disconnect();
+  }, []);
+  const tlMax = bodyH > 0 ? Math.max(laneStackHeight, Math.floor(bodyH * TL_MAX_FRACTION)) : Infinity;
+  const timelineHeight = Math.min(tlMax, Math.max(laneStackHeight, tlHeight || 0));
+  const [tlDragging, setTlDragging] = useState(false);
+  const onTlHandlePointerDown = useCallback((e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = timelineHeight;
+    const setTlHeight = useLayoutStore.getState().setTlHeight;
+    const move = (ev) => {
+      const next = Math.min(tlMax, Math.max(laneStackHeight, startH + (startY - ev.clientY)));
+      setTlHeight(next);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setTlDragging(false);
+    };
+    setTlDragging(true);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }, [timelineHeight, tlMax, laneStackHeight]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // The editor's one keyboard layer. It lives here because this shell is
@@ -1184,7 +1223,7 @@ export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = 
       <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} renderJob={renderJob} onCancelRenderJob={onCancelRenderJob} onShowShortcuts={showShortcuts} />
 
       {/* Body + Timeline — timeline fully collapses/expands */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div ref={bodyRef} className="flex-1 flex flex-col overflow-hidden">
         {/* Upper body — takes all space when timeline collapsed */}
         <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
           {/* Left panel + Center preview: horizontal resizable split.
@@ -1214,12 +1253,29 @@ export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = 
         {/* Timeline — fully collapses to 0 when hidden */}
         {!tlCollapsed && (
           <div
-            className="shrink-0"
+            className="shrink-0 relative"
             style={{
               height: timelineHeight,
               borderTop: "1px solid rgba(var(--lift),0.06)",
             }}
           >
+            {/* #371: drag the top edge to make the timeline taller; double-click
+                snaps back to the lane stack. */}
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="Resize timeline"
+              title="Drag to resize the timeline · double-click to reset"
+              onPointerDown={onTlHandlePointerDown}
+              onDoubleClick={() => useLayoutStore.getState().setTlHeight(0)}
+              className="absolute left-0 right-0 z-40 transition-colors"
+              style={{
+                top: -3, height: 7, cursor: "row-resize",
+                background: tlDragging ? "var(--accent)" : "transparent",
+              }}
+              onMouseEnter={(e) => { if (!tlDragging) e.currentTarget.style.background = "rgba(var(--lift),0.14)"; }}
+              onMouseLeave={(e) => { if (!tlDragging) e.currentTarget.style.background = "transparent"; }}
+            />
             <TimelinePanelNew />
           </div>
         )}

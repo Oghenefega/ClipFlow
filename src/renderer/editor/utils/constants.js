@@ -9,9 +9,10 @@ export const LP_MAX = 1400;
 export const DRAWER_DEFAULT = 360;
 export const DRAWER_MIN = 260;
 export const DRAWER_MAX = 560;
-export const TL_DEFAULT = 220;
-export const TL_MIN = 120;
-export const TL_MAX = 480;
+// #371: 0 = "as tall as the lanes"; a dragged height is stored in useLayoutStore.
+export const TL_DEFAULT = 0;
+// The timeline can take at most this share of the editor body when dragged.
+export const TL_MAX_FRACTION = 0.55;
 export const TL_COLLAPSED_H = 38;
 export const LP_GHOST_W = 20;
 
