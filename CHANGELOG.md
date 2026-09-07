@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-07 (session 243) — Five asks: playhead, resizable timeline, subtitle casing, copy/paste layouts, wider Edit-game dialog (#367–#371)
+
+### Added
+- **Drag the timeline taller (#371).** The editor timeline used to be locked to the height of its lanes. Its top edge is now a drag handle: pull it up to make the timeline as tall as about half the editor, and the preview above shrinks to make room. It never goes smaller than the lanes need, double-click on the handle snaps it back, and the height is remembered the next time you open a clip. Extra room is empty track area; the lanes themselves stay the same height. Collapse (Ctrl+.) works as before.
+- **Copy a layout from one section and paste it onto another, or onto another clip (#369).** Right-click a section on the timeline: "Copy layout" takes the picture that section is using, "Paste layout" puts it on the section you right-clicked. The Layout panel has the same two buttons and follows its "This section / This clip" switch, so a paste in clip mode sets the whole clip's layout. Ctrl+Shift+C and Ctrl+Shift+V do the same for the section under the playhead (or the clip when it has no cut); both appear in the keyboard-shortcuts list. The copy survives switching clips within the editor, so you can paste onto a clip from the same recording. A paste onto a recording of a different size is refused with a message, and a pasted section layout can be undone with Ctrl+Z. The Layout panel shows what happened, and opens itself if a paste from the timeline menu was refused.
+
+### Changed
+- **The Edit-game dialog now uses the width of the window (#367).** Settings → Games → edit a game was a 480-pixel single column that scrolled as a whole, footer included. It is now about 960 pixels wide with a fixed header and a pinned Cancel / Save row: tag, day, hashtag, colour, game art and linked program on the left; AI Context open on the right instead of folded away under a disclosure; Active / Inactive moved into the header as a small toggle. At a 1280×860 window nothing scrolls.
+
+### Fixed
+- **The playhead reaches every lane and is a thin accent line (#370).** Its height was a hard-coded sum of an old lane list (194 px) while the real stack with Media, Music and SFX lanes is 264 px or more, so the line stopped 2 px into the Music lane and never covered SFX. It now stretches from the ruler to the last lane whatever the lane count, is 1 px wide with a smaller marker, and uses the theme's accent colour instead of grey.
+- **Subtitles no longer show a lowercase "i", "jesus" or "god" (#368).** The words come from Whisper, which copies the all-lowercase style of the vocabulary hint it is given (in the last 25 recordings: 1050 lowercase "i" against 706 capitalised, 165 "god" against 21 "God"). The old fixer only handled "I" forms and "god" inside "oh my god", and never ran on the transcript shown in the Projects tab. One shared rule set now capitalises I, I'm, I'll, I've, I'd, God, Jesus and Christ (and their possessives, in any position) the moment a transcription is written, so new projects are right on disk, and the same rule runs when an existing project is opened in the editor, previewed, rendered, or read on the Projects tab, with no migration of old files. Edits you saved yourself are never rewritten; compounds like "goddamn" are left alone. Thirteen unit tests. A cased, punctuated Whisper hint was A/B-tested on an 80-second window of a real recording and not shipped: it fixed casing only for the first ~40 s before Whisper drifted back to lowercase, and moved 9 of 102 word starts by more than 50 ms (details on the issue).
+
 ## [Unreleased] — 2026-09-06 (session 242) — Style one line of a caption (#366)
 
 ### Added

@@ -1,4 +1,92 @@
-# HANDOFF — Session 242 (2026-09-06)
+# HANDOFF — Session 243 (2026-09-07)
+
+## Current State
+
+**Session 243: Fega's five asks from one message all shipped on master (five commits), verified
+on the dev build via CDP, NOT yet checked by Fega, NOT cut — installed copies are still alpha.27
+(now eight changes since; cut alpha.28 on his ask).** Plan file: `~/.claude/plans/rosy-growing-papert.md`.
+
+1. **#370 playhead** (7df2976) — `TimelinePlayhead.js` anchors `top:0/bottom:0` (the old summed
+   height was 194 px vs a 264 px+ count-driven stack); 1 px bar, 8×5 marker,
+   `PLAYHEAD_COLOR = "var(--accent)"`. Measured: spans the lane wrapper exactly (528→792).
+2. **#371 resizable timeline** (5d5eb84) — `EditorLayout.js`: `timelineHeight =
+   clamp(laneStackHeight, tlHeight, 55% of the measured body)`; 7 px handle on the timeline's top
+   border (pointer drag, double-click → 0 = lane stack); `useLayoutStore.tlHeight` now read from /
+   written to `localStorage["clipflow-editor-tlheight"]`; `TL_MIN/TL_MAX` removed,
+   `TL_MAX_FRACTION` added. Measured: 312 → 394 (cap at 1280×860), floor refused, reset, 380
+   survived reopening the editor.
+3. **#368 casing** (e85d7d9) — new CJS `editor/utils/subtitleCasing.js`
+   (`fixWordCasing / fixTextCasing / fixTranscriptionCasing`), applied in `whisper.transcribe()`
+   (full pass + manual retranscribe), the batch JSON read in `ai-pipeline.js`, `resolveSubtitles`
+   (replaces the inline fixer), and `ProjectsView.getClipTranscriptSegments`. 13 tests. Whisper
+   prompt A/B run and NOT shipped (numbers on #368; scratchpad `prompt-ab.js`).
+4. **#369 copy/paste layout** (86d2bee) — `useEditorStore`: module-level `_layoutClipboard`,
+   `copyLayout(segId?) / pasteLayout(segId?) / _layoutTarget / clearLayoutNotice`, state
+   `layoutClipboardTick` + `layoutNotice`; `TrackContextMenu` Copy/Paste items; registry
+   `copyLayout` ctrl+shift+c / `pasteLayout` ctrl+shift+v; Layout panel `clipboardRow` under the
+   scope switch in both non-draft branches. Verified all paths on the RL Day9 Pt2 fixture
+   (menu paste, undo, key paste, cross-clip paste onto Clip 2, AR Day16 refused for source size).
+5. **#367 Edit-game dialog** (7fe9afd) — `modals.js` `GameEditModal`: `min(960px, 92vw)`,
+   header / scrolling body / pinned footer, 1fr 1fr columns, AI Context always open on the
+   right, Active/Inactive in the header. 1280×860: body 562/562, no scroll. `AddGameModal`
+   untouched (460 px) — ask Fega if it should follow.
+
+## Key Decisions (s243)
+
+- **Timeline extra room stays empty; lane heights don't scale** — lane heights are constants
+  used by every block layout. Fega can ask for scaling lanes as a follow-up.
+- **Cap = 55% of the measured body**, not the window: a window resize re-clamps via
+  ResizeObserver. At 1280×860 that squeezes the right rail (it scrolls) — pre-existing rail
+  behaviour at short heights; Fega's window is 2000×1112 where it fits.
+- **Casing fix at birth AND on read, no disk migration** — old `project.transcription` stays
+  lowercase on disk; every reader corrects it. `hasEditorSavedSubs` gate untouched.
+- **Whisper prompt left alone** — the cased prompt only helps the first ~40 s and shifts
+  timing (9/102 words > 50 ms). Sentence-case/punctuation would be a deterministic true-casing
+  pass, not a prompt change (noted on #368).
+- **Paste target rule** — explicit segment (menu) > playhead section when the panel is in
+  section scope and the clip has a cut > the clip. Single-section clips always paste onto the
+  clip (a lone section override would be invisible to the panel). `layoutId` stripped on copy.
+- **Status toggle moved into the dialog header** rather than shaving margins, so the left
+  column fits at 1280×860 (Fit-verify rule: remove rows, don't shave).
+
+## Next Steps
+
+1. Fega checks all five on the dev copy (or cut alpha.28 and check installed): playhead colour /
+   thickness, drag the timeline, open a lowercase-heavy project (100T Day4 Pt1) in the Projects
+   tab and the editor, right-click a section → Copy/Paste layout, Settings → Games → edit.
+   Close the `status: untested` labels on confirmation.
+2. Decide: `AddGameModal` to the same width? Lanes should scale with timeline height?
+3. Still open from s241/s242: Tracker Sunday/day toggles + Release history (#161 untested);
+   #353 straddling subtitle.
+
+## Watch Out For
+
+- **The keyboard paste writes to the CLIP when the Layout panel is in clip scope** even if the
+  clip has a cut — by design, but during verification it put a copy of the project layout onto
+  RL Day9 Pt2 Clip 1; restored through the app ("Use project layout"), disk verified all three
+  clips inherit again. Clip-level pastes are IPC writes, NOT undoable with Ctrl+Z.
+- `RightPanelNew.js`, `ProjectsView.js`, `modals.js`, `EditorLayout.js`, `useLayoutStore.js`,
+  `constants.js`, `timelineConstants.js`, `resolveSubtitles.js` are CRLF — Edit tool only.
+- Synthetic `KeyboardEvent("u")` on window did not split (gotcha 64); the context menu's
+  "Split at playhead" did. Ctrl+Z / Ctrl+Shift+V synthetic keydowns DO fire.
+- The right-rail "Layout" button TOGGLES the drawer — a driver must check the panel is closed
+  before clicking, or it closes it (cost one probe round).
+- `Browser.getWindowForTarget` is unavailable on Electron's page target — the large-window
+  check of the dialog was not run; at 1112 px tall the modal simply has more room (85vh cap).
+
+## Logs / Debugging
+
+- Dev boots this session were clean (`Main window revealed`); nothing new in app.log.
+- Scratchpad (`9ed897d3…`): `cdp-run.js` (evaluate a file), `test-369.js` / `test-369b.js`
+  (copy/paste drive), `restore-clip1.js`, `prompt-ab.js` (Whisper prompt A/B → `%TEMP%\corva-prompt-ab\`),
+  `cdp-resize.js` (does not work on Electron, kept for the record). Screenshots in
+  `%TEMP%\claude-s243\shot*.png`.
+- Casing check on real data: the node one-liner in this session's transcript counts
+  lowercase/uppercase i/god/jesus across the 25 newest `project.json` files under `projectsRoot`.
+
+Session 242's state follows unchanged.
+
+# HANDOFF — Session 242 (2026-09-06) (previous)
 
 ## Current State
 
