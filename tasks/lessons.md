@@ -2,9 +2,17 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-06 (s242) -- Session 242: the #364 label-vs-content lesson -> clipflow-ui-debug rule (read-back text wraps in full on its own row, typed text gets a growing textarea); nothing for code-review/ffmpeg this session -->
+> <!-- DISTILLED-THROUGH: 2026-09-07 (s243) -- Session 243: "prove a heuristic on the failing sample before the 15-minute scorer" -> clipflow-code-review; "experiment numbers name what was compared and that nothing shipped" -> memory feedback_plan_clarity; the stranded-word facts -> memory project_subtitle_timing_learning -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
+
+## An experiment's number reached Fega as if it were a shipped regression (2026-09-07, session 243, Fega asked "why are we experiencing regressions")
+**What happened:** the #368 wrap-up said a cased Whisper hint "moved 9 of 102 word starts by more than 50 ms". That was a drift between two throwaway runs in an A/B I had just rejected; nothing from it was in the app. Fega read it as "the upgrade made words drift", tied it to a late-word feeling he already had, and asked why we ship regressions. The number was true and the sentence was still misleading, because it never said what was compared with what, nor that the losing side was discarded.
+**Rule:** any measurement quoted in chat carries its comparison in the same sentence — "run A vs run B of an experiment, B not shipped" — and a non-shipped result is introduced as such before its number. If a number could be read as "the app got worse", say explicitly whether the app changed at all. Promoted to memory `feedback_plan_clarity` (s243 note).
+
+## Two 15-minute scorer runs measured rule variants that never fired on the case they were written for (2026-09-07, session 243, self-caught)
+**What happened:** the stranded-word rescue was written, unit-tested on synthetic tone bursts, and sent straight to `score_production.py` (121 clips, ~14 min on the GPU). Only afterwards did I run it on the STORED Clip 5 words with the real audio: `stranded: 0`. The span test was too strict (the previous word's tail bled into the span), fixed, re-scored — still 0 on the real clip, because the fix used the wrong threshold. The third variant fired. Two scorer runs and two kills wasted, and the first "neutral" aggregate had been measuring a rule that did nothing on the bug it targeted.
+**Rule:** a heuristic gets proven on the exact failing sample (real words, real audio, `stats` shows it fired) BEFORE any expensive corpus score. The corpus score answers "does it hurt elsewhere"; it cannot answer "does it work". Synthetic unit tests don't count as the sample — they encode the assumption, not the recording. Routed to `clipflow-code-review`.
 
 ## A backslash in a `node -e` path argument vanished again; print the written value before booting on it (2026-09-05, session 239, self-caught)
 **What happened:** repointing the dev profile at a scratch fixture, `node -e '… scr + "\\levels-fixture" …'` wrote `projectsRoot = …scratchpadlevels-fixture` — the separator was gone, one backslash level eaten by the tool's JSON decoding. Caught only because the script echoed the value it had written. Rewritten as `path.win32.normalize(scr + "/levels-fixture")` with a forward-slash base, it was right first time.

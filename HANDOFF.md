@@ -62,13 +62,20 @@ on the dev build via CDP, NOT yet checked by Fega, NOT cut — installed copies 
 
 ## Next Steps
 
-1. Fega checks all five on the dev copy (or cut alpha.28 and check installed): playhead colour /
-   thickness, drag the timeline, open a lowercase-heavy project (100T Day4 Pt1) in the Projects
-   tab and the editor, right-click a section → Copy/Paste layout, Settings → Games → edit.
-   Close the `status: untested` labels on confirmation.
-2. Decide: `AddGameModal` to the same width? Lanes should scale with timeline height?
-3. Still open from s241/s242: Tracker Sunday/day toggles + Release history (#161 untested);
-   #353 straddling subtitle.
+1. **Cut alpha.28** — ten changes since alpha.27 (#364–#372 + Add-game width); Fega asked for
+   nothing installed yet, but #372 only reaches his daily driver through the feed.
+2. Fega checks on dev or the new installer: playhead, drag the timeline, Projects-tab transcript
+   casing on 100T Day4 Pt1, right-click a section → Copy/Paste layout, Settings → Games → edit
+   and + Add Game, and his COPY of Clip 5 (already re-transcribed on dev: "They just | took out |
+   three of us | in"). Remove `status: untested` from #367–#372 as he confirms.
+3. If a "words land late" report comes with a clip name, run the s243 audio check first
+   (scratchpad `late-check2.py`: speech timeline + raw-vs-voters re-run) before touching the engine.
+4. Decided this session: lanes do NOT scale with timeline height; Add-game dialog widened (done).
+5. Still open from s241/s242: #161 tracker toggles + Release history untested; #353 straddling
+   subtitle.
+6. The final for-the-record `score_production median` run with the shipped rescue rule was still
+   on the GPU at wrap — result lands in `%TEMP%\score-final-median.log` (expect 86.1%, `stranded`
+   ≈ 21); paste it onto #372 if it differs.
 
 ## Watch Out For
 
