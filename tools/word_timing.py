@@ -53,6 +53,27 @@ QUIET_MIN_RUN = 0.06  # a quiet run must last this long to count
 SNAP_LEAD = 0.02      # land the start this far before the speech edge
 WX_DISAGREE = 0.15    # a lone aligner overrides stable-ts when they differ by more than this
 MIN_WORD = 0.03
+# s243: a word Whisper dropped into silence well before it was spoken ("They" at 4.56 s,
+# said at 6.31 s, then a 1.8 s hole before "just"). Rescued when its span holds no speech,
+# at least STRANDED_GAP of nothing follows it, and a speech onset sits between it and the
+# next word, no further than STRANDED_MAX_MOVE away. The voters can't fix it: they only
+# nudge a start, and a two-second disagreement is gated out.
+STRANDED_GAP = 0.8
+STRANDED_MIN_MOVE = 0.3
+STRANDED_MAX_MOVE = 3.0
+SPEECH_MIN_RUN = 0.06
+# The stranded span may still clip the tail of the previous word ("us" ran to 4.65 on the
+# mic, "They" was parked at 4.56): stranded = the LAST half of the span is quiet and the
+# span as a whole is not mostly speech. The real guard is the onset search below: a word
+# only moves onto a speech run that starts well before the next word — speech nobody owns.
+STRANDED_SPEECH_FRAC = 0.6
+STRANDED_TAIL_FRAC = 0.2
+# For the span test, "speech" is anything within this many dB of the loud end — looser than
+# the onset mask, so a softly spoken word ("man" at -40 dB) still counts as sitting on speech
+# and stays put; only a span that is truly quiet (-55 dB and below here) can be stranded.
+STRANDED_SPAN_REL_DB = 30.0
+# A word at the very start of the audio may be a word the clip cut into — never rescued.
+STRANDED_MIN_START = 0.05
 
 # Median bias of each voter against Fega's finals on the words he left alone (s233 dumps,
 # identical on both clip halves). Subtracted before voting.
@@ -139,6 +160,75 @@ def snap_long_words(segments, audio_np, sr):
             words.append(nw)
         out.append({**seg, "words": words})
     return _enforce_order(out), {"snapped": moved}
+
+
+def _speech_mask(db):
+    """Frames that carry speech: above the noise floor AND within QUIET_REL_DB of the loud end."""
+    noise = float(np.percentile(db, 5))
+    loud = float(np.percentile(db, 95))
+    thr = max(noise + QUIET_ABS_DB, loud - QUIET_REL_DB)
+    return db > thr
+
+
+def rescue_stranded_words(segments, audio_np, sr):
+    """
+    Move a word that sits in silence, followed by a long hole, forward to the first speech
+    onset before the next word (see STRANDED_* above). Word text, order and every other
+    word are untouched; a moved word's segment starts where the word now starts. Pure.
+    """
+    db = energy_db(audio_np, sr)
+    speech = _speech_mask(db)
+    loud = float(np.percentile(db, 95))
+    any_sound = db > max(float(np.percentile(db, 5)) + QUIET_ABS_DB, loud - STRANDED_SPAN_REL_DB)
+    n_frames = len(db)
+    out = [{**seg, "words": [dict(w) for w in seg.get("words", [])]} for seg in segments]
+    flat = [w for seg in out for w in seg["words"]]
+    moved = 0
+    for idx in range(len(flat) - 1):
+        w, nxt = flat[idx], flat[idx + 1]
+        if w["start"] < STRANDED_MIN_START or nxt["start"] - w["end"] < STRANDED_GAP:
+            continue
+        i0 = max(0, min(n_frames - 1, int(w["start"] / FRAME)))
+        i1 = max(i0 + 1, min(n_frames, int(w["end"] / FRAME) + 1))
+        span = any_sound[i0:i1]
+        tail = span[len(span) // 2:]
+        if float(span.mean()) > STRANDED_SPEECH_FRAC or float(tail.mean()) > STRANDED_TAIL_FRAC:
+            continue  # the word sits on speech: not stranded
+        jn = max(i1, min(n_frames, int((nxt["start"] - 0.15) / FRAME)))
+        onset = None
+        j = i1
+        while j < jn:
+            if speech[j]:
+                k = j
+                while k < jn and speech[k]:
+                    k += 1
+                if (k - j) * FRAME >= SPEECH_MIN_RUN:
+                    onset = j * FRAME
+                    break
+                j = k
+            else:
+                j += 1
+        if onset is None:
+            continue
+        move = onset - w["start"]
+        if move < STRANDED_MIN_MOVE or move > STRANDED_MAX_MOVE:
+            continue
+        dur = max(MIN_WORD, w["end"] - w["start"])
+        ns = max(0.0, onset - SNAP_LEAD)
+        ne = min(nxt["start"] - 0.02, ns + dur)
+        w["start"] = round(ns, 3)
+        w["end"] = round(max(ns + MIN_WORD, ne), 3)
+        moved += 1
+    if moved:
+        for seg in out:
+            if not seg["words"]:
+                continue
+            first = seg["words"][0]["start"]
+            # A segment whose first word moved forward moves with it; otherwise the
+            # usual "segment covers its words" rule.
+            seg["start"] = first if seg["start"] < first - 0.5 else min(seg["start"], first)
+            seg["end"] = max(seg["end"], seg["words"][-1]["end"])
+    return _enforce_order(out), {"stranded": moved}
 
 
 # ── HuBERT-large CTC forced alignment (whisperx.align) ───────────────────────
@@ -458,6 +548,9 @@ def refine_word_timing(segments, audio_np, sr, device="cpu", use_whisperx=True, 
             segs, stats = snap_long_words(segments, audio_np, sr)
             stats["method"] = "snap"
         stats["voters"] = names
+        # s243: after the vote — a stranded word is beyond any voter's reach.
+        segs, rescued = rescue_stranded_words(segs, audio_np, sr)
+        stats["stranded"] = rescued["stranded"]
         return segs, stats
     except Exception as e:
         _log(f"refinement skipped ({e})")

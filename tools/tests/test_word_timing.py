@@ -121,6 +121,71 @@ class LadderTests(unittest.TestCase):
             self.assertEqual(starts(out), [1.0])
 
 
+def audio_with_speech(total_s, bursts):
+    """Silence with 220 Hz tone bursts at [(start, end), ...] seconds — a stand-in for speech."""
+    a = np.zeros(int(SR * total_s), dtype=np.float32)
+    t = np.arange(len(a)) / SR
+    for s, e in bursts:
+        m = (t >= s) & (t < e)
+        a[m] = (0.3 * np.sin(2 * np.pi * 220 * t[m])).astype(np.float32)
+    return a
+
+
+class StrandedWordTests(unittest.TestCase):
+    """s243: a word dropped into silence long before it was spoken ("They" at 4.56 s, said at 6.31 s)."""
+
+    def test_stranded_word_moves_to_the_speech_onset(self):
+        audio = audio_with_speech(10, [(2.3, 4.3), (6.3, 9.2)])
+        segs = seg(("us", 4.0, 4.25)) + seg(("They", 4.56, 4.80)) + seg(("just", 6.61, 6.82), ("took", 6.85, 7.06))
+        out, stats = wt.rescue_stranded_words(segs, audio, SR)
+        self.assertEqual(stats["stranded"], 1)
+        they = out[1]["words"][0]
+        self.assertAlmostEqual(they["start"], 6.3 - wt.SNAP_LEAD, places=2)
+        self.assertLess(they["end"], 6.61)
+        self.assertAlmostEqual(out[1]["start"], they["start"], places=3)  # segment followed its word
+        self.assertEqual(starts(out)[0], 4.0)  # neighbours untouched
+        self.assertEqual(starts(out)[2], 6.61)
+        self.assertEqual(starts(segs)[1], 4.56)  # input not mutated
+
+    def test_span_clipping_the_previous_word_still_counts_as_stranded(self):
+        # "us" ran to 4.66 on the mic; "They" parked at 4.56-4.80 overlaps its tail by 10 frames of 24
+        # (the real Clip 5 numbers: 38% of the span was speech, all of it in the first half).
+        audio = audio_with_speech(10, [(2.3, 4.66), (6.3, 9.2)])
+        segs = seg(("us", 4.2, 4.5)) + seg(("They", 4.56, 4.80)) + seg(("just", 6.61, 6.82))
+        out, stats = wt.rescue_stranded_words(segs, audio, SR)
+        self.assertEqual(stats["stranded"], 1)
+        self.assertAlmostEqual(starts(out)[1], 6.3 - wt.SNAP_LEAD, places=2)
+
+    def test_word_on_speech_is_left_alone(self):
+        audio = audio_with_speech(10, [(4.5, 4.9), (6.3, 9.2)])
+        segs = seg(("They", 4.56, 4.80)) + seg(("just", 6.61, 6.82))
+        out, stats = wt.rescue_stranded_words(segs, audio, SR)
+        self.assertEqual(stats["stranded"], 0)
+        self.assertEqual(starts(out), [4.56, 6.61])
+
+    def test_short_gap_is_not_a_hole(self):
+        audio = audio_with_speech(10, [(5.0, 9.2)])
+        segs = seg(("They", 4.56, 4.80), ("just", 5.3, 5.5))
+        out, stats = wt.rescue_stranded_words(segs, audio, SR)
+        self.assertEqual(stats["stranded"], 0)
+
+    def test_no_onset_before_the_next_word_means_no_move(self):
+        audio = audio_with_speech(10, [(6.5, 9.2)])  # speech starts with the next word itself
+        segs = seg(("They", 4.56, 4.80)) + seg(("just", 6.55, 6.82))
+        out, stats = wt.rescue_stranded_words(segs, audio, SR)
+        self.assertEqual(stats["stranded"], 0)
+
+    def test_runs_after_the_vote(self):
+        audio = audio_with_speech(10, [(6.3, 9.2)])
+        segs = seg(("They", 4.56, 4.80)) + seg(("just", 6.61, 6.82))
+        with mock.patch.object(wt, "whisperx_word_starts", return_value=None), \
+             mock.patch.object(wt, "vosk_word_starts", return_value=None), \
+             mock.patch.object(wt, "parakeet_word_starts", return_value=None):
+            out, stats = wt.refine_word_timing(segs, audio, SR)
+        self.assertEqual(stats["stranded"], 1)
+        self.assertAlmostEqual(starts(out)[0], 6.3 - wt.SNAP_LEAD, places=2)
+
+
 class ParakeetChunkTests(unittest.TestCase):
     def test_chunks_are_offset_and_tokens_joined(self):
         class FakeStream:
