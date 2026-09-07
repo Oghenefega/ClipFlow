@@ -147,6 +147,7 @@ const publishLog = require("./publish-log");
 // Chromium timer throttling on a hidden window.
 const publishScheduler = require("./publish");
 const { buildTrackerRow } = require("../shared/trackerRow");
+const { accountToPlatformKey } = require("../shared/captionResolve");
 const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
 if (userDataMigration && userDataMigration.outcome !== "noop") {
@@ -4253,18 +4254,27 @@ async function refreshYoutubeViews() {
     .filter((t) => t.videoId);
   if (targets.length === 0) return { updated: 0, skipped: pending.length };
 
-  const account = (tokenStore.getAllAccounts() || []).find((a) => a.platform === "youtube");
-  if (!account) return { updated: 0, skipped: targets.length, error: "No YouTube account connected" };
+  // #375: match through accountToPlatformKey, the same mapper the tracker rows
+  // are written with. A raw `a.platform === "youtube"` never matched, because
+  // the OAuth flow persists "YouTube" — so this returned {updated: 0} on every
+  // call and #183's view-count ranking never received a single row.
+  const account = (tokenStore.getAllAccounts() || []).find((a) => accountToPlatformKey(a) === "youtube");
+  if (!account) {
+    logger.warn(logger.MODULES.publishing, "View refresh skipped: no YouTube account connected");
+    return { updated: 0, skipped: targets.length, error: "No YouTube account connected" };
+  }
 
   let accessToken = account.accessToken;
   if (account.expiresAt && Date.now() > account.expiresAt) {
     const clientId = store.get("youtubeClientId");
     const clientSecret = store.get("youtubeClientSecret");
     if (!clientId || !clientSecret || !account.refreshToken) {
+      logger.warn(logger.MODULES.publishing, "View refresh skipped: YouTube token expired and cannot be refreshed");
       return { updated: 0, skipped: targets.length, error: "YouTube token expired — reconnect in Settings" };
     }
     const r = await youtubeOAuth.refreshAccessToken(clientId, clientSecret, account.refreshToken);
     if (r.error || !r.access_token) {
+      logger.warn(logger.MODULES.publishing, "View refresh skipped: YouTube token refresh failed");
       return { updated: 0, skipped: targets.length, error: "YouTube token refresh failed" };
     }
     tokenStore.updateTokens(account.id, r.access_token, account.refreshToken, Date.now() + (r.expires_in || 3600) * 1000);
@@ -4281,6 +4291,7 @@ async function refreshYoutubeViews() {
       if (Number.isFinite(views)) { titleCaptionLog.recordViews(t.clipId, views); updated++; }
     }
   }
+  logger.info(logger.MODULES.publishing, `View refresh: ${updated} row(s) updated, ${targets.length - updated} skipped`);
   return { updated, skipped: targets.length - updated };
 }
 

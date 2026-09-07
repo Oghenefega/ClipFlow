@@ -582,16 +582,28 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
 function resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments) {
   let subtitleSegments = [];
   let subsAreSourceAbsolute = false;
+  // #374: a line the user disabled in the editor must not reach the overlay on
+  // ANY path. Only renderPayload.js (the editor's own Render button) used to
+  // filter, so batch renders (Render All from Projects, render:batch) burned
+  // disabled lines back in. Filter at ingestion, not after: the resolver branch
+  // below copies four named fields and would drop `enabled` before any later
+  // filter could see it. Only an explicit `false` disables.
+  const isEnabled = (s) => s.enabled !== false;
   if (Array.isArray(clipData.subtitles)) {
     // EditorLayout already resolved + mapped these to timeline time.
-    subtitleSegments = clipData.subtitles;
+    subtitleSegments = clipData.subtitles.filter(isEnabled);
+    const dropped = clipData.subtitles.length - subtitleSegments.length;
+    if (dropped > 0) console.log("[Render] Dropped", dropped, "disabled subtitle segment(s)");
   } else {
     // resolveClipSubtitles returns SOURCE-ABSOLUTE, repaired segments
     // {start,end,text,words}. Map start/end → startSec/endSec so the
     // visibleSubtitleSegments NLE mapping (and the overlay) can consume them.
     const resolved = resolveClipSubtitles(clipData, projectData, { includeExtras: false });
-    if (resolved.segments.length > 0) {
-      subtitleSegments = resolved.segments.map((s) => ({
+    const enabled = resolved.segments.filter(isEnabled);
+    const dropped = resolved.segments.length - enabled.length;
+    if (dropped > 0) console.log("[Render] Dropped", dropped, "disabled subtitle segment(s)");
+    if (enabled.length > 0) {
+      subtitleSegments = enabled.map((s) => ({
         startSec: s.start,
         endSec: s.end,
         text: s.text,
@@ -1373,4 +1385,5 @@ module.exports = {
   renderThumbnail,
   cancelActiveRender,
   buildNleFilterComplex, // #164: exported as a seam for the render-args verification harness
+  resolveTimelineSubtitles, // #374: exported as a seam so the disable filter is testable
 };

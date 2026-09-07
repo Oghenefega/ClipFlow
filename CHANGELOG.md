@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-07 (session 244) — Disabled subtitle lines stay out of the export; YouTube view counts can finally be collected (#374, #375)
+
+### Fixed
+- **A subtitle line you switched off no longer appears in the finished video (#374).** Turning a line off worked when you rendered from inside the editor, but every other route — "Render All" from Projects, and any queued batch render — put it back. Only the editor's own render payload filtered switched-off lines; the code that reads subtitles from disk carried the setting through and then ignored it, and the overlay that draws them never checked it at all. The filter now runs where the subtitles are read, so all routes agree. It had to go at the point of reading rather than after: the disk path copies four named fields out of each line and was dropping the on/off setting before any later check could see it — the first attempt at this fix looked correct and did nothing. Proved on real exports with a new probe (`scripts/dev/subtitle-disable-probe.js`) that renders the same clip twice, once with a line switched off, and compares the two videos frame by frame: the only frames that differ are the 0.4 s where that line used to be, and every other sampled frame is identical.
+- **YouTube view counts can be collected again — they never could (#375).** The refresh looked for a connected account whose platform was `youtube`, but the sign-in saves it as `YouTube`, so it never found one and quietly gave up every time. Checked against the four real connected accounts: all four are stored with capitals, so the old check missed YouTube every run since it was written, and #183's ranking of which titles actually performed has never received a single view count. The lookup now goes through the same platform-name resolver the rest of the publish path uses. The three "gave up" paths now write a line to the log instead of failing silently, and a successful run records how many rows it updated.
+
+### Added
+- **Two test suites pinning both fixes.** `renderSubtitleEnabled.test.js` covers both subtitle sources (already-resolved lines from disk, and freshly resolved ones) and checks that only an explicit "off" removes a line, that the clip handed in is never modified, and that the legacy non-timeline path still shifts times correctly. `accountPlatformKey.test.js` pins the exact platform names the sign-in flows save, and asserts that the raw comparison which caused #375 does **not** match — so if the stored names ever change, the test says so.
+
 ## [Unreleased] — 2026-09-07 (session 244) — Technical summary rebuilt against alpha.28; five findings filed (#373–#377)
 
 ### Changed
