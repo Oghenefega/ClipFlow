@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-05 (session 242) — Rejection notes read back at a glance (#364)
+
+### Fixed
+- **A rejection note now stays visible after you write it (#364).** In the Projects tab, typing a note on a rejected clip used to save silently and collapse to a "Note…" pill that looked almost the same as an empty one, so there was no sign it had saved and no way to see the reason later without reopening it. Now the note box is full-width and wraps as you type (the start of a long sentence no longer scrolls out of view), a green "Saved ✓" flashes for a moment when it lands, and the saved note shows in full on its own row under the reason chips, in italics, never cut off. Click it to edit. Saving still happens on Enter or when you click away.
+
 ## [Unreleased] — 2026-09-05 (session 241) — 0.4.0-alpha.27 cut: the title-card fix reaches the installed copies
 
 ### Changed

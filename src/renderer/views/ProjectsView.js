@@ -794,6 +794,10 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState(clip.rejectNote || "");
+  // #364: brief "Saved" tick after the note lands; the timer is cleared on unmount.
+  const [noteSaved, setNoteSaved] = useState(false);
+  const noteSavedTimer = useRef(null);
+  useEffect(() => () => clearTimeout(noteSavedTimer.current), []);
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
 
@@ -814,6 +818,17 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
     const next = rejectReasons.includes(key) ? rejectReasons.filter((k) => k !== key) : [...rejectReasons, key];
     saveReasons(next, noteText.trim());
   };
+  // #364: save the note and flash "Saved" only when it actually changed.
+  const saveNote = () => {
+    const trimmed = noteText.trim();
+    const changed = trimmed !== (clip.rejectNote || "");
+    saveReasons(rejectReasons, trimmed);
+    if (!changed) return;
+    setNoteSaved(true);
+    clearTimeout(noteSavedTimer.current);
+    noteSavedTimer.current = setTimeout(() => setNoteSaved(false), 1500);
+  };
+  const savedNote = noteText.trim();
 
   // Transcript as flowing prose — join the clip-window segment texts, no [mm:ss] stamps.
   // Mirrors how the editor's TranscriptTab reads; the per-line timestamps were the
@@ -1036,29 +1051,56 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
                 </button>
               );
             })}
-            <button
-              onClick={() => setNoteOpen(!noteOpen)}
-              style={{
-                padding: "4px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, fontFamily: T.font,
-                border: `1px solid ${noteOpen || noteText.trim() ? T.borderHover : T.border}`,
-                background: T.surfaceHover, color: noteText.trim() ? T.text : T.textSecondary,
-                cursor: "pointer", whiteSpace: "nowrap",
-              }}
-            >
-              Note…
-            </button>
+            {/* #364: the "Note…" chip only while there is no note to show. */}
+            {!(savedNote && !noteOpen) && (
+              <button
+                onClick={() => setNoteOpen(!noteOpen)}
+                style={{
+                  padding: "4px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, fontFamily: T.font,
+                  border: `1px solid ${noteOpen ? T.borderHover : T.border}`,
+                  background: T.surfaceHover, color: T.textSecondary,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                }}
+              >
+                Note…
+              </button>
+            )}
+            {noteSaved && (
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: T.green, fontFamily: T.font, whiteSpace: "nowrap" }}>
+                Saved ✓
+              </span>
+            )}
+            {/* #364: a saved note is content, not a label — its own full-width row,
+                wrapped and never truncated, so the reason reads at a glance. Click to edit. */}
+            {savedNote && !noteOpen && (
+              <button
+                onClick={() => setNoteOpen(true)}
+                title="Click to edit"
+                style={{
+                  flexBasis: "100%", textAlign: "left", padding: "6px 10px", borderRadius: T.radius.sm,
+                  fontSize: 12, fontStyle: "italic", lineHeight: 1.45, fontFamily: T.font,
+                  border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text,
+                  cursor: "pointer", whiteSpace: "pre-wrap", overflowWrap: "anywhere",
+                }}
+              >
+                “{savedNote}”
+              </button>
+            )}
+            {/* Typing gets a wrapping box that grows with the text; Enter saves and closes. */}
             {noteOpen && (
-              <input
+              <textarea
+                rows={1}
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                onBlur={() => saveReasons(rejectReasons, noteText.trim())}
-                onKeyDown={(e) => { if (e.key === "Enter") { saveReasons(rejectReasons, noteText.trim()); setNoteOpen(false); } }}
+                onBlur={saveNote}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveNote(); setNoteOpen(false); } }}
                 autoFocus
                 placeholder="why this one didn't make it…"
                 style={{
-                  flex: 1, minWidth: 180, padding: "5px 10px", borderRadius: 999,
+                  flexBasis: "100%", padding: "6px 10px", borderRadius: T.radius.sm,
                   background: T.surfaceHover, border: `1px solid ${T.borderHover}`,
-                  color: T.text, fontFamily: T.font, fontSize: 11.5, outline: "none",
+                  color: T.text, fontFamily: T.font, fontSize: 12, lineHeight: 1.45, outline: "none",
+                  resize: "none", fieldSizing: "content",
                 }}
               />
             )}

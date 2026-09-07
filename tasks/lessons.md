@@ -1878,3 +1878,11 @@ build the dot where he drew it. Pairs with s229's "the reference NLE's interacti
 **Why:** Two assumptions went unverified: that a fixed delay equals a paint, and that a captured frame equals the DOM. The render was verified by graph tests and LUFS, never by "does frame 0 of the file contain what the editor shows". A wait-for-paint alone did not fix it either — measured, the offscreen window still returned a stale picture on about one changed frame in twenty under load and always on frame 0; only checking the photo against the page's own expectation (blank where content is expected, identical across a line/word change) made it hold.
 
 **Rule:** Anything that photographs a browser surface must (1) wait for the page to report the paint, never sleep a fixed time, and (2) validate the capture against what the page says should be there before it is cached or shipped. And every render-path change is verified on the OUTPUT FILE: extract frame 0 and a frame per caption/line and compare to the editor's expectation (scripts/dev/render-e2e-probe.js), with an encoder running in parallel to reproduce real load. "Same code as the editor" is a claim about the drawing, not about the photograph.
+
+## Session 242 (2026-09-05) — "at a glance" means the whole thing, and a free-text field must wrap
+
+**What happened:** #364 shipped the rejection note as a truncated pill (260 px, ellipsis) and kept the single-line input. Fega: while typing, the start of the sentence scrolls out of view; after Enter, the note is cut to a few words, which is the exact "can't see why I rejected it" problem the fix was for.
+
+**Why:** I styled the note like the reason chips next to it instead of like the content it is. A chip is a label; a note is a sentence. Ellipsis on the one element whose whole job is to be read defeats the feature, and a one-line `<input>` hides everything before the caret on any sentence longer than the box.
+
+**Rule:** free-text the user is meant to read back gets its own full-width row, wraps, and is never truncated (a hover title is not a substitute). Free-text the user types gets a wrapping textarea that grows with the content, never a single-line input. Before proposing a UI, ask "is this a label or is this content?" and style for that.
