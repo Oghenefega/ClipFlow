@@ -26,7 +26,8 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.85 * var(--shadeK)))", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-      <div style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 460, width: "100%", border: `1px solid ${T.accentBorder}`, boxShadow: "0 24px 80px rgba(139,92,246,0.2)", overflow: "hidden" }}>
+      {/* #367 follow-up: same desktop width treatment as the Edit dialog (was 460). */}
+      <div style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 640, width: "100%", border: `1px solid ${T.accentBorder}`, boxShadow: "0 24px 80px rgba(139,92,246,0.2)", overflow: "hidden" }}>
         {/* Header */}
         <div style={{ background: T.accentGlow, padding: "24px 28px 20px", borderBottom: `1px solid ${T.accentBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
