@@ -12,6 +12,26 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.28",
+    date: "2026-09-07",
+    added: [
+      "Style a single line of a caption. Captions keep the line breaks you type, and you could already restyle one word or the whole block. Now every line you type gets its own \"Line 1\", \"Line 2\" chip in the Captions tab: click one for the same card you use on words — colour, font, size, glow, shadow, with Reset. A word you styled yourself still wins over its line, line styles follow the text as you edit it, and the export matches what you see in the preview.",
+      "Copy a layout from one section and paste it onto another, or onto another clip. Right-click a section on the timeline for \"Copy layout\" and \"Paste layout\", or use the two new buttons in the Layout panel — in \"This clip\" mode a paste sets the whole clip. Ctrl+Shift+C and Ctrl+Shift+V do the same for whatever is under the playhead. The copy survives switching clips, so you can carry a layout to another clip from the same recording; pasting onto a recording of a different size is refused with a message, and a paste can be undone.",
+      "Drag the editor timeline taller. Its top edge is now a handle: pull it up for as much as half the editor and the preview shrinks to make room. It never gets smaller than the lanes need, double-click the handle snaps it back, and the height is remembered next time you open a clip.",
+    ],
+    changed: [
+      "\"Apply to all clips\" no longer wipes the clips you already edited. In the Layout panel the button is now \"Apply to clips without their own layout\": clips that were following the project default pick up the new one, and clips you gave their own layout keep it. A line underneath says how many keep theirs, with a link for the old replace-everything behaviour. The Recording levels popover on the audio lane works the same way.",
+      "Editing a game now uses the width of the window. Settings → Games → edit a game was a narrow single column that scrolled as a whole. It is now a wide two-column card with a pinned Cancel / Save row: tag, day, hashtag, colour, game art and linked program on the left, AI Context open on the right instead of hidden away, and Active / Inactive as a small toggle in the header.",
+    ],
+    fixed: [
+      "Subtitles no longer show a lowercase \"i\", \"jesus\" or \"god\". Whisper writes them in lowercase; Corva now capitalises I, I'm, I'll, I've, I'd, God, Jesus and Christ the moment a recording is transcribed, and again when an older project is opened, previewed or rendered. Words you edited yourself are never rewritten, and \"goddamn\" is left alone.",
+      "A word said two seconds later than the subtitle claimed now lands where you said it. Whisper sometimes parks a word inside a pause long before it was spoken, so nothing shows while you talk and the next words pop in late. Corva now spots a word sitting in silence with a long gap after it and moves it to where the speech actually starts.",
+      "Phrases stay together in the 3-word subtitles. The grouper filled three words wherever there was no pause, splitting things like \"took out\", \"three of us\" and \"oh my word\" across two pills. Those now count as one unit.",
+      "The playhead reaches every lane. It stopped short of the Music and SFX lanes because its height was fixed to an older, shorter set of lanes. It now runs from the ruler to the last lane however many there are, and it is a thin line in your theme's accent colour instead of a thick grey one.",
+      "A rejection note now stays visible after you write it. In the Projects tab, typing a note on a rejected clip saved silently and collapsed into a pill that looked the same as an empty one. The box is now full-width and wraps as you type, a green \"Saved\" tick flashes when it lands, and the note shows in full on its own row underneath — click it to edit.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.27",
     date: "2026-09-05",
     added: [

@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-07 (session 244) — 0.4.0-alpha.28 cut: nine session 242/243 fixes reach the installed copies
+
+### Changed
+- **Bumped to 0.4.0-alpha.28 and cut the installer**, published to the update feed. Everything on master since the alpha.27 bump (bfca004) is in it — the whole of sessions 242 and 243: per-line caption styling (#366), copy/paste a layout between sections and clips (#369), a draggable timeline height (#371), "Apply to all clips" no longer wiping edited clips (#365), the widened Edit-game dialog (#367), rejection notes that stay readable after saving (#364), capitalised I / God / Jesus / Christ in subtitles (#368), a playhead that reaches every lane (#370), and the #372 word-timing rescue plus the phrase-aware 3-word grouping. Nine issues, so the batch rule is satisfied without an explicit ask. What's New describes them in product words.
+
 ## [Unreleased] — 2026-09-07 (session 243) — A word parked in silence no longer wrecks the 3-word grouping (#372)
 
 ### Fixed
