@@ -53,7 +53,44 @@ const ATOMIC_PHRASES = new Set([
   "hold on", "watch this", "trust me", "believe me", "check this",
   "light work", "real quick", "right here", "right there",
   "one more", "each other", "out here", "out there",
+  // s243: phrasal verbs — the particle belongs with its verb ("took out", never
+  // "…took | out three…"). Forms Fega actually says; scored against his approved
+  // pills before shipping (see the session-243 group_exp run).
+  "took out", "take out", "takes out", "taking out", "taken out",
+  "took down", "take down", "takes down", "taking down",
+  "pull up", "pulled up", "pulling up", "pulls up",
+  "back off", "backed off", "back up", "backed up",
+  "set up", "blew up", "blow up", "blows up", "blowing up",
+  "pick up", "picked up", "picking up", "wake up", "woke up",
+  "shut up", "shut down", "get out", "got out", "get in", "got in",
+  "go in", "went in", "run away", "ran away", "hold up", "hurry up",
+  "give up", "gave up", "mess up", "messed up", "screw up", "screwed up",
+  "calm down", "sit down", "chill out", "watch out", "look out",
+  "knock out", "knocked out", "wipe out", "wiped out", "show up", "showed up",
+  "hop on", "hop off", "log off", "log on", "clean up", "cleaned up",
+  "clutch up", "clutched up", "lock in", "locked in", "line up", "lined up",
 ]);
+
+// s243: "three of us", "all of them", "both of you" — a count and the people it
+// counts are one unit. Quantifier + "of" + pronoun.
+const QUANTIFIERS = new Set([
+  "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "all", "both", "none", "most", "some", "each", "half", "any", "many", "few",
+  "couple", "rest", "lot", "lots", "either", "neither",
+]);
+const OF_PRONOUNS = new Set(["us", "them", "you", "these", "those", "'em", "em", "y'all", "yall", "it", "him", "her", "mine", "yours", "ours", "theirs"]);
+// Three-word exclamations that read as one pill. Without this, an earlier "Oh my" pill in
+// the same clip (split off by a comma) teaches Rule 1c to cut "Oh my | word" later on.
+const ATOMIC_TRIPLES = new Set([
+  "oh my word", "oh my god", "oh my gosh", "oh my goodness", "oh my days", "oh my lord",
+  "what the heck", "what the hell", "what the fuck",
+]);
+function isQuantifierPhrase(words, i) {
+  if (i + 2 >= words.length) return false;
+  const a = norm(words[i]), b = norm(words[i + 1]), c = norm(words[i + 2]);
+  if (ATOMIC_TRIPLES.has(`${a} ${b} ${c}`)) return true;
+  return QUANTIFIERS.has(a) && b === "of" && OF_PRONOUNS.has(c);
+}
 
 // ── Helpers ──
 
@@ -289,6 +326,19 @@ function chunkPartition(words, knownPhrases) {
       }
       flushAndTrack(phraseChunk);
       i += pLen - 1; // -1 because loop will i++
+      continue;
+    }
+
+    // Rule 1d (s243): quantifier phrase — "three of us" is one pill. Flush what
+    // came before, emit the three words together, skip past them. Only when the
+    // three words aren't themselves split by a pause the walls already respect.
+    if (isQuantifierPhrase(words, i)) {
+      if (chunk.length > 0) {
+        flushAndTrack(chunk);
+        chunk = [];
+      }
+      flushAndTrack([words[i], words[i + 1], words[i + 2]]);
+      i += 2;
       continue;
     }
 
