@@ -31,6 +31,17 @@ on the dev build via CDP, NOT yet checked by Fega, NOT cut — installed copies 
    right, Active/Inactive in the header. 1280×860: body 562/562, no scroll. `AddGameModal`
    untouched (460 px) — ask Fega if it should follow.
 
+6. **#372 stranded word + grouping units** (two commits after the five above, plus the Add-game
+   dialog at 640 px, 876dbcb). `tools/word_timing.py` `rescue_stranded_words` (after the vote,
+   all ladder rows; constants `STRANDED_*`); `segmentWords.js` phrasal verbs in `ATOMIC_PHRASES`,
+   `QUANTIFIERS`/`OF_PRONOUNS`/`ATOMIC_TRIPLES` via `isQuantifierPhrase` (Rule 1d). Scored:
+   `score_production median` 86.1 → 86.1% (first-moved 54.6 → 55.6%), per-word audit 4 better /
+   1 worse / 16 deleted-by-Fega; `group_exp` exact pills 1271 → 1279, precision 89.9 → 91.0%.
+   Live on Fega's rejected COPY of Clip 5 (dev, Re-transcribe): `'stranded': 1`, editor reads
+   "They just | took out | three of us | in | Oh my word". Rendered Clip 5 itself untouched.
+   Fega's "words land late" on that clip WAS this one word; the raw-vs-voters A/B on the clip
+   showed the alpha.23 engine is not late (tens of ms, mostly earlier).
+
 ## Key Decisions (s243)
 
 - **Timeline extra room stays empty; lane heights don't scale** — lane heights are constants

@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-07 (session 243) — A word parked in silence no longer wrecks the 3-word grouping (#372)
+
+### Fixed
+- **A word Whisper drops into silence two seconds early is now moved to where it was actually said (#372).** On 100T Day4 Pt1 Clip 5 the word "They" was timed at 4.56 s, inside a two-second pause, while Fega said it at 6.31 s: nothing showed while he spoke, "just took" popped in late, and the grouping came out as "just took / out three / of us in". The timing voters could never fix it, because they only nudge a word and a two-second disagreement is discarded. A new step after the vote finds a word whose span is quiet, followed by a long hole, and moves it forward to the first stretch of speech before the next word. Scored on Fega's 121 approved clips: overall accuracy unchanged at 86.1%, first-word errors slightly down; of the 21 words it moves, 4 land closer to his final, 1 further, 16 are words he had deleted anyway. This was Whisper's mistake, not the Sep 4 timing upgrade: the old and new engines placed the word identically.
+- **"took out", "three of us" and "oh my word" stay together as subtitle pills.** The grouper filled three words whenever there was no pause, so "They just took / out three / of us / in" came out where Fega expected "They just / took out / three of us / in". Phrasal verbs now count as one unit, so do "number + of + us/them/you" and the "oh my …" / "what the …" exclamations. On his 1,618 approved pills the grouper now reproduces 79.0% exactly (was 78.6%) with boundary precision up from 89.9% to 91.0%. Verified live on his copy of Clip 5 after a re-transcribe.
+
 ## [Unreleased] — 2026-09-07 (session 243) — Five asks: playhead, resizable timeline, subtitle casing, copy/paste layouts, wider Edit-game dialog (#367–#371)
 
 ### Added
