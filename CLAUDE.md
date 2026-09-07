@@ -68,6 +68,13 @@ npm run dev:seed             # Copy prod data → dev profile (--force to overwr
 
 **After ANY code change:** build + `npm start` to visually verify. Non-negotiable.
 
+**Only the installed app auto-publishes (#376).** The publish scheduler refuses to start on any
+source run — `npm start` included — and on the dev profile. So the verification step above cannot
+fire a scheduled clip at your accounts, which it could between #329 and s244. The tradeoff is
+deliberate: running prod from source will **not** post scheduled clips. Overrides exist for a
+deliberate test (`CLIPFLOW_ALLOW_SOURCE_PUBLISH=1`, `CLIPFLOW_ALLOW_DEV_PUBLISH=1`); neither can
+trigger by accident. A manual "Post now" in the UI is unaffected on every profile.
+
 ## Dev / Daily profile split (#80)
 
 Two isolated profiles via `CLIPFLOW_PROFILE` env var so dev experiments never touch real data.
@@ -77,7 +84,7 @@ Two isolated profiles via `CLIPFLOW_PROFILE` env var so dev experiments never to
 | **prod** (daily) | `%APPDATA%\Corva\` (a legacy `%APPDATA%\clipflow\` is renamed into place on first boot, #268/#288) | `<userData>\data\clipflow.db` (packaged) or `<repo>/data/` (source) | Start Menu (installed exe) or `npm start` |
 | **dev** | `%APPDATA%\clipflow-dev\` | `%APPDATA%\clipflow-dev\data\clipflow.db` | `npm run dev` |
 
-The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path.
+The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path — and since #376 it does not auto-publish, so it is a viewing/verification backup, not a substitute for the installed app on a day with scheduled clips.
 
 **Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json` + `CHANGELOG.md` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\Corva\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
 

@@ -1397,6 +1397,9 @@ app.whenReady().then(async () => {
     tokenStore,
     logger,
     isDevProfile: CLIPFLOW_PROFILE === "dev",
+    // #376: only the INSTALLED app auto-publishes. A source run (npm start on the
+    // prod profile, or npm run dev) must never fire a scheduled clip.
+    isPackaged: app.isPackaged,
     publishers: {
       tiktok: publishTikTok,
       instagram: publishInstagram,

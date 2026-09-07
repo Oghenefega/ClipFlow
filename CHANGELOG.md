@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-07 (session 244) — Only the installed app can auto-publish (#376)
+
+### Changed
+- **Scheduled clips now only ever post from the installed app (#376, Fega's call).** Since #329 moved the publish scheduler into the main process, running Corva from source on the normal profile — which is what `npm start` does, and what the project's own after-every-change verification step requires — started a real publisher: it woke up within a minute of launch and would post anything already overdue to the live accounts. That happened once, unasked, at 1:15 AM. The scheduler now refuses to start on any source run, alongside the existing refusal on the dev profile, so neither can fire by accident. The deliberate tradeoff: running the app from source will **not** post scheduled clips, so it is a viewing and verification path rather than a stand-in for the installed app on a day with things queued. A manual "Post now" in the Queue is untouched everywhere — that is a human pressing a button, not a timer. Each refusal has its own opt-in environment variable for a deliberate test, and a missing flag is treated as "do not publish", so a future code path that forgets to declare itself fails toward silence rather than quietly re-arming. Verified on a real launch: the log reads "running from source — scheduled publishing disabled". Six new tests pin the whole matrix, including that the dev override alone does not unlock a source run.
+
 ## [Unreleased] — 2026-09-07 (session 244) — Disabled subtitle lines stay out of the export; YouTube view counts can finally be collected (#374, #375)
 
 ### Fixed

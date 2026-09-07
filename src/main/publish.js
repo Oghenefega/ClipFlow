@@ -339,17 +339,35 @@ async function tickOnce() {
 /**
  * Start the 60s tick. Idempotent.
  *
- * The dev-profile refusal is the s214 lesson made structural: a dev build once
- * auto-published to real accounts because its renderer's scheduler was alive. Now that
- * the scheduler runs with no window to notice it, "the dev profile does not auto-post"
- * has to be code, not discipline. A manual Publish now from the dev UI is untouched —
- * that is a deliberate human act.
+ * Two refusals, both structural rather than disciplinary.
+ *
+ * The dev-profile refusal is the s214 lesson: a dev build once auto-published to real
+ * accounts because its renderer's scheduler was alive. Now that the scheduler runs with
+ * no window to notice it, "the dev profile does not auto-post" has to be code.
+ *
+ * The source-run refusal is #376 (Fega's call, s244). The dev guard was built where the
+ * s214 incident happened and left the MANDATED path armed: CLAUDE.md requires a
+ * `npm start` after every change, that is the PROD profile with the real OAuth tokens,
+ * and the scheduler ticks within 60s of boot. Only the installed app auto-publishes now.
+ * The documented consequence: running prod from source will NOT fire scheduled clips —
+ * that is the intent, not a bug.
+ *
+ * Both are overridable by an explicit env var, so a deliberate test is still possible.
+ * Neither can fire by accident, which is the whole point. A manual "Post now" from the
+ * UI is untouched on every profile — that is a human act, not a timer.
  */
 function startScheduler(injected) {
   deps = injected;
   if (timer) return;
   if (deps.isDevProfile && process.env.CLIPFLOW_ALLOW_DEV_PUBLISH !== "1") {
     log("info", "Scheduler: dev profile — scheduled publishing disabled (set CLIPFLOW_ALLOW_DEV_PUBLISH=1 to override)");
+    return;
+  }
+  // `!== true`, not `=== false`: a caller that forgets to inject the flag must fail
+  // toward NOT publishing. That failure is loud (clips don't post, this line says why);
+  // the opposite default would silently re-arm a source run, which is the bug itself.
+  if (deps.isPackaged !== true && process.env.CLIPFLOW_ALLOW_SOURCE_PUBLISH !== "1") {
+    log("info", "Scheduler: running from source — scheduled publishing disabled, only the installed app auto-publishes (set CLIPFLOW_ALLOW_SOURCE_PUBLISH=1 to override)");
     return;
   }
   timer = setInterval(() => { tickOnce().catch((err) => log("error", `Scheduler tick failed: ${err.message}`)); }, TICK_MS);
