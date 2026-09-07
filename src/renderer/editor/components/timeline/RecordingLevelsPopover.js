@@ -22,6 +22,7 @@ const rowName = (t) => (trackLabelText(t) || `Track ${t.index + 1}`).replace(/�
 export default function RecordingLevelsPopover({ x, y, onClose }) {
   const audioMix = useEditorStore((s) => s.audioMix);
   const project = useEditorStore((s) => s.project);
+  const clipId = useEditorStore((s) => s.clip?.id);
   const info = useEditorStore((s) => s.audioMixInfo);
   const setPanelOpen = useEditorStore((s) => s.setAudioMixPanelOpen);
   const [applying, setApplying] = useState(false);
@@ -38,11 +39,17 @@ export default function RecordingLevelsPopover({ x, y, onClose }) {
   const projectMix = project?.audioMix && typeof project.audioMix === "object" ? project.audioMix : null;
   const ownLevels = audioMix !== null;
 
+  // #365: other clips with their own levels — "Apply" leaves them alone;
+  // "Replace" is the old wipe-everything.
+  const othersWithOwn = (project?.clips || []).filter(
+    (c) => c.id !== clipId && c.audioMix && typeof c.audioMix === "object" && Object.keys(c.audioMix).length > 0
+  ).length;
+
   const setDb = (index, db) => useEditorStore.getState().setAudioMixLevel(index, db);
-  const apply = async () => {
+  const apply = async (keepOverrides) => {
     setApplying(true);
     setApplyError(null);
-    const res = await useEditorStore.getState().applyAudioMixToRecording();
+    const res = await useEditorStore.getState().applyAudioMixToRecording({ keepOverrides });
     setApplying(false);
     if (res?.error) setApplyError(res.error);
   };
@@ -124,25 +131,40 @@ export default function RecordingLevelsPopover({ x, y, onClose }) {
         {applyError && <p className="text-[11px] text-amber-400/90">{applyError}</p>}
 
         {setup && (
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
-            <button
-              type="button"
-              className="text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
-              disabled={!ownLevels}
-              title={projectMix ? "Drop this clip's own levels and use the recording's" : "Drop this clip's own levels"}
-              onClick={() => useEditorStore.getState().resetAudioMix()}
-            >
-              {projectMix ? "Use the recording's" : "Reset"}
-            </button>
-            <button
-              type="button"
-              className="text-[11px] text-primary hover:opacity-80 disabled:opacity-40 disabled:hover:opacity-40"
-              disabled={!ownLevels || applying}
-              title="Make these the levels for every clip from this recording"
-              onClick={apply}
-            >
-              {applying ? "Applying…" : "Apply to every clip"}
-            </button>
+          <div className="pt-2 border-t border-border/60 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
+                disabled={!ownLevels}
+                title={projectMix ? "Drop this clip's own levels and use the recording's" : "Drop this clip's own levels"}
+                onClick={() => useEditorStore.getState().resetAudioMix()}
+              >
+                {projectMix ? "Use the recording's" : "Reset"}
+              </button>
+              <button
+                type="button"
+                className="text-[11px] text-primary hover:opacity-80 disabled:opacity-40 disabled:hover:opacity-40"
+                disabled={!ownLevels || applying}
+                title="Make these the recording's levels; clips with their own levels keep them"
+                onClick={() => apply(true)}
+              >
+                {applying ? "Applying…" : "Apply to unedited clips"}
+              </button>
+            </div>
+            {othersWithOwn > 0 && (
+              <p className="text-[11px] text-muted-foreground leading-snug text-right">
+                {othersWithOwn} other {othersWithOwn === 1 ? "clip keeps its" : "clips keep their"} own.{" "}
+                <button
+                  type="button"
+                  className="text-foreground/80 underline underline-offset-2 hover:text-foreground disabled:opacity-40"
+                  disabled={!ownLevels || applying}
+                  onClick={() => apply(false)}
+                >
+                  Replace on every clip
+                </button>
+              </p>
+            )}
           </div>
         )}
       </div>

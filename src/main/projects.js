@@ -480,17 +480,25 @@ function updateClipReframe(watchFolder, projectId, clipId, reframe) {
 }
 
 /**
- * Set the project layout AND strip every clip's override in one save (#348) —
- * the "apply to all clips in this project" action. After this, every clip
- * inherits the new project.reframe.
+ * Set the project layout for every clip in one save (#348) — the "apply to
+ * all clips in this project" action.
+ *
+ * Default: strip every clip's override (and per-section overrides, #349) so
+ * every clip inherits the new project.reframe. With `keepOverrides` (#365)
+ * only clips WITHOUT their own layout pick it up — edited clips are left
+ * alone, except `dropClipId` (the clip whose layout is being promoted: its own
+ * copy now equals the default, so it goes back to inheriting).
  * @param {string} watchFolder
  * @param {string} projectId
  * @param {object|null} reframe - null clears the layout everywhere
+ * @param {{ keepOverrides?: boolean, dropClipId?: string|null }} [opts]
  * @returns {{ success: true, project: object }|{ error: string }}
  */
-function applyReframeToAllClips(watchFolder, projectId, reframe) {
+function applyReframeToAllClips(watchFolder, projectId, reframe, opts = {}) {
   const project = loadProject(watchFolder, projectId);
   if (!project) return { error: "Project not found" };
+  const keepOverrides = !!(opts && opts.keepOverrides);
+  const dropClipId = (opts && opts.dropClipId) || null;
 
   if (reframe === null) {
     project.reframe = null;
@@ -500,6 +508,10 @@ function applyReframeToAllClips(watchFolder, projectId, reframe) {
     project.reframe = sanitized.value;
   }
   for (const c of project.clips || []) {
+    if (keepOverrides) {
+      if (c.id === dropClipId) delete c.reframe;
+      continue;
+    }
     delete c.reframe;
     // #349: one uniform look means the per-section overrides go too.
     for (const s of c.nleSegments || []) delete s.reframe;
@@ -512,18 +524,25 @@ function applyReframeToAllClips(watchFolder, projectId, reframe) {
 /**
  * #272: make one set of recording levels the project's default and drop every
  * clip's own — "Apply to every clip from this recording". A flat/empty mix
- * clears the default. Same shape as applyReframeToAllClips.
+ * clears the default. Same shape (and same `keepOverrides` / `dropClipId`
+ * options, #365) as applyReframeToAllClips.
  * @param {object|null} mix - { "<trackIndex>": dB }
+ * @param {{ keepOverrides?: boolean, dropClipId?: string|null }} [opts]
  * @returns {{ success: true, project: object }|{ error: string }}
  */
-function applyAudioMixToAllClips(watchFolder, projectId, mix) {
+function applyAudioMixToAllClips(watchFolder, projectId, mix, opts = {}) {
   const project = loadProject(watchFolder, projectId);
   if (!project) return { error: "Project not found" };
+  const keepOverrides = !!(opts && opts.keepOverrides);
+  const dropClipId = (opts && opts.dropClipId) || null;
 
   const norm = normalizeMix(mix);
   if (norm && Object.keys(norm).length > 0) project.audioMix = norm;
   else delete project.audioMix;
-  for (const c of project.clips || []) delete c.audioMix;
+  for (const c of project.clips || []) {
+    if (keepOverrides && c.id !== dropClipId) continue;
+    delete c.audioMix;
+  }
 
   saveProject(watchFolder, project);
   return { success: true, project };

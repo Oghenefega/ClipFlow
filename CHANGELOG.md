@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-06 (session 242) — "Apply to all clips" no longer wipes the clips you already edited (#365)
+
+### Changed
+- **Applying a layout or recording levels to the whole project now leaves edited clips alone (#365).** In the Layout panel, "Apply to all clips in this project" used to set the project default and erase every clip's own layout, including per-section layouts. It is now "Apply to clips without their own layout": clips that inherit pick up the new default, clips you gave their own layout keep it, and a small line under the button says how many keep theirs, with a "Replace on every clip, including edited ones" link for the old wipe-everything behaviour. The Recording levels popover on the audio lane gets the same pair: "Apply to unedited clips" plus a "Replace on every clip" link. The clip you apply from goes back to inheriting, since its own copy is now the project default. Covered by five new tests.
+
 ## [Unreleased] — 2026-09-05 (session 242) — Rejection notes read back at a glance (#364)
 
 ### Fixed

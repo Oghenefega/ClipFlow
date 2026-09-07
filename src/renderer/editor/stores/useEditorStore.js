@@ -981,11 +981,14 @@ const useEditorStore = create((set, get) => ({
   },
   setAudioMixPanelOpen: (open) => set({ audioMixPanelOpen: !!open }),
   setAudioMixInfo: (info) => set({ audioMixInfo: info }),
-  applyAudioMixToRecording: async () => {
+  // #365: { keepOverrides: true } promotes the levels without touching clips
+  // that have their own — only this clip (the source) goes back to inheriting.
+  applyAudioMixToRecording: async (opts = {}) => {
     const { project, clip, audioMix } = get();
     if (!project?.id) return { error: "No project" };
+    const keepOverrides = !!opts.keepOverrides;
     const eff = audioMix ?? resolveClipAudioMix(clip, project) ?? {};
-    const result = await window.clipflow.projectApplyAudioMixAllClips(project.id, eff);
+    const result = await window.clipflow.projectApplyAudioMixAllClips(project.id, eff, { keepOverrides, dropClipId: clip?.id || null });
     if (result?.error) return result;
     if (get().project?.id !== project.id) return { error: "Project changed during save" };
     // Patch state locally (never swap in the disk copy of the open clip — it
@@ -997,13 +1000,14 @@ const useEditorStore = create((set, get) => ({
       const { audioMix: _drop, ...rest } = c;
       return rest;
     };
+    const curId = get().clip?.id;
     set({
       audioMix: null,
       clip: dropMix(get().clip),
       project: {
         ...get().project,
         audioMix: projectMix,
-        clips: (get().project.clips || []).map(dropMix),
+        clips: (get().project.clips || []).map((c) => (keepOverrides && c.id !== curId ? c : dropMix(c))),
       },
     });
     return { success: true };
@@ -1346,11 +1350,15 @@ const useEditorStore = create((set, get) => ({
   // #348: the old whole-project behavior — push a layout (default: this
   // clip's effective one; pass null to remove everywhere) to project.reframe
   // and strip every clip's override in one save.
-  applyReframeToAllClips: async (reframeArg) => {
+  // #365: { keepOverrides: true } leaves clips (and sections) with their own
+  // layout alone; only this clip's own copy is dropped, since it IS the new
+  // default.
+  applyReframeToAllClips: async (reframeArg, opts = {}) => {
     const { project, clip } = get();
     if (!project?.id) return { error: "No project" };
+    const keepOverrides = !!opts.keepOverrides;
     const eff = reframeArg !== undefined ? reframeArg : resolveClipReframe(clip, project);
-    const result = await window.clipflow.projectApplyReframeAllClips(project.id, eff);
+    const result = await window.clipflow.projectApplyReframeAllClips(project.id, eff, { keepOverrides, dropClipId: clip?.id || null });
     if (result?.error) return result;
     if (get().project?.id !== project.id) return { error: "Project changed during save" };
     // Patch state locally (never swap in the disk copy of the open clip —
@@ -1370,12 +1378,17 @@ const useEditorStore = create((set, get) => ({
       return rest;
     };
     const segs = get().nleSegments;
-    const nextSegs = segs.some((s) => s.reframe !== undefined) ? segs.map(stripSeg) : segs;
+    const nextSegs = !keepOverrides && segs.some((s) => s.reframe !== undefined) ? segs.map(stripSeg) : segs;
     set({
       project: {
         ...get().project,
         reframe: eff,
         clips: (get().project.clips || []).map((c) => {
+          if (keepOverrides) {
+            if (c.id !== cur?.id || c.reframe === undefined) return c;
+            const { reframe: _drop3, ...rest } = c;
+            return rest;
+          }
           const hasSegOverride = (c.nleSegments || []).some((s) => s.reframe !== undefined);
           if (c.reframe === undefined && !hasSegOverride) return c;
           const { reframe: _drop2, ...rest } = c;

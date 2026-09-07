@@ -206,8 +206,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectDeleteClipRender: (projectId, clipId) => ipcRenderer.invoke("project:deleteClipRender", projectId, clipId),
   projectUpdateReframe: (projectId, reframe) => ipcRenderer.invoke("project:updateReframe", projectId, reframe),
   projectUpdateClipReframe: (projectId, clipId, reframe) => ipcRenderer.invoke("project:updateClipReframe", projectId, clipId, reframe),
-  projectApplyReframeAllClips: (projectId, reframe) => ipcRenderer.invoke("project:applyReframeAllClips", projectId, reframe),
-  projectApplyAudioMixAllClips: (projectId, mix) => ipcRenderer.invoke("project:applyAudioMixAllClips", projectId, mix), // #272
+  projectApplyReframeAllClips: (projectId, reframe, opts) => ipcRenderer.invoke("project:applyReframeAllClips", projectId, reframe, opts), // opts: { keepOverrides, dropClipId } (#365)
+  projectApplyAudioMixAllClips: (projectId, mix, opts) => ipcRenderer.invoke("project:applyAudioMixAllClips", projectId, mix, opts), // #272, same opts
   reframeDetect: (projectId, ranges) => ipcRenderer.invoke("reframe:detect", projectId, ranges),
 
   // Pipeline

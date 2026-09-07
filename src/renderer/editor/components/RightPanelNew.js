@@ -1928,10 +1928,12 @@ function LayoutPanel() {
     if (result?.error) setError(result.error);
   }, [applyReframeToAllClips]);
 
-  const handleApplyAll = useCallback(async () => {
+  // #365: the default promotes this layout to clips WITHOUT their own; the
+  // quieter second action is the old wipe-everything behavior.
+  const handleApplyAll = useCallback(async (keepOverrides) => {
     setError("");
     setApplyingAll(true);
-    const result = await applyReframeToAllClips();
+    const result = await applyReframeToAllClips(undefined, { keepOverrides });
     setApplyingAll(false);
     if (result?.error) setError(result.error);
   }, [applyReframeToAllClips]);
@@ -2108,7 +2110,12 @@ function LayoutPanel() {
   // project layout. hasOverride distinguishes "This clip only" from "All clips".
   const effective = resolveClipReframe(clip, project);
   const hasOverride = !!clip && clip.reframe !== undefined;
-  const othersHaveOverrides = (project.clips || []).some((c) => c.id !== clip?.id && c.reframe !== undefined);
+  // #365: other clips that made their own choice — a clip layout or a
+  // per-section one (#349). These are what "apply to all" must not wipe.
+  const othersWithOwn = (project.clips || []).filter(
+    (c) => c.id !== clip?.id && (c.reframe !== undefined || (c.nleSegments || []).some((s) => s.reframe !== undefined))
+  ).length;
+  const othersHaveOverrides = othersWithOwn > 0;
 
   // #349: section scope only means something once the clip has a cut. Under
   // it, the panel describes and edits the section under the playhead.
@@ -2289,15 +2296,33 @@ function LayoutPanel() {
           {sectionScope && !sectionHasOverride ? "Set up layout for this section" : "Edit layout"}
         </Button>
 
-        {/* #348: promote this clip's layout to the whole project (clears every
-            per-clip override). Only shown when overrides make it meaningful. */}
+        {/* #348/#365: promote this clip's layout to the project. The default
+            leaves edited clips alone; "Replace" is the old wipe-everything.
+            Only shown when overrides make it meaningful. */}
         {!sectionScope && (hasOverride || othersHaveOverrides || sectionOverrideCount > 0) && (
-          <Button
-            size="sm" variant="outline" onClick={handleApplyAll} disabled={applyingAll || removing}
-            className="w-full h-8 text-xs"
-          >
-            {applyingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply to all clips in this project"}
-          </Button>
+          <div className="space-y-1.5">
+            <Button
+              size="sm" variant="outline" onClick={() => handleApplyAll(true)} disabled={applyingAll || removing}
+              className="w-full h-8 text-xs"
+            >
+              {applyingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply to clips without their own layout"}
+            </Button>
+            {(othersWithOwn > 0 || sectionOverrideCount > 0) && (
+              <p className="text-[11px] text-muted-foreground text-center leading-snug">
+                {othersWithOwn > 0
+                  ? `${othersWithOwn} other ${othersWithOwn === 1 ? "clip keeps its" : "clips keep their"} own layout. `
+                  : ""}
+                <button
+                  type="button"
+                  onClick={() => handleApplyAll(false)}
+                  disabled={applyingAll || removing}
+                  className="text-foreground/80 underline underline-offset-2 hover:text-foreground disabled:opacity-40 cursor-pointer"
+                >
+                  Replace on every clip, including edited ones
+                </button>
+              </p>
+            )}
+          </div>
         )}
 
         {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}

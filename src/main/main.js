@@ -3183,17 +3183,18 @@ ipcMain.handle("project:updateClipReframe", async (_, projectId, clipId, reframe
 });
 
 // #348: set the project layout and strip every clip's override in one save.
-ipcMain.handle("project:applyReframeAllClips", async (_, projectId, reframe) => {
+// opts.keepOverrides (#365) leaves edited clips alone instead.
+ipcMain.handle("project:applyReframeAllClips", async (_, projectId, reframe, opts) => {
   try {
-    return projects.applyReframeToAllClips(libraryRoot(), projectId, reframe);
+    return projects.applyReframeToAllClips(libraryRoot(), projectId, reframe, opts || {});
   } catch (err) { return { error: err.message }; }
 });
 
 // #272: make one set of recording levels the project's default and drop every
-// clip's own — "Apply to every clip from this recording".
-ipcMain.handle("project:applyAudioMixAllClips", async (_, projectId, mix) => {
+// clip's own — "Apply to every clip from this recording". Same opts as above.
+ipcMain.handle("project:applyAudioMixAllClips", async (_, projectId, mix, opts) => {
   try {
-    return projects.applyAudioMixToAllClips(libraryRoot(), projectId, mix);
+    return projects.applyAudioMixToAllClips(libraryRoot(), projectId, mix, opts || {});
   } catch (err) { return { error: err.message }; }
 });
 
