@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from "react";
-import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, ClipboardCopy, ClipboardPaste } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, splitKey, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, splitKey, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey, onCopyLayout, onPasteLayout, canCopyLayout, canPasteLayout, copyLayoutKey, pasteLayoutKey }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -85,6 +85,32 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
             onClick={() => { onMoveLater(); onClose(); }}
           >
             <ChevronRight className={`h-3.5 w-3.5 ${canMoveLater ? "text-orange-400" : "text-muted-foreground/40"}`} /> Move section later
+          </button>
+          <Separator />
+        </>
+      )}
+      {/* #369: carry this section's layout to another section or clip. */}
+      {track === "audio" && onCopyLayout && (
+        <>
+          <button
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+              canCopyLayout ? "text-foreground hover:bg-secondary/60" : "text-muted-foreground/50 cursor-default"
+            }`}
+            disabled={!canCopyLayout}
+            onClick={() => { onCopyLayout(); onClose(); }}
+          >
+            <ClipboardCopy className={`h-3.5 w-3.5 ${canCopyLayout ? "text-violet-400" : "text-muted-foreground/40"}`} /> Copy layout
+            <span className="ml-auto text-muted-foreground text-[10px]">{copyLayoutKey}</span>
+          </button>
+          <button
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+              canPasteLayout ? "text-foreground hover:bg-secondary/60" : "text-muted-foreground/50 cursor-default"
+            }`}
+            disabled={!canPasteLayout}
+            onClick={() => { onPasteLayout(); onClose(); }}
+          >
+            <ClipboardPaste className={`h-3.5 w-3.5 ${canPasteLayout ? "text-violet-400" : "text-muted-foreground/40"}`} /> Paste layout
+            <span className="ml-auto text-muted-foreground text-[10px]">{pasteLayoutKey}</span>
           </button>
           <Separator />
         </>

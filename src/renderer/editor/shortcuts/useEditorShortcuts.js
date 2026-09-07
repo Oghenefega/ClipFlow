@@ -35,6 +35,11 @@ const ACTIONS = {
   toggleDisable: (e) => getTimelineHandlers()?.toggleDisable?.(e),
   toggleLaneDisable: (e) => getTimelineHandlers()?.toggleLaneDisable?.(e),
 
+  // #369: store-based (no timeline selection needed), so they work with the
+  // timeline collapsed. Outcome lands in layoutNotice for the Layout panel.
+  copyLayout: () => useEditorStore.getState().copyLayout(),
+  pasteLayout: () => useEditorStore.getState().pasteLayout(),
+
   undo: () => {
     const store = useSubtitleStore.getState();
     if (store._undoStack.length === 0) return;

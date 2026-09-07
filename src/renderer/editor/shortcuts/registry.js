@@ -28,6 +28,10 @@ export const SHORTCUTS = [
   // canonicalises to plain "d" and could never match.
   { id: "toggleDisable", defaultKey: "d", group: "Editing", label: "Disable / enable selected", hint: "Stays on the timeline, leaves the viewer and the render" },
   { id: "toggleLaneDisable", defaultKey: "alt+d", group: "Editing", label: "Disable / enable the whole lane", hint: "The lane the selection sits on" },
+  // #369: Ctrl+Shift so plain Ctrl+C/V stay free for text; Shift is recorded
+  // alongside Ctrl (see eventToKey), so these never collide.
+  { id: "copyLayout", defaultKey: "ctrl+shift+c", group: "Editing", label: "Copy layout", hint: "The section under the playhead, or the clip" },
+  { id: "pasteLayout", defaultKey: "ctrl+shift+v", group: "Editing", label: "Paste layout", hint: "Onto the section under the playhead, or the clip" },
   { id: "undo", defaultKey: "ctrl+z", group: "Editing", label: "Undo" },
   { id: "redo", defaultKey: "ctrl+y", group: "Editing", label: "Redo", hint: "Ctrl + Shift + Z also works", altKeys: ["ctrl+shift+z"] },
 

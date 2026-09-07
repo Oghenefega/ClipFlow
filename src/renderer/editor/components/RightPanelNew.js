@@ -19,7 +19,7 @@ import {
   X, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
-  UploadCloud, FileImage, Film, PenLine, Crop,
+  UploadCloud, FileImage, Film, PenLine, Crop, ClipboardCopy, ClipboardPaste,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -1905,6 +1905,14 @@ function LayoutPanel() {
   const setLayoutScope = useEditorStore((s) => s.setLayoutScope);
   const setSegmentReframe = useEditorStore((s) => s.setSegmentReframe);
   const playheadSegId = usePlaybackStore((s) => segmentIdAtTimeline(s.currentTime || 0, s.nleSegments || []));
+  // #369: copy / paste follow the scope switch; the notice also carries the
+  // outcome of the timeline menu's paste (which has no message surface).
+  const copyLayout = useEditorStore((s) => s.copyLayout);
+  const pasteLayout = useEditorStore((s) => s.pasteLayout);
+  const layoutClipboardTick = useEditorStore((s) => s.layoutClipboardTick);
+  const layoutNotice = useEditorStore((s) => s.layoutNotice);
+  const clearLayoutNotice = useEditorStore((s) => s.clearLayoutNotice);
+  useEffect(() => () => clearLayoutNotice(), [clearLayoutNotice]);
 
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -2194,6 +2202,34 @@ function LayoutPanel() {
       ))}
     </div>
   );
+  // #369: Copy takes what the panel is looking at (`shown`); Paste writes to
+  // the same target. Section → section, clip → clip, or across clips of the
+  // same recording size.
+  const clipboardRow = (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <Button
+          size="sm" variant="outline" onClick={() => copyLayout()} disabled={!shown}
+          className="flex-1 h-7 text-xs"
+          title={sectionScope ? "Copy this section's layout" : "Copy this clip's layout"}
+        >
+          <ClipboardCopy className="h-3 w-3 mr-1" /> Copy layout
+        </Button>
+        <Button
+          size="sm" variant="outline" onClick={() => pasteLayout()} disabled={layoutClipboardTick === 0}
+          className="flex-1 h-7 text-xs"
+          title={layoutClipboardTick === 0 ? "Copy a layout first" : sectionScope ? "Paste onto this section" : "Paste onto this clip"}
+        >
+          <ClipboardPaste className="h-3 w-3 mr-1" /> Paste layout
+        </Button>
+      </div>
+      {layoutNotice && (
+        <div className={`text-xs rounded-md px-2.5 py-2 ${layoutNotice.kind === "error" ? "text-red-400 bg-red-500/10" : "text-emerald-400 bg-emerald-500/10"}`}>
+          {layoutNotice.text}
+        </div>
+      )}
+    </div>
+  );
 
   // ── Calibrating ──
   if (reframeDraft) {
@@ -2315,6 +2351,7 @@ function LayoutPanel() {
     return (
       <div className="p-3 space-y-3">
         {scopeControl}
+        {clipboardRow}
         <p className="text-xs text-muted-foreground leading-relaxed">
           {sectionScope ? (
             // #349: describing the section under the playhead.
@@ -2481,6 +2518,7 @@ function LayoutPanel() {
   return (
     <div className="p-3 space-y-3">
       {scopeControl}
+      {clipboardRow}
       <p className="text-xs text-muted-foreground leading-relaxed">
         {sectionScope
           ? "Set up a layout for this section — the picture changes at this cut and switches back at the next."

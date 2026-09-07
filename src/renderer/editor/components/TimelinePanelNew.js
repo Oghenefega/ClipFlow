@@ -8,6 +8,7 @@ import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
 import { resolvePlacements, assignRows, occupantsFromLane, SOUND_TRACK_CAP } from "../models/audioPlacements";
 import { resolveMediaPlacements, MEDIA_TRACK_CAP, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
+import { resolveSegmentReframe } from "../utils/reframeStyle";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
   PanelBottomClose, Music, Volume2, VolumeX, Eye, EyeOff, Trash2, Copy, RotateCcw, Check,
@@ -152,6 +153,11 @@ export default function TimelinePanelNew() {
   const disableKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.toggleDisable));
   // #307: the context menu's hint must be the key that actually splits (and follow a rebind).
   const splitKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.split));
+  // #369: Copy / Paste layout on the section menu.
+  const copyLayoutKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.copyLayout));
+  const pasteLayoutKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.pasteLayout));
+  const tlClip = useEditorStore((s) => s.clip);
+  const layoutClipboardTick = useEditorStore((s) => s.layoutClipboardTick);
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -2182,6 +2188,17 @@ export default function TimelinePanelNew() {
           onMoveLater={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx + 1) : undefined}
           canMoveEarlier={nleIdx > 0}
           canMoveLater={nleIdx >= 0 && nleIdx < nleSegments.length - 1}
+          onCopyLayout={contextMenu.track === "audio" ? () => useEditorStore.getState().copyLayout(contextMenu.segId) : undefined}
+          onPasteLayout={contextMenu.track === "audio" ? () => {
+            useEditorStore.getState().pasteLayout(contextMenu.segId).then((r) => {
+              // The menu has nowhere to say why; the Layout panel shows the notice.
+              if (r?.error) { const ls = useLayoutStore.getState(); ls.setActivePanel("layout"); ls.setDrawerOpen(true); }
+            });
+          } : undefined}
+          canCopyLayout={nleIdx >= 0 && !!resolveSegmentReframe(nleSegments[nleIdx], tlClip, tlProject)}
+          canPasteLayout={layoutClipboardTick > 0}
+          copyLayoutKey={copyLayoutKeyLabel}
+          pasteLayoutKey={pasteLayoutKeyLabel}
           onSplit={() => {
             const time = usePlaybackStore.getState().currentTime;
             if (contextMenu.track === "cap") {

@@ -29,6 +29,11 @@ let _autosaveTimer = null;
 let _savesInFlight = 0;
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
+// #369: the layout clipboard. Module-level (not state) so it outlives the
+// per-clip store reset — copy on one clip, paste on the next. Not persisted.
+// { reframe, sourceWidth, sourceHeight }
+let _layoutClipboard = null;
+
 // #348: mirror a clip's reframe write onto the in-store project.clips copy so
 // panel state derived from project.clips stays consistent with disk.
 // reframe === undefined deletes the override key (inherit); null/object set it.
@@ -224,6 +229,11 @@ const useEditorStore = create((set, get) => ({
   // #349: which target the Layout panel writes to — the open clip (Phase A
   // behaviour) or the section under the playhead. Reset on clip load.
   layoutScope: "clip",
+  // #369: bumps on every Copy so Paste buttons re-render; the clipboard itself
+  // is module-level. layoutNotice is the last copy/paste outcome for the
+  // Layout panel to show (the timeline menu has no message surface of its own).
+  layoutClipboardTick: 0,
+  layoutNotice: null, // { kind: "error"|"ok", text }
 
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
@@ -1316,6 +1326,84 @@ const useEditorStore = create((set, get) => ({
   },
 
   setLayoutScope: (scope) => set({ layoutScope: scope === "section" ? "section" : "clip" }),
+
+  // ── #369: copy / paste a layout between sections and clips ──
+  // Target rules, shared by both verbs: an explicit segmentId wins (the
+  // timeline menu); otherwise the section under the playhead when the panel
+  // is in section scope and the clip has a cut; otherwise the clip itself. A
+  // single-section clip always targets the clip — a lone section override
+  // would be invisible to the Layout panel, which hides section scope then.
+  _layoutTarget: (segmentId) => {
+    const { nleSegments, layoutScope } = get();
+    if (nleSegments.length > 1) {
+      if (segmentId) return nleSegments.find((s) => s.id === segmentId) ? { segId: segmentId } : null;
+      if (layoutScope === "section") {
+        const id = segmentIdAtTimeline(usePlaybackStore.getState().currentTime || 0, nleSegments);
+        return id ? { segId: id } : null;
+      }
+    }
+    return { segId: null };
+  },
+  hasLayoutClipboard: () => !!_layoutClipboard,
+  copyLayout: (segmentId) => {
+    const { project, clip, nleSegments } = get();
+    if (!project?.id || !clip?.id) return { error: "No clip open" };
+    const target = get()._layoutTarget(segmentId);
+    if (!target) return { error: "No section under the playhead" };
+    const seg = target.segId ? nleSegments.find((s) => s.id === target.segId) : null;
+    const reframe = seg ? resolveSegmentReframe(seg, clip, project) : resolveClipReframe(clip, project);
+    if (!reframe) return { error: seg ? "This section has no layout to copy" : "This clip has no layout to copy" };
+    _layoutClipboard = {
+      // layoutId is library bookkeeping, not a look — a paste must not share
+      // the source's library entry (the #349 follow-up).
+      reframe: {
+        layoutId: null,
+        camRect: reframe.camRect ? { ...reframe.camRect } : null,
+        gameRect: { ...reframe.gameRect },
+        style: resolveReframeStyle(reframe.style),
+      },
+      sourceWidth: project.sourceWidth,
+      sourceHeight: project.sourceHeight,
+    };
+    set({ layoutClipboardTick: get().layoutClipboardTick + 1, layoutNotice: { kind: "ok", text: seg ? "Section layout copied" : "Clip layout copied" } });
+    return { success: true };
+  },
+  pasteLayout: async (segmentId) => {
+    const fail = (text) => { set({ layoutNotice: { kind: "error", text } }); return { error: text }; };
+    const { project, clip } = get();
+    if (!project?.id || !clip?.id) return fail("No clip open");
+    if (!_layoutClipboard) return fail("Nothing copied yet — Copy layout on a section first");
+    if (_layoutClipboard.sourceWidth !== project.sourceWidth || _layoutClipboard.sourceHeight !== project.sourceHeight) {
+      return fail("Layout was calibrated for a different source size");
+    }
+    const target = get()._layoutTarget(segmentId);
+    if (!target) return fail("No section under the playhead");
+    const reframe = {
+      layoutId: null,
+      camRect: _layoutClipboard.reframe.camRect ? { ..._layoutClipboard.reframe.camRect } : null,
+      gameRect: { ..._layoutClipboard.reframe.gameRect },
+      style: { ..._layoutClipboard.reframe.style },
+    };
+    if (target.segId) {
+      const r = get().setSegmentReframe(target.segId, reframe);
+      if (r?.error) return fail(r.error);
+      set({ reframeDraft: null, layoutNotice: { kind: "ok", text: "Layout pasted onto this section" } });
+      return { success: true };
+    }
+    // Clip target — same path as applying a saved layout to the clip.
+    const clipId = clip.id;
+    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
+    if (result?.error) return fail(result.error);
+    if (get().project?.id !== project.id || get().clip?.id !== clipId) return fail("Clip changed during save");
+    set({
+      clip: { ...get().clip, reframe },
+      project: projectWithClipReframe(get().project, clipId, reframe),
+      reframeDraft: null,
+      layoutNotice: { kind: "ok", text: "Layout pasted onto this clip" },
+    });
+    return { success: true };
+  },
+  clearLayoutNotice: () => { if (get().layoutNotice) set({ layoutNotice: null }); },
 
   // #348: drop this clip's override — back to the project layout.
   clearClipReframe: async () => {
