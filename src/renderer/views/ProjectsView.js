@@ -5,6 +5,7 @@ import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl } from "../components/shared";
 import TestChip from "../components/TestChip";
 import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
+import { fixTextCasing } from "../editor/utils/subtitleCasing";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
 import { sourceToTimeline, timelineToSource, getTimelineDuration } from "../editor/models/timeMapping";
 
@@ -173,7 +174,8 @@ const getClipTranscriptSegments = (clip, project) => {
     .map((s) => ({
       start: s.start,
       end: s.end,
-      text: (s.text || "").trim(),
+      // #368: transcripts written before the casing fix stay lowercase on disk.
+      text: fixTextCasing((s.text || "").trim()),
     }));
 };
 

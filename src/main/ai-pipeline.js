@@ -17,6 +17,7 @@ const { getProvider } = require("./ai/llm-provider");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
 // so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
 const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
+const { fixTranscriptionCasing } = require("../renderer/editor/utils/subtitleCasing");
 
 /**
  * Update file_metadata status in SQLite.
@@ -1091,7 +1092,9 @@ async function runAIPipeline({
         t.clip.transcriptionError = t.extractError || "audio extract failed";
       } else if (fs.existsSync(t.outputJson)) {
         try {
-          t.clip.transcription = JSON.parse(fs.readFileSync(t.outputJson, "utf-8"));
+          // #368: the batch path bypasses whisper.transcribe(), so the casing
+          // fix is applied here as the JSON comes off disk.
+          t.clip.transcription = fixTranscriptionCasing(JSON.parse(fs.readFileSync(t.outputJson, "utf-8")));
           retranscribeCount++;
         } catch (e) {
           t.clip.transcriptionFailed = true;

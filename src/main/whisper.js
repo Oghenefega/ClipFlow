@@ -10,6 +10,7 @@
  */
 
 const { getTranscriptionProvider } = require("./ai/transcription-provider");
+const { fixTranscriptionCasing } = require("../renderer/editor/utils/subtitleCasing");
 
 /**
  * Check if the active transcription provider is available.
@@ -28,8 +29,11 @@ function checkWhisper(pythonPath, opts = {}) {
  * @param {object} opts - Provider-specific options
  * @returns {Promise<{segments: Array, text: string}>}
  */
-function transcribe(wavPath, opts = {}) {
-  return getTranscriptionProvider().transcribe(wavPath, opts);
+async function transcribe(wavPath, opts = {}) {
+  const result = await getTranscriptionProvider().transcribe(wavPath, opts);
+  // #368: Whisper hands back lowercase "i" / "god" / "jesus"; fix the casing
+  // once, at birth, so project.json is right on disk for every reader.
+  return fixTranscriptionCasing(result);
 }
 
 /**
