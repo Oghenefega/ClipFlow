@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-05 (s241) -- Session 241: the #363 stale-capture lesson -> clipflow-ffmpeg-media rule (content-check every overlay capture, no fixed sleep) + clipflow-code-review line (render changes verified on the output file under load with scripts/dev/render-e2e-probe.js); memory project_overlay_capture_verified; backslash-in-heredoc bit once more (patch4), already in memory -->
+> <!-- DISTILLED-THROUGH: 2026-09-06 (s242) -- Session 242: the #364 label-vs-content lesson -> clipflow-ui-debug rule (read-back text wraps in full on its own row, typed text gets a growing textarea); nothing for code-review/ffmpeg this session -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 

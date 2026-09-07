@@ -1,4 +1,75 @@
-# HANDOFF — Session 241 (2026-09-05)
+# HANDOFF — Session 242 (2026-09-06)
+
+## Current State
+
+**Session 242: three Fega asks shipped on master, all confirmed by him on the dev build. Not cut —
+the installed copies are still alpha.27 (three changes since; hold unless asked).**
+
+1. **#364 rejection notes** (ad48a64) — ProjectsView `ClipRow`: wrapping `<textarea>` while typing,
+   green "Saved ✓" flash, saved note rendered in full on its own row (click to edit).
+2. **#365 apply-to-unedited** (9c80c21) — `projects.applyReframeToAllClips` /
+   `applyAudioMixToAllClips` take `{ keepOverrides, dropClipId }`; store + IPC + preload pass it.
+   Layout panel: "Apply to clips without their own layout" + "Replace on every clip, including
+   edited ones" link; Recording levels popover: "Apply to unedited clips" + "Replace on every clip".
+   The source clip goes back to inheriting. 5 tests (`applyToUnedited.test.js`).
+3. **#366 caption line styling** (4f7e8c2) — `segment.lineStyles` keyed by Enter-separated line
+   index, same shape as `wordStyles`. ONE token walk, `buildCaptionTokens` in
+   `subtitleStyleEngine.js` (block < line < word), used by `CaptionText` (editor + Projects
+   preview) and `public/subtitle-overlay/overlay-renderer.js` (export; exposed via the overlay
+   preload). "Line N" chips in the Captions tab (shown at ≥2 lines) open the existing
+   `WordStyleCard` with `label="Line"`. Export verified on a real render
+   (`scripts/dev/caption-line-probe.js`: line 2 red 50k px / control 90). 6 tests.
+
+Fega's working mode this session: **review before build** — plan, wait for approval, build, he
+checks on the dev copy, then commit. He asked for concise replies. Keep both.
+
+## Key Decisions (s242)
+
+- **"Line" = a typed (Enter) line, not a wrapped one.** Wrapped lines aren't stable across sizes;
+  Fega confirmed. Line chips only appear with ≥2 lines (one line == the block).
+- **Line styles resolve per word, not as a wrapping span.** Word > line > block merged into one
+  override and fed through the existing `buildCaptionWordOverrideCss`, so nothing new to render and
+  the export stays pixel-identical to the preview.
+- **Apply-to-unedited is the default button; wipe-all is a text link under it.** "Edited" =
+  `clip.reframe !== undefined` (own OR "no layout") or any section override; for levels a non-empty
+  `clip.audioMix`. The source clip's own copy is dropped in the keep path so the scope chip stays
+  truthful ("All clips").
+- **A saved note is content, not a chip.** Full row, wraps, never truncated (lesson distilled to
+  clipflow-ui-debug).
+
+## Next Steps
+
+1. Cut alpha.28 when there's a reason (Fega's ask or ~10 changes): #364/#365/#366 + nothing else
+   since alpha.27.
+2. Still open from s241: Fega to check Tracker Sunday/day toggles and Settings → About → Release
+   history on the installed copy (#161 carries `status: untested`).
+3. #353 straddling-subtitle case unchanged (see s241 below).
+
+## Watch Out For
+
+- Fega DENIED screen control this session (request_access → user_denied). Verification path that
+  worked: build → `CLIPFLOW_PROFILE=dev npm start` (kill with `taskkill //F //IM electron.exe`
+  first) → he checks on the dev window, which shares the real library (pick zero-approved fixture
+  projects: "2026-01-23 AR Day16 Pt3", "2026-07-20 RL Day9 Pt2").
+- `ProjectsView.js`, `RightPanelNew.js`, `useCaptionStore.js` are CRLF; the Bash-heredoc python
+  patcher hit both a CRLF mismatch and a quoting break — write patch scripts with the Write tool,
+  normalise to LF for matching, write back in the file's own ending.
+- The changelog pre-commit hook checks CHANGELOG.md on disk BEFORE the command runs — edit the
+  changelog in one Bash call, commit in the next.
+- `wordStyles`/`lineStyles` remap on text edits is positional when the count is unchanged and
+  text-matched otherwise (`_remapIndexedStyles`); blank lines count toward the line index in both
+  the remap and `buildCaptionTokens`.
+
+## Logs / Debugging
+
+- `scripts/dev/caption-line-probe.js` renders two 5 s clips (line-2 red / control) from the
+  100T Day3 Pt1 project read-only into `%TEMP%\corva-caption-line-probe\` and counts white/red
+  pixels at t=1 s. Override the project with `RENDER_PROBE_PROJECT`.
+- Nothing new in app.log this session; the dev boots were clean (`Main window revealed`).
+
+Session 241's state follows unchanged.
+
+# HANDOFF — Session 241 (2026-09-05) (previous)
 
 ## Current State
 
