@@ -73,9 +73,9 @@ on the dev build via CDP, NOT yet checked by Fega, NOT cut — installed copies 
 4. Decided this session: lanes do NOT scale with timeline height; Add-game dialog widened (done).
 5. Still open from s241/s242: #161 tracker toggles + Release history untested; #353 straddling
    subtitle.
-6. The final for-the-record `score_production median` run with the shipped rescue rule was still
-   on the GPU at wrap — result lands in `%TEMP%\score-final-median.log` (expect 86.1%, `stranded`
-   ≈ 21); paste it onto #372 if it differs.
+6. Final `score_production median` with the shipped rescue rule landed after wrap: **86.2%**
+   (was 86.1%), first-word-moved 55.3% (was 54.6%), every other bucket unchanged, 19 rescues.
+   Posted on #372.
 
 ## Watch Out For
 
