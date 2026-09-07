@@ -4,7 +4,7 @@
 // outcome history in weekMeta (which stores only a running streakState, never per-week).
 // No React, no Date.now() — every function takes dates/today as arguments. Local dates only.
 
-import { mondayISO, addDaysISO } from "./trackerEngine";
+import { weekStartISO, addDaysISO } from "./trackerEngine";
 
 // Inverse of localISO: parse a YYYY-MM-DD string to a local Date (noon, to sidestep DST edges).
 function parseISO(iso) {
@@ -15,26 +15,29 @@ function parseISO(iso) {
 /**
  * Weeks (Mon..Sat) that intersect the given month. A week row is included if any of its 6
  * days falls in `month`; each day is tagged inMonth so adjacent-month days can render dimmed.
- * Returns [{ mondayISO, days: [{ iso, dayNum, inMonth }] }] in chronological order.
+ * Returns [{ weekStart, days: [{ iso, dayNum, inMonth }] }] in chronological order.
+ *
+ * #379: the row is KEYED by its Sunday now (that is the week key everywhere), but the six
+ * days it lists are still Mon..Sat — the posting days — hence the offset of 1.
  */
 export function monthWeeks(year, month) {
   const first = new Date(year, month, 1, 12);
   const last = new Date(year, month + 1, 0, 12); // last calendar day of the month
   const rows = [];
-  let monIso = mondayISO(first);
-  // A month spans at most 6 Mon..Sat rows; the <= guard terminates well within that.
-  while (parseISO(monIso) <= last) {
+  let weekIso = weekStartISO(first);
+  // A month spans at most 6 week rows; the <= guard terminates well within that.
+  while (parseISO(weekIso) <= last) {
     const days = [];
     let anyInMonth = false;
-    for (let i = 0; i < 6; i++) {
-      const iso = addDaysISO(monIso, i);
+    for (let i = 1; i <= 6; i++) {
+      const iso = addDaysISO(weekIso, i);
       const d = parseISO(iso);
       const inMonth = d.getMonth() === month && d.getFullYear() === year;
       if (inMonth) anyInMonth = true;
       days.push({ iso, dayNum: d.getDate(), inMonth });
     }
-    if (anyInMonth) rows.push({ mondayISO: monIso, days });
-    monIso = addDaysISO(monIso, 7);
+    if (anyInMonth) rows.push({ weekStart: weekIso, days });
+    weekIso = addDaysISO(weekIso, 7);
   }
   return rows;
 }
@@ -62,7 +65,7 @@ export function groupByLocalDate(entries) {
  * For each week returns { streakAfter, lostStreak }:
  *   - hit    → streakAfter = the running consecutive-hit count including this week
  *   - missed → lostStreak  = the streak that just ended (the run of hits before this week)
- * A non-consecutive Monday breaks the run (same rule as evaluateRollover).
+ * A non-consecutive week start breaks the run (same rule as evaluateRollover).
  */
 export function streakByWeek(weekMeta) {
   const weeks = Object.keys(weekMeta || {})
@@ -91,46 +94,45 @@ export function streakByWeek(weekMeta) {
  * weekMeta snapshot (target/game/outcome/recap), never recomputed from today's settings.
  *
  * `state` is derived from position relative to today:
- *   current  → this week's Monday (live, not frozen)
+ *   current  → this week's start (live, not frozen)
  *   future   → a later week (faint preview, scheduled counts only)
  *   hit/missed → a decided past week (from weekMeta.outcome)
  *   untracked → a past week with entries but no frozen snapshot (history from before
  *               weekly goals existed) — no target, no outcome, no judgement
  *   noData   → no snapshot and nothing posted (before tracking existed)
  */
-export function weekAggregate({ mondayIso, weekMeta, entriesByDate, scheduledByDate, streakMap, todayMondayIso, streakState }) {
-  const meta = weekMeta?.[mondayIso] || null;
+export function weekAggregate({ weekStartIso, weekMeta, entriesByDate, scheduledByDate, streakMap, todayWeekStartIso, streakState }) {
+  const meta = weekMeta?.[weekStartIso] || null;
 
   let posted = 0;
   let sched = 0;
-  // Mon..Sun (7 days): Phase 1's weekEntries counts a Sunday entry into the prior Monday's
-  // week, and frozen outcomes/recaps were decided on that math. The grid shows no Sunday
-  // column, but the rail score must match the frozen outcome, so Sunday still counts here.
+  // All 7 days Sun..Sat, whatever the template's active days are: the rail score has to
+  // match the outcome weekEntries froze, and that counts every dated entry in the window.
   for (let i = 0; i < 7; i++) {
-    const iso = addDaysISO(mondayIso, i);
+    const iso = addDaysISO(weekStartIso, i);
     posted += entriesByDate.get(iso)?.length || 0;
     sched += scheduledByDate?.get(iso)?.length || 0;
   }
 
   const hasData = !!meta || posted > 0;
-  if (!hasData && sched === 0 && mondayIso < todayMondayIso) {
-    return { mondayIso, state: "noData", posted: 0, sched: 0 };
+  if (!hasData && sched === 0 && weekStartIso < todayWeekStartIso) {
+    return { weekStartIso, state: "noData", posted: 0, sched: 0 };
   }
 
   let state;
-  if (mondayIso === todayMondayIso) state = "current";
-  else if (mondayIso > todayMondayIso) state = "future";
+  if (weekStartIso === todayWeekStartIso) state = "current";
+  else if (weekStartIso > todayWeekStartIso) state = "future";
   else if (!meta) state = "untracked";
   else state = meta.outcome === "hit" ? "hit" : "missed";
 
   const target = meta?.target ?? null;
   const game = meta?.nowPlaying ?? null;
-  const streakInfo = streakMap?.[mondayIso] || { streakAfter: 0, lostStreak: 0 };
+  const streakInfo = streakMap?.[weekStartIso] || { streakAfter: 0, lostStreak: 0 };
   // The live week's streak on the line is the current running streak from streakState.
   const streakAfter = state === "current" ? (streakState?.current || 0) : streakInfo.streakAfter;
 
   return {
-    mondayIso, state, target, game, posted, sched,
+    weekStartIso, state, target, game, posted, sched,
     streakAfter, lostStreak: streakInfo.lostStreak,
     recap: meta?.recap || null,
   };
@@ -139,10 +141,10 @@ export function weekAggregate({ mondayIso, weekMeta, entriesByDate, scheduledByD
 /**
  * The slim month-stats line above the grid: clips posted in the displayed month, weeks
  * hit / weeks decided, the current running streak, and the best single day this month.
- * Clips/bestDay count every entry dated in the month (including Sundays, which have no
- * grid column) so the stat agrees with the week chips' Mon..Sun totals.
+ * Clips/bestDay count every entry dated in the month (including days with no grid column)
+ * so the stat agrees with the week chips' whole-week totals.
  */
-export function monthStats({ year, month, rows, weekMeta, entriesByDate, streakState, todayMondayIso }) {
+export function monthStats({ year, month, rows, weekMeta, entriesByDate, streakState, todayWeekStartIso }) {
   const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
   let clips = 0;
   let bestDay = 0;
@@ -155,9 +157,9 @@ export function monthStats({ year, month, rows, weekMeta, entriesByDate, streakS
   let done = 0;
   let hits = 0;
   for (const row of rows) {
-    const mon = row.mondayISO;
-    if (mon >= todayMondayIso) continue; // skip current + future weeks
-    const meta = weekMeta?.[mon];
+    const wk = row.weekStart;
+    if (wk >= todayWeekStartIso) continue; // skip current + future weeks
+    const meta = weekMeta?.[wk];
     if (!meta || !meta.outcome) continue;
     done++;
     if (meta.outcome === "hit") hits++;
@@ -170,12 +172,13 @@ export function monthStats({ year, month, rows, weekMeta, entriesByDate, streakS
  * Pace-colored bar fraction+color for a live week's rail chip, reusing Phase 1 pace thresholds
  * (green on/ahead, yellow within 85%, red behind). Days elapsed is Mon..today within the week.
  */
-export function liveWeekPaceColor({ posted, target, todayIso, mondayIso }) {
+export function liveWeekPaceColor({ posted, target, todayIso, weekStartIso }) {
   if (!target || target <= 0) return { frac: 0, color: "green" };
-  // elapsed active days (Mon..today, capped at 6); today counts as elapsed.
+  // elapsed active days (Mon..today, capped at 6); today counts as elapsed. #379: the week
+  // now opens on Sunday, so the six posting days start one day in.
   let elapsed = 0;
-  for (let i = 0; i < 6; i++) {
-    if (addDaysISO(mondayIso, i) <= todayIso) elapsed++;
+  for (let i = 1; i <= 6; i++) {
+    if (addDaysISO(weekStartIso, i) <= todayIso) elapsed++;
   }
   const expected = (target * elapsed) / 6;
   let color;

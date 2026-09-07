@@ -43,16 +43,16 @@ console.log("=".repeat(48));
 
 // ── monthWeeks ──
 console.log("\nmonthWeeks:");
-test("July 2026 starts on the Monday of its first week (Jun 29)", () => {
+test("July 2026 starts on the Sunday of its first week (Jun 28)", () => {
   const rows = monthWeeks(2026, 6); // month is 0-indexed → July
-  eq(rows[0].mondayISO, "2026-06-29");
+  eq(rows[0].weekStart, "2026-06-28");
 });
-test("every row has exactly 6 days, Mon..Sat (no Sunday)", () => {
+test("every row has exactly 6 days, Mon..Sat (the posting days)", () => {
   const rows = monthWeeks(2026, 6);
   rows.forEach((r) => eq(r.days.length, 6));
-  // First day of the first row is a Monday.
+  // #379: the row is keyed by its Sunday, so its first listed day is the Monday after.
   const first = rows[0].days[0].iso;
-  ok(first === rows[0].mondayISO, "row day[0] is its Monday");
+  ok(first === addDaysISO(rows[0].weekStart, 1), "row day[0] is the Monday after its week start");
 });
 test("adjacent-month days are flagged inMonth:false", () => {
   const rows = monthWeeks(2026, 6);
@@ -107,7 +107,7 @@ test("a miss records the lost streak and resets the run", () => {
   eq(s["2026-05-25"].streakAfter, 0);
   eq(s["2026-06-01"].streakAfter, 1); // run restarts after the miss
 });
-test("a non-consecutive Monday breaks the run", () => {
+test("a non-consecutive week start breaks the run", () => {
   const meta = { "2026-06-01": { outcome: "hit" }, "2026-06-15": { outcome: "hit" } }; // gap week
   const s = streakByWeek(meta);
   eq(s["2026-06-15"].streakAfter, 1);
@@ -115,52 +115,52 @@ test("a non-consecutive Monday breaks the run", () => {
 
 // ── weekAggregate ──
 console.log("\nweekAggregate:");
-const todayMon = "2026-07-06";
+const todayWeek = "2026-07-05"; // the Sunday that opens the week containing Mon Jul 6
 test("current week is 'current' with live streak from streakState", () => {
   const ebd = groupByLocalDate([entry("2026-07-06"), entry("2026-07-06")]);
-  const w = weekAggregate({ mondayIso: todayMon, weekMeta: { [todayMon]: { target: 48, nowPlaying: "Arc Raiders" } }, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: { current: 5 } });
+  const w = weekAggregate({ weekStartIso: todayWeek, weekMeta: { [todayWeek]: { target: 48, nowPlaying: "Arc Raiders" } }, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayWeekStartIso: todayWeek, streakState: { current: 5 } });
   eq(w.state, "current");
   eq(w.posted, 2);
   eq(w.streakAfter, 5);
 });
 test("past hit week renders from frozen meta + derived streak", () => {
-  const mon = "2026-06-29";
+  const wk = "2026-06-28";
   const ebd = groupByLocalDate(Array.from({ length: 48 }, () => entry("2026-06-29")));
-  const meta = { [mon]: { target: 48, nowPlaying: "Arc Raiders", outcome: "hit", recap: { clips: 48 } } };
-  const w = weekAggregate({ mondayIso: mon, weekMeta: meta, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: { [mon]: { streakAfter: 5, lostStreak: 0 } }, todayMondayIso: todayMon, streakState: { current: 5 } });
+  const meta = { [wk]: { target: 48, nowPlaying: "Arc Raiders", outcome: "hit", recap: { clips: 48 } } };
+  const w = weekAggregate({ weekStartIso: wk, weekMeta: meta, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: { [wk]: { streakAfter: 5, lostStreak: 0 } }, todayWeekStartIso: todayWeek, streakState: { current: 5 } });
   eq(w.state, "hit");
   eq(w.target, 48);
   eq(w.streakAfter, 5);
   eq(w.recap.clips, 48);
 });
 test("future week is 'future' with scheduled counts only", () => {
-  const mon = "2026-07-13";
+  const wk = "2026-07-12";
   const sbd = groupByLocalDate([{ date: "2026-07-13" }, { date: "2026-07-14" }]);
-  const w = weekAggregate({ mondayIso: mon, weekMeta: {}, entriesByDate: new Map(), scheduledByDate: sbd, streakMap: {}, todayMondayIso: todayMon, streakState: {} });
+  const w = weekAggregate({ weekStartIso: wk, weekMeta: {}, entriesByDate: new Map(), scheduledByDate: sbd, streakMap: {}, todayWeekStartIso: todayWeek, streakState: {} });
   eq(w.state, "future");
   eq(w.posted, 0);
   eq(w.sched, 2);
 });
 test("empty past week with no snapshot is noData", () => {
-  const mon = "2026-01-05";
-  const w = weekAggregate({ mondayIso: mon, weekMeta: {}, entriesByDate: new Map(), scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: {} });
+  const wk = "2026-01-04";
+  const w = weekAggregate({ weekStartIso: wk, weekMeta: {}, entriesByDate: new Map(), scheduledByDate: new Map(), streakMap: {}, todayWeekStartIso: todayWeek, streakState: {} });
   eq(w.state, "noData");
 });
 test("past week with entries but no snapshot is untracked (pre-goal history, never 'missed')", () => {
-  const mon = "2026-05-04";
+  const wk = "2026-05-03";
   const ebd = groupByLocalDate([entry("2026-05-04"), entry("2026-05-05"), entry("2026-05-06")]);
-  const w = weekAggregate({ mondayIso: mon, weekMeta: {}, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: {} });
+  const w = weekAggregate({ weekStartIso: wk, weekMeta: {}, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayWeekStartIso: todayWeek, streakState: {} });
   eq(w.state, "untracked");
   eq(w.posted, 3);
   eq(w.target, null);
 });
-test("a Sunday entry counts toward its week's score (Phase 1 weekEntries parity)", () => {
-  const mon = "2026-06-29";
-  // Jul 5 2026 is the Sunday of the week starting Mon Jun 29.
-  const ebd = groupByLocalDate([entry("2026-06-29"), entry("2026-07-05")]);
-  const meta = { [mon]: { target: 2, nowPlaying: "Arc Raiders", outcome: "hit", recap: { clips: 2 } } };
-  const w = weekAggregate({ mondayIso: mon, weekMeta: meta, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: {} });
-  eq(w.posted, 2); // 1 Monday + 1 Sunday — must match the frozen outcome's math
+test("the week's own Sunday counts toward its score (weekEntries parity)", () => {
+  const wk = "2026-06-28";
+  // #379: Sunday Jun 28 OPENS this week — it is day one, not a trailing day.
+  const ebd = groupByLocalDate([entry("2026-06-28"), entry("2026-06-29")]);
+  const meta = { [wk]: { target: 2, nowPlaying: "Arc Raiders", outcome: "hit", recap: { clips: 2 } } };
+  const w = weekAggregate({ weekStartIso: wk, weekMeta: meta, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayWeekStartIso: todayWeek, streakState: {} });
+  eq(w.posted, 2); // 1 Sunday + 1 Monday — must match the frozen outcome's math
 });
 
 // ── monthStats ──
@@ -172,9 +172,9 @@ test("counts only in-month clips, and decided weeks register in hits/done", () =
     entry("2026-07-01"), entry("2026-07-01"), entry("2026-07-02"),
   ]);
   const meta = {
-    "2026-06-29": { outcome: "hit" }, // Monday in the first displayed row, decided
+    "2026-06-28": { outcome: "hit" }, // the first displayed row's week, decided
   };
-  const stats = monthStats({ year: 2026, month: 6, rows, weekMeta: meta, entriesByDate: ebd, streakState: { current: 5 }, todayMondayIso: "2026-07-06" });
+  const stats = monthStats({ year: 2026, month: 6, rows, weekMeta: meta, entriesByDate: ebd, streakState: { current: 5 }, todayWeekStartIso: "2026-07-05" });
   eq(stats.clips, 3); // Jun 29 excluded, three July clips counted
   eq(stats.bestDay, 2); // Jul 1 had 2
   eq(stats.streak, 5);
@@ -184,18 +184,18 @@ test("counts only in-month clips, and decided weeks register in hits/done", () =
 test("Sunday clips count toward the month total (no Sunday column, still honest)", () => {
   const rows = monthWeeks(2026, 6);
   const ebd = groupByLocalDate([entry("2026-07-05")]); // Sunday Jul 5
-  const stats = monthStats({ year: 2026, month: 6, rows, weekMeta: {}, entriesByDate: ebd, streakState: {}, todayMondayIso: "2026-07-06" });
+  const stats = monthStats({ year: 2026, month: 6, rows, weekMeta: {}, entriesByDate: ebd, streakState: {}, todayWeekStartIso: "2026-07-05" });
   eq(stats.clips, 1);
 });
 
 // ── liveWeekPaceColor ──
 console.log("\nliveWeekPaceColor:");
 test("ahead of pace is green, far behind is red", () => {
-  // Monday, 1 day elapsed, target 48 → expected 8. posted 10 → green.
-  const green = liveWeekPaceColor({ posted: 10, target: 48, todayIso: "2026-07-06", mondayIso: "2026-07-06" });
+  // Monday, 1 posting day elapsed, target 48 → expected 8. posted 10 → green.
+  const green = liveWeekPaceColor({ posted: 10, target: 48, todayIso: "2026-07-06", weekStartIso: "2026-07-05" });
   eq(green.color, "green");
   // posted 2 vs expected 8 → below 85% → red.
-  const red = liveWeekPaceColor({ posted: 2, target: 48, todayIso: "2026-07-06", mondayIso: "2026-07-06" });
+  const red = liveWeekPaceColor({ posted: 2, target: 48, todayIso: "2026-07-06", weekStartIso: "2026-07-05" });
   eq(red.color, "red");
 });
 

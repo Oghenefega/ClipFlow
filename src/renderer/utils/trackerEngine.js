@@ -51,17 +51,21 @@ export function localISO(date) {
 }
 
 /**
- * Returns the ISO date (YYYY-MM-DD) of the Monday that starts the week containing `date`.
- * Sunday belongs to the PREVIOUS Monday's week.
+ * Returns the ISO date (YYYY-MM-DD) of the Sunday that starts the week containing `date`.
+ *
+ * #379: the week ran Mon–Sun until 2026-09-07 and this was `mondayISO`. It is THE key —
+ * weekMeta, weekTemplateOverrides and the `goal-bonus:` ledger rows are all filed under
+ * it — so the rename is deliberate: a helper still called "monday" while returning a
+ * Sunday is how a whole week's XP gets banked against the wrong key. Stores written
+ * before the change are shifted once by the migration in main.js.
  */
-export function mondayISO(date) {
+export function weekStartISO(date) {
   const d = new Date(date);
-  const day = d.getDay();
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  const y = mon.getFullYear();
-  const mm = String(mon.getMonth() + 1).padStart(2, "0");
-  const dd = String(mon.getDate()).padStart(2, "0");
+  const sun = new Date(d);
+  sun.setDate(d.getDate() - d.getDay()); // getDay(): Sunday is already 0
+  const y = sun.getFullYear();
+  const mm = String(sun.getMonth() + 1).padStart(2, "0");
+  const dd = String(sun.getDate()).padStart(2, "0");
   return `${y}-${mm}-${dd}`;
 }
 
@@ -79,29 +83,29 @@ export function addDaysISO(iso, n) {
 }
 
 /**
- * Filters tracker entries whose `date` falls within the Mon–Sun week starting at `mondayIso`.
+ * Filters tracker entries whose `date` falls within the Sun–Sat week starting at `weekStartIso`.
  */
-export function weekEntries(trackerData, mondayIso) {
+export function weekEntries(trackerData, weekStartIso) {
   if (!trackerData || !trackerData.length) return [];
-  const sundayIso = addDaysISO(mondayIso, 6);
-  return trackerData.filter((entry) => entry.date >= mondayIso && entry.date <= sundayIso);
+  const lastIso = addDaysISO(weekStartIso, 6);
+  return trackerData.filter((entry) => entry.date >= weekStartIso && entry.date <= lastIso);
 }
 
 /**
- * Whole active days elapsed in the week as of `date`. Mon=1 ... Sat=6, Sun=6.
+ * Whole active days elapsed in the week as of `date`. Sun=0, Mon=1 ... Sat=6.
+ * Superseded by paceForTemplate (trackerTemplate.js), which prorates over the
+ * template's OWN active days; kept in step with #379 rather than left lying with
+ * Monday-first math in a module whose week now starts on Sunday.
  */
 export function daysElapsedInWeek(date) {
-  const day = date.getDay();
-  return day === 0 ? 6 : Math.min(day, 6);
+  return date.getDay();
 }
 
 /**
- * Active days remaining after `date` within the current week. Mon=5 ... Sat=0, Sun=0.
+ * Active days remaining after `date` within the current week. Sun=6 ... Sat=0.
  */
 export function activeDaysLeft(date) {
-  const day = date.getDay();
-  if (day === 0) return 0;
-  return Math.max(6 - day, 0);
+  return 6 - date.getDay();
 }
 
 /**
@@ -144,24 +148,27 @@ export function computeRecap(entries) {
  * mutates inputs.
  */
 export function evaluateRollover({ trackerData, weekMeta, xpLedger, streakState, weeklyTarget, mainGame, today }) {
-  const todayMonday = mondayISO(today);
+  const todayWeekStart = weekStartISO(today);
   const meta = { ...weekMeta };
   const streak = { ...streakState };
   const ledgerAppends = [];
 
   const originalMetaJSON = JSON.stringify(weekMeta);
 
+  // `evaluatedThroughMondayISO` holds a Sunday since #379. The FIELD keeps its name
+  // on purpose — it is persisted in every existing store, and renaming a settings key
+  // buys a second migration for nothing. Its value is shifted by the same migration.
   if (streak.evaluatedThroughMondayISO === null || streak.evaluatedThroughMondayISO === undefined) {
-    streak.evaluatedThroughMondayISO = addDaysISO(todayMonday, -7);
+    streak.evaluatedThroughMondayISO = addDaysISO(todayWeekStart, -7);
   }
 
-  if (!meta[todayMonday]) {
-    meta[todayMonday] = { target: weeklyTarget, nowPlaying: mainGame };
-  } else if (meta[todayMonday].nowPlaying !== mainGame) {
+  if (!meta[todayWeekStart]) {
+    meta[todayWeekStart] = { target: weeklyTarget, nowPlaying: mainGame };
+  } else if (meta[todayWeekStart].nowPlaying !== mainGame) {
     // Keep the current (unfrozen) week's snapshot in step with mainGame so a switch
     // made from Settings — not just the tracker banner — is reflected. Past weeks
     // are frozen and never touched.
-    meta[todayMonday] = { ...meta[todayMonday], nowPlaying: mainGame };
+    meta[todayWeekStart] = { ...meta[todayWeekStart], nowPlaying: mainGame };
   }
 
   const hasBonus = (weekKey) => {
@@ -170,7 +177,7 @@ export function evaluateRollover({ trackerData, weekMeta, xpLedger, streakState,
   };
 
   let cursor = addDaysISO(streak.evaluatedThroughMondayISO, 7);
-  while (cursor < todayMonday) {
+  while (cursor < todayWeekStart) {
     const w = cursor;
     const snapshot = meta[w] ? { ...meta[w] } : { target: weeklyTarget, nowPlaying: mainGame };
     const count = weekEntries(trackerData, w).length;
@@ -190,7 +197,7 @@ export function evaluateRollover({ trackerData, weekMeta, xpLedger, streakState,
 
   // Self-heal pass: upgrade previously-missed weeks that now qualify; never downgrade hit→missed.
   for (const weekKey of Object.keys(meta)) {
-    if (weekKey >= todayMonday) continue;
+    if (weekKey >= todayWeekStart) continue;
     const snapshot = meta[weekKey];
     if (!snapshot || !snapshot.outcome) continue;
 

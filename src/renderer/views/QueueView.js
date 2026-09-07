@@ -9,7 +9,7 @@ import CaptionsView from "./CaptionsView";
 import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
-import { localISO } from "../utils/trackerEngine";
+import { localISO, weekStartISO } from "../utils/trackerEngine";
 import { isActiveDay } from "../utils/trackerTemplate";
 import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -89,7 +89,6 @@ function RowActions({ clip, onOpenInEditor }) {
   );
 }
 
-const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const FULL_DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 // Hour options: 8 AM through 12 AM (midnight) = hours 8..23 then 0
@@ -222,17 +221,6 @@ const genTimeOptions = () => {
 };
 const TIME_OPTIONS = genTimeOptions();
 
-const getWeekDates = (refDate) => {
-  const d = new Date(refDate);
-  const day = d.getDay();
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return DAY_NAMES.map((name, i) => {
-    const x = new Date(mon);
-    x.setDate(mon.getDate() + i);
-    return { dayName: name, iso: localISO(x), label: `${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}` };
-  });
-};
 // #161: `isActive(dayName, date)` says which days the schedule posts on — the
 // weekly template's activeDays (Sunday used to be skipped here unconditionally).
 const getUpcomingDates = (isActive) => {
@@ -1204,13 +1192,14 @@ export default function QueueView({
   // Phase 3: Auto-suggest next available time slot from weekly template
   // #161: a date's own week decides which days are on (next week may carry a
   // different override than this one).
-  const templateForDate = (x) => weekTemplateOverrides?.[getWeekDates(x)[0].iso] || weeklyTemplate;
+  // #379: keyed off trackerEngine's weekStartISO rather than a local week-grid helper —
+  // an override is filed under the tracker's week key, and a queue that computed its own
+  // would just stop finding them the day the week moved to Sunday.
+  const templateForDate = (x) => weekTemplateOverrides?.[weekStartISO(x)] || weeklyTemplate;
   const dayActive = (dn, x) => isActiveDay(templateForDate(x), dn);
   const autoSuggestSlot = () => {
     const dates = getUpcomingDates(dayActive);
-    const wd = getWeekDates(new Date());
-    const mondayIso = wd[0].iso;
-    const tmpl = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
+    const tmpl = templateForDate(new Date());
     if (!tmpl?.timeSlots?.length || !dates.length) return null;
     const takenSlots = getTakenSlots();
     const now = new Date();

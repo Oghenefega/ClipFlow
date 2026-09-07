@@ -13,13 +13,15 @@
  * PURE — no state, no side effects, every date arrives as an argument.
  */
 
-const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const WEEK_DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// #379: Sunday first. These lists ARE the week's order — the grid's columns, the day
+// toggles in Edit slots, and which day counts as the week's deadline all read them.
+const WEEK_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEK_DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 // Mon–Sat: the shape every template had before active days existed.
 const DEFAULT_ACTIVE_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /**
- * A template's active days in Mon..Sun order. Missing, not an array, or
+ * A template's active days in week order (Sun..Sat). Missing, not an array, or
  * nothing recognisable left after filtering → a copy of the Mon–Sat default.
  */
 function activeDaysOf(template) {
@@ -40,21 +42,20 @@ function lastActiveDayName(template) {
   return days[days.length - 1];
 }
 
-/** Weekday of a Date as a Monday-first index: Mon=0 … Sun=6. */
-function mondayIndex(date) {
-  const day = date.getDay();
-  return day === 0 ? 6 : day - 1;
+/** Weekday of a Date as a week-order index: Sun=0 … Sat=6 (#379 — matches getDay()). */
+function weekIndex(date) {
+  return date.getDay();
 }
 
 /** Active days up to and including today. Today always counts. */
 function elapsedActiveDays(template, date) {
-  const today = mondayIndex(date);
+  const today = weekIndex(date);
   return activeDaysOf(template).filter((day) => WEEK_DAYS.indexOf(day) <= today).length;
 }
 
 /** Active days still ahead — strictly after today. */
 function activeDaysLeftAfter(template, date) {
-  const today = mondayIndex(date);
+  const today = weekIndex(date);
   return activeDaysOf(template).filter((day) => WEEK_DAYS.indexOf(day) > today).length;
 }
 
@@ -144,7 +145,7 @@ module.exports = {
   activeDaysOf,
   isActiveDay,
   lastActiveDayName,
-  mondayIndex,
+  weekIndex,
   elapsedActiveDays,
   activeDaysLeftAfter,
   paceForTemplate,

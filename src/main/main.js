@@ -851,6 +851,71 @@ function runStoreMigrations(store) {
     }
     if (n > 0) logger.info(logger.MODULES.system, `Weekly templates gained Sunday + activeDays (#161): ${n} template(s) upgraded`);
   }
+
+  // ── Migration (#379): the tracker week starts on Sunday, not Monday ──
+  // Every week-keyed structure was filed under the Monday that opened the week. The
+  // same week now opens on the Sunday one day earlier, so each key moves back a day.
+  // The keys are pure relabelling — no entry, target, snapshot or XP amount is touched,
+  // and nothing is recomputed here: evaluateRollover's self-heal pass re-derives recaps
+  // and outcomes against the new windows on the next launch.
+  //
+  // The `goal-bonus:<weekKey>` ledger rows MUST move with weekMeta. Left behind, the
+  // bonus for a hit week would no longer be found under its new key and the self-heal
+  // pass would bank a SECOND 100 XP for the same week, quietly inflating the rank.
+  //
+  // Idempotent by the flag, which is what makes shifting-by-a-day safe to write at all:
+  // running it twice would land every week on a Saturday.
+  if (!store.has("_migrated_weekStartSunday_v1")) {
+    const backOneDay = (iso) => {
+      if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+      const [y, m, d] = iso.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setDate(dt.getDate() - 1);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    };
+    const rekey = (obj) => {
+      if (!obj || typeof obj !== "object") return null;
+      const out = {};
+      for (const k of Object.keys(obj)) {
+        const nk = backOneDay(k);
+        out[nk || k] = obj[k];
+      }
+      return out;
+    };
+
+    const weekMeta = store.get("weekMeta");
+    const movedMeta = rekey(weekMeta);
+    if (movedMeta) store.set("weekMeta", movedMeta);
+
+    const overrides = store.get("weekTemplateOverrides");
+    const movedOverrides = rekey(overrides);
+    if (movedOverrides) store.set("weekTemplateOverrides", movedOverrides);
+
+    const ledger = store.get("xpLedger");
+    let movedRows = 0;
+    if (Array.isArray(ledger)) {
+      for (const row of ledger) {
+        if (!row || typeof row.key !== "string" || !row.key.startsWith("goal-bonus:")) continue;
+        const shifted = backOneDay(row.key.slice("goal-bonus:".length));
+        if (!shifted) continue;
+        row.key = `goal-bonus:${shifted}`;
+        if (typeof row.dateISO === "string") row.dateISO = shifted;
+        movedRows++;
+      }
+      if (movedRows > 0) store.set("xpLedger", ledger);
+    }
+
+    const streak = store.get("streakState");
+    if (streak && typeof streak === "object") {
+      const shifted = backOneDay(streak.evaluatedThroughMondayISO);
+      // The field keeps its legacy name (see trackerEngine.evaluateRollover) — only the
+      // Sunday/Monday it points at changes.
+      if (shifted) store.set("streakState", { ...streak, evaluatedThroughMondayISO: shifted });
+    }
+
+    store.set("_migrated_weekStartSunday_v1", true);
+    logger.info(logger.MODULES.system, `Tracker week moved to Sunday-start (#379): ${Object.keys(movedMeta || {}).length} week snapshot(s), ${Object.keys(movedOverrides || {}).length} template override(s), ${movedRows} goal-bonus row(s) re-keyed`);
+  }
 }
 
 let mainWindow;

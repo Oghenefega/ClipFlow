@@ -3,7 +3,7 @@ import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
 import { toFileUrl } from "../components/shared";
 import {
-  ledgerTotal, rankForXp, weekEntries, computeRecap, localISO, addDaysISO, mondayISO,
+  ledgerTotal, rankForXp, weekEntries, computeRecap, localISO, addDaysISO, weekStartISO,
   XP_PER_CLIP,
 } from "../utils/trackerEngine";
 import { renderRecapPng, downloadBlob, copyBlobToClipboard } from "../utils/recapCardImage";
@@ -19,14 +19,14 @@ const PLATFORM_KEYS = ["tiktok", "youtube", "instagram", "facebook"];
 const PLATFORM_LABELS = { tiktok: "TikTok", youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" };
 const PLATFORM_BRAND_COLORS = { tiktok: "#00f2ea", youtube: "#FF0000", instagram: "#E1306C", facebook: "#1877F2" };
 
+// #379: the week opens on Sunday, so DAY_NAMES[0] is the Sunday of `refDate`'s week.
 const getWeekDates = (refDate) => {
   const d = new Date(refDate);
-  const day = d.getDay();
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay()); // getDay(): Sunday is already 0
   return DAY_NAMES.map((name, i) => {
-    const x = new Date(mon);
-    x.setDate(mon.getDate() + i);
+    const x = new Date(start);
+    x.setDate(start.getDate() + i);
     // Local date, not toISOString — entry dates and weekMeta keys are local-calendar
     // based; UTC would shift evening sessions onto the next day and miss the week key.
     const iso = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
@@ -116,25 +116,25 @@ export default function TrackerView({
     ref.setDate(ref.getDate() + weekOffset * 7);
     return getWeekDates(ref);
   }, [now, weekOffset]);
-  const monday = wd[0].iso; // Monday of the VIEWED week — everything below keys off it
-  const curMonday = useMemo(() => mondayISO(now), [now]);
+  const weekStart = wd[0].iso; // Sunday of the VIEWED week — everything below keys off it
+  const curWeekStart = useMemo(() => weekStartISO(now), [now]);
   const todayIso = localISO(now);
   const todayIdx = wd.findIndex((d) => d.iso === todayIso);
   const viewMode = weekOffset === 0 ? "current" : weekOffset > 0 ? "future" : "past";
 
   const activeGames = useMemo(() => gamesDb.filter((g) => g.active !== false), [gamesDb]);
   // #276: past weeks render the game frozen in that week's snapshot, not today's pick.
-  const viewedGameName = (viewMode === "past" && weekMeta?.[monday]?.nowPlaying) || mainGame;
+  const viewedGameName = (viewMode === "past" && weekMeta?.[weekStart]?.nowPlaying) || mainGame;
   const currentGame = gamesDb.find((g) => g.name === viewedGameName);
   const gameColor = currentGame?.color || T.accent;
   const gameTag = currentGame?.tag || "";
 
-  const thisWeekMeta = weekMeta?.[monday];
+  const thisWeekMeta = weekMeta?.[weekStart];
   // #276: a past week with no frozen snapshot is "untracked" — it must not borrow
   // today's target and read as missed. null target = no goal existed that week.
   const target = viewMode === "past" ? (thisWeekMeta?.target ?? null) : (thisWeekMeta?.target ?? weeklyTarget);
 
-  const thisWeekEntries = useMemo(() => weekEntries(trackerData, monday), [trackerData, monday]);
+  const thisWeekEntries = useMemo(() => weekEntries(trackerData, weekStart), [trackerData, weekStart]);
   const posted = thisWeekEntries.length;
   // #218: scheduled clips are a PREVIEW — deliberately not folded into thisWeekEntries,
   // so they never touch `posted`, the pace ring, the streak or XP. Nothing is banked
@@ -165,9 +165,9 @@ export default function TrackerView({
   const streakMap = useMemo(() => streakByWeek(weekMeta), [weekMeta]);
   const entriesByDate = useMemo(() => groupByLocalDate(trackerData), [trackerData]);
   const weekAgg = useMemo(() => weekAggregate({
-    mondayIso: monday, weekMeta, entriesByDate, scheduledByDate: schedByDate,
-    streakMap, todayMondayIso: curMonday, streakState,
-  }), [monday, weekMeta, entriesByDate, schedByDate, streakMap, curMonday, streakState]);
+    weekStartIso: weekStart, weekMeta, entriesByDate, scheduledByDate: schedByDate,
+    streakMap, todayWeekStartIso: curWeekStart, streakState,
+  }), [weekStart, weekMeta, entriesByDate, schedByDate, streakMap, curWeekStart, streakState]);
   // Main vs variety is computed live against the current Now Playing game (not the
   // stored write-time `type`), so switching games mid-week re-buckets the whole week.
   // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
@@ -180,8 +180,8 @@ export default function TrackerView({
   }).length;
   const varietyCount = posted - mainCount;
 
-  const effectiveTemplate = weekTemplateOverrides?.[monday] || weeklyTemplate;
-  const hasOverride = !!(weekTemplateOverrides?.[monday]);
+  const effectiveTemplate = weekTemplateOverrides?.[weekStart] || weeklyTemplate;
+  const hasOverride = !!(weekTemplateOverrides?.[weekStart]);
   // #161: pace is prorated over the days this week actually posts on.
   const activeDaySet = useMemo(() => new Set(activeDaysOf(effectiveTemplate)), [effectiveTemplate]);
   const lastActiveDay = lastActiveDayName(effectiveTemplate);
@@ -191,14 +191,14 @@ export default function TrackerView({
   const rank = rankForXp(totalXp);
   const weekXp = posted * XP_PER_CLIP;
 
-  const prevMonday = addDaysISO(monday, -7);
-  const prevWeekOutcome = weekMeta?.[prevMonday]?.outcome;
+  const prevWeekStart = addDaysISO(weekStart, -7);
+  const prevWeekOutcome = weekMeta?.[prevWeekStart]?.outcome;
   const streakOverVariant = prevWeekOutcome === "missed" && posted < target;
   // Context for the calm "streak lost" stakes state (Phase 2 decision 10): how long the
   // ended streak was, and what last week actually posted against its frozen target.
-  const lostStreakLen = streakMap[prevMonday]?.lostStreak || 0;
-  const prevWeekPosted = useMemo(() => weekEntries(trackerData, prevMonday).length, [trackerData, prevMonday]);
-  const prevWeekTarget = weekMeta?.[prevMonday]?.target ?? weeklyTarget;
+  const lostStreakLen = streakMap[prevWeekStart]?.lostStreak || 0;
+  const prevWeekPosted = useMemo(() => weekEntries(trackerData, prevWeekStart).length, [trackerData, prevWeekStart]);
+  const prevWeekTarget = weekMeta?.[prevWeekStart]?.target ?? weeklyTarget;
 
   // #276: past weeks show the recap frozen at rollover; live computation is the
   // fallback for the current week (and past weeks from before recaps existed).
@@ -309,7 +309,7 @@ export default function TrackerView({
 
   const switchGame = (g) => {
     setMainGame(g.name);
-    setWeekMeta((prev) => ({ ...prev, [monday]: { ...(prev[monday] || { target: weeklyTarget }), nowPlaying: g.name } }));
+    setWeekMeta((prev) => ({ ...prev, [weekStart]: { ...(prev[weekStart] || { target: weeklyTarget }), nowPlaying: g.name } }));
     setPickerOpen(false);
     toast(`Now playing → ${g.name}`);
   };
@@ -330,7 +330,7 @@ export default function TrackerView({
       setEditingTarget(false);
       return;
     }
-    setWeekMeta((prev) => ({ ...prev, [monday]: { ...(prev[monday] || {}), target: v, nowPlaying: prev[monday]?.nowPlaying || mainGame } }));
+    setWeekMeta((prev) => ({ ...prev, [weekStart]: { ...(prev[weekStart] || {}), target: v, nowPlaying: prev[weekStart]?.nowPlaying || mainGame } }));
     setWeeklyTarget(v);
     setEditingTarget(false);
     if (v !== target) toast(`Weekly target set to ${v}`);
@@ -479,17 +479,21 @@ export default function TrackerView({
 
   const currentPresetName = (() => {
     if (!hasOverride) return "Default";
-    const match = (savedTemplates || []).find((p) => JSON.stringify(p.template) === JSON.stringify(effectiveTemplate));
+    // #379: normalize BOTH sides. The grid's day keys are written in week order, which
+    // moved Sunday to the front — a preset saved before that is identical in content but
+    // no longer stringifies the same, and the chip would have gone quietly to "Custom".
+    const wanted = JSON.stringify(normalizeTemplate(effectiveTemplate));
+    const match = (savedTemplates || []).find((p) => JSON.stringify(normalizeTemplate(p.template)) === wanted);
     return match ? match.name : "Custom";
   })();
 
   const editTimeSlot = (si, newTime) => {
     if (!newTime.trim()) return;
     setWeekTemplateOverrides((prev) => {
-      const current = prev[monday] || JSON.parse(JSON.stringify(weeklyTemplate));
+      const current = prev[weekStart] || JSON.parse(JSON.stringify(weeklyTemplate));
       const updated = JSON.parse(JSON.stringify(current));
       updated.timeSlots[si] = newTime.trim();
-      return { ...prev, [monday]: sortTemplateByTime(updated) };
+      return { ...prev, [weekStart]: sortTemplateByTime(updated) };
     });
     setEditingTimeSlot(null);
   };
@@ -497,11 +501,11 @@ export default function TrackerView({
   const addTimeSlot = (timeStr) => {
     if (!timeStr.trim()) return;
     setWeekTemplateOverrides((prev) => {
-      const current = prev[monday] || JSON.parse(JSON.stringify(weeklyTemplate));
+      const current = prev[weekStart] || JSON.parse(JSON.stringify(weeklyTemplate));
       const updated = normalizeTemplate(current);
       updated.timeSlots.push(timeStr.trim());
       DAY_NAMES.forEach((day) => { updated.grid[day].push("main"); });
-      return { ...prev, [monday]: sortTemplateByTime(updated) };
+      return { ...prev, [weekStart]: sortTemplateByTime(updated) };
     });
     setShowAddSlot(false);
     setNewSlotVal("");
@@ -509,20 +513,20 @@ export default function TrackerView({
 
   const removeTimeSlot = (si) => {
     setWeekTemplateOverrides((prev) => {
-      const current = prev[monday] || JSON.parse(JSON.stringify(weeklyTemplate));
+      const current = prev[weekStart] || JSON.parse(JSON.stringify(weeklyTemplate));
       const updated = normalizeTemplate(current);
       updated.timeSlots.splice(si, 1);
       DAY_NAMES.forEach((day) => { updated.grid[day].splice(si, 1); });
-      return { ...prev, [monday]: updated };
+      return { ...prev, [weekStart]: updated };
     });
   };
 
   // #161: flip a posting day for this week. Refused when it would be the last one.
   const toggleDay = (dayName) => {
-    const current = normalizeTemplate(weekTemplateOverrides?.[monday] || weeklyTemplate);
+    const current = normalizeTemplate(weekTemplateOverrides?.[weekStart] || weeklyTemplate);
     const next = withDayToggled(current, dayName);
     if (next === current) { toast("Keep at least one day on"); return; }
-    setWeekTemplateOverrides((prev) => ({ ...prev, [monday]: next }));
+    setWeekTemplateOverrides((prev) => ({ ...prev, [weekStart]: next }));
   };
 
   const setAsDefault = () => setWeeklyTemplate(JSON.parse(JSON.stringify(effectiveTemplate)));
@@ -533,11 +537,11 @@ export default function TrackerView({
     setShowSaveAs(false);
   };
   const loadPreset = (template) => {
-    setWeekTemplateOverrides((prev) => ({ ...prev, [monday]: JSON.parse(JSON.stringify(template)) }));
+    setWeekTemplateOverrides((prev) => ({ ...prev, [weekStart]: JSON.parse(JSON.stringify(template)) }));
     setShowPresetDrop(false);
   };
   const clearOverride = () => {
-    setWeekTemplateOverrides((prev) => { const n = { ...prev }; delete n[monday]; return n; });
+    setWeekTemplateOverrides((prev) => { const n = { ...prev }; delete n[weekStart]; return n; });
     setShowPresetDrop(false);
   };
   const deletePreset = (idx) => setSavedTemplates((prev) => prev.filter((_, i) => i !== idx));
@@ -671,7 +675,7 @@ export default function TrackerView({
         rankColor: T.tiers[rank.tier] || T.accent,
         weekLabel: `${wd[0].label} – ${wd[6].label}`,
       });
-      downloadBlob(blob, `corva-rundown-${monday}.png`);
+      downloadBlob(blob, `corva-rundown-${weekStart}.png`);
       const copied = await copyBlobToClipboard(blob);
       setShareState(copied ? "copied" : "saved");
       toast(copied ? "Recap saved — copied to clipboard" : "Recap saved");
@@ -747,7 +751,7 @@ export default function TrackerView({
 
   // Hold the cursor at either edge of the calendar and the week travels, so a clip can
   // be moved into a week that isn't on screen (Fega, 2026-08-21). Dwell first, then
-  // repeat, so brushing past an edge on the way to Monday never flips anything.
+  // repeat, so brushing past an edge on the way across the week never flips anything.
   const armEdge = (dir) => {
     stopEdgeTimer();
     edgeDirRef.current = dir;
@@ -1105,9 +1109,15 @@ export default function TrackerView({
             {viewMode === "current" && hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
           </div>
         </div>
-        {/* #161: seven columns; an OFF day with nothing on it collapses to a slim strip
-            so the posting days keep their width. */}
-        <div style={{ display: "grid", gridTemplateColumns: wd.map((d) => (!activeDaySet.has(d.dayName) && !thisWeekEntries.some((e) => e.date === d.iso) && !(schedByDate.get(d.iso) || []).length && !(retryByDate.get(d.iso) || []).length) ? "28px" : "minmax(0,1fr)").join(" "), gap: 0, padding: "5px 12px 6px" }}>
+        {/* #380: rails flank the grid rather than float over it — an overlay on the
+            outer columns would swallow clicks on Sunday's and Saturday's own slots.
+            #282's drag-to-travel still works through them: `dragover` bubbles up to
+            logCardRef, which is what arms the edge timer. */}
+        <div style={{ display: "flex", alignItems: "stretch" }}>
+          <WeekRail dir={-1} onClick={() => goWeek(-1)} />
+          {/* #161: seven columns; an OFF day with nothing on it collapses to a slim strip
+              so the posting days keep their width. */}
+          <div style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: wd.map((d) => (!activeDaySet.has(d.dayName) && !thisWeekEntries.some((e) => e.date === d.iso) && !(schedByDate.get(d.iso) || []).length && !(retryByDate.get(d.iso) || []).length) ? "28px" : "minmax(0,1fr)").join(" "), gap: 0, padding: "5px 0 6px" }}>
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
             // #276: every day of a future week is upcoming; past weeks have no future days.
@@ -1196,18 +1206,24 @@ export default function TrackerView({
                       >
                         <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(90px 50px at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
                         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", flexShrink: 0, background: gd.color }}>{gd.tag}</span>
+                          {/* #378: the tag is the ONLY thing on this row allowed to shrink.
+                              A day column is a seventh of the card, and with a badge beside
+                              it the row used to overflow into the card's `overflow: hidden`,
+                              slicing the slot time (and the dot) clean off the right edge. */}
+                          <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: gd.color }}>{gd.tag}</span>
                           {/* #306: this post is a repeat of an earlier one — worth
-                              seeing at a glance when reading a week's stats. */}
+                              seeing at a glance when reading a week's stats.
+                              #378: a glyph, not the word REPOST — six mono characters was
+                              more than the column had spare. */}
                           {item.repostOf && (
-                            <span title="Repost" style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}` }}>REPOST</span>
+                            <span title="Repost" style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 800, lineHeight: 1.35, padding: "0 3px", borderRadius: 4, flexShrink: 0, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}` }}>{"↻"}</span>
                           )}
                           {/* #315: this one is half-posted. The badge is the whole point
                               of the card — without it a red dot just looks like a variant. */}
                           {isRetry && (
                             <span style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.red, background: T.redDim, border: `1px solid ${rgba(T.red, 0.35)}` }}>RETRY</span>
                           )}
-                          <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(item.time)}</span>
+                          <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto", flexShrink: 0 }}>{shortSlot(item.time)}</span>
                           <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `color-mix(in srgb, ${T.cyan} 53%, transparent)` : "rgba(var(--lift),0.35)")}` }} />
                         </div>
                         {item.title && (
@@ -1270,6 +1286,8 @@ export default function TrackerView({
               </div>
             );
           })}
+          </div>
+          <WeekRail dir={1} onClick={() => goWeek(1)} />
         </div>
 
         {/* #281: legend + hint live under the grid now, out of the header's way. */}
@@ -1734,7 +1752,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   const safe = remaining <= 0;
   const weekdayLabel = now.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
-  // Calm "streak lost" state (locked Phase 2 design): the Monday after a miss. Muted flame,
+  // Calm "streak lost" state (locked Phase 2 design): the week after a miss. Muted flame,
   // neutral border, no shame. Rank untouched is the reassurance beat. Only when a streak
   // actually ended — after back-to-back misses there is nothing to mourn, so the normal
   // "start your streak" line below reads right.
@@ -1803,6 +1821,28 @@ const ghostBtnStyle = {
   padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)",
   color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
 };
+
+// #380: full-height week-step rails down both edges of the grid, so stepping a week
+// doesn't mean travelling back to the header arrows from the bottom of a tall week.
+// They sit in the padding the grid used to hold itself, which is why the day columns
+// lose ~12px a side rather than a whole rail. The chevron is centred and only tints on
+// hover — a permanent 100px-tall arrow would read as a wall beside the Sunday column.
+function WeekRail({ dir, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      title={dir < 0 ? "Previous week" : "Next week"}
+      aria-label={dir < 0 ? "Previous week" : "Next week"}
+      style={{
+        alignSelf: "stretch", width: 22, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        border: "none", background: "transparent", color: T.textMuted, fontSize: 15, lineHeight: 1,
+        cursor: "pointer", fontFamily: T.font, fontWeight: 700, padding: 0, transition: "background .12s, color .12s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.05)"; e.currentTarget.style.color = T.text; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.textMuted; }}
+    >{dir < 0 ? "‹" : "›"}</button>
+  );
+}
 
 // Footer buttons in the clip-detail popover (#218). width covers the standalone
 // buttons (Remove / Manage in Queue); flex-basis 0 wins over it inside the action row.

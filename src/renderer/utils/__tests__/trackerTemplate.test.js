@@ -5,7 +5,7 @@ const {
   activeDaysOf,
   isActiveDay,
   lastActiveDayName,
-  mondayIndex,
+  weekIndex,
   elapsedActiveDays,
   activeDaysLeftAfter,
   paceForTemplate,
@@ -43,20 +43,20 @@ test("the fixture dates really are the weekdays the tests assume", () => {
 });
 
 describe("constants", () => {
-  test("the week runs Monday to Sunday", () => {
+  test("the week runs Sunday to Saturday (#379)", () => {
     expect(WEEK_DAYS).toEqual([
+      "Sunday",
       "Monday",
       "Tuesday",
       "Wednesday",
       "Thursday",
       "Friday",
       "Saturday",
-      "Sunday",
     ]);
   });
 
   test("the short names line up one-for-one with the long ones", () => {
-    expect(WEEK_DAYS_SHORT).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+    expect(WEEK_DAYS_SHORT).toEqual(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
     expect(WEEK_DAYS_SHORT).toHaveLength(WEEK_DAYS.length);
   });
 
@@ -91,11 +91,11 @@ describe("activeDaysOf", () => {
     expect(DEFAULT_ACTIVE_DAYS).not.toContain("mutated");
   });
 
-  test("days come back in Mon..Sun order however they were stored", () => {
-    expect(activeDaysOf({ activeDays: ["Sunday", "Wednesday", "Monday"] })).toEqual([
+  test("days come back in week order (Sunday first) however they were stored", () => {
+    expect(activeDaysOf({ activeDays: ["Wednesday", "Monday", "Sunday"] })).toEqual([
+      "Sunday",
       "Monday",
       "Wednesday",
-      "Sunday",
     ]);
   });
 
@@ -135,8 +135,8 @@ describe("lastActiveDayName", () => {
     expect(lastActiveDayName({})).toBe("Saturday");
   });
 
-  test("adding Sunday moves the deadline to Sunday", () => {
-    expect(lastActiveDayName({ activeDays: ALL_SEVEN })).toBe("Sunday");
+  test("a seven-day week still ends on Saturday — #379 put Sunday at the front", () => {
+    expect(lastActiveDayName({ activeDays: ALL_SEVEN })).toBe("Saturday");
   });
 
   test("a Mon–Wed week ends on Wednesday", () => {
@@ -148,16 +148,16 @@ describe("lastActiveDayName", () => {
   });
 });
 
-describe("mondayIndex", () => {
-  test("Monday is 0 and Sunday is 6", () => {
-    expect(mondayIndex(MONDAY)).toBe(0);
-    expect(mondayIndex(SUNDAY)).toBe(6);
+describe("weekIndex", () => {
+  test("Sunday is 0 and Saturday is 6", () => {
+    expect(weekIndex(SUNDAY)).toBe(0);
+    expect(weekIndex(SATURDAY)).toBe(6);
   });
 
-  test("the middle of the week counts up from Monday", () => {
-    expect(mondayIndex(TUESDAY)).toBe(1);
-    expect(mondayIndex(WEDNESDAY)).toBe(2);
-    expect(mondayIndex(SATURDAY)).toBe(5);
+  test("the middle of the week counts up from Sunday", () => {
+    expect(weekIndex(MONDAY)).toBe(1);
+    expect(weekIndex(TUESDAY)).toBe(2);
+    expect(weekIndex(WEDNESDAY)).toBe(3);
   });
 });
 
@@ -174,17 +174,17 @@ describe("elapsedActiveDays and activeDaysLeftAfter", () => {
     expect(activeDaysLeftAfter(monSat, SATURDAY)).toBe(0);
   });
 
-  test("on the Sunday of a Mon–Sat week the week is over, not restarted", () => {
-    expect(elapsedActiveDays(monSat, SUNDAY)).toBe(6);
-    expect(activeDaysLeftAfter(monSat, SUNDAY)).toBe(0);
+  test("on the Sunday that OPENS a Mon–Sat week nothing has elapsed yet (#379)", () => {
+    expect(elapsedActiveDays(monSat, SUNDAY)).toBe(0);
+    expect(activeDaysLeftAfter(monSat, SUNDAY)).toBe(6);
   });
 
-  test("a Mon–Sun week has all seven elapsed on the Sunday", () => {
-    const monSun = { activeDays: ALL_SEVEN };
-    expect(elapsedActiveDays(monSun, SUNDAY)).toBe(7);
-    expect(activeDaysLeftAfter(monSun, SUNDAY)).toBe(0);
-    expect(elapsedActiveDays(monSun, SATURDAY)).toBe(6);
-    expect(activeDaysLeftAfter(monSun, SATURDAY)).toBe(1);
+  test("a seven-day week has only its Sunday elapsed on the Sunday", () => {
+    const allSeven = { activeDays: ALL_SEVEN };
+    expect(elapsedActiveDays(allSeven, SUNDAY)).toBe(1);
+    expect(activeDaysLeftAfter(allSeven, SUNDAY)).toBe(6);
+    expect(elapsedActiveDays(allSeven, SATURDAY)).toBe(7);
+    expect(activeDaysLeftAfter(allSeven, SATURDAY)).toBe(0);
   });
 
   test("a Mon/Wed/Fri week on a Tuesday counts only the Monday, with two left", () => {
@@ -229,11 +229,11 @@ describe("paceForTemplate", () => {
     expect(pace).toEqual({ expected: 12, expectedRounded: 12, diff: 0, status: "green", daysLeft: 0 });
   });
 
-  test("a Sunday on the default week is still the full target — Sunday is not a seventh day", () => {
+  test("a Sunday on the default week expects nothing yet — it opens the week (#379)", () => {
     const pace = paceForTemplate({ posted: 10, target: 12, date: SUNDAY, template: defaultTmpl });
-    expect(pace.expected).toBe(12);
-    expect(pace.daysLeft).toBe(0);
-    expect(pace.diff).toBe(-2);
+    expect(pace.expected).toBe(0);
+    expect(pace.daysLeft).toBe(6);
+    expect(pace.diff).toBe(10);
   });
 
   test("green at or above expected, yellow down to 85 percent, red below", () => {
@@ -257,9 +257,11 @@ describe("paceForTemplate", () => {
   });
 
   test("a seven-day week prorates over seven, not six", () => {
-    const monSun = { activeDays: ALL_SEVEN };
-    const pace = paceForTemplate({ posted: 14, target: 14, date: SUNDAY, template: monSun });
-    expect(pace).toEqual({ expected: 14, expectedRounded: 14, diff: 0, status: "green", daysLeft: 0 });
+    const allSeven = { activeDays: ALL_SEVEN };
+    const opening = paceForTemplate({ posted: 2, target: 14, date: SUNDAY, template: allSeven });
+    expect(opening).toEqual({ expected: 2, expectedRounded: 2, diff: 0, status: "green", daysLeft: 6 });
+    const closing = paceForTemplate({ posted: 14, target: 14, date: SATURDAY, template: allSeven });
+    expect(closing).toEqual({ expected: 14, expectedRounded: 14, diff: 0, status: "green", daysLeft: 0 });
   });
 
   test("a Mon/Wed/Fri week on a Tuesday expects only the Monday's third", () => {
