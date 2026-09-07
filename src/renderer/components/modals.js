@@ -140,7 +140,6 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
   const [aiResearchedAt, setAiResearchedAt] = useState(game.aiResearchedAt || "");
   const [researching, setResearching] = useState(false);
   const [researchError, setResearchError] = useState("");
-  const [showAiSection, setShowAiSection] = useState(false);
   const [updateThreshold, setUpdateThreshold] = useState(5);
   const [sessionCount, setSessionCount] = useState(0);
   const [artPath, setArtPath] = useState(null);
@@ -224,12 +223,26 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
   };
 
   return (
+    // #367: a desktop-width dialog — header / scrolling body / pinned footer
+    // (ui-standards: outer hidden, inner auto), two columns: identity + art +
+    // program on the left, AI Context always open on the right.
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(var(--shade),calc(0.8 * var(--shadeK)))", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, borderRadius: T.radius.xl, padding: 28, maxWidth: 480, width: "100%", border: `1px solid ${T.borderHover}`, maxHeight: "85vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: 0 }}>Edit {game.name}</h3>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, borderRadius: T.radius.xl, width: "min(960px, 92vw)", border: `1px solid ${T.borderHover}`, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 28px 14px", borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+          <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: 0, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Edit {game.name}</h3>
+          {/* Status lives in the header: one toggle, not a whole section. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 18 }}>
+            <span style={{ color: T.textTertiary, fontSize: 11 }}>{active ? "Shown in the tracker picker" : "Hidden from the tracker picker"}</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setActive(true)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${active ? T.greenBorder : T.border}`, background: active ? T.greenDim : "transparent", color: active ? T.green : T.textTertiary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Active</button>
+              <button onClick={() => setActive(false)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${!active ? T.redBorder : T.border}`, background: !active ? T.redDim : "transparent", color: !active ? T.red : T.textTertiary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Inactive</button>
+            </div>
+          </div>
           <button onClick={onClose} style={{ background: "rgba(var(--lift),0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: T.textTertiary, cursor: "pointer" }}>✕</button>
         </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px 6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", columnGap: 36 }}>
+        <div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
           <div>
             <SectionLabel>Tag</SectionLabel>
@@ -316,26 +329,18 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
               : "Launch the game, pick it from the list, and new recordings will pre-select this game."}
           </div>
         </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <SectionLabel>Status</SectionLabel>
-          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-            <button onClick={() => setActive(true)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${active ? T.greenBorder : T.border}`, background: active ? T.greenDim : "transparent", color: active ? T.green : T.textTertiary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Active</button>
-            <button onClick={() => setActive(false)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${!active ? T.redBorder : T.border}`, background: !active ? T.redDim : "transparent", color: !active ? T.red : T.textTertiary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Inactive</button>
-          </div>
-          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Inactive games are hidden from the tracker picker</div>
         </div>
 
-        {/* AI Context Section */}
-        <div style={{ marginBottom: 20, borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
-          <button onClick={() => setShowAiSection(!showAiSection)} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0, width: "100%" }}>
+        {/* AI Context — the right column, always open */}
+        <div style={{ marginBottom: 20, borderLeft: `1px solid ${T.border}`, paddingLeft: 36, marginLeft: -18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <span style={{ color: T.accentLight, fontSize: 14, fontWeight: 700 }}>AI Context</span>
-            <span style={{ color: T.textTertiary, fontSize: 11 }}>{showAiSection ? "▲" : "▼"}</span>
-            {(aiAutoContext || aiPlayStyle) && <span style={{ width: 6, height: 6, borderRadius: 3, background: T.green, marginLeft: "auto" }} />}
-          </button>
+            {(aiAutoContext || aiPlayStyle) && <span style={{ width: 7, height: 7, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}` }} />}
+            <span style={{ color: T.textTertiary, fontSize: 11, marginLeft: "auto" }}>Used by clip detection and title / caption generation</span>
+          </div>
 
-          {showAiSection && (
-            <div style={{ marginTop: 14 }}>
+          {(
+            <div>
               {/* Play Style - user editable (#333: doubles as the authored description for content entries) */}
               <div style={{ marginBottom: 14 }}>
                 <SectionLabel>{isContentEntry ? "About This Content" : "Your Play Style"}</SectionLabel>
@@ -419,9 +424,11 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
             </div>
           )}
         </div>
+        </div>
+        </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 18px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: "12px 22px", borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
           <button onClick={() => {
             const tagDup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name);
             if (tagDup) return;
@@ -430,7 +437,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
               window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);
             }
             onSave({ ...game, tag, hashtag, color, dayCount, active, exe: exeList, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
-          }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(var(--lift),0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
+          }} style={{ padding: "12px 32px", borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(var(--lift),0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
         </div>
       </div>
     </div>
