@@ -12,6 +12,19 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.29",
+    date: "2026-09-07",
+    changed: [
+      "Your week now starts on Sunday. The Tracker calendar used to open on Monday and leave Sunday stranded at the far right; Sunday now sits first and the week runs through to Saturday. This moves the week itself, not just the columns \u2014 the goal count, the pace ring, the streak and the XP for a week you hit are all counted over the new Sunday-to-Saturday window, and your existing weeks move across with them on first launch. Nothing you have already posted changes, and no week you hit becomes a week you missed. If you post Monday to Saturday, the week now ends on your last posting day instead of running one dead day past it.",
+      "Step through weeks from either side of the calendar. Tall arrows now run down the left and right edges of the week log, so you can move a week back or forward from wherever you are in the grid instead of going back up to the small arrows in the header. Those are still there, next to the dates and \"Back to this week\".",
+    ],
+    fixed: [
+      "A reposted clip shows its posting time again. On the week log, a card marked as a repost was wide enough to push its own time off the right edge \u2014 \"1:30p\" showed as \"1:3\" and the little dot that says whether it went out automatically disappeared entirely. The repost mark is now a small \u21bb symbol instead of the word, and the time is protected so it can never be the thing that gets squeezed out.",
+      "A subtitle line you switched off no longer appears in the finished video. Turning a line off worked when you rendered from inside the editor, but \"Render All\" from Projects and any queued render put it straight back.",
+      "View counts from YouTube can be collected again. The lookup was searching for accounts under the wrong name and quietly finding nothing every time, so nothing that ranks your titles by how they actually performed has ever had data to work with.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.28",
     date: "2026-09-07",
     added: [

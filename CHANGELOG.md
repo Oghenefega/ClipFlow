@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.29] — 2026-09-07 (session 245) — Sunday-start weeks reach the installed copies
+
+### Changed
+- **Version bumped to 0.4.0-alpha.29 and an installer cut to the R2 update feed.** Promotes everything merged since alpha.28: the tracker week moving to Sunday-start with its one-shot key migration, the repost card no longer clipping its posting time, week-navigation rails down both edges of the calendar (#379, #378, #380); disabled subtitle lines staying out of every render path and the YouTube view lookup finally matching a real account (#374, #375); and the publish scheduler refusing to auto-fire on any source run (#376). The What's New screen carries the four user-facing items — the source-run scheduler change is deliberately left off it, since a customer never runs Corva from source. Desktop and laptop both pick it up from the "Update available" banner on next launch.
+
 ## [Unreleased] — 2026-09-07 (session 245) — The tracker week starts on Sunday (#379, #378, #380)
 
 ### Changed
