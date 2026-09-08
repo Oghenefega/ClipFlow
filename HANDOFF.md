@@ -1,96 +1,96 @@
-# HANDOFF — Session 245 (2026-09-07)
+# HANDOFF — Session 246 (2026-09-07)
 
 ## Current State
 
-**alpha.29 is cut, published to the R2 feed, and waiting on Fega's relaunch.** Two commits: the
-Sunday-start week work (`555aa10`) and the release (`0e89fff`). Master clean, 22 suites / 426 jest
-tests green plus the 19 standalone calendar-model tests, renderer builds clean, boot verified on the
-dev profile.
+**alpha.30 is cut, published to the R2 feed, and waiting on Fega's relaunch.** Two commits: the
+rejection-tier work (`615e9b4`) and the release (`f7d6f86`). Master clean, 79 prompt-builder tests
+green (was 60), renderer builds clean, boot verified on the dev profile against the built bundle.
 
-alpha.29 promotes everything since alpha.28: #379/#378/#380 (this session), plus #374/#375/#376
-which had been sitting on master unshipped.
+The session started as a product conversation — Fega was hand-typing the same two rejection reasons
+on 100T clips — and turned into a correctness fix. The detection prompt was quoting delivery-class
+rejections under "do NOT pick moments like these", and those clips are built from his catchphrases.
+Measured on the prod DB (100T: 58 approved / 104 rejected): "let's go" 26% of approved vs 22% of
+rejected, "get him out" 26% vs 17%, "bro" 48% vs 36%. Every signature phrase is **more** common in
+the keepers — the negative examples were pointing the wrong way, not merely wasting budget.
 
-**The week-key migration has not run on Fega's real store yet.** It ships inside alpha.29 and fires
-on his first launch of it. It ran cleanly on the dev profile against a copy of his data (11
-snapshots, 3 overrides re-keyed), and was dry-run against the real store before any code was
-written. A backup sits at `%APPDATA%\Corva\clipflow-settings.backup-2026-09-07-pre-379.json`.
+Two issues filed and still open pending Fega's hands-on check: **#381** (the poisoning) and **#382**
+(signature phrases reach the prompt but have no editor anywhere — only the Reset button, which wipes
+them permanently). **#341** was already filed for the content-type-aware chips and got the design.
 
 ## Key Decisions
 
-- **The tracker week now runs Sun–Sat (#379, Fega's ask).** Treated as a real window move, not a
-  column reorder: rendering Sunday first inside a Monday-opened week would have put the week's LAST
-  day on the left. Everything week-keyed shifts back a day.
-- **`mondayISO` renamed to `weekStartISO`, but `streakState.evaluatedThroughMondayISO` keeps its
-  name.** The function is code and lies if it says "monday"; the field is persisted in every store
-  and renaming it would buy a second migration for nothing. Its value is shifted, its key is not.
-- **The `goal-bonus:<weekKey>` ledger rows migrate with `weekMeta`.** Left behind, the self-heal
-  pass in `evaluateRollover` would not find the bonus under the new key and would bank a second
-  100 XP for the same week, moving the rank. This is the migration's whole reason for touching the
-  ledger.
-- **QueueView moved onto the shared `weekStartISO`** rather than keeping its own week-date helper.
-  It looked per-week slot overrides up by its own Monday and would have stopped finding them
-  silently. Its helper and its Mon–Sat `DAY_NAMES` are deleted — nothing else used them.
-- **Rails flank the grid, they do not overlay it.** An absolute overlay on the outer columns would
-  have swallowed clicks on Sunday's and Saturday's own slots. They take the padding the grid already
-  held, so columns lose ~12px a side rather than a rail's full width.
-- **#377's three orphaned `trackerEngine` helpers were updated, not deleted.** They were about to
-  become Monday-first math inside a Sunday-first module. Still orphaned; #377 still asks for their
-  removal, and now says so.
+- **Three tiers, not two.** The old split was "mechanical vs taste"; the missing axis is *can the
+  transcript carry this verdict*. Bookkeeping (unchanged), **content** (words are evidence, still
+  quoted), **delivery** (verdict is in the audio — row dropped). Delivery *alongside* a content
+  reason keeps the row: most of Fega's `flat-delivery` uses are co-tagged and that content verdict
+  is real.
+- **Delivery rejections do NOT get the mechanical exemption in the #194 quality stats.** Excluded
+  from the prompt because the text can't carry them, but a clip thrown away for a flat reaction is
+  still a genuine miss by the engine and belongs in the denominator.
+- **Chips branch on the creator's ranked moment priorities, not on archetype.** Fega's ask was
+  "different creator types should get different reasons". `entryType × archetype` would have been 8
+  hand-maintained vocabularies; deriving from `momentPriorities` is one six-row mapping that adapts
+  to creators we've never met. `entryType` still branches, but only for `reaction-adds-nothing`.
+- **`live-only` ("Didn't stand alone") sits in the shared core, not the react branch.** 7 of the 17
+  free-text notes in the prod DB are this reason and they span RL and EO as well as 100T — it is a
+  *livestream* reason, not a react one.
+- **One-change installer, against the ~10-change batch rule.** Fega asked explicitly; he is
+  reviewing 100T now, which is when the chips earn their keep.
+- **Vocabulary consolidated into `src/shared/rejectReasons.js`** rather than kept in the four
+  hand-synced sites #341 catalogued. Follows the existing `captionResolve` / `ytDescriptionTemplate`
+  pattern (CJS exports, main `require`s, renderer `import`s, already in `build.files`).
 
 ## Next Steps
 
-1. **Confirm alpha.29 on the daily driver** — relaunch, Install from the banner, then check the
-   streak and rank are unchanged and `app.log` carries the `Tracker week moved to Sunday-start`
-   line with 11 snapshots / 4 overrides / 1 goal-bonus row.
-2. **#378/#379/#380 are all `status: untested`** until Fega confirms. #380 has a specific gap — see
-   Watch Out For.
-3. **#373 — six test suites never run under `npm test`** (jest `testMatch` only matches inside
-   `__tests__/`). `trackerCalendarModel.test.js` is one of them and had to be run by hand this
-   session; it would have caught the renamed params for free.
-4. **#377 — four stale comments + the three orphaned `trackerEngine` functions.**
-5. Remaining from the technical summary's "fix first" list, still unfiled: no `-pix_fmt` outside
-   reframe, `probeFps` silently returning 30, `createOverlaySession` returning null → a render with
-   no subtitles and no warning.
+1. **Fega's verdict on the two new chips** — do "Didn't stand alone" and "Just sounded angry" catch
+   what he'd otherwise type, or miss the shade he means? Close #381/#341 on confirmation.
+2. **#382** — build the signature-phrases editor. Matters more than it looks: a new customer starts
+   with `signaturePhrases: []` *and* `description: ""`, so they get the negative examples with none
+   of the counterweight Fega has. #381 is strictly worse for them than for him.
+3. **Re-run the `--no-rejected` ablation** once v4-tagged rows accumulate (`tasks/spikes/replay-score`).
+   This is the queued cell from `tasks/specs/detection-input-science.md` §Step 3 — it has been waiting
+   on a sharper vocabulary since alpha.38, and there is now one.
+4. Standing: **#234** v3 re-test, the detection-science backlog.
 
 ## Watch Out For
 
-- **#282 drag-to-travel was NOT exercised end-to-end this session.** Holding a dragged clip at the
-  calendar edge to flip weeks now happens over a rail button. The rail is a descendant of the div
-  carrying `onDragOver` and sits flush against the grid with no overlap (both verified in the DOM),
-  so `dragover` still bubbles — but the dev fixture has no scheduled clips, so no real drag was
-  performed. First thing to try if Fega reports edge-travel misbehaving.
-- **Do not run the week migration twice.** It shifts keys back one day and is guarded ONLY by
-  `_migrated_weekStartSunday_v1`. Running it again would land every week on a Saturday. If a store
-  ever needs re-migrating, restore the backup first.
-- **Template grid key order changed** (Sunday first out of `normalizeTemplate`). A saved preset
-  written before this stringifies differently from an equivalent one written after, which is why
-  the preset-match check in TrackerView normalizes both sides now. Any NEW stringify-comparison of
-  two templates must do the same.
-- **`taskkill //F //IM Corva.exe` kills Fega's daily driver.** `electron.exe` is the safe one. Both
-  were running this session.
-- **Source runs do not auto-publish (#376) — intended, not a bug.** See s244's handoff for the
-  override flags.
+- **The fix is preventative, not retroactive.** Measured on the existing 221 tagged rejections: 4
+  carry a delivery tag, **0** are delivery-only, 1 gets regrouped. Almost nothing moves today — and
+  that is precisely because Fega wasn't reaching for "Flat delivery", he was typing notes. Don't
+  read a flat approval rate over the next few generations as the fix failing.
+- **The harness will probably show ~nothing.** Removing the whole rejected section moved the
+  rejected-hit rate 49% → 48% (within noise). It is the guardrail here, not the proof; the proof is
+  the rolling 100T approval rate (#194).
+- **The vocabulary has FIVE consumers, and one is invisible.** Adding a chip now means one catalogue
+  edit — but the persisted `reject_reasons` CSV in the feedback DB and `rejectReasons` on clip JSON
+  carry historical keys forever. `getReasonChips({ include })` pins stored keys so reordering
+  Settings can't strand a tag; don't remove that.
+- **`src/shared/` is a packaged path (`build.files`), and the main process now requires from it.**
+  Verified present in the asar this cut. Any *new* cross-tree folder needs the same check or the
+  packaged exe crashes at startup — `npx asar list` the artifact, never trust the globs.
+- **The dev profile's game library is stale** — 11 entries, no `100T`/`GTA6-R`/`ROBOT`, so those
+  projects resolve to no entry and fall back to `entryType: "game"`. The react-only chip therefore
+  does not render there. Not a code bug; it cost time to diagnose. Verify entry-type behaviour
+  against prod settings in node, or fix the dev gamesDb first.
 
-## Logs/Debugging
+## Logs / Debugging
 
-- **Boot verify on the dev profile:** `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-backgrounding-occluded-windows`, then `node scripts/dev/cdp.js "<expr>"` and
-  `node scripts/dev/cdp-shot.js out.png`. `isDev` is hardcoded false, so this loads the built
-  `build/` output — no Vite, which is what makes it a valid verification path.
-- **The migration's own log line** is the confirmation it ran:
-  `Tracker week moved to Sunday-start (#379): N week snapshot(s), N template override(s), N goal-bonus row(s) re-keyed`.
-  Absent on every launch after the first — the flag suppresses it.
-- **Reading the week grid via CDP:** the 7-column grid is the last element on the page with
-  `display: grid` and 7 children; `getComputedStyle(g).gridTemplateColumns` shows an OFF day
-  collapsed to `28px`. The day-toggle buttons are addressable as
-  `button[title*="Posting on"], button[title*="Not posting on"]` — query those directly rather than
-  scraping leaf text, which also matches the grid's own headers and reads as a jumbled order.
-- **Measuring the repost-card overflow:** `row.scrollWidth - row.clientWidth` on the card's header
-  row. 0 at every column width down to 109px; 12px before the fix. Below ~99px columns the game tag
-  has already ellipsised to its padding and the row overflows again — that is the mechanism working,
-  not a regression, and it is far below any real window size.
-- **Emulation.setDeviceMetricsOverride survives past the call** and `clearDeviceMetricsOverride`
-  did not visibly restore layout — relaunch the app to get a clean native viewport before taking a
-  screenshot for Fega.
-- **Do not edit a profile's `clipflow-settings.json` while its app is running** — electron-store
-  will overwrite it. Kill the electron process, patch, relaunch.
+- **Prompt artifacts are the fastest ground truth for anything detection-related.** Every run writes
+  its exact system prompt to `%APPDATA%\Corva\processing\claude\<video>.system_prompt.txt`. Reading
+  yesterday's 100T prompt is what proved the poisoning in one step — the profile block says
+  "GET HIM OUT OF MY FACE means he made a great play" and the rejected section says avoid those
+  words, ~150 lines apart. Faster and more honest than reading the builder.
+- **Rebuild a section against the real DB before believing a prompt change.** Copy
+  `%APPDATA%\Corva\data\clipflow.db` to temp, open it with node's built-in `node:sqlite`
+  (`new DatabaseSync(path, {readOnly:true})` — there is no sqlite dep in package.json), pull the same
+  window the pipeline uses (`WHERE game_tag=? AND decision='rejected' ORDER BY timestamp DESC LIMIT 50`)
+  and call `buildRejectedSection` with the electron stub from `ai-prompt.test.js`.
+- **CDP verify on the dev profile:** `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`
+  (loads `build/`, not Vite), then `scripts/dev/cdp.js "<expr>"` and `scripts/dev/cdp-shot.js out.png`.
+  Two gotchas hit this session: a "Corva updated" modal blocks the first interaction (dismiss "Got
+  it"), and `cdp.js` takes the expression as argv — **regex literals and `!` get mangled by the
+  shell**, so write the expression to a file and pass `"$(cat file)"`.
+- **Bash heredocs still eat a backslash level** (`feedback_bash_backslash_collapse`): a Python
+  heredoc containing `'\'` died with an unterminated-string SyntaxError, and `grep -E "^\\src\\shared"`
+  silently matched nothing. Anything with Windows path separators goes in a file via Write, or builds
+  them from `String.fromCharCode(92)`.
