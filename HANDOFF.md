@@ -1,93 +1,96 @@
-# HANDOFF — Session 244 (2026-09-07)
+# HANDOFF — Session 245 (2026-09-07)
 
 ## Current State
 
-**alpha.28 is cut, published, and installed on Fega's daily driver.** Five commits this session:
-the release (`1a5ebe8`), the technical-summary rebuild (`39530c3`), two fixes the rebuild uncovered
-(`af72b55`), the session-close distillation (`ed47700`), and the #376 scheduler decision.
-Master is clean, 22 test suites / 426 tests green, renderer builds clean, boot verified.
+**alpha.29 is cut, published to the R2 feed, and waiting on Fega's relaunch.** Two commits: the
+Sunday-start week work (`555aa10`) and the release (`0e89fff`). Master clean, 22 suites / 426 jest
+tests green plus the 19 standalone calendar-model tests, renderer builds clean, boot verified on the
+dev profile.
 
-alpha.28 promoted nine issues (#364–#372 — everything from sessions 242/243). Three fixes since
-then — #374, #375, #376 — are **on master but not in any installer**. None is urgent for Fega: the
-first two are correctness fixes he can't easily see, and #376 only affects source runs, not his
-installed app.
+alpha.29 promotes everything since alpha.28: #379/#378/#380 (this session), plus #374/#375/#376
+which had been sitting on master unshipped.
 
-The external technical summary at
-`~/Documents/Obsidian Vault/The Lab/Businesses/ClipFlow/context/technical-summary.md`
-is current as of alpha.28 (914 lines, rebuilt from scratch — the previous one described alpha.4 and
-was 210 commits behind). Its companion `tasks/specs/backlog-truth-audit-2026-08-23.md` is now
-explicitly marked STALE inside the summary: it verified 110 open issues, there are 137.
+**The week-key migration has not run on Fega's real store yet.** It ships inside alpha.29 and fires
+on his first launch of it. It ran cleanly on the dev profile against a copy of his data (11
+snapshots, 3 overrides re-keyed), and was dry-run against the real store before any code was
+written. A backup sits at `%APPDATA%\Corva\clipflow-settings.backup-2026-09-07-pre-379.json`.
 
 ## Key Decisions
 
-- **#376 decided by Fega: only the installed app auto-publishes.** "I don't want this to ever fire
-  randomly so I don't want the prod or npm start to be able to publish clips." Implemented as a
-  second refusal in `startScheduler` beside the dev one. The accepted tradeoff: running prod from
-  source will not post scheduled clips.
-- **The missing-flag case fails toward NOT publishing** (`deps.isPackaged !== true`, not
-  `=== false`). A future call site that forgets to inject the flag goes silent-and-loud (clips don't
-  post, the log says why) rather than silently re-arming a source run — the bug itself.
-- **Closed #374 and #375 as `status: untested`.** Both verified end-to-end by me (frame-diff on a
-  real export; read-only check against the real token store), neither confirmed by Fega.
-- **Did NOT run the live YouTube view refresh.** It would hit the API and write view counts into his
-  real library; that first run is his to trigger. The new log line reports how many rows it updated.
-- **Left the backlog truth audit un-rerun.** Re-verifying 137 issues is its own session; marking the
-  companion stale inside the summary was the honest cheap move.
+- **The tracker week now runs Sun–Sat (#379, Fega's ask).** Treated as a real window move, not a
+  column reorder: rendering Sunday first inside a Monday-opened week would have put the week's LAST
+  day on the left. Everything week-keyed shifts back a day.
+- **`mondayISO` renamed to `weekStartISO`, but `streakState.evaluatedThroughMondayISO` keeps its
+  name.** The function is code and lies if it says "monday"; the field is persisted in every store
+  and renaming it would buy a second migration for nothing. Its value is shifted, its key is not.
+- **The `goal-bonus:<weekKey>` ledger rows migrate with `weekMeta`.** Left behind, the self-heal
+  pass in `evaluateRollover` would not find the bonus under the new key and would bank a second
+  100 XP for the same week, moving the rank. This is the migration's whole reason for touching the
+  ledger.
+- **QueueView moved onto the shared `weekStartISO`** rather than keeping its own week-date helper.
+  It looked per-week slot overrides up by its own Monday and would have stopped finding them
+  silently. Its helper and its Mon–Sat `DAY_NAMES` are deleted — nothing else used them.
+- **Rails flank the grid, they do not overlay it.** An absolute overlay on the outer columns would
+  have swallowed clicks on Sunday's and Saturday's own slots. They take the padding the grid already
+  held, so columns lose ~12px a side rather than a rail's full width.
+- **#377's three orphaned `trackerEngine` helpers were updated, not deleted.** They were about to
+  become Monday-first math inside a Sunday-first module. Still orphaned; #377 still asks for their
+  removal, and now says so.
 
 ## Next Steps
 
-1. **#373 — six test suites never run under `npm test`** (jest `testMatch` only matches inside
-   `__tests__/`), and four of them ship inside the asar. The 464-line `segmentWords` suite covering
-   the subtitle chunker — the file that changed most recently and a known regression area — has
-   never executed. Widening the glob is minutes; triaging what the six suites then surface is the
-   real work.
-2. **#377 — four stale comments + three orphaned `trackerEngine` functions** still hardcoding `/6`.
-3. **Cut alpha.29** when #374/#375/#376 should reach the daily driver, or keep batching.
-4. Remaining from the summary's own "fix first" list, not yet filed as issues: no `-pix_fmt` outside
-   reframe (10-bit sources → High-10 H.264 most platforms reject), `probeFps` silently returning 30,
-   `createOverlaySession` returning null → a render with no subtitles and no warning.
+1. **Confirm alpha.29 on the daily driver** — relaunch, Install from the banner, then check the
+   streak and rank are unchanged and `app.log` carries the `Tracker week moved to Sunday-start`
+   line with 11 snapshots / 4 overrides / 1 goal-bonus row.
+2. **#378/#379/#380 are all `status: untested`** until Fega confirms. #380 has a specific gap — see
+   Watch Out For.
+3. **#373 — six test suites never run under `npm test`** (jest `testMatch` only matches inside
+   `__tests__/`). `trackerCalendarModel.test.js` is one of them and had to be run by hand this
+   session; it would have caught the renamed params for free.
+4. **#377 — four stale comments + the three orphaned `trackerEngine` functions.**
+5. Remaining from the technical summary's "fix first" list, still unfiled: no `-pix_fmt` outside
+   reframe, `probeFps` silently returning 30, `createOverlaySession` returning null → a render with
+   no subtitles and no warning.
 
 ## Watch Out For
 
-- **Source runs no longer auto-publish (#376) — this is intended, not a bug.** `npm start` and
-  `npm run dev` both refuse; only the installed app fires scheduled clips. If someone reports
-  "scheduled posts stopped working", first ask whether they are running from source. Overrides for a
-  deliberate test: `CLIPFLOW_ALLOW_SOURCE_PUBLISH=1`, `CLIPFLOW_ALLOW_DEV_PUBLISH=1` (independent —
-  `npm run dev` is both a dev profile AND a source run, so it needs both).
-- **`taskkill //F //IM Corva.exe` kills Fega's daily driver.** `electron.exe` is the safe one — only
-  source runs use it. Both were running this session.
-- **A subtitle field can be lost by a `.map()` that copies named fields.** `resolveTimelineSubtitles`'s
-  resolver branch maps `start/end/text/words` only; anything else on a segment dies there. That is
-  what made the first #374 fix a no-op. Filter/read such flags at ingestion.
-- **The infrastructure dashboard is behind.** It records the engine runtime at 1.0.0; 1.1.0 with the
-  three voter models shipped 2026-09-03. Extends the R1 decision rather than contradicting it, so it
-  was left alone — but update it next time that doc is opened.
-- Two `[data-theme]` palettes were added since the memory note said "four themes" — there are now
-  **eight**. Memory corrected this session.
+- **#282 drag-to-travel was NOT exercised end-to-end this session.** Holding a dragged clip at the
+  calendar edge to flip weeks now happens over a rail button. The rail is a descendant of the div
+  carrying `onDragOver` and sits flush against the grid with no overlap (both verified in the DOM),
+  so `dragover` still bubbles — but the dev fixture has no scheduled clips, so no real drag was
+  performed. First thing to try if Fega reports edge-travel misbehaving.
+- **Do not run the week migration twice.** It shifts keys back one day and is guarded ONLY by
+  `_migrated_weekStartSunday_v1`. Running it again would land every week on a Saturday. If a store
+  ever needs re-migrating, restore the backup first.
+- **Template grid key order changed** (Sunday first out of `normalizeTemplate`). A saved preset
+  written before this stringifies differently from an equivalent one written after, which is why
+  the preset-match check in TrackerView normalizes both sides now. Any NEW stringify-comparison of
+  two templates must do the same.
+- **`taskkill //F //IM Corva.exe` kills Fega's daily driver.** `electron.exe` is the safe one. Both
+  were running this session.
+- **Source runs do not auto-publish (#376) — intended, not a bug.** See s244's handoff for the
+  override flags.
 
 ## Logs/Debugging
 
-- **Boot verify:** `rm` the dev log, `CLIPFLOW_PROFILE=dev npx electron .`, then grep
-  `C:\Users\IAmAbsolute\AppData\Roaming\clipflow-dev\logs\app.log`. A clean boot ends with
-  `Main window revealed (renderer-ready+min-hold)`. The `Scheduler:` line always states which
-  refusal fired — that line is the positive confirmation that nothing can publish. To exercise the
-  SOURCE guard specifically (rather than the dev one, which returns first), boot with
-  `CLIPFLOW_ALLOW_DEV_PUBLISH=1 CLIPFLOW_PROFILE=dev` and expect
-  `Scheduler: running from source — scheduled publishing disabled`.
-- **`scripts/dev/subtitle-disable-probe.js`** (new) — renders the same clip twice through the real
-  `renderClip`, once with a stored subtitle segment marked `enabled: false`, and diffs the outputs
-  frame by frame. PASS = changed pixels inside the line's window, exactly 0 everywhere else. Run it
-  with `CLIPFLOW_PROFILE=dev npx electron scripts/dev/subtitle-disable-probe.js`. Read-only on the
-  project and it refuses if the clip is approved or published.
-- **Do not threshold brightness to check a burn-in.** Gameplay puts ~3,300 near-white pixels in the
-  subtitle band on every frame; a whole line of text is ~1% of that and reads as noise. This produced
-  two false FAILs before the metric was replaced with a frame diff.
-- **Read-only account check without booting the app:** an Electron script that does
-  `app.setPath("userData", <appData>/Corva)` then `tokenStore.init()` + `getAllAccounts()` lists the
-  connected accounts with no window and no scheduler. All four store DISPLAY casing
-  (`"YouTube"`, `"TikTok"`, `"Facebook"`, `"Instagram"`) — always resolve through
-  `accountToPlatformKey`.
-- **Live DB is `%APPDATA%\Corva\data\clipflow.db`** (712 KB, schema v9): feedback 644 rows
-  (188 approved / 456 rejected), file_metadata 197, title_caption_rounds 174 — and **zero** view
-  counts, which is what #375 was about. `data/clipflow.db` in the repo is stale; never measure
-  against it.
+- **Boot verify on the dev profile:** `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
+  --disable-backgrounding-occluded-windows`, then `node scripts/dev/cdp.js "<expr>"` and
+  `node scripts/dev/cdp-shot.js out.png`. `isDev` is hardcoded false, so this loads the built
+  `build/` output — no Vite, which is what makes it a valid verification path.
+- **The migration's own log line** is the confirmation it ran:
+  `Tracker week moved to Sunday-start (#379): N week snapshot(s), N template override(s), N goal-bonus row(s) re-keyed`.
+  Absent on every launch after the first — the flag suppresses it.
+- **Reading the week grid via CDP:** the 7-column grid is the last element on the page with
+  `display: grid` and 7 children; `getComputedStyle(g).gridTemplateColumns` shows an OFF day
+  collapsed to `28px`. The day-toggle buttons are addressable as
+  `button[title*="Posting on"], button[title*="Not posting on"]` — query those directly rather than
+  scraping leaf text, which also matches the grid's own headers and reads as a jumbled order.
+- **Measuring the repost-card overflow:** `row.scrollWidth - row.clientWidth` on the card's header
+  row. 0 at every column width down to 109px; 12px before the fix. Below ~99px columns the game tag
+  has already ellipsised to its padding and the row overflows again — that is the mechanism working,
+  not a regression, and it is far below any real window size.
+- **Emulation.setDeviceMetricsOverride survives past the call** and `clearDeviceMetricsOverride`
+  did not visibly restore layout — relaunch the app to get a clean native viewport before taking a
+  screenshot for Fega.
+- **Do not edit a profile's `clipflow-settings.json` while its app is running** — electron-store
+  will overwrite it. Kill the electron process, patch, relaunch.

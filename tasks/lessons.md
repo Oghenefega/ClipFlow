@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-07 (s244) -- Session 244: "do not mock a hop in the chain you suspect of eating the field" -> clipflow-code-review; "diff two renders frame-by-frame, never threshold brightness" -> clipflow-ffmpeg-media. Previously s243 -- Session 243: "prove a heuristic on the failing sample before the 15-minute scorer" -> clipflow-code-review; "experiment numbers name what was compared and that nothing shipped" -> memory feedback_plan_clarity; the stranded-word facts -> memory project_subtitle_timing_learning -->
+> <!-- DISTILLED-THROUGH: 2026-09-07 (s245) -- Session 245: no new lessons (no corrections; the plan was approved and shipped as proposed). Previously s244 -- Session 244: "do not mock a hop in the chain you suspect of eating the field" -> clipflow-code-review; "diff two renders frame-by-frame, never threshold brightness" -> clipflow-ffmpeg-media. Previously s243 -- Session 243: "prove a heuristic on the failing sample before the 15-minute scorer" -> clipflow-code-review; "experiment numbers name what was compared and that nothing shipped" -> memory feedback_plan_clarity; the stranded-word facts -> memory project_subtitle_timing_learning -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
