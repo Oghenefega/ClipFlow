@@ -1,4 +1,5 @@
 const database = require("./database");
+const { BOOKKEEPING_REJECT_REASONS } = require("../shared/rejectReasons");
 
 /**
  * Log a feedback decision (approve or reject).
@@ -240,11 +241,17 @@ function getFeedbackCounts(gameTag) {
 }
 
 // ── Approval-rate stats (#194) ──
-// Mirrors EXCLUDED_REJECT_REASONS in ai-prompt.js (#198): reasons that carry
-// no taste verdict. A reject counts as "mechanical" for the quality rate only
-// when ALL its reasons are on this list — a mixed row like "duplicate,not-funny"
-// still contains a taste verdict and stays in the denominator.
-const MECHANICAL_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content", "repetitive"];
+// The bookkeeping tier from the shared vocabulary (#381 — this used to be a
+// hand-maintained copy): reasons that carry no taste verdict. A reject counts
+// as "mechanical" for the quality rate only when ALL its reasons are on this
+// list — a mixed row like "duplicate,not-funny" still contains a taste verdict
+// and stays in the denominator.
+//
+// Delivery rejections (#381) deliberately do NOT get this exemption. They are
+// excluded from the PROMPT because the transcript can't carry them, but a clip
+// the creator threw away for a flat reaction is still a genuine miss by the
+// engine — it belongs in the quality denominator.
+const MECHANICAL_REJECT_REASONS = BOOKKEEPING_REJECT_REASONS;
 // Quality rate = picks at or above this confidence (#200: below-the-bar fills
 // are expected rejects and must not drag the headline number).
 const QUALITY_CONFIDENCE = 0.7;

@@ -8,6 +8,7 @@ import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { fixTextCasing } from "../editor/utils/subtitleCasing";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
 import { sourceToTimeline, timelineToSource, getTimelineDuration } from "../editor/models/timeMapping";
+import { getReasonChips } from "../../shared/rejectReasons";
 
 // Error boundary for clip preview — prevents bad clip data from crashing the whole app
 class ClipPreviewBoundary extends React.Component {
@@ -696,21 +697,11 @@ const fmtScheduledAt = (iso) => {
   } catch (_) { return ""; }
 };
 
-// ── #198: rejection reason chips — optional, multi-select, never blocking ──
-const REJECT_REASON_CHIPS = [
-  { key: "duplicate", label: "Duplicate", hint: "Same or similar moment already kept — the moment itself was good" },
-  { key: "bad-cut", label: "Bad cut", hint: "Right moment, wrong start or end point" },
-  { key: "not-funny", label: "Not funny", hint: "The joke or reaction isn't funny on rewatch" },
-  { key: "nothing-happens", label: "Nothing happens", hint: "Energy without a payoff — nothing actually happens" },
-  { key: "needs-context", label: "Needs context", hint: "A cold viewer wouldn't get it without prior context" },
-  { key: "wrong-content", label: "Wrong content", hint: "Off-topic for this game's channel and hashtags" },
-  // #232: sharper taste vocabulary — the two catch-alls above were carrying
-  // too many meanings to teach the engine anything specific.
-  { key: "setup-talk", label: "Setup / tech talk", hint: "Stream housekeeping or technical trouble — not content" },
-  { key: "chat-banter", label: "Chat banter", hint: "Only lands if you could see chat — doesn't stand alone" },
-  { key: "flat-delivery", label: "Flat delivery", hint: "Something happened but the reaction didn't carry it" },
-  { key: "repetitive", label: "Too similar", hint: "Good moment, but too much like clips already kept" },
-];
+// ── #198/#232/#381: rejection reason chips — optional, multi-select, never
+// blocking. The vocabulary lives in src/shared/rejectReasons.js (one catalogue
+// shared with the prompt builder); which chips a clip offers depends on the
+// Game Library entry kind and on the moment priorities the creator ranked in
+// Settings → AI Preferences, so the reasons mirror what they asked Corva for.
 
 // ── #197: clip content tag control — the game badge opens a menu of library
 // entries. Retagging changes what the CLIP is about (learning + hashtags
@@ -789,7 +780,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
   );
 }
 
-function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template, pub }) {
+function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template, pub, momentPriorities }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -843,6 +834,15 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
   // #197: pill color follows the clip's effective tag, not the session's
   const tagEntry = (gamesDb || []).find((g) => (g.tag || "").toUpperCase() === clipGameTag);
   const clipGameColor = tagEntry?.color || project.gameColor || T.accent;
+
+  // #381: a react show and a gameplay session don't fail the same way, and the
+  // taste chips follow the moment priorities the creator ranked in Settings —
+  // rank "educational" first and you're asked whether a clip taught anything,
+  // rank "funny" first and you're asked whether it was funny.
+  const reasonChips = useMemo(
+    () => getReasonChips({ entryType: tagEntry?.entryType || "game", momentPriorities, include: clip.rejectReasons || [] }),
+    [tagEntry?.entryType, momentPriorities, clip.rejectReasons]
+  );
 
   // Calm metadata line — energy as colored text (amber HIGH so it never reads as a
   // reject signal), confidence + time as plain dot-separated prose instead of pills.
@@ -1032,7 +1032,7 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: T.textTertiary, marginRight: 3, fontFamily: T.font }}>
               Why?
             </span>
-            {REJECT_REASON_CHIPS.map((r) => {
+            {reasonChips.map((r) => {
               const on = rejectReasons.includes(r.key);
               return (
                 <button
@@ -2075,6 +2075,15 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   const [filter, setFilter] = useState("all");
 
+  // #381: the creator's ranked moment priorities decide which taste chips a
+  // rejection offers. Read once here rather than per row.
+  const [momentPriorities, setMomentPriorities] = useState([]);
+  useEffect(() => {
+    window.clipflow?.storeGet?.("creatorProfile").then((p) => {
+      if (Array.isArray(p?.momentPriorities)) setMomentPriorities(p.momentPriorities);
+    }).catch(() => {});
+  }, []);
+
   // Returning from the editor lands on the clip that was being edited instead
   // of the top of the list. One rAF lets the rows lay out before scrolling.
   useEffect(() => {
@@ -2211,6 +2220,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
               onDeleteClip={onDeleteClip}
               gamesDb={gamesDb}
               template={previewTemplate}
+              momentPriorities={momentPriorities}
             />
           </div>
         ))}

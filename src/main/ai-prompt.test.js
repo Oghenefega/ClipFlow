@@ -19,6 +19,17 @@ Module._load = function (request, parent, isMain) {
 
 const aiPrompt = require("./ai-prompt");
 const { buildSystemPrompt, buildFewShotSection, buildRejectedSection, truncateSnippet } = aiPrompt;
+const {
+  REJECT_REASONS,
+  REJECT_REASON_LABELS,
+  REJECT_GROUP_ORDER,
+  BOOKKEEPING_REJECT_REASONS,
+  DELIVERY_REJECT_REASONS,
+  tierOf,
+  getReasonChips,
+  teachesFromWords,
+  groupKeyFor,
+} = require("../shared/rejectReasons");
 
 // Simple test runner (no Jest dependency needed)
 let passed = 0;
@@ -269,8 +280,11 @@ test("row with empty segment but a note is still included", () => {
 test("rejected section respects its character budget", () => {
   const clips = Array.from({ length: 40 }, (_, i) => rejectedRow({ transcript_segment: LONG_TEXT, title: `Rej ${i}` }));
   const section = buildRejectedSection(clips);
-  // 3000 chars of entries + intro framing + group headers (#232)
-  expect(section.length).toBeLessThan(3600);
+  // 3000 chars of entries + intro framing + group headers (#232). The ceiling
+  // rose 3600 → 3850 for #381's "these are moments, not banned words" framing —
+  // fixed header prose, not history growth. SECTION_CHAR_BUDGET still caps the
+  // only part that scales with how much feedback exists.
+  expect(section.length).toBeLessThan(3850);
 });
 
 // ── buildRejectedSection: reason filtering (#198) ──
@@ -339,10 +353,162 @@ test("repetitive (too similar) is excluded as mechanical, like duplicate", () =>
 test("new taste chips render their own groups", () => {
   const section = buildRejectedSection([
     rejectedRow({ reject_reasons: "setup-talk", transcript_segment: "my headphones are not working today bro" }),
-    rejectedRow({ reject_reasons: "flat-delivery", transcript_segment: "yeah that happened i guess okay" }),
+    rejectedRow({ reject_reasons: "live-only", transcript_segment: "one more tomorrow ladies and gentlemen" }),
   ]);
   expect(section).toContain("## Rejected because: stream setup / tech talk, not content");
-  expect(section).toContain("## Rejected because: flat delivery — the reaction didn't carry it");
+  expect(section).toContain("## Rejected because: worked live, but doesn't stand alone as a short");
+});
+
+// ── buildRejectedSection: delivery tier never teaches from words (#381) ──
+
+console.log("\nbuildRejectedSection delivery tier (#381):");
+
+test("a delivery-only rejection is dropped — its words were never the problem", () => {
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "flat-delivery" })])).toBeNull();
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "sounds-angry" })])).toBeNull();
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "flat-delivery,sounds-angry" })])).toBeNull();
+});
+
+test("delivery alongside a content reason keeps the row — the content verdict is real", () => {
+  const section = buildRejectedSection([rejectedRow({
+    reject_reasons: "nothing-happens,flat-delivery",
+    transcript_segment: "lets go lets go for two no way okay bro",
+  })]);
+  expect(section).toContain("lets go lets go for two");
+  expect(section).toContain("## Rejected because: nothing happens");
+  expect(section).toContain("Also tagged: the reaction didn't carry it");
+});
+
+test("a quote never lands under a delivery header, whichever chip was tapped first", () => {
+  // reasons[0] is the first chip TAPPED — grouping must skip it and use the
+  // content reason, or the words get filed under "fell flat".
+  const section = buildRejectedSection([rejectedRow({
+    reject_reasons: "flat-delivery,nothing-happens",
+    transcript_segment: "get him out of my face lets go",
+  })]);
+  expect(section).toContain("## Rejected because: nothing happens");
+  expect(section).notToContain("## Rejected because: the reaction didn't carry it");
+});
+
+test("delivery-only rows are dropped while content rows survive the same batch", () => {
+  const section = buildRejectedSection([
+    rejectedRow({ reject_reasons: "sounds-angry", transcript_segment: "the angry delivery snippet here" }),
+    rejectedRow({ reject_reasons: "no-payoff", transcript_segment: "the no payoff snippet here" }),
+  ]);
+  expect(section).notToContain("the angry delivery snippet");
+  expect(section).toContain("the no payoff snippet");
+});
+
+test("the section tells the model quotes are moments, not banned words (#381)", () => {
+  const section = buildRejectedSection([rejectedRow({ reject_reasons: "not-funny" })]);
+  expect(section).toContain("NOT words to avoid");
+  expect(section).toContain("never disqualifies a moment");
+});
+
+// ── Shared vocabulary catalogue (#381) ──
+// These are the anti-drift guards. The keys, UI labels, prompt prose and the
+// excluded lists used to live in four hand-synced places; a chip added to one
+// and forgotten in another rendered as a raw key in the prompt.
+
+console.log("\nshared reject-reason catalogue (#381):");
+
+test("every chip carries exactly one tier and appears in exactly one tier list", () => {
+  for (const r of REJECT_REASONS) {
+    const inLists = [
+      BOOKKEEPING_REJECT_REASONS.includes(r.key),
+      DELIVERY_REJECT_REASONS.includes(r.key),
+      REJECT_GROUP_ORDER.includes(r.key),
+    ].filter(Boolean).length;
+    if (inLists !== 1) throw new Error(`${r.key} appears in ${inLists} tier lists, expected 1`);
+    if (tierOf(r.key) !== r.tier) throw new Error(`${r.key} tierOf disagrees with catalogue`);
+  }
+});
+
+test("every chip has prompt prose — none can render as a raw key", () => {
+  for (const r of REJECT_REASONS) {
+    if (!REJECT_REASON_LABELS[r.key]) throw new Error(`${r.key} has no prose label`);
+    if (!r.label || !r.hint) throw new Error(`${r.key} is missing a UI label or hint`);
+  }
+});
+
+test("chip keys are unique", () => {
+  const keys = REJECT_REASONS.map((r) => r.key);
+  expect(new Set(keys).size).toBe(keys.length);
+});
+
+// The runner's toContain is string-only and notToContain passes silently on a
+// non-string — so compare delimited key lists, not raw arrays.
+const keyList = (opts) => "," + getReasonChips(opts).map((r) => r.key).join(",") + ",";
+
+test("taste chips follow the creator's ranked priorities", () => {
+  const hype = keyList({ momentPriorities: ["funny", "emotional", "clutch", "fails", "skillful", "educational"] });
+  expect(hype).toContain(",not-funny,");
+  expect(hype).toContain(",no-reaction,");
+  expect(hype).toContain(",no-stakes,");
+  expect(hype).notToContain(",teaches-nothing,");
+  expect(hype).notToContain(",not-impressive,");
+
+  const teacher = keyList({ momentPriorities: ["educational", "skillful", "clutch", "funny", "emotional", "fails"] });
+  expect(teacher).toContain(",teaches-nothing,");
+  expect(teacher).toContain(",not-impressive,");
+  expect(teacher).toContain(",no-stakes,");
+  expect(teacher).notToContain(",not-funny,");
+});
+
+test("fails shares the not-funny chip — a fail that isn't entertaining is just unfunny", () => {
+  const fails = keyList({ momentPriorities: ["fails", "skillful", "educational"] });
+  expect(fails).toContain(",not-funny,");
+});
+
+test("no stored profile falls back to the default priority order (#381)", () => {
+  // A fresh install, or the tick before the store read resolves, must still
+  // offer taste chips — not a row of bookkeeping reasons only.
+  const bare = keyList({});
+  expect(bare).toContain(",not-funny,");
+  expect(bare).toContain(",no-stakes,");
+  expect(bare).toContain(",no-reaction,");
+  expect(bare).notToContain(",teaches-nothing,");
+});
+
+test("react shows get the reaction chip, gameplay does not", () => {
+  expect(keyList({ entryType: "content" })).toContain(",reaction-adds-nothing,");
+  expect(keyList({ entryType: "game" })).notToContain(",reaction-adds-nothing,");
+});
+
+test("a reason already stored on the clip is always offered back (#381)", () => {
+  // Reordering priorities in Settings must never hide a reason an old clip
+  // already carries — it would stay in the prompt but vanish from the UI.
+  const teacher = { momentPriorities: ["educational", "skillful", "clutch"] };
+  expect(keyList(teacher)).notToContain(",not-funny,");
+  expect(keyList({ ...teacher, include: ["not-funny"] })).toContain(",not-funny,");
+  expect(keyList({ entryType: "game", include: ["reaction-adds-nothing"] })).toContain(",reaction-adds-nothing,");
+});
+
+test("an unknown stored key still gets a chip so it can be removed", () => {
+  const chips = getReasonChips({ include: ["some-legacy-key"] });
+  const found = chips.find((r) => r.key === "some-legacy-key");
+  expect(Boolean(found)).toBe(true);
+  expect(found.label).toBe("some-legacy-key");
+});
+
+test("core chips are offered whatever the creator ranked or the entry type", () => {
+  for (const opts of [{}, { entryType: "content" }, { momentPriorities: ["educational"] }]) {
+    const keys = getReasonChips(opts).map((r) => r.key);
+    for (const core of ["nothing-happens", "live-only", "no-payoff", "needs-context", "flat-delivery", "sounds-angry", "duplicate", "bad-cut"]) {
+      if (!keys.includes(core)) throw new Error(`core chip ${core} missing for ${JSON.stringify(opts)}`);
+    }
+  }
+});
+
+test("an unknown future key still teaches and can head a group", () => {
+  expect(tierOf("some-future-reason")).toBe("content");
+  expect(teachesFromWords(["some-future-reason"])).toBe(true);
+  expect(groupKeyFor(["flat-delivery", "some-future-reason"])).toBe("some-future-reason");
+});
+
+test("an untagged row still teaches (pre-#198 history)", () => {
+  expect(teachesFromWords([])).toBe(true);
+  expect(groupKeyFor([])).toBeNull();
 });
 
 test("tagged rows outrank more-recent untagged rows for the budget (#232)", () => {
@@ -504,7 +670,7 @@ test("combined approved + rejected content stays within ~6k budget", () => {
   const prompt = buildFullPrompt({ approved, rejected });
   const start = prompt.indexOf("# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED");
   const combined = prompt.slice(start);
-  expect(combined.length).toBeLessThan(7000); // 6k entries + headers/framing
+  expect(combined.length).toBeLessThan(7150); // 6k entries + headers/framing (+#381 framing)
 });
 
 test("real snippets from both sections appear with no timestamps anywhere in them", () => {

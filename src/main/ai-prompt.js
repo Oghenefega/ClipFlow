@@ -1,5 +1,11 @@
 const gameProfiles = require("./game-profiles");
 const archetypeExamples = require("./data/archetype-examples.json");
+const {
+  REJECT_REASON_LABELS,
+  REJECT_GROUP_ORDER,
+  teachesFromWords,
+  groupKeyFor,
+} = require("../shared/rejectReasons");
 
 // ── Default Creator Profile (generic fallback for fresh installs) ──
 // Used when no creatorProfile exists in electron-store (before onboarding).
@@ -202,28 +208,11 @@ const SECTION_CHAR_BUDGET = 3000; // per section; two sections ≈ 6k combined
 const GAME_CONTEXT_CHAR_BUDGET = 1500;
 
 // ── Rejection reasons (#198, expanded #232) ──
-// Reasons that say nothing about taste: the moment was good (duplicate of a
-// kept pick, or too similar to clips already kept), or only the
-// boundaries/bucket were wrong. Rows carrying any of these never enter the
-// negative-calibration set.
-const EXCLUDED_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content", "repetitive"];
-const REJECT_REASON_LABELS = {
-  duplicate: "duplicate of a kept clip",
-  "bad-cut": "bad cut",
-  "not-funny": "not funny",
-  "nothing-happens": "nothing happens",
-  "needs-context": "needs context a viewer wouldn't have",
-  "wrong-content": "wrong content for this game",
-  "setup-talk": "stream setup / tech talk, not content",
-  "chat-banter": "chat banter that doesn't stand alone",
-  "flat-delivery": "flat delivery — the reaction didn't carry it",
-  repetitive: "too similar to clips already kept",
-};
-
-// Canonical group order for the rejected section (#232) — reasons that teach
-// the strongest patterns first. Unknown/future keys group after these in
-// first-seen order.
-const REJECT_GROUP_ORDER = ["nothing-happens", "not-funny", "flat-delivery", "setup-talk", "chat-banter", "needs-context"];
+// The vocabulary itself lives in src/shared/rejectReasons.js so the chips the
+// creator taps and the prose the model reads can never drift apart (#381).
+// `teachesFromWords` decides which rows may be quoted at all: bookkeeping
+// reasons disqualify a row outright (the moment was good), and delivery-only
+// rows are dropped because their verdict is in the audio, not the transcript.
 
 /** Parse the CSV reject_reasons column into an array of keys. */
 function parseRejectReasons(row) {
@@ -366,23 +355,25 @@ Each example quotes what was being said during a clip this creator approved. Use
  * @returns {string|null}
  */
 function buildRejectedSection(rejectedClips) {
-  // #198: rejections whose reason says nothing about taste (duplicate of a
-  // kept clip, bad cut, wrong content, too-similar) are not negative signal —
-  // drop them.
+  // #198/#381: only rows whose verdict the transcript can actually carry.
+  // Bookkeeping reasons disqualify a row outright (the moment was good); a row
+  // tagged ONLY for delivery is dropped because the words were never the
+  // problem — quoting them teaches the model to avoid the creator's own
+  // vocabulary. A delivery tag alongside a content reason keeps the row.
   const tasteRejections = (rejectedClips || []).filter(
-    (clip) => !parseRejectReasons(clip).some((k) => EXCLUDED_REJECT_REASONS.includes(k))
+    (clip) => teachesFromWords(parseRejectReasons(clip))
   );
   if (tasteRejections.length === 0) return null;
 
   // #232: tagged rows teach the most, so they fill the budget first — grouped
-  // by the first reason the creator tapped. Untagged rows (pre-#198 history)
-  // come last, only if budget remains.
+  // by the reason their words illustrate (groupKeyFor skips delivery tags, so a
+  // quote never lands under a "fell flat" header). Untagged rows (pre-#198
+  // history) come last, only if budget remains.
   const groups = new Map();
   const untagged = [];
   for (const clip of tasteRejections) {
-    const reasons = parseRejectReasons(clip);
-    if (reasons.length === 0) { untagged.push(clip); continue; }
-    const key = reasons[0];
+    const key = groupKeyFor(parseRejectReasons(clip));
+    if (!key) { untagged.push(clip); continue; }
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(clip);
   }
@@ -419,7 +410,9 @@ function buildRejectedSection(rejectedClips) {
   if (!body) return null;
   return `# MOMENTS THIS CREATOR REJECTED
 
-These moments were picked by a previous run and this creator rejected them, grouped by the reason they gave. Treat them as negative calibration — do NOT pick moments like these. Where a creator's note is present, it is the rejection reason in their own words. These examples teach WHICH kinds of moments to skip, not HOW MANY clips to return — they must never push you toward returning fewer moments than the recording genuinely holds.` + body;
+These moments were picked by a previous run and this creator rejected them, grouped by the reason they gave. Treat them as negative calibration — do NOT pick moments like these. Where a creator's note is present, it is the rejection reason in their own words. These examples teach WHICH kinds of moments to skip, not HOW MANY clips to return — they must never push you toward returning fewer moments than the recording genuinely holds.
+
+The quotes show the KIND of moment to skip, NOT words to avoid. This creator's catchphrases and hype words appear in their best clips and their worst alike — a phrase appearing here never disqualifies a moment. Judge what happens, not what is said.` + body;
 }
 
 /**
