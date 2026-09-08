@@ -12,6 +12,18 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.30",
+    date: "2026-09-07",
+    added: [
+      "Two new reasons for turning a clip down. \"Didn't stand alone\" is for a moment that worked live but doesn't hold up as a short on its own — by far the reason you were most often typing out by hand. \"No payoff\" is for a clip that builds but never lands its ending.",
+      "\"Just sounded angry\" is now its own reason, separate from \"Fell flat\". They are opposite problems: one is a reaction with no energy behind it, the other is saying exactly the right thing in the wrong tone.",
+    ],
+    changed: [
+      "Turning a clip down for the way you said it no longer teaches Corva to avoid your words. When you reject a clip because the reaction fell flat or came out angry, the problem is the delivery — not what you actually said. Corva was still being shown that clip's words as an example of what to skip, and since your catchphrases turn up just as often in the clips you keep, it was quietly learning to avoid the phrases that mark your best work. Reasons about delivery now stay out of that completely, while the rest of a rejection still teaches normally.",
+      "The reasons you can pick now match the kind of creator you told Corva you are. In Settings → AI Preferences you rank what Corva should look for; the reasons for turning a clip down now mirror that ranking. Put funny first and you are asked whether a clip was funny; put educational first and you are asked whether it taught anything. React shows also get \"Reaction added nothing\", for when the moment you were reacting to carried the clip and your reaction didn't add to it.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.29",
     date: "2026-09-07",
     changed: [

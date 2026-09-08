@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.30] — 2026-09-07 (session 246) — The rejection-tier fix reaches the installed copies
+
+### Changed
+- **Version bumped to 0.4.0-alpha.30 and an installer cut to the R2 update feed.** Promotes the single change merged since alpha.29 (`615e9b4`): rejection reasons now carry a tier for what the engine can learn from them, so a clip turned down for delivery no longer hands its transcript to detection as a list of words to avoid — measured on the real 100T library, every one of Fega's catchphrases is *more* common in approved clips than rejected ones, so those negative examples were pointing the wrong way. Ships alongside it: taste chips derived from the creator's ranked moment priorities and the entry type, "Didn't stand alone" and "No payoff" added from Fega's own typed notes, "Just sounded angry" split from "Fell flat", and the whole vocabulary consolidated into one shared module. Cut on Fega's explicit ask rather than the usual ~10-change batch — he is reviewing 100T reactions right now, which is exactly when the new chips earn their keep. All three What's New items are user-facing. Desktop and laptop pick it up from the "Update available" banner on next launch.
+
 ## [Unreleased] — 2026-09-07 (session 246) — Rejections stop teaching the engine to avoid Fega's own catchphrases (#381, #341)
 
 ### Changed
