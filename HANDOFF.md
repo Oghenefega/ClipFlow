@@ -18,8 +18,9 @@ for an old TikTok connection, the refresh matches clips to posts by caption + pu
 refreshes query by id (`src/main/oauth/tiktok-display.js`). Verified against the sandbox with
 Fega's account as target user: 76 of 76 clips matched against 180 listed videos.
 
-Master at `672fc7d` plus this wrap. Seven commits since alpha.33 are waiting for a cut (five
-from s250 plus a26b997 and 672fc7d). Dev profile token store is `{}` again.
+Master at `230e4ed` plus this wrap. Eight commits since alpha.33 are waiting for a cut (five
+from s250 plus a26b997, 672fc7d and 230e4ed, the #396 token-logging fix). Dev profile token
+store is `{}` again.
 
 ## Key Decisions
 
@@ -56,8 +57,9 @@ from s250 plus a26b997 and 672fc7d). Dev profile token store is `{}` again.
   `fega`, same redirect URI, key starts `sb`. `video/list` returns his real public videos. Sandbox
   key/secret go into the DEV profile's Settings (Fega pastes them — never enter credentials
   yourself); empty `%APPDATA%\clipflow-dev\clipflow-tokens.json` after.
-- **TikTok debug logging prints access/refresh tokens in plain text** (`tiktok.js` "Token
-  exchange response", `app.log`). Pre-existing; worth an issue before wider testing.
+- **#396 (tokens in the debug log) is fixed but `status: untested`** — the line fires on a
+  sign-in; the TikTok reconnect after approval is the natural check (`app.log` should show
+  `{ok: true, hasRefreshToken: true, ...}`, no `act.`/`rft.` strings).
 - **Scripted source edits:** bytes mode only; text-mode Python flips CRLF → LF (had to restore
   four files this session). Byte-probe touched files before committing.
 

@@ -164,3 +164,6 @@ After ANY correction from the user:
 1. Immediately append to `tasks/lessons.md`
 2. Format: what the mistake was, why it happened, the rule to prevent it
 3. Do this BEFORE continuing with the next task
+
+- **Steps for Fega on a third-party dashboard come from that dashboard's own page, read this session (session 251).** "Add the Display API product" — no such product exists; `video.list` is under "Add scopes". "Re-record every scope" — the page says "at least one video, up to 5 files", so the approved video stays and one clip covers the new scope. Read the page (Chrome `get_page_text`), name buttons as they appear on screen, and ask for the minimum the page's own rule needs.
+- **A rule that says "don't touch X until Y resolves" carries an expiry (session 251).** "TikTok dev app frozen mid-review" outlived the review by three months and shelved TikTok views for a session. Before repeating any such gate, verify Y at its source (the dashboard, not the memory) and rewrite the rule the moment the fact changes.
