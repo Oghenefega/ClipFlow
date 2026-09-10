@@ -12,7 +12,10 @@ export default function Sidebar({ navItems, activeView, onNavigate }) {
         backdropFilter: "blur(12px)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-around",
+        // One centred cluster, not seven tabs spread edge to edge — on a wide
+        // monitor space-around put ~280px between neighbours (s247).
+        justifyContent: "center",
+        gap: 4,
         padding: "0 12px",
       }}
     >
@@ -23,7 +26,7 @@ export default function Sidebar({ navItems, activeView, onNavigate }) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             style={{
-              flex: 1,
+              flex: "0 0 80px",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",

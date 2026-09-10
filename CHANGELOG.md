@@ -9,6 +9,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - **Sunset, the ninth theme (Settings → Appearance).** A dim *light* theme: dark ink on a turned-down sandy page with a terracotta accent, for evenings when dark mode is not wanted but Daylight, Paper and Blush are too bright. The page sits a full step below Paper in brightness, and every accent and status colour (green, yellow, red, orange, cyan, the tier colours) is pushed deeper than the light themes' so it still reads on the dimmer page. Chosen from a mock of four steps (Golden Hour / Sand / Clay / Umber, `tasks/mocks/sunset-theme.html`) after a first round of lifted-dark candidates was rejected as "bright dark themes" — the ask was a dimmed light theme, not a lighter dark one. Ships as one palette block, one picker card and one window-chrome colour, the way #328 promised a new theme would; no component changed.
 
+### Changed
+- **The bottom tab bar is one centred cluster instead of seven tabs spread edge to edge.** Each tab is now a fixed 80px wide and the group sits centred under the content, so switching from Rename to Settings is a short mouse move. On a wide monitor the old layout put roughly 280px between neighbouring tabs. Icons, labels, the active underline and the Queue badge are unchanged.
+
 ## [0.4.0-alpha.30] — 2026-09-07 (session 246) — The rejection-tier fix reaches the installed copies
 
 ### Changed
