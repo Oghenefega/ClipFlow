@@ -10,7 +10,6 @@ import PlatformIcon from "../components/PlatformIcon";
 const PLATFORMS = ["youtube", "instagram", "facebook", "tiktok"];
 const LABEL = { youtube: "YouTube", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
 const SHORT = { youtube: "YT", instagram: "IG", facebook: "FB", tiktok: "TT" };
-const TIKTOK_NOTE = "Arrives once TikTok approves the app";
 const WINDOWS = [
   { id: "7d", days: 7, label: "7d" },
   { id: "30d", days: 30, label: "30d" },
@@ -160,7 +159,6 @@ export default function AnalyticsView({ gamesDb = [], active }) {
   );
 
   const platformNote = (p) => {
-    if (p === "tiktok") return { text: TIKTOK_NOTE, warn: false };
     const err = data?.platforms?.[p]?.error;
     if (err) return { text: err, warn: true };
     return { text: `${totals[p].withViews} of ${totals[p].withPost} clips`, warn: false };
@@ -192,7 +190,7 @@ export default function AnalyticsView({ gamesDb = [], active }) {
         </Card>
         {PLATFORMS.map((p) => {
           const note = platformNote(p);
-          const hasNumber = p !== "tiktok" && totals[p].withViews > 0;
+          const hasNumber = totals[p].withViews > 0;
           return (
             <Card key={p} style={{ padding: "12px 14px", minHeight: 74, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary }}>
@@ -238,7 +236,7 @@ export default function AnalyticsView({ gamesDb = [], active }) {
                       </td>
                       <td style={{ ...td, color: T.textTertiary }}>{fmtDate(c.date)}</td>
                       {PLATFORMS.map((p) => (
-                        <td key={p} style={{ ...td, color: c.views[p] == null ? T.textTertiary : T.text }} title={p === "tiktok" ? TIKTOK_NOTE : undefined}>{fmt(c.views[p])}</td>
+                        <td key={p} style={{ ...td, color: c.views[p] == null ? T.textTertiary : T.text }}>{fmt(c.views[p])}</td>
                       ))}
                       <td style={{ ...td, fontWeight: 700, color: c.fetchedAt ? T.text : T.textTertiary }}>{c.fetchedAt ? fmt(c.total) : "—"}</td>
                     </tr>

@@ -415,4 +415,5 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
 module.exports = {
   queryCreatorInfo,
   publishVideo,
+  apiPost, // #388: shared with the read-only Display API module
 };

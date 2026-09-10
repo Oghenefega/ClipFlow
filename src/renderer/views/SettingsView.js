@@ -1293,7 +1293,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   works, but the Analytics tab can't read views until a reconnect */}
               {!p.needsReconnect && p.insightsScope === false && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); (p.platform === "Facebook" ? handleConnectFacebook : handleConnectInstagram)(); }}
+                  onClick={(e) => { e.stopPropagation(); ({ Facebook: handleConnectFacebook, TikTok: handleConnectTikTok }[p.platform] || handleConnectInstagram)(); }}
                   disabled={!!connectingPlatform}
                   title="Views need one extra permission. Reconnect once to enable the Analytics tab."
                   style={{ fontSize: 9, fontWeight: 800, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}`, padding: "2px 7px", borderRadius: 4, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap", cursor: connectingPlatform ? "default" : "pointer", fontFamily: T.font }}

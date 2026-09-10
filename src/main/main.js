@@ -4957,6 +4957,7 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
         avatarUrl: accountData.avatarUrl,
         connected: true,
         openId: accountData.openId,
+        insightsScope: require("./analytics-core").hasInsightsScope(accountData), // #388: TikTok may grant fewer scopes than asked
       },
     };
   } catch (err) {

@@ -16,6 +16,7 @@ const { URL } = require("url");
 const { shell } = require("electron");
 const log = require("electron-log/main").scope("tiktok");
 const { renderResultPage } = require("./result-page");
+const { TIKTOK_AUTH_SCOPE } = require("../analytics-core");
 
 const TIKTOK_AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/";
 const TIKTOK_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
@@ -242,7 +243,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
       // Build the TikTok authorization URL (with PKCE)
       const authUrl = new URL(TIKTOK_AUTH_URL);
       authUrl.searchParams.set("client_key", clientKey);
-      authUrl.searchParams.set("scope", "user.info.basic,video.publish");
+      authUrl.searchParams.set("scope", TIKTOK_AUTH_SCOPE); // #388: adds video.list once TikTok views are switched on
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
       authUrl.searchParams.set("state", state);

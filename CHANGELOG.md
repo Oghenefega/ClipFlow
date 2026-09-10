@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 251) — TikTok view counts built, switched off until TikTok grants the read scope (#388)
+
+### Changed
+- **The Analytics tab's TikTok column and tile are wired to real numbers, behind a switch that stays off until TikTok approves it.** Checked on the developer portal this session: the TikTok app is live and approved for posting (since June 17, nothing under review — the "frozen mid-review" note in the project rules was stale and has been corrected), but it was only ever granted the posting permissions. View counts come from a separate TikTok product, the Display API, with a permission called `video.list` that nobody had applied for. So "TikTok isn't approved" was the wrong sentence; "TikTok can post but not read" is the right one. The switch (`TIKTOK_VIEWS_ENABLED` in `src/main/analytics-core.js`, or `CLIPFLOW_TIKTOK_VIEWS=1` for a sandbox run) keeps the sign-in asking for the posting permissions only, because asking TikTok for a permission the app does not hold fails every connect. Off, the TikTok tile reads "TikTok views arrive once TikTok approves the app" (the text now comes from the main process like every other platform note). On, the sign-in adds the read permission, an account connected before it shows the same "Reconnect for views" button Instagram and Facebook already have in Settings, and the refresh pulls views, likes, comments and shares.
+- **TikTok clips find their own post.** TikTok never hands back a post id when a clip is published (0 of 170 published clips have one), so the refresh matches each clip against the account's video list by caption and publish moment: a video created within 45 minutes of the clip going out, preferring one whose caption starts with the clip's title, each video claimed once. The publish log's completion time is used first and the tracker's date and time second, for clips that have aged out of the 500-entry log. The id a clip lands on is stored with its counts, so every later refresh asks TikTok about those ids directly (20 a call) instead of walking the list again. New read-only module `src/main/oauth/tiktok-display.js`; the matching is pure logic in `analytics-core.js` with its own tests.
+
+### Fixed
+- **The TikTok tile no longer hard-codes "Arrives once TikTok approves the app" in the renderer.** The Analytics view treated TikTok as a special case in three places (tile note, tile number, table cell tooltip); all three now follow the same path as YouTube, Instagram and Facebook, and the note is whatever the main process reports for the platform.
+
 ## [Unreleased] — 2026-09-10 (session 250) — Facebook and Instagram sign-in works again on the Live Meta app (#391)
 
 ### Fixed

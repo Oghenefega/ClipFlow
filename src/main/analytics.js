@@ -17,11 +17,15 @@ const tokenStore = require("./token-store");
 const publishLog = require("./publish-log");
 const youtubeOAuth = require("./oauth/youtube");
 const metaInsights = require("./oauth/meta-insights");
+const tiktokDisplay = require("./oauth/tiktok-display");
 const { accountToPlatformKey } = require("../shared/captionResolve");
-const { hasInsightsScope, buildTargets, needsRefresh } = require("./analytics-core");
+const {
+  hasInsightsScope, buildTargets, buildTikTokTargets, matchTikTokVideos, needsRefresh,
+  TIKTOK_VIEWS_ENABLED, TIKTOK_VIEWS_PENDING,
+} = require("./analytics-core");
 const log = require("electron-log/main").scope("analytics");
 
-const PLATFORMS = ["youtube", "instagram", "facebook"];
+const PLATFORMS = ["youtube", "instagram", "facebook", "tiktok"];
 const LABEL = { youtube: "YouTube", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
 const YT_BATCH = 50; // videos.list caps `id` at 50
 
@@ -73,6 +77,7 @@ function findAccount(platform) {
 }
 
 function accountError(platform, account) {
+  if (platform === "tiktok" && !TIKTOK_VIEWS_ENABLED) return TIKTOK_VIEWS_PENDING; // #388
   if (!account) return `No ${LABEL[platform]} account connected`;
   if (hasInsightsScope(account) === false) return `Reconnect ${LABEL[platform]} in Settings to enable views`;
   return null;
@@ -95,35 +100,22 @@ async function fetchPlatform(platform, account, due) {
   return metaInsights.fetchFacebookVideoInsights(account.pageAccessToken, due.map((t) => ({ videoId: t.postId, surface: t.surface })));
 }
 
-async function runPlatform(platform, targets, existingByKey, force) {
-  const out = { updated: 0, skipped: 0, failed: 0 };
-  const due = force ? targets : targets.filter((t) => needsRefresh(t, existingByKey.get(`${t.clipId}:${platform}`)));
-  out.skipped = targets.length - due.length;
-  if (due.length === 0) return out;
-
+/** The connected account with a live token, or the one-line reason there isn't one. */
+async function readyAccount(platform) {
   const account = findAccount(platform);
   const gate = accountError(platform, account);
-  if (gate) return { ...out, skipped: targets.length, error: gate };
-
+  if (gate) return { error: gate };
   const pf = await preflightAccount(account.id);
-  if (!pf.ok) return { ...out, skipped: targets.length, error: pf.error || `${LABEL[platform]} token check failed` };
-  const fresh = tokenStore.getAccount(account.id); // pre-flight may have rotated the token
+  if (!pf.ok) return { error: pf.error || `${LABEL[platform]} token check failed` };
+  return { account: tokenStore.getAccount(account.id) }; // pre-flight may have rotated the token
+}
 
-  const { results, errors, tokenDead } = await fetchPlatform(platform, fresh, due);
-  if (tokenDead) {
-    tokenStore.setNeedsReconnect(account.id);
-    return { ...out, skipped: targets.length, error: `${LABEL[platform]} session expired — reconnect in Settings` };
-  }
+function expired(account, platform) {
+  tokenStore.setNeedsReconnect(account.id);
+  return `${LABEL[platform]} session expired — reconnect in Settings`;
+}
 
-  const rows = [];
-  for (const t of due) {
-    const r = results[t.postId];
-    if (r && Number.isFinite(r.views)) {
-      rows.push({ clipId: t.clipId, platform, postId: t.postId, ...r });
-      // #183 Phase 4: YouTube views stay the title/caption ranking input.
-      if (platform === "youtube") titleCaptionLog.recordViews(t.clipId, r.views);
-    }
-  }
+function finish(platform, out, due, rows, errors, existingByKey) {
   upsertMetrics(rows);
   out.updated = rows.length;
   out.failed = due.length - rows.length;
@@ -138,6 +130,82 @@ async function runPlatform(platform, targets, existingByKey, force) {
   return out;
 }
 
+async function runPlatform(platform, targets, existingByKey, force) {
+  const out = { updated: 0, skipped: 0, failed: 0 };
+  const due = force ? targets : targets.filter((t) => needsRefresh(t, existingByKey.get(`${t.clipId}:${platform}`)));
+  out.skipped = targets.length - due.length;
+  if (due.length === 0) return out;
+
+  const { account, error } = await readyAccount(platform);
+  if (error) return { ...out, skipped: targets.length, error };
+
+  const { results, errors, tokenDead } = await fetchPlatform(platform, account, due);
+  if (tokenDead) return { ...out, skipped: targets.length, error: expired(account, platform) };
+
+  const rows = [];
+  for (const t of due) {
+    const r = results[t.postId];
+    if (r && Number.isFinite(r.views)) {
+      rows.push({ clipId: t.clipId, platform, postId: t.postId, ...r });
+      // #183 Phase 4: YouTube views stay the title/caption ranking input.
+      if (platform === "youtube") titleCaptionLog.recordViews(t.clipId, r.views);
+    }
+  }
+  return finish(platform, out, due, rows, errors, existingByKey);
+}
+
+/**
+ * #388: TikTok. Clips whose post id is already in clip_metrics are refreshed
+ * through video/query; the rest are matched by title and publish moment
+ * against the account's video list, and the id they land on is stored so the
+ * next refresh goes straight to video/query.
+ */
+async function runTikTok(targets, existingByKey, force) {
+  const platform = "tiktok";
+  const out = { updated: 0, skipped: 0, failed: 0 };
+  const due = force ? targets : targets.filter((t) => needsRefresh(t, existingByKey.get(`${t.clipId}:${platform}`)));
+  out.skipped = targets.length - due.length;
+  if (due.length === 0) return out;
+
+  const { account, error } = await readyAccount(platform);
+  if (error) return { ...out, skipped: targets.length, error };
+
+  const known = [];
+  const unknown = [];
+  for (const t of due) {
+    const postId = existingByKey.get(`${t.clipId}:${platform}`)?.post_id;
+    if (postId) known.push({ ...t, postId: String(postId) });
+    else unknown.push(t);
+  }
+
+  const rows = [];
+  const errors = [];
+  if (known.length > 0) {
+    const q = await tiktokDisplay.queryVideos(account.accessToken, known.map((t) => t.postId));
+    if (q.tokenDead) return { ...out, skipped: targets.length, error: expired(account, platform) };
+    for (const t of known) {
+      const r = q.results[t.postId];
+      if (r && Number.isFinite(r.views)) rows.push({ clipId: t.clipId, platform, postId: t.postId, ...r });
+    }
+    errors.push(...q.errors);
+  }
+  if (unknown.length > 0) {
+    const stamps = unknown.map((t) => t.publishedAt).filter(Number.isFinite);
+    const untilMs = stamps.length ? Math.min(...stamps) - 60 * 60 * 1000 : 0;
+    const list = await tiktokDisplay.listVideos(account.accessToken, { untilMs });
+    if (list.tokenDead) return { ...out, skipped: targets.length, error: expired(account, platform) };
+    if (list.error) errors.push({ id: "list", message: list.error });
+    const matched = matchTikTokVideos(unknown, list.videos);
+    for (const t of unknown) {
+      const v = matched.get(t.clipId);
+      if (v) rows.push({ clipId: t.clipId, platform, postId: String(v.id), ...tiktokDisplay.toRow(v) });
+      else errors.push({ id: t.clipId, message: "No TikTok video matched this clip's title and publish time" });
+    }
+    log.info(`TikTok: matched ${matched.size} of ${unknown.length} clips against ${list.videos.length} listed videos`);
+  }
+  return finish(platform, out, due, rows, errors, existingByKey);
+}
+
 /**
  * @param {{force?: boolean}} [opts] force ignores the per-row freshness rule
  * @returns {Promise<{ranAt: string, perPlatform: Object}>}
@@ -145,13 +213,17 @@ async function runPlatform(platform, targets, existingByKey, force) {
 async function refreshAllViews({ force = false } = {}) {
   if (running) return running; // a manual Refresh during the boot pull joins it
   running = (async () => {
-    const targets = buildTargets(store.get("trackerData") || [], publishLog.getRecentLogs(500));
+    const trackerData = store.get("trackerData") || [];
+    const logs = publishLog.getRecentLogs(500);
+    const targets = [...buildTargets(trackerData, logs), ...buildTikTokTargets(trackerData, logs)];
     const existingByKey = new Map(loadMetrics().map((m) => [`${m.clip_id}:${m.platform}`, m]));
     const perPlatform = {};
     for (const platform of PLATFORMS) {
       const mine = targets.filter((t) => t.platform === platform);
       try {
-        perPlatform[platform] = await runPlatform(platform, mine, existingByKey, force);
+        perPlatform[platform] = platform === "tiktok"
+          ? await runTikTok(mine, existingByKey, force)
+          : await runPlatform(platform, mine, existingByKey, force);
       } catch (err) {
         log.warn(`${LABEL[platform]} refresh failed`, { error: err.message });
         perPlatform[platform] = { updated: 0, skipped: mine.length, failed: 0, error: err.message };
@@ -193,9 +265,9 @@ function getAnalytics() {
     const hasPost = {};
     let total = 0;
     let fetchedAt = null;
-    for (const p of [...PLATFORMS, "tiktok"]) {
+    for (const p of PLATFORMS) {
       const pr = (row.platformResults || []).find((x) => x?.platform === p);
-      hasPost[p] = !!(pr && (pr.postId || pr.url));
+      hasPost[p] = !!(pr && (pr.postId || pr.url || p === "tiktok")); // #388: TikTok posts carry no id
       const m = byKey.get(`${row.clipId}:${p}`);
       views[p] = m && Number.isFinite(m.views) ? m.views : null;
       if (views[p] != null) total += views[p];
@@ -228,7 +300,6 @@ function getAnalytics() {
       error: lastRun?.perPlatform?.[p]?.error || accountError(p, account),
     };
   }
-  platforms.tiktok = { connected: !!findAccount("tiktok"), available: false };
 
   return { clips, platforms, lastRun };
 }
