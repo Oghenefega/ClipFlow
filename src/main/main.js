@@ -4872,8 +4872,13 @@ async function preflightAccount(accountId) {
       tokenStore.updateTokens(accountId, r.access_token, r.refresh_token || account.refreshToken, Date.now() + (r.expires_in || 86400) * 1000);
       return { ok: true };
     }
-    // Meta family: refresh only when inside the pre-flight window of expiry.
-    const nearExpiry = account.expiresAt && Date.now() > account.expiresAt - 60 * 60_000;
+    // Meta family: a long-lived token lives 60 days and can be swapped for a
+    // fresh one only while it is still valid — an expired one cannot. #394:
+    // renew once it is past halfway. The old one-hour window was missed in
+    // practice, so every Meta account fell to a manual reconnect every two
+    // months. Costs one Graph call per account about once a month.
+    const RENEW_WITHIN_MS = 30 * 24 * 60 * 60_000;
+    const nearExpiry = account.expiresAt && Date.now() > account.expiresAt - RENEW_WITHIN_MS;
     if (!nearExpiry) return { ok: true, skipped: true };
     const platformName = account.platform === "Facebook" ? "Facebook" : "Instagram";
     if (account.loginType === "instagram_business_login") {
