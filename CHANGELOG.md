@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 247) — The Audio panel opens where you actually work
+
+### Changed
+- **The editor's Audio panel opens on the lane you use more, and on Recent.** It used to open on Music and All every single time, which for a sound-effect-heavy workflow meant two extra clicks per clip. Every placement on the timeline now records whether it was music or a sound effect in a rolling log of the last 50 placements (stored alongside the pinned recent tags); on open, the lane with more entries wins and a tie keeps Music. The view opens on Recent, falling back to All only when Recent would be empty for that lane, so a fresh library never opens onto a blank list. A tab or view you click yourself is never overridden by the stored preference arriving a beat later. Verified on the dev profile by seeding the log both ways: a sound-effect majority opened on Sound effect / Recent, a music majority on Music / Recent.
+
 ## [0.4.0-alpha.31] — 2026-09-09 (session 247) — Sunset, the clustered tab bar and the editable tag box reach the installed copies
 
 ### Changed

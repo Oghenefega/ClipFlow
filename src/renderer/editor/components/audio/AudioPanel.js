@@ -26,12 +26,21 @@ export { AUDIO_EXTENSIONS };
  * fetch and its own playhead tick.
  */
 export default function AudioPanel() {
+  // s247: the panel opens on whichever lane gets used more and on Recent, not
+  // on Music / All every time. "Used" = placed on the timeline, logged below
+  // as a rolling window of the last 50 placements so the default follows a
+  // change of habit within a few dozen sounds. The user's own click on a tab
+  // always wins over the stored preference arriving a beat later.
   const [subTab, setSubTab] = useState("music");
+  const useLogRef = useRef([]);
+  const [useLogLoaded, setUseLogLoaded] = useState(false);
+  const tabTouched = useRef(false);
   const [search, setSearch] = useState("");
   // #212: All / Favorites / Recent / Untagged. Recent answers "the sound I used on
   // a prior clip"; Untagged turns 490 unlabelled tracks into a shrinking queue
   // instead of an invisible backlog.
-  const [view, setView] = useState("all");
+  const [view, setView] = useState("recent");
+  const viewTouched = useRef(false);
   const [tagFilter, setTagFilter] = useState(null);
   const [moods, setMoods] = useState([]);
   const [recentTags, setRecentTags] = useState([]);
@@ -96,7 +105,23 @@ export default function AudioPanel() {
     window.clipflow.storeGet("audioRecentTags").then((v) => {
       if (Array.isArray(v)) setRecentTags(v);
     });
+    window.clipflow.storeGet("audioUseLog").then((v) => {
+      const log = Array.isArray(v) ? v.filter((t) => t === "music" || t === "sfx") : [];
+      useLogRef.current = log;
+      const sfx = log.filter((t) => t === "sfx").length;
+      // Strictly more: a tie keeps the original Music default.
+      if (!tabTouched.current && sfx > log.length - sfx) setSubTab("sfx");
+      setUseLogLoaded(true);
+    });
   }, []);
+
+  // Recent is only a useful opening if it has something in it. Once both the
+  // library and the lane preference are known, an empty Recent falls back to
+  // All — and only if the user hasn't already picked a view themselves.
+  useEffect(() => {
+    if (!loaded || !useLogLoaded || viewTouched.current) return;
+    if (view === "recent" && !assets.some((a) => a.type === subTab && a.lastUsedAt)) setView("all");
+  }, [loaded, useLogLoaded, assets, subTab, view]);
 
   // Moods reached for recently get pinned in the picker — with 34 to choose from,
   // the handful actually in rotation shouldn't need hunting for each time.
@@ -229,6 +254,11 @@ export default function AudioPanel() {
     window.clipflow.assetsMarkUsed(track.id, track.path).then((r) => {
       if (r?.success) setAssets((prev) => prev.map((a) => (a.id === track.id ? { ...a, lastUsedAt: r.lastUsedAt } : a)));
     }).catch(() => {});
+    // s247: the same chokepoint feeds the lane preference the panel opens on.
+    if (track.type === "music" || track.type === "sfx") {
+      useLogRef.current = [...useLogRef.current, track.type].slice(-50);
+      window.clipflow.storeSet("audioUseLog", useLogRef.current);
+    }
   }, [flashStatus]);
 
   // #212: tags. The picker edits one track, or the whole selection when several
@@ -382,7 +412,7 @@ export default function AudioPanel() {
       {/* Sub tabs */}
       <div className="flex gap-4 px-3 pt-2 pb-1 border-b border-border/40">
         {["music", "sfx"].map((t) => (
-          <button key={t} onClick={() => setSubTab(t)}
+          <button key={t} onClick={() => { tabTouched.current = true; setSubTab(t); }}
             className={`text-xs font-medium pb-2 border-b-2 transition-colors ${subTab === t ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}`}>
             {t === "music" ? "Music" : "Sound effect"}
           </button>
@@ -479,7 +509,7 @@ export default function AudioPanel() {
           ["favorites", "Favorites", null],
           ["recent", "Recent", null],
           ["untagged", "Untagged", untaggedCount]].map(([id, label, n]) => (
-          <button key={id} onClick={() => setView(id)}
+          <button key={id} onClick={() => { viewTouched.current = true; setView(id); }}
             className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 ${
               view === id ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground border border-border/40 hover:border-border/60 hover:text-foreground"
             }`}>

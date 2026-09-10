@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    changed: [
+      "The Audio panel in the editor now opens where you actually work. It remembers whether you place music or sound effects more often and opens on that lane, and it opens on Recent instead of All — so the sounds you reach for every day are the first thing you see, with no clicking through Music and then Sound effect and then Recent each time.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.31",
     date: "2026-09-09",
     added: [
