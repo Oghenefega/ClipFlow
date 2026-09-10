@@ -12,7 +12,7 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "0.4.0-alpha.34",
+    version: "0.5.0-alpha.1",
     date: "2026-09-10",
     added: [
       "The Analytics tab now teaches you what works instead of listing numbers. It opens with your totals and median views per clip, then a few plain-English findings worked out from your own clips (which platform carries your views, whether shouted or hand-written titles do better, the clip length with the best median, and what to repeat), then your clips as a thumbnail grid ranked against your typical clip, with cards for views by game, by who wrote the title, by length, and a day-by-hour map of your best posting slots. The old table is still there, collapsed at the bottom, with a CSV export.",
