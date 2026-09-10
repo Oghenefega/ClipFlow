@@ -110,24 +110,77 @@ export const TagInput = ({
 }) => {
   const inputRef = useRef(null);
   const boxRef = useRef(null);
+  const pillInputRef = useRef(null);
   const skipBlur = useRef(false);
   useEffect(() => { if (autoFocus) inputRef.current?.focus(); }, [autoFocus]);
+
+  // s247: three things the old box could not do — edit a pill in place, undo,
+  // and say where a duplicate went instead of swallowing it.
+  //
+  // Undo/redo is a stack of previous lists, scoped to this editing session
+  // (the component unmounts on save/cancel, and the stack with it). Every
+  // change to the LIST goes through apply(); a change to the half-typed word
+  // does not, so Ctrl+Z inside a word stays the browser's own text undo and
+  // only reaches the list once the field is empty.
+  const history = useRef({ past: [], future: [] });
+  const apply = (next, nextDraft) => {
+    history.current.past.push(tags);
+    history.current.future = [];
+    onChange?.(next, nextDraft);
+  };
+  const undo = () => {
+    const prev = history.current.past.pop();
+    if (!prev) return;
+    history.current.future.push(tags);
+    onChange?.(prev, "");
+  };
+  const redo = () => {
+    const next = history.current.future.pop();
+    if (!next) return;
+    history.current.past.push(tags);
+    onChange?.(next, "");
+  };
+
+  // A duplicate is not dropped silently: the pill that already holds it lights
+  // up and a line under the pills says so. `keys` are lowercase tag texts.
+  const [dupe, setDupe] = useState(null);
+  const dupeTimer = useRef(null);
+  useEffect(() => () => clearTimeout(dupeTimer.current), []);
+  const lc = (t) => t.toLowerCase();
+  const flagDupes = (list) => {
+    if (!list.length) return;
+    const msg = list.length === 1
+      ? `“${list[0]}” is already in the list`
+      : `${list.length} of those are already in the list`;
+    setDupe({ keys: new Set(list.map(lc)), msg });
+    clearTimeout(dupeTimer.current);
+    dupeTimer.current = setTimeout(() => setDupe(null), 1800);
+  };
 
   // Fold `text` (one word, or a pasted comma list) into the committed tags.
   // parseTags applied to the whole concatenation is what drops blanks and
   // case-insensitive duplicates while keeping the spelling already on screen.
   const commit = (text) => {
+    const have = new Set(tags.map(lc));
+    const dupes = parseTags(text).filter((t) => have.has(lc(t)));
     const next = parseTags([...tags, text].join(","));
-    onChange?.(next, "");
+    flagDupes(dupes);
+    if (next.length !== tags.length) apply(next, "");
+    else onChange?.(tags, "");
     return next;
   };
 
   const keyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && draft === "") {
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); return; }
+    }
     if (e.key === "," || e.key === "Enter") { e.preventDefault(); commit(draft); return; }
     if (e.key === "Escape") { e.preventDefault(); skipBlur.current = true; onEscape?.(); return; }
     // Only when there is nothing to delete in the box itself, so backspace never
     // eats a pill while a word is still being typed.
-    if (e.key === "Backspace" && draft === "" && tags.length) { e.preventDefault(); onChange?.(tags.slice(0, -1), ""); }
+    if (e.key === "Backspace" && draft === "" && tags.length) { e.preventDefault(); apply(tags.slice(0, -1), ""); }
   };
 
   const paste = (e) => {
@@ -146,36 +199,113 @@ export const TagInput = ({
     onCommitBlur?.(commit(draft));
   };
 
-  const remove = (t) => onChange?.(tags.filter((x) => x !== t), draft);
+  const remove = (t) => {
+    const list = editIdx !== null ? (commitEdit({ force: true }) || tags) : tags;
+    apply(list.filter((x) => x !== t), draft);
+  };
+
+  // ── Editing one pill in place ──
+  // Click a pill's text and it becomes a field holding that tag. Enter, comma
+  // or leaving the field commits the new spelling in the same position; Escape
+  // puts the original back; emptying it removes the pill. A spelling another
+  // pill already has is refused (the other pill lights up) rather than merging
+  // two pills into one, which would look like a deletion.
+  const [editIdx, setEditIdx] = useState(null);
+  const [editVal, setEditVal] = useState("");
+  useEffect(() => { if (editIdx !== null) pillInputRef.current?.focus(); }, [editIdx]);
+  const startEdit = (t) => {
+    let list = tags;
+    if (editIdx !== null) list = commitEdit({ force: true }) || tags;
+    const i = list.indexOf(t);
+    if (i === -1) return;
+    setEditIdx(i); setEditVal(t);
+  };
+  // Returns the list after the edit (so a blur that also leaves the box can
+  // save it), or null when the edit was refused and stays open.
+  const commitEdit = ({ force } = {}) => {
+    const i = editIdx;
+    if (i === null) return tags;
+    const val = editVal.trim();
+    const original = tags[i];
+    let next = tags;
+    if (!val) next = tags.filter((_, j) => j !== i);
+    else if (val !== original) {
+      const clash = tags.findIndex((t, j) => j !== i && lc(t) === lc(val));
+      if (clash !== -1) {
+        flagDupes([tags[clash]]);
+        if (!force) return null;
+        // Leaving the field entirely: keep the original rather than lose it.
+        setEditIdx(null);
+        return tags;
+      }
+      next = tags.map((t, j) => (j === i ? val : t));
+    }
+    setEditIdx(null);
+    if (next !== tags) apply(next, draft);
+    return next;
+  };
+  const pillKeyDown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); if (commitEdit() !== null) inputRef.current?.focus(); return; }
+    if (e.key === "Escape") { e.preventDefault(); setEditIdx(null); inputRef.current?.focus(); }
+  };
+  const pillBlur = (e) => {
+    const leavingBox = !boxRef.current?.contains(e.relatedTarget);
+    const next = commitEdit({ force: true });
+    // The main field was not focused, so its own blur never fires — this is
+    // the only place a click outside can still save the list.
+    if (leavingBox) onCommitBlur?.(parseTags([...(next || tags), draft].join(",")));
+  };
+
+  const pillBase = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 4px 2px 7px", whiteSpace: "nowrap", maxWidth: "100%", transition: "background 0.2s, border-color 0.2s, color 0.2s" };
+  const pillLit = { background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, color: T.yellow };
 
   return (
     <div
       ref={boxRef}
-      // Any press inside the box that isn't in the text field itself puts the
-      // caret there instead — including on a pill's label, which must not read
-      // as leaving the field and trigger a save. (The ✕ stops propagation and
-      // handles its own preventDefault.)
-      onMouseDown={(e) => { if (e.target !== inputRef.current) { e.preventDefault(); inputRef.current?.focus(); } }}
+      // Any press inside the box that isn't in a text field puts the caret in
+      // the main one instead — including on a pill's ✕, which must not read as
+      // leaving the field and trigger a save. A pill's label handles its own
+      // press (it opens the in-place editor).
+      onMouseDown={(e) => { if (e.target !== inputRef.current && e.target !== pillInputRef.current) { e.preventDefault(); if (editIdx === null) inputRef.current?.focus(); } }}
       onClick={(e) => e.stopPropagation()}
       style={{ width: "100%", minHeight, background: "rgba(var(--lift),0.06)", border: `1px solid ${invalid ? T.red : T.accentBorder}`, borderRadius: 8, padding: "7px 9px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, cursor: "text", boxSizing: "border-box" }}
     >
-      {tags.map((t) => (
-        <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 4px 2px 7px", whiteSpace: "nowrap", maxWidth: "100%" }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t}</span>
-          <button
-            // preventDefault keeps focus in the input, so removing a pill never
-            // reads as leaving the field and never triggers a save.
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); remove(t); }}
-            title={`Remove ${t}`}
-            tabIndex={-1}
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, padding: 0, border: "none", borderRadius: 3, background: "transparent", color: T.textTertiary, cursor: "pointer", lineHeight: 0, flexShrink: 0, transition: "color 0.12s, background 0.12s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = T.textTertiary; e.currentTarget.style.background = "transparent"; }}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-        </span>
+      {tags.map((t, i) => (
+        editIdx === i ? (
+          <span key={t} style={{ ...pillBase, border: `1px solid ${T.accentBorder}`, background: T.accentDim, padding: "1px 6px" }}>
+            <input
+              ref={pillInputRef}
+              value={editVal}
+              onChange={(e) => setEditVal(e.target.value)}
+              onKeyDown={pillKeyDown}
+              onBlur={pillBlur}
+              style={{ background: "transparent", border: "none", outline: "none", color: T.text, fontSize: 11.5, fontFamily: T.font, padding: 0, width: `${Math.max(2, editVal.length) + 1}ch` }}
+            />
+          </span>
+        ) : (
+          <span key={t} style={{ ...pillBase, ...(dupe?.keys.has(lc(t)) ? pillLit : null) }}>
+            <span
+              title="Click to edit"
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onClick={(e) => { e.stopPropagation(); startEdit(t); }}
+              style={{ overflow: "hidden", textOverflow: "ellipsis", cursor: "text" }}
+            >{t}</span>
+            <button
+              // preventDefault keeps focus in the input, so removing a pill never
+              // reads as leaving the field and never triggers a save.
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onClick={(e) => { e.stopPropagation(); remove(t); }}
+              title={`Remove ${t}`}
+              tabIndex={-1}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, padding: 0, border: "none", borderRadius: 3, background: "transparent", color: T.textTertiary, cursor: "pointer", lineHeight: 0, flexShrink: 0, transition: "color 0.12s, background 0.12s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = T.textTertiary; e.currentTarget.style.background = "transparent"; }}
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            </button>
+          </span>
+        )
       ))}
       <input
         ref={inputRef}
@@ -190,12 +320,12 @@ export const TagInput = ({
       {/* Empty the whole list in one click — 20 individual ✕ presses was the
           only way to start a tag set over. Not a confirm step on purpose:
           nothing is written until the field is left, so Escape (Queue) or
-          Cancel (Captions) puts the list back untouched. */}
+          Cancel (Captions) puts the list back untouched — and Ctrl+Z does too. */}
       {(tags.length > 0 || draft) && (
         <button
           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onClick={(e) => { e.stopPropagation(); onChange?.([], ""); inputRef.current?.focus(); }}
-          title="Clear all tags"
+          onClick={(e) => { e.stopPropagation(); apply([], ""); inputRef.current?.focus(); }}
+          title="Clear all tags (Ctrl+Z restores)"
           tabIndex={-1}
           style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, marginLeft: "auto", padding: "2px 6px", border: `1px solid ${T.border}`, borderRadius: 5, background: "transparent", color: T.textTertiary, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: T.font, lineHeight: 1.4, flexShrink: 0, transition: "color 0.12s, background 0.12s, border-color 0.12s" }}
           onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; e.currentTarget.style.borderColor = T.redBorder; }}
@@ -204,6 +334,9 @@ export const TagInput = ({
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ display: "block" }}><path d="M18 6 6 18M6 6l12 12" /></svg>
           Clear all
         </button>
+      )}
+      {dupe && (
+        <div style={{ flexBasis: "100%", fontSize: 10.5, fontWeight: 600, color: T.yellow, paddingTop: 2 }}>{dupe.msg}</div>
       )}
     </div>
   );
