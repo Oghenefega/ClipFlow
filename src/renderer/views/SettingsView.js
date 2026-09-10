@@ -1759,7 +1759,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               ) : (
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditYouTube(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={() => { setYoutubeClientId(ytClientIdVal); setYoutubeClientSecret(ytClientSecretVal); setEditYouTube(false); }} style={btnSave}>Save</button>
+                  <button onClick={() => { setYoutubeClientId(ytClientIdVal.trim()); setYoutubeClientSecret(ytClientSecretVal.trim()); setEditYouTube(false); }} style={btnSave}>Save</button>
                 </div>
               )}
             </div>
@@ -1823,7 +1823,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               ) : (
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditMeta(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={() => { setMetaAppId(metaIdVal); setMetaAppSecret(metaSecretVal); setEditMeta(false); }} style={btnSave}>Save</button>
+                  <button onClick={() => { setMetaAppId(metaIdVal.trim()); setMetaAppSecret(metaSecretVal.trim()); setEditMeta(false); }} style={btnSave}>Save</button>
                 </div>
               )}
             </div>
@@ -1887,7 +1887,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               ) : (
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditInstagram(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={() => { setInstagramAppId(igAppIdVal); setInstagramAppSecret(igAppSecretVal); setEditInstagram(false); }} style={btnSave}>Save</button>
+                  <button onClick={() => { setInstagramAppId(igAppIdVal.trim()); setInstagramAppSecret(igAppSecretVal.trim()); setEditInstagram(false); }} style={btnSave}>Save</button>
                 </div>
               )}
             </div>
@@ -1951,7 +1951,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               ) : (
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditTiktok(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={() => { setTiktokClientKey(ttClientKeyVal); setTiktokClientSecret(ttClientSecretVal); setEditTiktok(false); }} style={btnSave}>Save</button>
+                  <button onClick={() => { setTiktokClientKey(ttClientKeyVal.trim()); setTiktokClientSecret(ttClientSecretVal.trim()); setEditTiktok(false); }} style={btnSave}>Save</button>
                 </div>
               )}
             </div>
