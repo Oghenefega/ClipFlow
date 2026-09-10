@@ -156,6 +156,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **A step the USER is told to perform is part of the deliverable and gets verified like code (session 249).** "Reconnect Instagram and Facebook once" shipped in alpha.33 after the chip and the fetchers were verified — the reconnect itself had not run in months and died in the browser (the Meta app had gone Live; localhost return addresses are Development-only), leaving both accounts disconnected on the daily driver with clips scheduled. Before asking for any OAuth re-run: probe the dashboard state the code cannot see (`GET /{app-id}?fields=app_domains` with `appId|appSecret`, app mode vs the redirect URI, new scopes added on the dashboard), and never hand over a procedure that begins with a disconnect on the publishing machine.
 
+- **A brand asset is the file the running app renders, never the first file with the right name (session 250).** Asked for the Corva logo on the sign-in pages, I took `public/icon.svg` — the pre-#252 bolt, unreferenced — because SVG was convenient to inline; the mark is `src/renderer/assets/brand/clipflow-mark.png`, and the rename memory already said so. Before using any logo/icon/brand file: grep the renderer for the import (`App.js`, `EngineSetupView.js`), `git log` the candidate for a later replacement, and read the rename memory. Format convenience never picks the asset; a stale twin is a cleanup note, not a source.
+
 ## Lesson Capture
 
 After ANY correction from the user:

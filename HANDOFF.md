@@ -1,75 +1,80 @@
-# HANDOFF — Session 249 (2026-09-10)
+# HANDOFF — Session 250 (2026-09-10)
 
 ## Current State
 
-**alpha.33 is installed and running on Fega's desktop** (log: "App started 0.4.0-alpha.33", What's New
-acknowledged). It carries the Analytics tab (#387, epic #386) and the s248 palette lift. Master is at
-`edc1697`, clean. **Analytics is blocked on the Meta reconnect:** Fega disconnected Instagram and
-Facebook (both gone from `clipflow-tokens.json`, only TikTok + YouTube remain) and every fresh
-connect died in the browser. Until they reconnect, the Instagram and Facebook tiles print
-"No … account connected" and the Tracker/Queue cannot publish to either platform — that is the
-more urgent consequence, and it is the next session's first job.
+**Facebook and Instagram are reconnected on the installed alpha.33** (both in
+`%APPDATA%\Corva\clipflow-tokens.json` with the #387 insight scopes, expiring 2026-11-09 and now
+renewing themselves past the 30-day mark) and **Analytics reads all three platforms** (YouTube
+167, Instagram 165/166, Facebook 151/167). Master is at `f2172e9` plus this wrap, clean. **Five
+commits since alpha.33 are waiting for a cut**: the hosted https return page + `state` check
+(#391), the Analytics tile fix (#393), the halfway token renewal (#394), the corva.gg-style
+sign-in result pages, and `edc1697` from s249. The installed app still runs the OLD sign-in code
+(localhost return address, grey result card) — that only matters if a reconnect is attempted from
+it before the next installer; publishing and the monthly renewal work from it as is.
 
 ## Key Decisions
 
-- **Root cause of the reconnect failure is on the Meta dashboard, not in the app.** Facebook
-  showed "Can't load URL — the domain of this URL isn't included in the app's domains". The app's
-  return address is `http://localhost:8083/callback` (unchanged, `meta.js:35-36`); Graph reports
-  `app_domains: ["flowve.app"]` only. Facebook accepts a localhost return address ONLY while the
-  app is in Development mode, so the Corva Meta app (id 713765408423963) is almost certainly in
-  **Live** mode now. Proposed fix, awaiting Fega: flip App Mode → Development, then reconnect. If
-  it must stay Live, the fix is an https return page on flowve.app (a real piece of work, plan it).
-  Not yet known: why/when it went Live — ask before flipping.
-- **The insight scopes may also need adding on the dashboard** (Use cases → Customize →
-  `read_insights`, `pages_manage_engagement`, `instagram_manage_insights`). Unverified — the
-  dialog never got past the domain error, so nothing about scopes has been observed yet.
-- Design decisions for Analytics v1 are recorded in #386/#387 and the s249 CHANGELOG entry
-  (new tab not merged into Tracker; TikTok "—" until #388; `title_caption_rounds.views` stays
-  YouTube-only; Facebook queries the VIDEO id from the `/reel/` url; per-row freshness).
+- **The Meta return page lives on `engine.flowve.app` (R2), not the marketing site.** The address
+  is baked into every installed copy; a website redesign must never be able to break sign-in.
+- **The Meta app stays Live, permanently.** A Development-mode app hides its posts from the
+  public — the s249 "flip to Development" idea is dead, not deferred.
+- **Pages that open in a browser tab follow the WEBSITE's type (Unbounded + Inter), not DM Sans.**
+  Fega tried DM Sans on the mock and sent it back. Recorded in memory `feedback_dm_sans_only`.
+- **Meta dev app renamed to Corva by Fega as a one-off ("I just did it").** The trademark gate
+  still stands for the Google app, the GitHub repo and corva.gg. CLAUDE.md + memory updated.
+- **#395 (5-minute auto-refresh of recent clips while Analytics is open) parked** on Fega's
+  "not now"; plan and rate-limit numbers are on the issue.
 
 ## Next Steps
 
-1. **Unblock Instagram + Facebook** (Fega's accounts, in this order): confirm the Meta app mode,
-   flip to Development if Live, run "+ Facebook Page" then "+ Instagram" one at a time, finishing
-   each in the browser ("Continue" on the account-switch screen is correct — the gaming Page is
-   picked on the next screen). Then Analytics → Refresh; expect ~167 IG / ~167 FB rows. If the
-   dialog rejects scopes, add the three permissions on the dashboard and retry.
-2. Once IG/FB numbers land: spot-check two clips against the platform apps; watch the IG `views`
-   metric (Meta marks it "in development" — the tile prints Meta's error verbatim if it fails).
-3. Next installer batch carries `edc1697` (both Meta buttons off while either flow waits, plain
-   port-clash message, 5-minute window). Not worth its own cut.
-4. Carried: #383 confirmation, #384, #385, the s247 interfaces-audit follow-ups.
+1. **Next installer batch** carries the five commits above. Before publishing: `npx asar list
+   dist/win-unpacked/resources/app.asar | grep brand` must show `clipflow-mark.png` — a new
+   `build.files` entry (`src/renderer/assets/brand/**/*`) feeds the result page; a miss renders the
+   page without the mark (guarded), not a crash.
+2. **#392** — the 16 legacy Facebook uploads that return no view count. Probe one id read-only
+   first (memory `project_safestorage_probe`); they may be post ids, not video ids.
+3. Carried: #383 confirmation, #384, #385, the s247 interfaces-audit follow-ups; #395 when asked.
+4. Optional, only if a "reconnect" ever fires while the Page token is fine: #394 item 2 (try the
+   Page token on the publish paths before flagging).
 
 ## Watch Out For
 
-- **Both Meta flows share callback port 8083.** Before `edc1697` a second click during a pending
-  flow produced `EADDRINUSE` alerts (eleven in four minutes in the s249 log). The installed
-  alpha.33 still has that behaviour — one button at a time until the next cut.
-- **A dormant OAuth flow is an unverified flow.** The Meta connect had not run since the accounts
-  were first connected; the chip was verified to render, the flow was not verified to complete,
-  and the dashboard had changed underneath it. Probe `GET /{app-id}?fields=app_domains` with the
-  app token (`appId|appSecret` from `clipflow-settings.json`) before telling Fega to reconnect.
-- **`accountToPlatformKey` import removed from main.js**; `analytics.js` imports it itself.
-  `titleCaptionViewsRefreshedAt` stays in `STORE_DEFAULTS`, nothing writes it now.
-- **`analytics.init({ store, preflightAccount })` runs right before the boot timer**;
-  `refreshAllViews` before init throws on `store.get` — nothing does today. A manual Refresh
-  during the boot pull joins the running promise.
-- **Dev profile `projectsRoot` is the REAL projects folder** (unchanged). Dev tokens are
-  `{"accounts":{}}` (restored after the stand-in-account check) — confirm before any dev boot.
-- **`.claude/rules/ui-standards.md` still says four themes; `cyan` still a dead token.** Untouched.
+- **Any NEW Meta scope must be declared on the app's use case before a developer can request it**
+  (Use cases → Customize → Permissions and features → Add) — otherwise the dialog dies with
+  "Invalid Scopes". Facebook also silently attaches `pages_read_user_content` to
+  `pages_manage_engagement` and then rejects it as undeclared; all four are declared now. Customers
+  sail through ("users of your app will ignore these permissions"); the app admin cannot.
+- **Driving the Meta dashboard in Chrome:** on the Facebook Login for Business settings page,
+  ref-based clicks on the redirect-URI combobox land on a 1×1 offscreen "Close" anchor and typed
+  keys vanish — click by screenshot coordinates; Save via JS `.click()` needs a match tolerant of
+  zero-width spaces in the button text. Screenshots time out after interactions on Meta pages —
+  read state with page text / JS instead.
+- **A source run (`npm start`) writes its DB to `<repo>/data/clipflow.db`, not
+  `%APPDATA%\Corva\data`** (`database.js:19` keys on `app.isPackaged || dev`). `git checkout --
+  data/clipflow.db` after any source run (done this wrap). Tokens ARE shared — both read
+  `%APPDATA%\Corva\clipflow-tokens.json`, which is why the installed app got the accounts back.
+- **The Instagram account's stored `accessToken` is the PAGE token** (`meta.js:292`); the halfway
+  renewal exchanges it through `fb_exchange_token` and Meta returned a working token in the s250
+  test. Keep an eye on the first natural renewal (~2026-10-10).
+- Both Meta flows share port 8083; a pending flow blocks a second click until the 5-minute
+  timeout. The installed alpha.33 still shows the pre-`edc1697` EADDRINUSE alert for that.
+- The hosted page and the mark are two R2 objects (`auth/meta/callback`,
+  `auth/meta/corva-mark.png`); `scripts/publish-callback.ps1` republishes both and checks the
+  content types. Never move or rename the callback key.
+- `public/icon.svg` is the pre-#252 bolt logo, unreferenced — not the mark. The mark is
+  `src/renderer/assets/brand/clipflow-mark.png` (and `public/icon.png/.ico`).
 
 ## Logs / Debugging
 
-- Meta connect attempts: `%APPDATA%\Corva\logs\app.log`, scope `(meta)` — "Opening system browser
-  for auth" with no "Got auth code" within the window = the browser step never returned.
-- Refresh result per platform: same log, scope `(analytics)`, line
-  `View refresh {"youtube":{updated,skipped,failed,error?},…}`.
-- Table check (sql.js): `SELECT platform, COUNT(*), SUM(views IS NULL), MAX(fetched_at) FROM
-  clip_metrics GROUP BY platform` on `%APPDATA%\Corva\data\clipflow.db`; and `SELECT COUNT(*)
-  FROM title_caption_rounds WHERE views IS NOT NULL` (159 before s249; must not drop).
-- Real-token probe without touching the daily driver: memory `project_safestorage_probe`.
-- CDP loop: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-renderer-backgrounding --disable-features=CalculateNativeWinOcclusion`, then
-  `scripts/dev/cdp.js "<expr>"`, `cdp-shot.js out.png`. Eight bottom tabs now — click by text.
-  Settings sections open via the rail (`span` text "Publishing" → `.closest('button').click()`).
-- Kill with `taskkill //F //IM electron.exe` (never Corva.exe — that is the daily driver).
+- Meta connect: `%APPDATA%\Corva\logs\app.log`, scope `(meta)` — "Opening system browser" →
+  "Got auth code" (logged only after the `state` check passes) → "Account saved" /
+  "IG account saved". "OAuth state mismatch" = a return that Corva did not start.
+- Token renewal logs nothing on success — check `expiresAt` in `clipflow-tokens.json` (60 days out
+  after a pre-flight past halfway). Failures log "Meta pre-flight refresh failed".
+- Analytics: `(analytics) View refresh {...}`. Since #393 a platform-level `error` means nothing has
+  EVER worked for that platform; a per-post failure only shows in the preceding `warn` line.
+- Render the result pages without a sign-in:
+  `node -e "console.log(require('./src/main/oauth/result-page').renderResultPage({ok:true,platform:'Instagram',account:'x'}))"`
+  — serve from a scratch http server to view (the Browser pane cannot drive `file://` pages).
+- Dashboard truth without the browser: `GET graph.facebook.com/v21.0/{app-id}?fields=name,app_domains&access_token=appId|appSecret`
+  (ids from `clipflow-settings.json`). The redirect-URI whitelist is NOT readable via Graph.
