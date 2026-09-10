@@ -75,8 +75,8 @@
 
   --text: #edeef2;
   --textSecondary: rgba(255, 255, 255, 0.55);
-  --textTertiary: rgba(255, 255, 255, 0.32);
-  --textMuted: rgba(255, 255, 255, 0.16);
+  --textTertiary: rgba(255, 255, 255, 0.35);
+  --textMuted: rgba(255, 255, 255, 0.22);
   --labelStrong: rgba(255, 255, 255, 0.68);
 
   --accent: #8b5cf6;
@@ -155,8 +155,8 @@
 
   --text: #14151c;
   --textSecondary: rgba(17, 19, 28, 0.62);
-  --textTertiary: rgba(17, 19, 28, 0.44);
-  --textMuted: rgba(17, 19, 28, 0.26);
+  --textTertiary: rgba(17, 19, 28, 0.47);
+  --textMuted: rgba(17, 19, 28, 0.28);
   --labelStrong: rgba(17, 19, 28, 0.74);
 
   --accent: #7c3aed;
@@ -238,8 +238,8 @@
 
   --text: #fdeef6;
   --textSecondary: rgba(255, 232, 244, 0.58);
-  --textTertiary: rgba(255, 232, 244, 0.34);
-  --textMuted: rgba(255, 232, 244, 0.18);
+  --textTertiary: rgba(255, 232, 244, 0.37);
+  --textMuted: rgba(255, 232, 244, 0.23);
   --labelStrong: rgba(255, 232, 244, 0.70);
 
   --accent: #ec4899;
@@ -316,8 +316,8 @@
 
   --text: #2a1020;
   --textSecondary: rgba(42, 16, 32, 0.62);
-  --textTertiary: rgba(42, 16, 32, 0.44);
-  --textMuted: rgba(42, 16, 32, 0.26);
+  --textTertiary: rgba(42, 16, 32, 0.48);
+  --textMuted: rgba(42, 16, 32, 0.29);
   --labelStrong: rgba(42, 16, 32, 0.74);
 
   --accent: #db2777;
@@ -394,8 +394,8 @@
 
   --text: #e8eaed;
   --textSecondary: rgba(255, 255, 255, 0.55);
-  --textTertiary: rgba(255, 255, 255, 0.32);
-  --textMuted: rgba(255, 255, 255, 0.16);
+  --textTertiary: rgba(255, 255, 255, 0.34);
+  --textMuted: rgba(255, 255, 255, 0.21);
   --labelStrong: rgba(255, 255, 255, 0.68);
 
   --accent: #5b93f7;
@@ -474,8 +474,8 @@
 
   --text: #e9f2ed;
   --textSecondary: rgba(220, 245, 235, 0.56);
-  --textTertiary: rgba(220, 245, 235, 0.33);
-  --textMuted: rgba(220, 245, 235, 0.17);
+  --textTertiary: rgba(220, 245, 235, 0.37);
+  --textMuted: rgba(220, 245, 235, 0.22);
   --labelStrong: rgba(220, 245, 235, 0.69);
 
   --accent: #10b981;
@@ -553,8 +553,8 @@
 
   --text: #f0ecfa;
   --textSecondary: rgba(236, 228, 255, 0.57);
-  --textTertiary: rgba(236, 228, 255, 0.34);
-  --textMuted: rgba(236, 228, 255, 0.18);
+  --textTertiary: rgba(236, 228, 255, 0.38);
+  --textMuted: rgba(236, 228, 255, 0.24);
   --labelStrong: rgba(236, 228, 255, 0.70);
 
   --accent: #a855f7;
@@ -630,9 +630,9 @@
   --borderHover: rgba(44, 40, 30, 0.21);
 
   --text: #1e1c16;
-  --textSecondary: rgba(30, 28, 22, 0.62);
-  --textTertiary: rgba(30, 28, 22, 0.44);
-  --textMuted: rgba(30, 28, 22, 0.26);
+  --textSecondary: rgba(30, 28, 22, 0.63);
+  --textTertiary: rgba(30, 28, 22, 0.49);
+  --textMuted: rgba(30, 28, 22, 0.30);
   --labelStrong: rgba(30, 28, 22, 0.74);
 
   --accent: #7c3aed;
@@ -651,9 +651,9 @@
   --red: #dc2626;
   --redDim: rgba(220, 38, 38, 0.08);
   --redBorder: rgba(220, 38, 38, 0.20);
-  --orange: #ea580c;
-  --orangeDim: rgba(234, 88, 12, 0.10);
-  --orangeBorder: rgba(234, 88, 12, 0.24);
+  --orange: #e65503;
+  --orangeDim: rgba(230, 85, 3, 0.10);
+  --orangeBorder: rgba(230, 85, 3, 0.24);
   --cyan: #0e7490;
   --cyanDim: rgba(14, 116, 144, 0.10);
   --cyanBorder: rgba(14, 116, 144, 0.24);
@@ -675,7 +675,7 @@
   --secondary: 42 15% 87%;
   --secondary-foreground: 40 12% 22%;
   --muted: 42 15% 89%;
-  --muted-foreground: 40 6% 42%;
+  --muted-foreground: 40 6% 40%;
   --accent-hsl: 263 70% 51%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 72% 45%;
@@ -718,7 +718,7 @@
 
   --text: #241610;
   --textSecondary: rgba(36, 22, 16, 0.68);
-  --textTertiary: rgba(36, 22, 16, 0.50);
+  --textTertiary: rgba(36, 22, 16, 0.53);
   --textMuted: rgba(36, 22, 16, 0.32);
   --labelStrong: rgba(36, 22, 16, 0.80);
 
@@ -729,18 +729,18 @@
   --accentBorder: rgba(162, 58, 37, 0.32);
   --accentGlow: rgba(162, 58, 37, 0.07);
 
-  --green: #0b7a50;
-  --greenDim: rgba(11, 122, 80, 0.12);
-  --greenBorder: rgba(11, 122, 80, 0.30);
+  --green: #03774d;
+  --greenDim: rgba(3, 119, 77, 0.12);
+  --greenBorder: rgba(3, 119, 77, 0.30);
   --yellow: #93440a;
   --yellowDim: rgba(147, 68, 10, 0.12);
   --yellowBorder: rgba(147, 68, 10, 0.28);
   --red: #b32020;
   --redDim: rgba(179, 32, 32, 0.10);
   --redBorder: rgba(179, 32, 32, 0.24);
-  --orange: #c94c08;
-  --orangeDim: rgba(201, 76, 8, 0.12);
-  --orangeBorder: rgba(201, 76, 8, 0.28);
+  --orange: #b74302;
+  --orangeDim: rgba(183, 67, 2, 0.12);
+  --orangeBorder: rgba(183, 67, 2, 0.28);
   --cyan: #0a5f75;
   --cyanDim: rgba(10, 95, 117, 0.12);
   --cyanBorder: rgba(10, 95, 117, 0.28);
