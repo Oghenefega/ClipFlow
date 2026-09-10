@@ -1,76 +1,78 @@
-# HANDOFF — Session 252 (2026-09-10)
+# HANDOFF — Session 254 (2026-09-10)
 
 ## Current State
 
-**0.5.0-alpha.1 is installed on the daily driver and Fega confirmed it works.** It carries the
-rebuilt Analytics tab (#397: tiles → insight sentences → thumbnail grid ranked against the
-median → learn cards → growth line → collapsed table, with a clip panel that plays the render,
-shows the caption as posted and per-platform links, and opens the editor / Explorer / each
-platform), daily view snapshots (#398, migration v11), captured Instagram permalinks + YouTube
-likes/comments + TikTok share_url pass-through (#399), plus everything since alpha.33 (Meta
-sign-in repairs, token renewal, #393, TikTok view-count build behind its switch, #396). Fega
-moved the minor number himself: the Analytics tab "is the start of something even bigger".
+**0.5.0-alpha.2 is on the feed and installed on the laptop; Fega confirmed setup ran through
+"Subtitle timing" to the end.** That closes #403 — the setup wizard had been failing on every
+machine because the manifest on Cloudflare advertised a sha256 that did not match the object R2
+served, so the app's checksum was correctly refusing a perfectly good download. All three timing
+models were republished under content-addressed names and verified end-to-end (vosk re-downloaded
+from its public URL hashes to exactly the manifest value).
 
-Master at `647cd26` plus this wrap. Pure maths for the tab is `src/shared/analyticsInsights.js`
-(17 tests); full suite 25 suites / 464 tests green.
+Master at `05ff0bc` plus this wrap. The build also promotes #401 (Analytics clip panel) and #402
+(editor glow/text colour link) from session 253 — **both still `status: untested`**, Fega has only
+confirmed that setup finished.
 
 ## Key Decisions
 
-- **Insights are deterministic rules, not an AI call** — ≥ 8 ranked clips before any card speaks,
-  ≥ 5 per compared group, every card carries a "why". Wording lives in `buildInsights`.
-- **Ranking and rollups use medians against the window**, never raw sums, so one 97K clip does
-  not hide the rest. Grey bars = fewer than 3 clips.
-- **Snapshots come from the numbers the refresh already fetches** (no extra API traffic); every
-  history-dependent spot (tile delta, sparkline, Growth card, panel day 2 / day 7, Momentum
-  insight) is an honest empty state until two snapshot days exist.
-- **Instagram permalinks** are read only for rows without a url and only in a run that had
-  something due — the first daily refresh fills them, later runs cost nothing.
-- **Clip length = cut-down timeline** (`nleSegments` sourceEnd − sourceStart), checked against a
-  rendered file (12.82s both ways).
-- **Platform bar order YouTube, Facebook, Instagram, TikTok** — the dataviz validator flagged
-  red next to pink; never put them adjacent.
-- Cards/panel reuse the Projects list surface recipe (game-hue tint, `color-mix` borders,
-  `shadowCard`/`shadowLift`, 18px radius) — Fega's "silk, glass, premium, squircle" ask.
+- **Model zips publish under content-addressed names** (`<base>-<sha8>.zip`). A rebuilt model always
+  lands on a fresh URL, so an old object can never be reused under a stale key. Second reason,
+  equally load-bearing: vosk (214 MB) is under Cloudflare's 512 MB cacheable ceiling and was
+  answering `cf-cache-status: HIT`, and there is **no Cloudflare purge token on this machine** — a
+  same-name re-upload could have served the stale copy for hours.
+- **Content comparison is the multipart ETag**, recomputed locally over 64 MiB chunks (R2 forms it as
+  md5 of the concatenated part md5s + `-N`). Exact, free, no download. Used for both the skip
+  decision and the post-publish assertion in `publish-runtime.ps1`.
+- **Old model objects were left on R2** — harmless, and they keep previously-published manifests
+  working. Reclaiming that storage is a separate call.
+- **Engine runtime packages were untouched.** Both variants were verified as already matching, which
+  is exactly why DOWNLOAD/INSTALL/SPEECH MODEL passed and only the timing step failed.
 
 ## Next Steps
 
-1. **Tomorrow's first look:** after two refreshes on different days the Total tile should read
-   "▲/▼ N% vs previous 30 days" with a sparkline, the Growth card should draw, and a recent clip's
-   panel should show day 2 / day 7. First refresh on the new build also fills Instagram links
-   (panel's Instagram button turns on).
-2. **#400 (Tier 2 hook metrics)** when Fega wants them — try adding `reels_skip_rate` and
-   `ig_reels_avg_watch_time` to `IG_METRICS` first; they may need no reconnect.
-3. **#395** (5-minute auto-refresh while the tab is open) would make first-48h curves much finer.
+1. **Ask Fega to confirm #401 and #402** — he is now on a build that carries them. #401: does the
+   Analytics clip panel open beside the grid, play, and close when he clicks away? #402: does
+   "Match text color" in the Glow section make the glow follow a word's colour in one click?
+2. **A concurrent session left uncommitted UI-redesign work in this repo** (see Watch Out For).
+   Decide whether it continues or gets dropped before anyone edits `AnalyticsView.js` again.
+3. **#400** (Tier 2 hook metrics) when Fega wants them; **#395** (5-minute auto-refresh while the
+   Analytics tab is open) would make first-48h curves much finer.
 4. Carried: #388 (TikTok approval → flip `TIKTOK_VIEWS_ENABLED` → installer → "Reconnect for
    views"), #392, #383/#384/#385, #389/#390.
 
 ## Watch Out For
 
-- **Version line:** counter ticks as 0.5.0-alpha.2, .3 … — only Fega moves the minor
+- **Uncommitted work from a parallel session is sitting in the tree:** `mockups/redesign-pass-1.html`
+  and `mockups/redesign-pass-2.html` (untracked). This wrap deliberately did **not** commit them —
+  they are another session's in-flight artefacts. Its two lessons WERE preserved and distilled (see
+  below). Fega's verdict on that redesign was "a lot of generic and AI slop", and the mockups' "before"
+  panels were hand-redrawn against 0.5.0-alpha.1, so treat them as superseded, not as a spec.
+- **The installed exe is normally BEHIND repo HEAD.** That gap is this project's steady state. Any
+  claim about "how the app looks today" has to name which one it means — the redesign session lost a
+  whole pass to designing against a tab that #401 had already rewritten. Now enforced in
+  `clipflow-trace-verify`.
+- **Timing models need ~3.9 GB free** on whichever drive holds the engine root (3.4 GB of unpacked
+  trees plus the largest zip, plus the 0.5 GB margin). The laptop's C: is near-full. A preflight for
+  this now exists — the models-only path previously had none.
+- **`tasks/lessons.md` is stored LF in git but CRLF in the working copy**, and the parallel session
+  appended with bare LF, so the working copy is mixed. Git normalizes on commit; do not "fix" it with
+  `sed -i`.
+- **Version line:** counter ticks as 0.5.0-alpha.3, .4 … — only Fega moves the minor
   (memory `feedback_version_semantics`). Feed manifest is still `alpha.yml`.
-- **`npm run dev:seed` overwrites the dev DB with the STALE repo `data/` copy after copying prod.**
-  For a realistic dev run: copy `%APPDATA%\Corva\data\clipflow.db` over
-  `%APPDATA%\clipflow-dev\data\clipflow.db` after seeding, then set
-  `%APPDATA%\clipflow-dev\clipflow-tokens.json` to `{}` before booting.
-- **`sed -i` flips CRLF → LF** on CRLF files in this Git Bash (caught on CHANGELOG.md and
-  release-notes.js; restored). CRLF files touched here: `analytics.js`, `analytics-core.js`,
-  `tiktok-display.js`, `release-notes.js`, `CHANGELOG.md`, `HANDOFF.md`, `tasks/lessons.md`.
-  Use a node script that detects and restores the ending (pattern: s252 scratch `patch-main2.js`).
-- The Analytics pane is `maxWidth: 1440` (other tabs 960); grid is `auto-fill minmax(148px)`.
-- `ClipDrawer` closes when the tab loses `active`; the `<video>` teardown (pause,
-  removeAttribute("src"), load()) runs on unmount and clip change. Verified no stray video after
-  Open in editor → Back.
-- The approved mockup (`analytics-mock.html` + copied thumbs) lives only in the s252 scratchpad.
 
 ## Logs / Debugging
 
-- Migration: `(database) Running migration v11: clip_metrics_history ...` / `Migration v11 complete`.
-- Refresh: `(analytics) View refresh {youtube: {updated, skipped, failed}, ...}`; permalink pass
-  warns `Instagram: N of M permalinks missing` or `Instagram permalink pass failed`.
-- Dev verification: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-features=CalculateNativeWinOcclusion`, then `node scripts/dev/cdp.js "<expr>"` /
-  `cdp-shot.js out.png`. Navigate by clicking the leaf whose text is "Analytics" and walking up to
-  the first `cursor: pointer` ancestor (the H2 in the hidden pane is a decoy). Stop with
-  `taskkill //F //IM electron.exe` — never Corva.exe.
-- Snapshot SQL without the app: open a copy of the dev DB with `sql.js` and run the two `d.run`
-  statements from `upsertMetrics` — live row keeps its url via COALESCE, history upserts per day.
+- **Checksum failures now log before deleting** (this was the whole reason #403 took an
+  investigation): `Timing model "<id>" failed its checksum` with `url`, `expectedSha`, `actualSha`,
+  `bytesOnDisk`, `expectedBytes`. Each model also logs `Timing model "<id>" downloading` at start.
+  The engine zip path got the same treatment. Log file: `%APPDATA%\Corva\logs\app.log`.
+- **To check hosted vs manifest without downloading anything:** compute the local file's 64 MiB
+  multipart ETag and compare to the `ETag` header from the public URL — append a unique query string
+  (`?etagcheck=<guid>`) or Cloudflare may answer from cache with the previous object's tag. Helper
+  used this session: `etag.js` in the s254 scratchpad; `Get-LocalMultipartETag` in
+  `scripts/publish-runtime.ps1` is the permanent copy.
+- **Republish command:** `powershell -ExecutionPolicy Bypass -File scripts/publish-runtime.ps1`.
+  It now prints `[SKIP] ... matching content` (not "matching size") and asserts every hosted ETag
+  after upload. The `[WAIT] Range request returned 200` line is the benign #361 cache-warmth retry.
+- Setup phases in order: `manifest → download → unpack → verify → model → timing`. A `timing` failure
+  is retryable on its own; the engine and speech model are already installed and configured by then.

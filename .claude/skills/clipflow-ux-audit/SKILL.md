@@ -225,6 +225,26 @@ User wants to → hits edge case → system handles gracefully → user not conf
 
 ## Quick Scan (5 min)
 
+## Before proposing ANY new design (session 254)
+
+Passing a ban list is not having a point of view. A redesign that cleared every banned
+pattern still came back as "a lot of generic and AI slop": segmented control, muted count
+numerals, ghost buttons, middot status line, sortable table with share bars — Linear/Vercel/
+Stripe defaults poured into the holes the checklist opened.
+
+- **Write the one-sentence physical scene first** — who, where, what light, what mood, doing
+  what, how often. Choose nothing before that sentence exists.
+- **Run the inverse test on your own output, out loud.** Describe what you are about to build
+  the way a competitor would describe theirs. If the sentence fits the modal product in the
+  category ("a dense tool with a segmented filter bar, a compact status line and a sortable
+  table"), restart. A design that could carry any other product's logo is a failed design.
+- **Look for the answer in the product's own best screen before reaching for a reference.**
+  Corva is a *cull/triage* tool — hundreds of keep-or-kill judgments a week on video — dressed
+  as a dashboard. Its Analytics tab already solves that (real frames, big, number burned on)
+  while the screens where the work happens abstract 18 videos into 18 grey pips.
+- Pair with [[feedback_ui_density_aesthetic]] (mock in HTML first, no AI-cliché colour bars)
+  and the trace-verify rule on pinning which build a "before" depicts.
+
 For fast assessments when reviewing a screenshot or a single view:
 
 ```markdown
