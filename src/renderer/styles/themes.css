@@ -692,3 +692,90 @@
   --scrollThumb: hsl(42 10% 72%);
   --scrollThumbHover: hsl(42 10% 58%);
 }
+
+/* ── Sunset — dim light: dark text on a turned-down sandy page ───────────── */
+/* Fega's evening theme (s247). Not a dark theme and not a light one: the
+   page sits at L 74%, a full step below Paper (L 91%), so it does not glare
+   after dark, while the ink stays dark so it still reads as "light". Every
+   accent and status colour is pushed deeper than the light themes' to hold
+   contrast on the dimmer page — do not swap in the Daylight values. Picked
+   from four steps (Golden Hour L81 / Sand L74 / Clay L66 / Umber L58) in
+   tasks/mocks/sunset-theme.html; Umber was the floor for readable status
+   colours, Sand was the pick. */
+[data-theme="sunset"] {
+  --bg: #d3bea6;
+  --bgRgb: 211, 190, 166;
+  --surface: #dfcdb9;
+  --surfaceHover: #d9c6af;
+
+  --lift: 36, 22, 16;
+  --shade: 36, 22, 16;
+  --shadeK: 0.34;
+  --onSolid: #ffffff;
+
+  --border: rgba(36, 22, 16, 0.14);
+  --borderHover: rgba(36, 22, 16, 0.26);
+
+  --text: #241610;
+  --textSecondary: rgba(36, 22, 16, 0.68);
+  --textTertiary: rgba(36, 22, 16, 0.50);
+  --textMuted: rgba(36, 22, 16, 0.32);
+  --labelStrong: rgba(36, 22, 16, 0.80);
+
+  --accent: #a23a25;
+  /* Readable accent is DARKER on light themes — see the Daylight note. */
+  --accentLight: #7f2a18;
+  --accentDim: rgba(162, 58, 37, 0.12);
+  --accentBorder: rgba(162, 58, 37, 0.32);
+  --accentGlow: rgba(162, 58, 37, 0.07);
+
+  --green: #0b7a50;
+  --greenDim: rgba(11, 122, 80, 0.12);
+  --greenBorder: rgba(11, 122, 80, 0.30);
+  --yellow: #93440a;
+  --yellowDim: rgba(147, 68, 10, 0.12);
+  --yellowBorder: rgba(147, 68, 10, 0.28);
+  --red: #b32020;
+  --redDim: rgba(179, 32, 32, 0.10);
+  --redBorder: rgba(179, 32, 32, 0.24);
+  --orange: #c94c08;
+  --orangeDim: rgba(201, 76, 8, 0.12);
+  --orangeBorder: rgba(201, 76, 8, 0.28);
+  --cyan: #0a5f75;
+  --cyanDim: rgba(10, 95, 117, 0.12);
+  --cyanBorder: rgba(10, 95, 117, 0.28);
+
+  --tierBronze: #8f5223;
+  --tierSilver: #5e6a74;
+  --tierGold: #9c7107;
+  --tierPlatinum: #0b7c6e;
+  --tierDiamond: #1f68b3;
+
+  --background: 32 34% 74%;
+  --foreground: 32 40% 8%;
+  --card: 32 38% 80%;
+  --card-foreground: 32 40% 8%;
+  --popover: 32 38% 82%;
+  --popover-foreground: 32 40% 8%;
+  --primary: 10 63% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 32 30% 69%;
+  --secondary-foreground: 32 25% 22%;
+  --muted: 32 30% 71%;
+  --muted-foreground: 32 14% 26%;
+  --accent-hsl: 10 63% 39%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 40%;
+  --destructive-foreground: 0 0% 100%;
+  --border-hsl: 32 28% 63%;
+  --input: 32 28% 60%;
+  --ring: 10 63% 39%;
+  --stage: 32 30% 67%;
+  --trackTextL: 30%;
+  --trackIconL: 36%;
+  --trackTextDimL: 38%;
+  --timelineBg: #dfcdb9;
+  --rulerBg: #c8b198;
+  --scrollThumb: hsl(32 18% 56%);
+  --scrollThumbHover: hsl(32 18% 46%);
+}

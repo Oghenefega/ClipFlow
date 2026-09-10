@@ -130,6 +130,12 @@ export const THEMES = [
     blurb: "Light pink.",
     swatch: { bg: "#fdf1f6", surface: "#ffffff", accent: "#db2777", alt: "#be185d", text: "#2a1020" },
   },
+  {
+    id: "sunset",
+    name: "Sunset",
+    blurb: "Dim light, for evenings.",
+    swatch: { bg: "#d3bea6", surface: "#dfcdb9", accent: "#a23a25", alt: "#0b7a50", text: "#241610" },
+  },
 ];
 
 export const DEFAULT_THEME = "midnight";

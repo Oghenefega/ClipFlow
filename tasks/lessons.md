@@ -1907,3 +1907,11 @@ build the dot where he drew it. Pairs with s229's "the reference NLE's interacti
 **Why:** I styled the note like the reason chips next to it instead of like the content it is. A chip is a label; a note is a sentence. Ellipsis on the one element whose whole job is to be read defeats the feature, and a one-line `<input>` hides everything before the caret on any sentence longer than the box.
 
 **Rule:** free-text the user is meant to read back gets its own full-width row, wraps, and is never truncated (a hover title is not a substitute). Free-text the user types gets a wrapping textarea that grows with the content, never a single-line input. Before proposing a UI, ask "is this a label or is this content?" and style for that.
+
+## Session 247 (2026-09-09) — "not dark mode, but easy on the eyes" is a dim LIGHT theme
+
+**What happened:** Fega asked for a Sunset theme: not dark mode, not the flashbang of the light themes. I offered four candidates and three of them were lifted dark canvases with pale text (L 10 / 19 / 31%). He rejected all three as "bright DARK themes" and pointed at the one dimmed-page option: "I want a dim LIGHT theme."
+
+**Why:** I read "easy on the eyes in the evening" as "lower the luminance" and walked up from dark. But he had said "not dark mode" first, and the polarity of the text is what makes a theme feel light or dark, not the canvas brightness. A mid-tone canvas with pale text is still a dark theme to the person looking at it.
+
+**Rule:** when someone asks for a theme "between" dark and light, ask (or mock) along the axis they named — ink polarity first, then how far the page is turned down. Start from the side they said they want to keep ("still light") and dim it, rather than from the side they said they don't want and lift it. And when a mock offers several readings, make at least half of them sit on the side the user actually asked for.

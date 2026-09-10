@@ -286,6 +286,7 @@ const THEME_CHROME = {
   daylight: { bg: "#f3f4f7", symbol: "#14151c" },
   paper:    { bg: "#edeae3", symbol: "#1e1c16" },
   blush:    { bg: "#fdf1f6", symbol: "#2a1020" },
+  sunset:   { bg: "#d3bea6", symbol: "#241610" },
 };
 const DEFAULT_THEME = "midnight";
 const themeChrome = (id) => THEME_CHROME[id] || THEME_CHROME[DEFAULT_THEME];
