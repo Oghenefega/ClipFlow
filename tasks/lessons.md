@@ -1930,3 +1930,19 @@ build the dot where he drew it. Pairs with s229's "the reference NLE's interacti
 **Rule:** before using any brand asset, find where the running app renders it (grep the renderer for the import — `App.js`, `EngineSetupView.js`) and use *that* file; check `git log` on the candidate to see whether a later commit replaced it. Format convenience never picks the asset. And when an older duplicate is found, say so — it is a cleanup item, not a source.
 
 Addendum: the memory note on the rename already said, in so many words, that `public/icon.svg` is "an older different design (purple rounded square + gold bolt)" and that the blue C is the mark. It was in context and I did not read it before picking the file. Brand questions: read the rename memory first.
+
+## Session 251 (2026-09-10) — the portal's own rules beat my mental model of the review
+
+**What happened:** Twice in one session I prescribed steps the TikTok portal did not ask for. First, "add the Display API product" — the portal has no such product; `video.list` is picked from "Add scopes" and that is the whole step. Then, "re-record sign-in, post, draft and Analytics from scratch" — the upload rule on the page says "at least one demo video, up to 5 files", so the approved old video stays and one short new clip covers the new scope. Fega caught both: "there is no 'display api' product" and "I'm confident I don't need to show everything from scratch."
+
+**Why:** I wrote the instructions from what I knew of TikTok's API docs (where the product is called the Display API) and from a general idea of what reviewers want, without reading the exact screen he would be on. The page text was one Chrome read away each time.
+
+**Rule:** before handing Fega a step on a third-party dashboard, read that dashboard's own page (Chrome `get_page_text`) and quote its rule; name buttons and fields as they appear on screen, not as the API docs call them. When the page says "at least one" or "up to N", the minimum that satisfies the page's rule is the ask — not the most thorough demo I can imagine.
+
+## Session 251 (2026-09-10) — "frozen mid-review" was a rule that outlived its fact
+
+**What happened:** Project rules and memory said the TikTok dev app was frozen mid-review, touch nothing. The previous session repeated it as "TikTok hasn't approved the app" and shelved TikTok views on it. The portal showed Live since June 17, history ending at "Under review → Live", and a "Create Revision" button. Nothing was frozen; the app simply held no read scope.
+
+**Why:** the rule was written during a real review in June and never re-checked once that review landed. Each later session inherited the sentence, not the state.
+
+**Rule:** a rule that says "don't touch X until Y resolves" carries an expiry — when a session's work depends on it, verify Y's state at the source (the dashboard, not the memory) before repeating the rule, and rewrite the rule the moment the fact changes.
