@@ -12,6 +12,17 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.33",
+    date: "2026-09-10",
+    added: [
+      "A new Analytics tab, between Tracker and Settings. See views per clip across YouTube, Instagram and Facebook, filter by the last 7, 30 or 90 days, sort the table, and see which games and which kind of titles (yours, AI edited, AI as suggested) pull the most views. Counts refresh on their own after launch, or press Refresh.",
+      "Instagram and Facebook need one extra permission to share their view counts. Open Settings → Publishing and click \"Reconnect for views\" on each card once; YouTube needs nothing. TikTok views arrive once TikTok approves the app.",
+    ],
+    changed: [
+      "Dim labels read better on every theme. The small hints, timestamps and column headers were lifted a touch on all nine themes, and a few status colours on Sunset and Paper were deepened, so the quiet text is readable without changing the look.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.32",
     date: "2026-09-10",
     added: [

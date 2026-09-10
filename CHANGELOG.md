@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.33] — 2026-09-10 (session 249) — The Analytics tab and the palette lift reach the installed copies
+
+### Changed
+- **Version bumped to 0.4.0-alpha.33 and an installer cut to the R2 update feed.** Promotes everything merged since alpha.32 (`836c180..5cb090c`): the measured contrast lift of the dim text tiers and three status colours across all nine themes (s248), and the new Analytics tab with per-platform view counts, the `clip_metrics` table, the Meta insight fetchers and the "Reconnect for views" chip (#387, s249). Cut on Fega's explicit ask. What's New carries the Analytics tab, the one-time reconnect, and "dim labels read better on every theme".
+
 ## [Unreleased] — 2026-09-10 (session 249) — Analytics tab: views per clip across YouTube, Instagram and Facebook (#386, #387)
 
 ### Added
