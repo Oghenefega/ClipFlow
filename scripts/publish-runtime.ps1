@@ -1,7 +1,16 @@
 # publish-runtime.ps1 -- upload AI engine runtime packages + combined manifest to Cloudflare R2 (#146 session 2)
 #
-# Repeatable: zips already on R2 with matching size are skipped; the manifest is
+# Repeatable: zips already on R2 with matching CONTENT are skipped; the manifest is
 # rebuilt and re-uploaded every run (it is tiny and this keeps it authoritative).
+#
+# #403: "matching content" used to mean "matching size", which shipped a broken
+# setup. build-models.ps1 rebuilds every zip on every run, and a rebuild of the
+# same model differs only in a zip timestamp field -- same size, different
+# sha256. The size check skipped the upload, so R2 kept the OLD object while the
+# manifest advertised the NEW hash, and every customer's subtitle-timing step
+# failed its checksum. Content is now compared by multipart ETag, and model zips
+# are published under content-addressed names so a rebuild can never reuse an
+# old object's key (nor be served stale from Cloudflare's edge cache).
 #
 # #357: also publishes the word-timing voter models packaged by build-models.ps1
 # (vendor\runtime-dist\manifest-models.json) to r2:<bucket>/models/ and lists
@@ -36,6 +45,54 @@ function Find-Rclone {
 }
 
 $rclone = Find-Rclone
+
+# --- #403: exact "are the right bytes already up there?" check ---------------
+# rclone uploads multipart with --s3-chunk-size 64M, and R2 forms a multipart
+# object's ETag as md5(concatenated per-part md5s) + "-<partcount>". Recomputing
+# that locally answers the question exactly, for free, with no download.
+$ChunkBytes = 64MB
+
+function Get-LocalMultipartETag([string]$Path) {
+    $md5 = [System.Security.Cryptography.MD5]::Create()
+    $fs = [System.IO.File]::OpenRead($Path)
+    try {
+        $parts = [int][math]::Ceiling($fs.Length / $ChunkBytes)
+        if ($parts -le 1) {
+            return ([BitConverter]::ToString($md5.ComputeHash($fs)) -replace "-", "").ToLower()
+        }
+        $buf = New-Object byte[] ([int]$ChunkBytes)
+        $concat = New-Object System.IO.MemoryStream
+        for ($i = 0; $i -lt $parts; $i++) {
+            $read = 0
+            while ($read -lt $ChunkBytes) {
+                $n = $fs.Read($buf, $read, [int]($ChunkBytes - $read))
+                if ($n -le 0) { break }
+                $read += $n
+            }
+            $d = $md5.ComputeHash($buf, 0, $read)
+            $concat.Write($d, 0, $d.Length)
+        }
+        $concat.Position = 0
+        $tag = ([BitConverter]::ToString($md5.ComputeHash($concat)) -replace "-", "").ToLower()
+        return "$tag-$parts"
+    } finally {
+        $fs.Dispose()
+        $md5.Dispose()
+    }
+}
+
+# The cache-buster matters: an object under Cloudflare's max cacheable size can
+# answer a HEAD from the edge carrying the PREVIOUS object's ETag -- the exact
+# stale answer this check exists to catch. A unique query string forces origin.
+function Get-RemoteETag([string]$Url) {
+    try {
+        $u = $Url + "?etagcheck=" + [guid]::NewGuid().ToString("N")
+        $head = Invoke-WebRequest -UseBasicParsing -Uri $u -Method Head -ErrorAction Stop
+        $tag = $head.Headers["ETag"]
+        if ($tag) { return $tag.Trim('"').ToLower() }
+    } catch { }
+    return $null
+}
 
 # #361: true once a 1 KB Range request answers 206. Retries across a short
 # pause because a cache MISS at the edge answers 200 for a while after upload.
@@ -93,6 +150,7 @@ foreach ($v in @("cuda", "cpu")) {
 
 # --- word-timing voter models (#357) ---
 $models = @()
+$modelLocal = @{}   # #403: id -> local zip path (the published name no longer matches it)
 $modelsPath = Join-Path $DistDir "manifest-models.json"
 if (Test-Path $modelsPath) {
     foreach ($m in (Get-Content $modelsPath -Raw | ConvertFrom-Json)) {
@@ -100,10 +158,18 @@ if (Test-Path $modelsPath) {
         if (-not (Test-Path $zipPath)) { throw "Missing model zip: $zipPath -- run build-models.ps1" }
         $actualSize = (Get-Item $zipPath).Length
         if ($actualSize -ne [int64]$m.sizeBytes) { throw "$($m.file): on-disk size $actualSize != manifest sizeBytes $($m.sizeBytes)" }
+        # #403: the PUBLISHED name carries the content hash. Two consequences,
+        # both load-bearing: a rebuilt model can never be mistaken for the old
+        # object under the same key, and a brand-new key is never already in
+        # Cloudflare's edge cache (there is no purge token on this machine, so a
+        # same-name re-upload of a sub-512MB zip could serve stale for hours).
+        $sha8 = $m.sha256.Substring(0, 8)
+        $remoteName = [System.IO.Path]::GetFileNameWithoutExtension($m.file) + "-$sha8" + [System.IO.Path]::GetExtension($m.file)
+        $modelLocal[$m.id] = $zipPath
         $models += [ordered]@{
             id            = $m.id
-            file          = $m.file
-            url           = "$publicUrl/models/$($m.file)"
+            file          = $remoteName
+            url           = "$publicUrl/models/$remoteName"
             sha256        = $m.sha256
             sizeBytes     = [int64]$m.sizeBytes
             unpackedBytes = [int64]$m.unpackedBytes
@@ -127,39 +193,33 @@ $json = $manifest | ConvertTo-Json -Depth 10
 [System.IO.File]::WriteAllText($manifestPath, $json, (New-Object System.Text.UTF8Encoding($false)))  # no BOM -- Node JSON.parse rejects BOM
 Write-Host "[OK] combined manifest built: $manifestPath"
 
-# --- upload zips (skip when remote size already matches) ---
+# --- upload zips (skip only when the remote CONTENT already matches, #403) ---
 $remoteDir = "r2:$Bucket/$Prefix/v$version"
-$remoteListRaw = & $rclone lsjson $remoteDir 2>$null
-$remoteBySize = @{}
-if ($LASTEXITCODE -eq 0 -and $remoteListRaw) {
-    foreach ($e in ($remoteListRaw | ConvertFrom-Json)) { $remoteBySize[$e.Name] = [int64]$e.Size }
-}
 foreach ($v in @("cuda", "cpu")) {
     $f = $variants[$v].file
-    if ($remoteBySize.ContainsKey($f) -and $remoteBySize[$f] -eq $variants[$v].sizeBytes) {
-        Write-Host "[SKIP] $f already on R2 with matching size"
+    $localZip = Join-Path $DistDir $f
+    $wantTag = Get-LocalMultipartETag $localZip
+    if ((Get-RemoteETag $variants[$v].url) -eq $wantTag) {
+        Write-Host "[SKIP] $f already on R2 with matching content"
         continue
     }
     Write-Host "[UPLOAD] $f ..."
-    & $rclone copyto (Join-Path $DistDir $f) "$remoteDir/$f" --s3-chunk-size 64M --s3-upload-concurrency 4 --stats 60s --stats-one-line -v
+    & $rclone copyto $localZip "$remoteDir/$f" --s3-chunk-size 64M --s3-upload-concurrency 4 --stats 60s --stats-one-line -v
     if ($LASTEXITCODE -ne 0) { throw "rclone upload failed for $f" }
 }
 
-# --- upload model zips (same size-skip) ---
+# --- upload model zips (same content-skip, #403) ---
 if ($models.Count -gt 0) {
     $modelsRemote = "r2:$Bucket/models"
-    $remoteModelsRaw = & $rclone lsjson $modelsRemote 2>$null
-    $remoteModelsBySize = @{}
-    if ($LASTEXITCODE -eq 0 -and $remoteModelsRaw) {
-        foreach ($e in ($remoteModelsRaw | ConvertFrom-Json)) { $remoteModelsBySize[$e.Name] = [int64]$e.Size }
-    }
     foreach ($m in $models) {
-        if ($remoteModelsBySize.ContainsKey($m.file) -and $remoteModelsBySize[$m.file] -eq $m.sizeBytes) {
-            Write-Host "[SKIP] $($m.file) already on R2 with matching size"
+        $localZip = $modelLocal[$m.id]
+        $wantTag = Get-LocalMultipartETag $localZip
+        if ((Get-RemoteETag $m.url) -eq $wantTag) {
+            Write-Host "[SKIP] $($m.file) already on R2 with matching content"
             continue
         }
         Write-Host "[UPLOAD] $($m.file) ..."
-        & $rclone copyto (Join-Path $DistDir $m.file) "$modelsRemote/$($m.file)" --s3-chunk-size 64M --s3-upload-concurrency 4 --stats 60s --stats-one-line -v
+        & $rclone copyto $localZip "$modelsRemote/$($m.file)" --s3-chunk-size 64M --s3-upload-concurrency 4 --stats 60s --stats-one-line -v
         if ($LASTEXITCODE -ne 0) { throw "rclone upload failed for $($m.file)" }
     }
 }
@@ -180,6 +240,11 @@ foreach ($v in @("cuda", "cpu")) {
     $head = Invoke-WebRequest -UseBasicParsing -Uri $u -Method Head
     $len = [int64]$head.Headers["Content-Length"]
     if ($len -ne $variants[$v].sizeBytes) { throw "$v HEAD Content-Length $len != $($variants[$v].sizeBytes) at $u" }
+    # #403: size was never proof. Prove the hosted bytes are the bytes whose
+    # sha256 this run just wrote into the manifest.
+    $wantTag = Get-LocalMultipartETag (Join-Path $DistDir $variants[$v].file)
+    $gotTag = Get-RemoteETag $u
+    if ($gotTag -ne $wantTag) { throw "$v hosted content does not match the manifest sha256 (etag $gotTag != $wantTag) at $u" }
     # Range support is required for download resume in the app. #361: a freshly
     # uploaded object can answer a Range request with 200 + full body while the
     # Cloudflare cache is still MISS (Accept-Ranges advertised, 206 only once the
@@ -198,7 +263,12 @@ foreach ($m in $models) {
     $head = Invoke-WebRequest -UseBasicParsing -Uri $m.url -Method Head
     $len = [int64]$head.Headers["Content-Length"]
     if ($len -ne $m.sizeBytes) { throw "$($m.id) HEAD Content-Length $len != $($m.sizeBytes) at $($m.url)" }
-    Write-Host "[OK] model $($m.id) size verified: $($m.url)"
+    # #403: the check whose absence shipped the broken setup -- size matched all
+    # along; the content did not.
+    $wantTag = Get-LocalMultipartETag $modelLocal[$m.id]
+    $gotTag = Get-RemoteETag $m.url
+    if ($gotTag -ne $wantTag) { throw "$($m.id) hosted content does not match the manifest sha256 (etag $gotTag != $wantTag) at $($m.url)" }
+    Write-Host "[OK] model $($m.id) size + content verified: $($m.url)"
 }
 
 if ($DeepVerify) {

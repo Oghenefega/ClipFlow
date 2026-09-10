@@ -506,6 +506,9 @@ async function downloadTimingModels(store, manifest, webContents) {
     const partPath = `${zipPath}.part`;
     fs.mkdirSync(path.dirname(zipPath), { recursive: true });
     if (!zipReady(zipPath, m.sizeBytes)) {
+      logger.info(logger.MODULES.system, `Timing model "${m.id}" downloading`, {
+        id: m.id, url: m.url, expectedBytes: m.sizeBytes, expectedSha: String(m.sha256).toLowerCase(),
+      });
       const digest = await downloadWithResume({
         url: m.url, partPath, totalBytes: m.sizeBytes, webContents, phase: "timing",
         onProgress: (got, speedBps) => sendProgress(webContents, {
@@ -518,8 +521,18 @@ async function downloadTimingModels(store, manifest, webContents) {
         }),
       });
       if (digest !== String(m.sha256).toLowerCase()) {
+        // #403: record what failed BEFORE deleting the evidence. A mismatch has
+        // two very different causes — a damaged download, or a manifest that
+        // disagrees with the object the CDN serves (which is what actually
+        // happened) — and without these fields the log cannot tell them apart.
+        let bytes = null;
+        try { bytes = fs.statSync(partPath).size; } catch (_) {}
+        logger.error(logger.MODULES.system, `Timing model "${m.id}" failed its checksum`, {
+          id: m.id, url: m.url, expectedSha: String(m.sha256).toLowerCase(), actualSha: digest,
+          bytesOnDisk: bytes, expectedBytes: m.sizeBytes,
+        });
         try { fs.rmSync(partPath, { force: true }); } catch (_) {}
-        throw new Error("A timing model didn't verify — it may have been corrupted in transit. The download was cleared; try again.");
+        throw new Error(`The "${m.id}" subtitle-timing model didn't verify, so the download was cleared. Try again — if it fails the same way, the file on our server needs re-publishing.`);
       }
       fs.renameSync(partPath, zipPath);
     }
@@ -611,6 +624,14 @@ async function start(store, webContents) {
           return fail("download", err);
         }
         if (digest !== v.sha256.toLowerCase()) {
+          // #403: same reasoning as the timing models — log the fingerprints
+          // before the file that produced them is gone.
+          let bytes = null;
+          try { bytes = fs.statSync(partPath).size; } catch (_) {}
+          logger.error(logger.MODULES.system, `Engine zip "${variant}" failed its checksum`, {
+            variant, url: v.url, expectedSha: v.sha256.toLowerCase(), actualSha: digest,
+            bytesOnDisk: bytes, expectedBytes: v.sizeBytes,
+          });
           try { fs.rmSync(partPath, { force: true }); } catch (_) {}
           return fail("checksum", new Error("The downloaded file didn't verify — it may have been corrupted in transit. The download was cleared; try again."));
         }
@@ -673,6 +694,18 @@ async function start(store, webContents) {
 
     // ── word-timing voter models (#357) ──
     job.phase = "timing";
+    // #403: the models-only path had no disk check at all — the preflight above
+    // runs only when an engine is being installed, so a machine that already had
+    // one went straight to fetching gigabytes. Peak usage here is every unpacked
+    // tree plus the largest zip (each zip is deleted right after its unpack).
+    const timingTodo = missingTimingModels(store, manifest);
+    if (timingTodo.length > 0) {
+      const needBytes = timingReserveBytes(timingTodo) + DISK_MARGIN_BYTES;
+      const freeNow = freeDiskBytes(runtimeRoot(store));
+      if (freeNow !== null && freeNow < needBytes) {
+        return fail("disk", new Error(`Not enough disk space for the subtitle-timing models: about ${(needBytes / 1e9).toFixed(1)} GB free is needed, this drive has ${(freeNow / 1e9).toFixed(1)} GB.`));
+      }
+    }
     try {
       await downloadTimingModels(store, manifest, webContents);
     } catch (err) {

@@ -12,6 +12,23 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.2",
+    date: "2026-09-10",
+    added: [
+      "The clip panel in Analytics now opens beside your clips instead of on top of them, so nothing is hidden while it is open. Click anywhere off it to close it, or click another clip to jump straight to that one.",
+      "Sort and filter your clips in Analytics: Top, Newest or Oldest, and narrow down to one game, to Main or Variety, or to the clips you posted on a particular platform.",
+      "The clip panel shows what each platform actually received. Switch between YouTube, Facebook, Instagram and TikTok to see the title, caption and hashtags exactly as they went out, each with a one-click copy — handy for reusing a title or a tag set that worked.",
+      "\"Match text color\", in the Glow section of the Subtitles and Text panels. Turn it on and the glow takes the same colour every time you change a word, a line or the whole caption — one click instead of two.",
+    ],
+    fixed: [
+      "Finishing setup no longer stops on \"Subtitle timing\". One of the subtitle-timing models on our server did not match its fingerprint, so Corva was right to refuse it — the file has been republished and setup now runs through to the end.",
+      "The play button on a clip in Analytics plays the clip.",
+      "The Analytics clip panel no longer sits under the window's title bar with its close button half hidden.",
+      "The colour swatch in the Subtitles panel now changes the subtitle colour. It had been doing nothing at all.",
+      "Setup checks there is room for the subtitle-timing models before it starts downloading them, instead of running the drive down and failing part way.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.1",
     date: "2026-09-10",
     added: [
