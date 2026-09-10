@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 247) — Scheduled clips keep their hashtags; one social tag line per clip (#383)
+
+### Fixed
+- **Editing the game's hashtag line no longer rewrites clips that are already scheduled (#383).** The social hashtags were never stored on a clip: the "GAME TAGS · 100T" line lives on the game record and every TikTok, Instagram and Facebook caption was assembled from it at the moment of posting, so changing it for the next clip silently changed every scheduled clip of that game. Fega had five 100T clips scheduled for one day (vs NRG, vs LOUD, individual players) and they had all collapsed onto the last line typed. Scheduling now copies the game's social line and its YouTube tag list onto the clip, the way editing YouTube tags on the card already did, so later edits to the game's defaults stop at the moment of scheduling. Clips that already carry their own lists are left alone. Verified on a scratch copy of a zero-approved project with the dev profile pointed at it.
+
+### Added
+- **A "Social tags" line on every Queue card, above the platform captions.** One hashtag line that lands in the TikTok, Instagram and Facebook captions at once, for this clip only. It starts filled from the game's line, becomes the clip's own the first time it's edited (CUSTOM badge, "Reset to game tags" to go back), and a line identical to the game's clears the override so the clip follows the game again. This is the per-clip version of the thing Fega was reaching for the game-level line to do, so the game line can go back to being the default for new clips. Resolved in the shared caption module (`src/shared/captionResolve.js`), so the Queue preview, the main-process scheduler and the Tracker snapshot all agree.
+
 ## [Unreleased] — 2026-09-10 (session 247) — The Audio panel opens where you actually work
 
 ### Changed

@@ -14,6 +14,12 @@ module.exports = [
   {
     version: "unreleased",
     date: "",
+    added: [
+      "One \"Social tags\" line per clip on the Queue card. Type your hashtags once and they land in the TikTok, Instagram and Facebook captions together, for that clip only. It starts from the game's line and becomes the clip's own the moment you edit it, with \"Reset to game tags\" to go back — so you no longer need to touch the game's shared line while working on a single clip.",
+    ],
+    fixed: [
+      "Changing the game's hashtag line no longer rewrites clips you have already scheduled. The moment you schedule a clip, its social hashtags and YouTube tags are copied onto it, so editing the game's defaults for the next clip leaves everything already in the schedule exactly as you set it.",
+    ],
     changed: [
       "The Audio panel in the editor now opens where you actually work. It remembers whether you place music or sound effects more often and opens on that lane, and it opens on Recent instead of All — so the sounds you reach for every day are the first thing you see, with no clicking through Music and then Sound effect and then Recent each time.",
     ],

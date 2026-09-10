@@ -64,6 +64,22 @@ function resolveTags(clip, ytDescriptions, gamesDb) {
   return Array.isArray(tags) ? tags : [];
 }
 
+/**
+ * #383: the hashtag line that fills {gametags} on TikTok / Instagram / Facebook.
+ * A string on the clip (even "") is the clip's own line and wins; otherwise the
+ * game's shared line. Same precedence as youtubeTags → the game's tag list.
+ */
+function socialTagsFor(clip, game) {
+  const own = typeof clip?.captionTags === "string" ? clip.captionTags : null;
+  return (own != null ? own : (game?.captionTags || "")).trim();
+}
+
+/** The social tag line a clip will publish with, resolved through the game lookup. */
+function resolveSocialTags(clip, ytDescriptions, gamesDb) {
+  const { game } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
+  return socialTagsFor(clip, game);
+}
+
 /** Resolve caption for a platform using template + clip data, respecting overrides */
 function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule = "") {
   // Prefer clip.gameTag (first-class field, lowercased); fall back to title hashtag for legacy clips.
@@ -80,7 +96,8 @@ function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gam
   const hashtagForSub = (game?.hashtag || gameTag || "").toLowerCase();
   // #346: the game's shared tag line ("#vct #100thieves #100T"). The \s* eats
   // the space a tagless game would otherwise leave behind in the template.
-  const gameTags = (game?.captionTags || "").trim();
+  // #383: a clip's own line wins over the game's, the way youtubeTags does.
+  const gameTags = socialTagsFor(clip, game);
   const fill = (tpl) => tpl
     .replace(/\{title\}/g, clip.title || "")
     .replace(/#\{gametitle\}/g, hashtagForSub ? `#${hashtagForSub}` : "")
@@ -146,6 +163,7 @@ module.exports = {
   extractGameTag,
   resolveYtGameKey,
   resolveTags,
+  resolveSocialTags,
   resolveCaption,
   getEffectiveCaption,
   accountToPlatformKey,

@@ -4,7 +4,7 @@ import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, CopyIconButton, TagInput, extractGameTag, toFileUrl } from "../components/shared";
 // #329: shared with the main-process publish scheduler — see src/shared/captionResolve.js.
-import { resolveTags, resolveCaption, resolveYtGameKey, getEffectiveCaption as resolveEffectiveCaption, accountToPlatformKey, getEnabledPlatforms as resolveEnabledPlatforms } from "../../shared/captionResolve";
+import { resolveTags, resolveSocialTags, resolveCaption, resolveYtGameKey, getEffectiveCaption as resolveEffectiveCaption, accountToPlatformKey, getEnabledPlatforms as resolveEnabledPlatforms } from "../../shared/captionResolve";
 import CaptionsView from "./CaptionsView";
 import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
@@ -1049,6 +1049,38 @@ export default function QueueView({
     setEditingYtTags(null);
   };
 
+  // #383: the clip's own social tag line — the hashtags that land in the TikTok,
+  // Instagram and Facebook captions at once. Typed once per clip instead of
+  // editing the game's shared line for every clip and rewriting the others.
+  // A line identical to the game's clears the override so the clip follows the
+  // game again (the saveYoutubeTags trick).
+  const [editingSocialTags, setEditingSocialTags] = useState(null); // clipId
+  const [editSocialTagsValue, setEditSocialTagsValue] = useState("");
+  const gameSocialTagsFor = (clip) => resolveSocialTags({ ...clip, captionTags: undefined }, ytDescriptions, gamesDb);
+  const saveSocialTags = async (clip, value) => {
+    if (!clip._projectId) return;
+    const line = value.trim().replace(/\s+/g, " ");
+    const next = line === gameSocialTagsFor(clip) ? null : line;
+    try {
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionTags: next });
+      if (!r?.error) {
+        updateClipInState(clip._projectId, clip.id, { captionTags: next });
+        setCaptionSavedFlash(`${clip.id}:social-tags`);
+        clearTimeout(captionFlashTimer.current);
+        captionFlashTimer.current = setTimeout(() => setCaptionSavedFlash(null), 1600);
+      }
+    } catch (e) { console.error("Social tags save failed:", e); }
+    setEditingSocialTags(null);
+  };
+  const resetSocialTags = async (clip) => {
+    if (!clip._projectId) return;
+    try {
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionTags: null });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { captionTags: null });
+    } catch (e) { console.error("Social tags reset failed:", e); }
+    setEditingSocialTags(null);
+  };
+
   // TikTok Content Posting API audit: persist any subset of the per-clip TikTok
   // flat fields (tiktokPrivacy / tiktokDisable* / tiktokCommercialDisclosure /
   // tiktokIsYourBrand / tiktokIsBrandedContent). The TiktokOptionsPanel calls
@@ -1119,6 +1151,12 @@ export default function QueueView({
     // the clip by clearing publishedAt. Without this the dedup guard would permanently
     // block a deliberate repost of an already-published clip.
     const updates = { scheduledAt, publishedAt: null };
+    // #383: scheduling freezes the tags. A clip still following the game's lists
+    // gets its own copies now, so editing the game's line for the NEXT clip can
+    // no longer rewrite what this one posts with. Clips that already have their
+    // own lists are left alone.
+    if (!Array.isArray(clip.youtubeTags)) updates.youtubeTags = resolveTags(clip, ytDescriptions, gamesDb);
+    if (typeof clip.captionTags !== "string") updates.captionTags = resolveSocialTags(clip, ytDescriptions, gamesDb);
     try {
       const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
       if (!r?.error) updateClipInState(clip._projectId, clip.id, updates);
@@ -2323,6 +2361,62 @@ export default function QueueView({
                             );
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                                {/* #383: one hashtag line for every social caption below. Reads
+                                    through to the game's line until this clip is given its own. */}
+                                {enabledKeys.some((k) => k !== "youtube") && (() => {
+                                  const line = resolveSocialTags(clip, ytDescriptions, gamesDb);
+                                  const custom = typeof clip.captionTags === "string";
+                                  const editing = editingSocialTags === clip.id;
+                                  return (
+                                    <div style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.02)" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                        <div style={FIELD_LABEL}>Social tags</div>
+                                        <span style={{ fontSize: 10.5, color: T.textTertiary }}>TikTok · Instagram · Facebook</span>
+                                        {custom && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
+                                        {captionSavedFlash === `${clip.id}:social-tags` && (
+                                          <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                                            Saved
+                                          </span>
+                                        )}
+                                        <div style={{ flex: 1 }} />
+                                        {custom && !editing && (
+                                          <button onClick={(e) => { e.stopPropagation(); resetSocialTags(clip); }} style={{ padding: "2px 9px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to game tags</button>
+                                        )}
+                                      </div>
+                                      {editing ? (
+                                        <input
+                                          autoFocus
+                                          value={editSocialTagsValue}
+                                          onChange={(e) => setEditSocialTagsValue(e.target.value)}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingSocialTags(null); }}
+                                          // Click anywhere outside = save; Escape unmounts without blur, so it cancels.
+                                          onBlur={() => saveSocialTags(clip, editSocialTagsValue)}
+                                          placeholder="#vct #100thieves #100T"
+                                          style={{ width: "100%", boxSizing: "border-box", background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none" }}
+                                        />
+                                      ) : (
+                                        <div
+                                          onClick={(e) => { e.stopPropagation(); setEditingSocialTags(clip.id); setEditSocialTagsValue(line); }}
+                                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
+                                          style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "7px 54px 7px 10px", fontSize: 12.5, color: line ? T.text : T.textMuted, fontStyle: line ? "normal" : "italic", cursor: "text", wordBreak: "break-word", transition: "border-color 0.15s" }}
+                                          title="Click to edit"
+                                        >
+                                          {line || "No social tags — click to add"}
+                                          <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                                              <path d="M12 20h9" />
+                                              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                            </svg>
+                                            Edit
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                                 {enabledKeys.map((pk) => {
                                   const meta = PLATFORM_META[pk];
                                   const isYt = pk === "youtube";
