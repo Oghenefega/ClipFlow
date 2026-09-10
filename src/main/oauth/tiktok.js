@@ -181,7 +181,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
         // Exchange code for tokens (with PKCE code_verifier)
         log.info("Exchanging auth code for tokens...");
         const tokenData = await exchangeCode(clientKey, clientSecret, code, pkce.verifier);
-        log.debug("Token exchange response", { tokenData });
+        log.debug("Token exchange response", { ok: !!tokenData.access_token, hasRefreshToken: !!tokenData.refresh_token, expiresIn: tokenData.expires_in, scope: tokenData.scope, error: tokenData.error }); // #396: never the tokens themselves
 
         if (tokenData.error || !tokenData.access_token) {
           const errMsg = tokenData.error_description || tokenData.error || "Token exchange failed";

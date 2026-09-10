@@ -5042,7 +5042,7 @@ async function publishTikTok({ accountId, videoPath, title, caption, clipId, pos
         return { error: err };
       }
       const refreshResult = await tiktokOAuth.refreshAccessToken(clientKey, clientSecret, account.refreshToken);
-      require("electron-log/main").scope("tiktok").debug("Token refresh result", refreshResult);
+      require("electron-log/main").scope("tiktok").debug("Token refresh result", { ok: !!refreshResult.access_token, expiresIn: refreshResult.expires_in, error: refreshResult.error }); // #396
       if (refreshResult.error || !refreshResult.access_token) {
         // #163: a dead refresh token means "reconnect", not "Bad Request".
         const dead = refreshResult.error === "invalid_grant" || refreshResult.error === "invalid_request";
