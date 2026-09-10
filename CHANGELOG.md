@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.32] — 2026-09-10 (session 247) — The hashtag freeze and the Audio panel defaults reach the installed copies
+
+### Changed
+- **Version bumped to 0.4.0-alpha.32 and an installer cut to the R2 update feed.** Promotes the two changes merged since alpha.31 (`7d03462`, `312dfba`): the editor's Audio panel opening on the lane used more and on Recent, and #383 — scheduled clips keeping their hashtags when the game's line changes, plus the per-clip Social tags line on the Queue card. Cut on Fega's explicit ask so the freeze is on the daily driver before the next day's clips are scheduled. Both are user-facing and carried in What's New.
+
 ## [Unreleased] — 2026-09-10 (session 247) — Scheduled clips keep their hashtags; one social tag line per clip (#383)
 
 ### Fixed

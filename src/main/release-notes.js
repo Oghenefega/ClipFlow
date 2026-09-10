@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.4.0-alpha.32",
+    date: "2026-09-10",
     added: [
       "One \"Social tags\" line per clip on the Queue card. Type your hashtags once and they land in the TikTok, Instagram and Facebook captions together, for that clip only. It starts from the game's line and becomes the clip's own the moment you edit it, with \"Reset to game tags\" to go back — so you no longer need to touch the game's shared line while working on a single clip.",
     ],
