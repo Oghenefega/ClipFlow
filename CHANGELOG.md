@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 250) — Facebook and Instagram sign-in works again on the Live Meta app (#391)
+
+### Fixed
+- **Connecting Facebook or Instagram no longer dies in the browser with "the domain of this URL isn't included in the app's domains".** The Meta app is Live (it has to be — a Development-mode app hides its posts from the public), and Facebook Login for Business locks "Enforce HTTPS" on for a Live app, so the return address `http://localhost:8083/callback` can never be accepted: adding it to Valid OAuth Redirect URIs is taken by the dashboard and silently dropped on save (tried). In Development mode Facebook waives that check for localhost, which is why the connect worked when the accounts were first set up and stopped the moment the app went Live — nothing in the code changed, and the long-lived tokens kept working until the accounts were disconnected. The return address is now a hosted page, `https://engine.flowve.app/auth/meta/callback`, which hands the sign-in result straight to the app's local server; both the Facebook and Instagram flows share the constant (`src/main/oauth/meta.js`). Registered on the Meta dashboard this session (Valid OAuth Redirect URIs, plus `engine.flowve.app` under App Domains). Every future customer needs this too — their posts need the app Live just the same. The rename ClipFlow Page Publisher → Corva was checked and is unrelated.
+
+### Added
+- **The hosted return page and its publish script.** `scripts/hosted/meta-callback.html` forwards only the OAuth parameters (`code`, `state`, `error`, `error_reason`, `error_description`) to `http://localhost:8083/callback` and stores nothing; `scripts/publish-callback.ps1` uploads it to the `clipflow-engine` R2 bucket (the one that already serves the app updates and the AI engine) with an explicit `text/html` type and refuses to finish unless the live URL comes back as HTML. It lives on `engine.flowve.app` rather than the marketing site on purpose: the address is baked into every installed copy, and a website redesign must not be able to break sign-in.
+- **A `state` check on the Meta sign-in.** The app now sends a random value with each sign-in request and rejects any return that does not carry it back — the same check TikTok and YouTube already had. The Meta flow had none; now that the result round-trips through a public page, it matters.
+
 ## [0.4.0-alpha.33] — 2026-09-10 (session 249) — The Analytics tab and the palette lift reach the installed copies
 
 ### Changed

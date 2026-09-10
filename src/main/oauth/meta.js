@@ -25,6 +25,7 @@
  */
 const http = require("http");
 const https = require("https");
+const crypto = require("crypto");
 const { URL } = require("url");
 const { shell } = require("electron");
 const log = require("electron-log/main").scope("meta");
@@ -33,7 +34,14 @@ const GRAPH_API_VERSION = "v21.0";
 const AUTH_URL = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`;
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 const CALLBACK_PORT = 8083;
-const REDIRECT_URI = `http://localhost:${CALLBACK_PORT}/callback`;
+// #391: the Meta app is Live (a Development-mode app hides its posts from the
+// public) and Facebook Login for Business locks "Enforce HTTPS" on, so the
+// return address cannot be localhost. facebook.com sends the result to this
+// hosted page (scripts/hosted/meta-callback.html, published to R2 by
+// scripts/publish-callback.ps1), which forwards it to the local server below.
+// Registered on the Meta dashboard under Valid OAuth Redirect URIs and baked
+// into every installed copy — changing it breaks sign-in for all of them.
+const REDIRECT_URI = "https://engine.flowve.app/auth/meta/callback";
 
 // #387: read_insights + pages_manage_engagement are what /{video}/video_insights
 // requires (both, per Meta's docs) — the Analytics tab's Facebook view counts.
@@ -87,6 +95,12 @@ function httpsGet(url, headers = {}) {
   });
 }
 
+// The result now round-trips through a public page, so the local server only
+// accepts the answer to the request it actually made (same check as tiktok.js).
+function generateState() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
 /**
  * Run the OAuth dance against facebook.com, then hand the long-lived user token
  * to the supplied finalizer which returns the platform-specific account record.
@@ -96,6 +110,7 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
     let timeoutHandle = null;
     let server = null;
     let settled = false;
+    const state = generateState();
 
     const cleanup = () => {
       if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -121,6 +136,7 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
       }
 
       const code = reqUrl.searchParams.get("code");
+      const returnedState = reqUrl.searchParams.get("state");
       const error = reqUrl.searchParams.get("error");
       const errorDescription = reqUrl.searchParams.get("error_description");
 
@@ -135,6 +151,13 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(buildCallbackPage(false, "No authorization code received"));
         settle(() => reject(new Error("No authorization code received from Meta")));
+        return;
+      }
+
+      if (returnedState !== state) {
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(buildCallbackPage(false, "State mismatch — possible CSRF attack. Authorization rejected."));
+        settle(() => reject(new Error("OAuth state mismatch")));
         return;
       }
 
@@ -177,6 +200,7 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
       authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
       authUrl.searchParams.set("scope", scopes);
       authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("state", state);
 
       log.info("Opening system browser for auth");
       shell.openExternal(authUrl.toString());

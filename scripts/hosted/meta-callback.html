@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Corva — Meta</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e0e0e0}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:48px;text-align:center;max-width:400px}
+h1{font-size:24px;margin:0 0 8px}
+p{font-size:14px;color:#888;margin:0}
+a{color:#e0e0e0}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Returning you to Corva…</h1>
+<p id="msg">If nothing happens, make sure Corva is open and <a id="link" href="#">click here</a>.</p>
+</div>
+<script>
+(function () {
+  // Facebook Login for Business enforces https on every redirect URI, so the
+  // sign-in result lands here (https://engine.flowve.app/auth/meta/callback)
+  // and is handed straight to the app's local callback server. Only the OAuth
+  // parameters are forwarded; nothing is stored or sent anywhere else. The app
+  // checks `state` before it trusts anything that arrives (#391).
+  var allowed = ["code", "state", "error", "error_reason", "error_description"];
+  var params = new URLSearchParams(location.search);
+  var out = new URLSearchParams();
+  allowed.forEach(function (k) { if (params.has(k)) out.set(k, params.get(k)); });
+  var target = "http://localhost:8083/callback?" + out.toString();
+  document.getElementById("link").href = target;
+  if (out.has("code") || out.has("error")) {
+    location.replace(target);
+  } else {
+    document.getElementById("msg").textContent =
+      "This page is only the return step of a Facebook or Instagram sign-in started from Corva.";
+  }
+})();
+</script>
+</body>
+</html>
