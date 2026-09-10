@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Corva — contrast audit, nine themes, current vs proposed</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Every number on this page is measured (WCAG 2.x luminance ratio) by the same code
+     that produced the audit table; the colours are the literal token values. Green ratio
+     = meets the threshold for that row (4.5 body / 3 small labels & pills); red = under. */
+  html { background:#1b1b1f; color:#ddd; font-family:"DM Sans",system-ui,sans-serif; }
+  body { margin:0; padding:20px 24px 60px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .intro { font-size:12px; color:#aaa; max-width:980px; line-height:1.5; margin-bottom:14px; }
+  nav a { color:#8ab4fa; font-size:12px; margin-right:12px; text-decoration:none; }
+  .pair { margin:26px 0 0; }
+  .pairhead { display:flex; align-items:baseline; gap:18px; margin-bottom:6px; }
+  .pairhead h2 { margin:0; font-size:15px; text-transform:capitalize; }
+  .diff { margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:11px; color:#bbb; }
+  .diff code { color:#8ab4fa; }
+  .diff s { color:#888; }
+  .side-by-side { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .theme { background:var(--bg); color:var(--text); border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,.08); }
+  .theme header { display:flex; gap:10px; align-items:baseline; padding:8px 12px; font-size:12px; border-bottom:1px solid var(--border); }
+  .theme header b { font-size:13px; text-transform:capitalize; }
+  .theme header span { color:inherit; opacity:.7; }
+  .theme header code { margin-left:auto; font-family:"DM Sans"; font-size:10.5px; opacity:.6; }
+  .onbg { display:grid; grid-template-columns:1fr 1fr; }
+  .col { padding:10px 12px; }
+  .col.surface { border-left:1px solid var(--border); }
+  .h { font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; opacity:.55; margin-bottom:8px; }
+  .row { display:grid; grid-template-columns:118px 1fr auto; gap:8px; align-items:center; padding:3px 0; }
+  .row.chg { box-shadow:inset 3px 0 0 #8ab4fa; padding-left:6px; margin-left:-9px; }
+  .lbl { font-size:9.5px; opacity:.5; letter-spacing:.02em; white-space:nowrap; }
+  .sample { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ratios { font-size:10px; opacity:.85; white-space:nowrap; }
+  .r { font-weight:600; padding:0 4px; border-radius:3px; }
+  .r.ok { background:rgba(52,211,153,.18); color:#34d399; }
+  .r.bad { background:rgba(248,113,113,.22); color:#f87171; }
+  .pills { display:flex; flex-wrap:wrap; gap:4px; grid-column:2 / span 2; }
+  .pill { display:inline-flex; align-items:center; gap:5px; padding:2px 7px; border-radius:999px; font-weight:600; letter-spacing:.01em; }
+  .pill em { font-style:normal; font-weight:400; font-size:9.5px; }
+  .pill.chg, .plain .chg { outline:1.5px solid #8ab4fa; outline-offset:2px; border-radius:999px; }
+  .plain span { padding:1px 6px; }
+  .editor { padding:8px 12px 10px; border-top:1px solid var(--border); }
+  .editor code { font-family:"DM Sans"; font-size:10px; opacity:.75; }
+  .legend { font-size:11px; color:#aaa; margin-top:6px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-left:3px solid #8ab4fa; vertical-align:middle; margin-right:4px; }
+</style>
+</head>
+<body>
+<h1>Contrast audit — nine themes, current (left) vs proposed (right)</h1>
+<p class="intro">Thresholds per row: <b>4.5:1</b> for 13px body text, <b>3:1</b> for 9–11.5px labels and pills. Pills are measured against
+their *Dim tint composited over --surface (the pixel the text actually sits on). Every ratio is measured, not estimated.
+Proposed values change <b>lightness only</b>: alpha for the rgba text tiers, OKLCH L for the hex status colours (hue held to ±0.3°;
+chroma trimmed only where the step left sRGB gamut). Blue bar / blue ring = a token that changed.
+<b>textMuted stays under 3:1 on purpose</b> — it is the placeholder/disabled tier; the four sites that print real information
+with it (counts, a timestamp, a log id, a filename) should move to textTertiary, which is a code change, not a palette one.</p>
+<nav><a href="#midnight">midnight</a><a href="#daylight">daylight</a><a href="#rose">rose</a><a href="#blush">blush</a><a href="#graphite">graphite</a><a href="#forest">forest</a><a href="#amethyst">amethyst</a><a href="#paper">paper</a><a href="#sunset">sunset</a></nav>
+<div class="legend"><i></i> changed token &nbsp;·&nbsp; <span class="r ok">3.10</span> meets row threshold &nbsp;·&nbsp; <span class="r bad">2.88</span> under it</div>
+
+  <div class="pair" id="midnight">
+    <div class="pairhead"><h2>midnight</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(255, 255, 255, 0.32)</s> → <b>rgba(255, 255, 255, 0.35)</b></li><li><code>--textMuted</code>: <s>rgba(255, 255, 255, 0.16)</s> → <b>rgba(255, 255, 255, 0.22)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#0a0b10;--sf:#111218;--text:#edeef2;--border:rgba(255, 255, 255, 0.06)">
+    <header><b>midnight</b> <span>current</span> <code>bg #0a0b10 · surface #111218</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#edeef2;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.96</span> · sf <span class="r ok">16.12</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.20</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.20</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.68);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">9.16</span> · sf <span class="r ok">8.94</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.32);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.81</span> · sf <span class="r bad">2.88</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.32);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.81</span> · sf <span class="r bad">2.88</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.16);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.54</span> · sf <span class="r bad">1.60</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(255, 255, 255, 0.16);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.54</span> · sf <span class="r bad">1.60</span></span></div>
+      </div>
+      <div class="col surface" style="background:#111218">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#edeef2;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.96</span> · sf <span class="r ok">16.12</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.20</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.32);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.81</span> · sf <span class="r bad">2.88</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.16);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.54</span> · sf <span class="r bad">1.60</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">8.24</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">9.32</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">6.14</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.91</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.71</span></em></span><span class="pill" style="color:#8b5cf6;background:rgba(139, 92, 246, 0.12);font-size:11px">accent<em><span class="r ok">3.93</span></em></span><span class="pill" style="color:#a78bfa;background:rgba(139, 92, 246, 0.12);font-size:11px">accentLight<em><span class="r ok">6.11</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">8.24</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">9.32</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">6.14</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.91</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.72</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">11.20</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.76</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.67</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.34</span></span><span class="" style="color:#8b5cf6;font-size:11px">accent <span class="r ok">4.41</span></span><span class="" style="color:#a78bfa;font-size:11px">accentLight <span class="r ok">6.87</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(240 8% 4%)">
+      <div class="h">editor · shadcn muted-foreground <code>240 4% 55%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#888891;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.65</span></span></div>
+      <div class="row" style="background:hsl(240 6% 7%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#888891;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.38</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#888891;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.28</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#0a0b10;--sf:#111218;--text:#edeef2;--border:rgba(255, 255, 255, 0.06)">
+    <header><b>midnight</b> <span>proposed</span> <code>bg #0a0b10 · surface #111218</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#edeef2;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.96</span> · sf <span class="r ok">16.12</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.20</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.20</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.68);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">9.16</span> · sf <span class="r ok">8.94</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.35);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.15</span> · sf <span class="r ok">3.21</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.35);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.15</span> · sf <span class="r ok">3.21</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.22);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.92</span> · sf <span class="r bad">1.99</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(255, 255, 255, 0.22);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.92</span> · sf <span class="r bad">1.99</span></span></div>
+      </div>
+      <div class="col surface" style="background:#111218">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#edeef2;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.96</span> · sf <span class="r ok">16.12</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.20</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.35);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.15</span> · sf <span class="r ok">3.21</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.22);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.92</span> · sf <span class="r bad">1.99</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">8.24</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">9.32</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">6.14</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.91</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.71</span></em></span><span class="pill" style="color:#8b5cf6;background:rgba(139, 92, 246, 0.12);font-size:11px">accent<em><span class="r ok">3.93</span></em></span><span class="pill" style="color:#a78bfa;background:rgba(139, 92, 246, 0.12);font-size:11px">accentLight<em><span class="r ok">6.11</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">8.24</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">9.32</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">6.14</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.91</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.72</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">11.20</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.76</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.67</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.34</span></span><span class="" style="color:#8b5cf6;font-size:11px">accent <span class="r ok">4.41</span></span><span class="" style="color:#a78bfa;font-size:11px">accentLight <span class="r ok">6.87</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(240 8% 4%)">
+      <div class="h">editor · shadcn muted-foreground <code>240 4% 55%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#888891;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.65</span></span></div>
+      <div class="row" style="background:hsl(240 6% 7%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#888891;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.38</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#888891;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.28</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="daylight">
+    <div class="pairhead"><h2>daylight</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(17, 19, 28, 0.44)</s> → <b>rgba(17, 19, 28, 0.47)</b></li><li><code>--textMuted</code>: <s>rgba(17, 19, 28, 0.26)</s> → <b>rgba(17, 19, 28, 0.28)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#f3f4f7;--sf:#ffffff;--text:#14151c;--border:rgba(17, 19, 28, 0.10)">
+    <header><b>daylight</b> <span>current</span> <code>bg #f3f4f7 · surface #ffffff</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#14151c;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.55</span> · sf <span class="r ok">18.20</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(17, 19, 28, 0.62);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">5.02</span> · sf <span class="r ok">5.19</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(17, 19, 28, 0.62);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">5.02</span> · sf <span class="r ok">5.19</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.74);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">7.60</span> · sf <span class="r ok">7.99</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(17, 19, 28, 0.44);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.86</span> · sf <span class="r bad">2.91</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.44);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.86</span> · sf <span class="r bad">2.91</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.26);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.77</span> · sf <span class="r bad">1.79</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(17, 19, 28, 0.26);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.77</span> · sf <span class="r bad">1.79</span></span></div>
+      </div>
+      <div class="col surface" style="background:#ffffff">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#14151c;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.55</span> · sf <span class="r ok">18.20</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(17, 19, 28, 0.62);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">5.02</span> · sf <span class="r ok">5.19</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(17, 19, 28, 0.44);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.86</span> · sf <span class="r bad">2.91</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.26);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.77</span> · sf <span class="r bad">1.79</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:11px">green<em><span class="r ok">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:11px">yellow<em><span class="r ok">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:11px">red<em><span class="r ok">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:11px">orange<em><span class="r ok">3.15</span></em></span><span class="pill" style="color:#0e7490;background:rgba(14, 116, 144, 0.10);font-size:11px">cyan<em><span class="r ok">4.67</span></em></span><span class="pill" style="color:#7c3aed;background:rgba(124, 58, 237, 0.10);font-size:11px">accent<em><span class="r ok">4.91</span></em></span><span class="pill" style="color:#6d28d9;background:rgba(124, 58, 237, 0.10);font-size:11px">accentLight<em><span class="r ok">6.13</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:13px">green<em><span class="r bad">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:13px">yellow<em><span class="r bad">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:13px">red<em><span class="r bad">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:13px">orange<em><span class="r bad">3.15</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0d9463;font-size:11px">green <span class="r ok">3.87</span></span><span class="" style="color:#b45309;font-size:11px">yellow <span class="r ok">5.02</span></span><span class="" style="color:#dc2626;font-size:11px">red <span class="r ok">4.83</span></span><span class="" style="color:#ea580c;font-size:11px">orange <span class="r ok">3.56</span></span><span class="" style="color:#0e7490;font-size:11px">cyan <span class="r ok">5.36</span></span><span class="" style="color:#7c3aed;font-size:11px">accent <span class="r ok">5.70</span></span><span class="" style="color:#6d28d9;font-size:11px">accentLight <span class="r ok">7.10</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(240 20% 97%)">
+      <div class="h">editor · shadcn muted-foreground <code>240 6% 42%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#656572;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.31</span></span></div>
+      <div class="row" style="background:hsl(0 0% 100%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#656572;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.74</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#656572;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r bad">2.91</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#f3f4f7;--sf:#ffffff;--text:#14151c;--border:rgba(17, 19, 28, 0.10)">
+    <header><b>daylight</b> <span>proposed</span> <code>bg #f3f4f7 · surface #ffffff</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#14151c;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.55</span> · sf <span class="r ok">18.20</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(17, 19, 28, 0.62);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">5.02</span> · sf <span class="r ok">5.19</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(17, 19, 28, 0.62);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">5.02</span> · sf <span class="r ok">5.19</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.74);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">7.60</span> · sf <span class="r ok">7.99</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(17, 19, 28, 0.47);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.12</span> · sf <span class="r ok">3.18</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.47);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.12</span> · sf <span class="r ok">3.18</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.28);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.86</span> · sf <span class="r bad">1.88</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(17, 19, 28, 0.28);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.86</span> · sf <span class="r bad">1.88</span></span></div>
+      </div>
+      <div class="col surface" style="background:#ffffff">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#14151c;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.55</span> · sf <span class="r ok">18.20</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(17, 19, 28, 0.62);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">5.02</span> · sf <span class="r ok">5.19</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(17, 19, 28, 0.47);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.12</span> · sf <span class="r ok">3.18</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(17, 19, 28, 0.28);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.86</span> · sf <span class="r bad">1.88</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:11px">green<em><span class="r ok">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:11px">yellow<em><span class="r ok">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:11px">red<em><span class="r ok">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:11px">orange<em><span class="r ok">3.15</span></em></span><span class="pill" style="color:#0e7490;background:rgba(14, 116, 144, 0.10);font-size:11px">cyan<em><span class="r ok">4.67</span></em></span><span class="pill" style="color:#7c3aed;background:rgba(124, 58, 237, 0.10);font-size:11px">accent<em><span class="r ok">4.91</span></em></span><span class="pill" style="color:#6d28d9;background:rgba(124, 58, 237, 0.10);font-size:11px">accentLight<em><span class="r ok">6.13</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:13px">green<em><span class="r bad">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:13px">yellow<em><span class="r bad">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:13px">red<em><span class="r bad">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:13px">orange<em><span class="r bad">3.15</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0d9463;font-size:11px">green <span class="r ok">3.87</span></span><span class="" style="color:#b45309;font-size:11px">yellow <span class="r ok">5.02</span></span><span class="" style="color:#dc2626;font-size:11px">red <span class="r ok">4.83</span></span><span class="" style="color:#ea580c;font-size:11px">orange <span class="r ok">3.56</span></span><span class="" style="color:#0e7490;font-size:11px">cyan <span class="r ok">5.36</span></span><span class="" style="color:#7c3aed;font-size:11px">accent <span class="r ok">5.70</span></span><span class="" style="color:#6d28d9;font-size:11px">accentLight <span class="r ok">7.10</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(240 20% 97%)">
+      <div class="h">editor · shadcn muted-foreground <code>240 6% 42%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#656572;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.31</span></span></div>
+      <div class="row" style="background:hsl(0 0% 100%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#656572;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.74</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#656572;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r bad">2.91</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="rose">
+    <div class="pairhead"><h2>rose</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(255, 232, 244, 0.34)</s> → <b>rgba(255, 232, 244, 0.37)</b></li><li><code>--textMuted</code>: <s>rgba(255, 232, 244, 0.18)</s> → <b>rgba(255, 232, 244, 0.23)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#120810;--sf:#1c0d18;--text:#fdeef6;--border:rgba(255, 232, 244, 0.08)">
+    <header><b>rose</b> <span>current</span> <code>bg #120810 · surface #1c0d18</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#fdeef6;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">17.55</span> · sf <span class="r ok">16.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 232, 244, 0.58);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">6.05</span> · sf <span class="r ok">5.97</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(255, 232, 244, 0.58);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">6.05</span> · sf <span class="r ok">5.97</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.70);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.45</span> · sf <span class="r ok">8.24</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 232, 244, 0.34);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.77</span> · sf <span class="r bad">2.82</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.34);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.77</span> · sf <span class="r bad">2.82</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.18);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.58</span> · sf <span class="r bad">1.63</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(255, 232, 244, 0.18);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.58</span> · sf <span class="r bad">1.63</span></span></div>
+      </div>
+      <div class="col surface" style="background:#1c0d18">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#fdeef6;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">17.55</span> · sf <span class="r ok">16.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 232, 244, 0.58);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">6.05</span> · sf <span class="r ok">5.97</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 232, 244, 0.34);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.77</span> · sf <span class="r bad">2.82</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.18);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.58</span> · sf <span class="r bad">1.63</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">8.41</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">9.35</span></em></span><span class="pill" style="color:#fb7185;background:rgba(251, 113, 133, 0.08);font-size:11px">red<em><span class="r ok">6.27</span></em></span><span class="pill" style="color:#fb923c;background:rgba(251, 146, 60, 0.10);font-size:11px">orange<em><span class="r ok">7.12</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.90</span></em></span><span class="pill" style="color:#ec4899;background:rgba(236, 72, 153, 0.14);font-size:11px">accent<em><span class="r ok">4.52</span></em></span><span class="pill" style="color:#f9a8d4;background:rgba(236, 72, 153, 0.14);font-size:11px">accentLight<em><span class="r ok">8.79</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">8.41</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">9.35</span></em></span><span class="pill" style="color:#fb7185;background:rgba(251, 113, 133, 0.08);font-size:13px">red<em><span class="r ok">6.27</span></em></span><span class="pill" style="color:#fb923c;background:rgba(251, 146, 60, 0.10);font-size:13px">orange<em><span class="r ok">7.12</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.75</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">11.23</span></span><span class="" style="color:#fb7185;font-size:11px">red <span class="r ok">6.97</span></span><span class="" style="color:#fb923c;font-size:11px">orange <span class="r ok">8.28</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.37</span></span><span class="" style="color:#ec4899;font-size:11px">accent <span class="r ok">5.31</span></span><span class="" style="color:#f9a8d4;font-size:11px">accentLight <span class="r ok">10.34</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(318 40% 6%)">
+      <div class="h">editor · shadcn muted-foreground <code>326 20% 60%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#ad859c;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">6.12</span></span></div>
+      <div class="row" style="background:hsl(320 38% 9%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#ad859c;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.80</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#ad859c;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.54</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#120810;--sf:#1c0d18;--text:#fdeef6;--border:rgba(255, 232, 244, 0.08)">
+    <header><b>rose</b> <span>proposed</span> <code>bg #120810 · surface #1c0d18</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#fdeef6;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">17.55</span> · sf <span class="r ok">16.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 232, 244, 0.58);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">6.05</span> · sf <span class="r ok">5.97</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(255, 232, 244, 0.58);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">6.05</span> · sf <span class="r ok">5.97</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.70);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.45</span> · sf <span class="r ok">8.24</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 232, 244, 0.37);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.08</span> · sf <span class="r ok">3.12</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.37);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.08</span> · sf <span class="r ok">3.12</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.23);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.87</span> · sf <span class="r bad">1.93</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(255, 232, 244, 0.23);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.87</span> · sf <span class="r bad">1.93</span></span></div>
+      </div>
+      <div class="col surface" style="background:#1c0d18">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#fdeef6;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">17.55</span> · sf <span class="r ok">16.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 232, 244, 0.58);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">6.05</span> · sf <span class="r ok">5.97</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 232, 244, 0.37);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.08</span> · sf <span class="r ok">3.12</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 232, 244, 0.23);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.87</span> · sf <span class="r bad">1.93</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">8.41</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">9.35</span></em></span><span class="pill" style="color:#fb7185;background:rgba(251, 113, 133, 0.08);font-size:11px">red<em><span class="r ok">6.27</span></em></span><span class="pill" style="color:#fb923c;background:rgba(251, 146, 60, 0.10);font-size:11px">orange<em><span class="r ok">7.12</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.90</span></em></span><span class="pill" style="color:#ec4899;background:rgba(236, 72, 153, 0.14);font-size:11px">accent<em><span class="r ok">4.52</span></em></span><span class="pill" style="color:#f9a8d4;background:rgba(236, 72, 153, 0.14);font-size:11px">accentLight<em><span class="r ok">8.79</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">8.41</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">9.35</span></em></span><span class="pill" style="color:#fb7185;background:rgba(251, 113, 133, 0.08);font-size:13px">red<em><span class="r ok">6.27</span></em></span><span class="pill" style="color:#fb923c;background:rgba(251, 146, 60, 0.10);font-size:13px">orange<em><span class="r ok">7.12</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.75</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">11.23</span></span><span class="" style="color:#fb7185;font-size:11px">red <span class="r ok">6.97</span></span><span class="" style="color:#fb923c;font-size:11px">orange <span class="r ok">8.28</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.37</span></span><span class="" style="color:#ec4899;font-size:11px">accent <span class="r ok">5.31</span></span><span class="" style="color:#f9a8d4;font-size:11px">accentLight <span class="r ok">10.34</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(318 40% 6%)">
+      <div class="h">editor · shadcn muted-foreground <code>326 20% 60%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#ad859c;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">6.12</span></span></div>
+      <div class="row" style="background:hsl(320 38% 9%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#ad859c;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.80</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#ad859c;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.54</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="blush">
+    <div class="pairhead"><h2>blush</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(42, 16, 32, 0.44)</s> → <b>rgba(42, 16, 32, 0.48)</b></li><li><code>--textMuted</code>: <s>rgba(42, 16, 32, 0.26)</s> → <b>rgba(42, 16, 32, 0.29)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#fdf1f6;--sf:#ffffff;--text:#2a1020;--border:rgba(66, 20, 44, 0.11)">
+    <header><b>blush</b> <span>current</span> <code>bg #fdf1f6 · surface #ffffff</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#2a1020;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.00</span> · sf <span class="r ok">17.60</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(42, 16, 32, 0.62);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">4.83</span> · sf <span class="r ok">5.01</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(42, 16, 32, 0.62);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">4.83</span> · sf <span class="r ok">5.01</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.74);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">7.23</span> · sf <span class="r ok">7.63</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(42, 16, 32, 0.44);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.80</span> · sf <span class="r bad">2.85</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.44);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.80</span> · sf <span class="r bad">2.85</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.26);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.75</span> · sf <span class="r bad">1.77</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(42, 16, 32, 0.26);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.75</span> · sf <span class="r bad">1.77</span></span></div>
+      </div>
+      <div class="col surface" style="background:#ffffff">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#2a1020;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.00</span> · sf <span class="r ok">17.60</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(42, 16, 32, 0.62);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">4.83</span> · sf <span class="r ok">5.01</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(42, 16, 32, 0.44);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.80</span> · sf <span class="r bad">2.85</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.26);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.75</span> · sf <span class="r bad">1.77</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:11px">green<em><span class="r ok">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:11px">yellow<em><span class="r ok">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:11px">red<em><span class="r ok">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:11px">orange<em><span class="r ok">3.15</span></em></span><span class="pill" style="color:#0e7490;background:rgba(14, 116, 144, 0.10);font-size:11px">cyan<em><span class="r ok">4.67</span></em></span><span class="pill" style="color:#db2777;background:rgba(219, 39, 119, 0.10);font-size:11px">accent<em><span class="r ok">3.96</span></em></span><span class="pill" style="color:#be185d;background:rgba(219, 39, 119, 0.10);font-size:11px">accentLight<em><span class="r ok">5.20</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:13px">green<em><span class="r bad">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:13px">yellow<em><span class="r bad">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:13px">red<em><span class="r bad">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:13px">orange<em><span class="r bad">3.15</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0d9463;font-size:11px">green <span class="r ok">3.87</span></span><span class="" style="color:#b45309;font-size:11px">yellow <span class="r ok">5.02</span></span><span class="" style="color:#dc2626;font-size:11px">red <span class="r ok">4.83</span></span><span class="" style="color:#ea580c;font-size:11px">orange <span class="r ok">3.56</span></span><span class="" style="color:#0e7490;font-size:11px">cyan <span class="r ok">5.36</span></span><span class="" style="color:#db2777;font-size:11px">accent <span class="r ok">4.60</span></span><span class="" style="color:#be185d;font-size:11px">accentLight <span class="r ok">6.04</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(336 60% 97%)">
+      <div class="h">editor · shadcn muted-foreground <code>326 12% 44%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#7e6372;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">4.92</span></span></div>
+      <div class="row" style="background:hsl(0 0% 100%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#7e6372;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.36</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#7e6372;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r bad">2.79</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#fdf1f6;--sf:#ffffff;--text:#2a1020;--border:rgba(66, 20, 44, 0.11)">
+    <header><b>blush</b> <span>proposed</span> <code>bg #fdf1f6 · surface #ffffff</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#2a1020;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.00</span> · sf <span class="r ok">17.60</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(42, 16, 32, 0.62);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">4.83</span> · sf <span class="r ok">5.01</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(42, 16, 32, 0.62);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">4.83</span> · sf <span class="r ok">5.01</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.74);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">7.23</span> · sf <span class="r ok">7.63</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(42, 16, 32, 0.48);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.14</span> · sf <span class="r ok">3.21</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.48);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.14</span> · sf <span class="r ok">3.21</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.29);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.91</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(42, 16, 32, 0.29);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.91</span></span></div>
+      </div>
+      <div class="col surface" style="background:#ffffff">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#2a1020;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.00</span> · sf <span class="r ok">17.60</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(42, 16, 32, 0.62);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">4.83</span> · sf <span class="r ok">5.01</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(42, 16, 32, 0.48);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.14</span> · sf <span class="r ok">3.21</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(42, 16, 32, 0.29);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.91</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:11px">green<em><span class="r ok">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:11px">yellow<em><span class="r ok">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:11px">red<em><span class="r ok">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:11px">orange<em><span class="r ok">3.15</span></em></span><span class="pill" style="color:#0e7490;background:rgba(14, 116, 144, 0.10);font-size:11px">cyan<em><span class="r ok">4.67</span></em></span><span class="pill" style="color:#db2777;background:rgba(219, 39, 119, 0.10);font-size:11px">accent<em><span class="r ok">3.96</span></em></span><span class="pill" style="color:#be185d;background:rgba(219, 39, 119, 0.10);font-size:11px">accentLight<em><span class="r ok">5.20</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:13px">green<em><span class="r bad">3.43</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:13px">yellow<em><span class="r bad">4.38</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:13px">red<em><span class="r bad">4.27</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:13px">orange<em><span class="r bad">3.15</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0d9463;font-size:11px">green <span class="r ok">3.87</span></span><span class="" style="color:#b45309;font-size:11px">yellow <span class="r ok">5.02</span></span><span class="" style="color:#dc2626;font-size:11px">red <span class="r ok">4.83</span></span><span class="" style="color:#ea580c;font-size:11px">orange <span class="r ok">3.56</span></span><span class="" style="color:#0e7490;font-size:11px">cyan <span class="r ok">5.36</span></span><span class="" style="color:#db2777;font-size:11px">accent <span class="r ok">4.60</span></span><span class="" style="color:#be185d;font-size:11px">accentLight <span class="r ok">6.04</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(336 60% 97%)">
+      <div class="h">editor · shadcn muted-foreground <code>326 12% 44%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#7e6372;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">4.92</span></span></div>
+      <div class="row" style="background:hsl(0 0% 100%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#7e6372;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.36</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#7e6372;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r bad">2.79</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="graphite">
+    <div class="pairhead"><h2>graphite</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(255, 255, 255, 0.32)</s> → <b>rgba(255, 255, 255, 0.34)</b></li><li><code>--textMuted</code>: <s>rgba(255, 255, 255, 0.16)</s> → <b>rgba(255, 255, 255, 0.21)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#101113;--sf:#17181b;--text:#e8eaed;--border:rgba(255, 255, 255, 0.07)">
+    <header><b>graphite</b> <span>current</span> <code>bg #101113 · surface #17181b</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e8eaed;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">15.67</span> · sf <span class="r ok">14.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">6.22</span> · sf <span class="r ok">6.08</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">6.22</span> · sf <span class="r ok">6.08</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.68);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.99</span> · sf <span class="r ok">8.67</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.32);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.87</span> · sf <span class="r bad">2.91</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.32);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.87</span> · sf <span class="r bad">2.91</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.16);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.59</span> · sf <span class="r bad">1.63</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(255, 255, 255, 0.16);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.59</span> · sf <span class="r bad">1.63</span></span></div>
+      </div>
+      <div class="col surface" style="background:#17181b">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e8eaed;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">15.67</span> · sf <span class="r ok">14.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">6.22</span> · sf <span class="r ok">6.08</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.32);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.87</span> · sf <span class="r bad">2.91</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.16);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.59</span> · sf <span class="r bad">1.63</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">7.72</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">8.71</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">5.78</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.56</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.17</span></em></span><span class="pill" style="color:#5b93f7;background:rgba(91, 147, 247, 0.12);font-size:11px">accent<em><span class="r ok">4.98</span></em></span><span class="pill" style="color:#8ab4fa;background:rgba(91, 147, 247, 0.12);font-size:11px">accentLight<em><span class="r ok">7.15</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">7.72</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">8.71</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">5.78</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.56</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.23</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">10.63</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.42</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.33</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">9.82</span></span><span class="" style="color:#5b93f7;font-size:11px">accent <span class="r ok">5.88</span></span><span class="" style="color:#8ab4fa;font-size:11px">accentLight <span class="r ok">8.44</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(216 6% 6%)">
+      <div class="h">editor · shadcn muted-foreground <code>216 4% 56%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#8a8e93;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.81</span></span></div>
+      <div class="row" style="background:hsl(216 5% 9%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#8a8e93;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.46</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#8a8e93;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.42</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#101113;--sf:#17181b;--text:#e8eaed;--border:rgba(255, 255, 255, 0.07)">
+    <header><b>graphite</b> <span>proposed</span> <code>bg #101113 · surface #17181b</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e8eaed;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">15.67</span> · sf <span class="r ok">14.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">6.22</span> · sf <span class="r ok">6.08</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">6.22</span> · sf <span class="r ok">6.08</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.68);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.99</span> · sf <span class="r ok">8.67</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.34);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.09</span> · sf <span class="r ok">3.12</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.34);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.09</span> · sf <span class="r ok">3.12</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.21);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.91</span> · sf <span class="r bad">1.96</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(255, 255, 255, 0.21);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.91</span> · sf <span class="r bad">1.96</span></span></div>
+      </div>
+      <div class="col surface" style="background:#17181b">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e8eaed;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">15.67</span> · sf <span class="r ok">14.73</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(255, 255, 255, 0.55);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">6.22</span> · sf <span class="r ok">6.08</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(255, 255, 255, 0.34);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.09</span> · sf <span class="r ok">3.12</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(255, 255, 255, 0.21);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.91</span> · sf <span class="r bad">1.96</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">7.72</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">8.71</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">5.78</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.56</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.17</span></em></span><span class="pill" style="color:#5b93f7;background:rgba(91, 147, 247, 0.12);font-size:11px">accent<em><span class="r ok">4.98</span></em></span><span class="pill" style="color:#8ab4fa;background:rgba(91, 147, 247, 0.12);font-size:11px">accentLight<em><span class="r ok">7.15</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">7.72</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">8.71</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">5.78</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.56</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.23</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">10.63</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.42</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.33</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">9.82</span></span><span class="" style="color:#5b93f7;font-size:11px">accent <span class="r ok">5.88</span></span><span class="" style="color:#8ab4fa;font-size:11px">accentLight <span class="r ok">8.44</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(216 6% 6%)">
+      <div class="h">editor · shadcn muted-foreground <code>216 4% 56%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#8a8e93;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.81</span></span></div>
+      <div class="row" style="background:hsl(216 5% 9%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#8a8e93;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.46</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#8a8e93;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.42</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="forest">
+    <div class="pairhead"><h2>forest</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(220, 245, 235, 0.33)</s> → <b>rgba(220, 245, 235, 0.37)</b></li><li><code>--textMuted</code>: <s>rgba(220, 245, 235, 0.17)</s> → <b>rgba(220, 245, 235, 0.22)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#0a100d;--sf:#101712;--text:#e9f2ed;--border:rgba(220, 245, 235, 0.07)">
+    <header><b>forest</b> <span>current</span> <code>bg #0a100d · surface #101712</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e9f2ed;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.83</span> · sf <span class="r ok">15.94</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(220, 245, 235, 0.56);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">5.75</span> · sf <span class="r ok">5.66</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(220, 245, 235, 0.56);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">5.75</span> · sf <span class="r ok">5.66</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.69);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.23</span> · sf <span class="r ok">7.99</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(220, 245, 235, 0.33);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.73</span> · sf <span class="r bad">2.77</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.33);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.73</span> · sf <span class="r bad">2.77</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.17);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.56</span> · sf <span class="r bad">1.61</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(220, 245, 235, 0.17);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.56</span> · sf <span class="r bad">1.61</span></span></div>
+      </div>
+      <div class="col surface" style="background:#101712">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e9f2ed;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.83</span> · sf <span class="r ok">15.94</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(220, 245, 235, 0.56);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">5.75</span> · sf <span class="r ok">5.66</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(220, 245, 235, 0.33);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.73</span> · sf <span class="r bad">2.77</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.17);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.56</span> · sf <span class="r bad">1.61</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">7.93</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">8.99</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">5.97</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.74</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.39</span></em></span><span class="pill" style="color:#10b981;background:rgba(16, 185, 129, 0.12);font-size:11px">accent<em><span class="r ok">6.00</span></em></span><span class="pill" style="color:#3ce9a4;background:rgba(16, 185, 129, 0.12);font-size:11px">accentLight<em><span class="r ok">9.70</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">7.93</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">8.99</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">5.97</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.74</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.47</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">10.91</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.58</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.50</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.08</span></span><span class="" style="color:#10b981;font-size:11px">accent <span class="r ok">7.18</span></span><span class="" style="color:#3ce9a4;font-size:11px">accentLight <span class="r ok">11.60</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(160 20% 4%)">
+      <div class="h">editor · shadcn muted-foreground <code>155 10% 55%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#81988e;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">6.38</span></span></div>
+      <div class="row" style="background:hsl(158 18% 7%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#81988e;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">6.00</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#81988e;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.64</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#0a100d;--sf:#101712;--text:#e9f2ed;--border:rgba(220, 245, 235, 0.07)">
+    <header><b>forest</b> <span>proposed</span> <code>bg #0a100d · surface #101712</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e9f2ed;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.83</span> · sf <span class="r ok">15.94</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(220, 245, 235, 0.56);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">5.75</span> · sf <span class="r ok">5.66</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(220, 245, 235, 0.56);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">5.75</span> · sf <span class="r ok">5.66</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.69);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.23</span> · sf <span class="r ok">7.99</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(220, 245, 235, 0.37);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.14</span> · sf <span class="r ok">3.17</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.37);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.14</span> · sf <span class="r ok">3.17</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.22);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.85</span> · sf <span class="r bad">1.91</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(220, 245, 235, 0.22);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.85</span> · sf <span class="r bad">1.91</span></span></div>
+      </div>
+      <div class="col surface" style="background:#101712">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#e9f2ed;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.83</span> · sf <span class="r ok">15.94</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(220, 245, 235, 0.56);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">5.75</span> · sf <span class="r ok">5.66</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(220, 245, 235, 0.37);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.14</span> · sf <span class="r ok">3.17</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(220, 245, 235, 0.22);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.85</span> · sf <span class="r bad">1.91</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">7.93</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">8.99</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">5.97</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.74</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.39</span></em></span><span class="pill" style="color:#10b981;background:rgba(16, 185, 129, 0.12);font-size:11px">accent<em><span class="r ok">6.00</span></em></span><span class="pill" style="color:#3ce9a4;background:rgba(16, 185, 129, 0.12);font-size:11px">accentLight<em><span class="r ok">9.70</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">7.93</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">8.99</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">5.97</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.74</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.47</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">10.91</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.58</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.50</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.08</span></span><span class="" style="color:#10b981;font-size:11px">accent <span class="r ok">7.18</span></span><span class="" style="color:#3ce9a4;font-size:11px">accentLight <span class="r ok">11.60</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(160 20% 4%)">
+      <div class="h">editor · shadcn muted-foreground <code>155 10% 55%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#81988e;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">6.38</span></span></div>
+      <div class="row" style="background:hsl(158 18% 7%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#81988e;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">6.00</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#81988e;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.64</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="amethyst">
+    <div class="pairhead"><h2>amethyst</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(236, 228, 255, 0.34)</s> → <b>rgba(236, 228, 255, 0.38)</b></li><li><code>--textMuted</code>: <s>rgba(236, 228, 255, 0.18)</s> → <b>rgba(236, 228, 255, 0.24)</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#0e0a16;--sf:#161022;--text:#f0ecfa;--border:rgba(236, 228, 255, 0.08)">
+    <header><b>amethyst</b> <span>current</span> <code>bg #0e0a16 · surface #161022</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#f0ecfa;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.84</span> · sf <span class="r ok">15.98</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(236, 228, 255, 0.57);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">5.61</span> · sf <span class="r ok">5.54</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(236, 228, 255, 0.57);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">5.61</span> · sf <span class="r ok">5.54</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.70);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.02</span> · sf <span class="r ok">7.80</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(236, 228, 255, 0.34);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.69</span> · sf <span class="r bad">2.74</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.34);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.69</span> · sf <span class="r bad">2.74</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.18);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.56</span> · sf <span class="r bad">1.61</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(236, 228, 255, 0.18);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.56</span> · sf <span class="r bad">1.61</span></span></div>
+      </div>
+      <div class="col surface" style="background:#161022">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#f0ecfa;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.84</span> · sf <span class="r ok">15.98</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(236, 228, 255, 0.57);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">5.61</span> · sf <span class="r ok">5.54</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(236, 228, 255, 0.34);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.69</span> · sf <span class="r bad">2.74</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.18);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.56</span> · sf <span class="r bad">1.61</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">8.23</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">9.27</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">6.07</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.86</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.69</span></em></span><span class="pill" style="color:#a855f7;background:rgba(168, 85, 247, 0.14);font-size:11px">accent<em><span class="r ok">4.02</span></em></span><span class="pill" style="color:#c4a1fd;background:rgba(168, 85, 247, 0.14);font-size:11px">accentLight<em><span class="r ok">7.48</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">8.23</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">9.27</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">6.07</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.86</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.66</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">11.12</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.71</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.62</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.27</span></span><span class="" style="color:#a855f7;font-size:11px">accent <span class="r ok">4.69</span></span><span class="" style="color:#c4a1fd;font-size:11px">accentLight <span class="r ok">8.72</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(258 38% 6%)">
+      <div class="h">editor · shadcn muted-foreground <code>260 15% 60%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#948aa8;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">6.04</span></span></div>
+      <div class="row" style="background:hsl(258 36% 10%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#948aa8;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.70</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#948aa8;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.48</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#0e0a16;--sf:#161022;--text:#f0ecfa;--border:rgba(236, 228, 255, 0.08)">
+    <header><b>amethyst</b> <span>proposed</span> <code>bg #0e0a16 · surface #161022</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#f0ecfa;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">16.84</span> · sf <span class="r ok">15.98</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(236, 228, 255, 0.57);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">5.61</span> · sf <span class="r ok">5.54</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(236, 228, 255, 0.57);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">5.61</span> · sf <span class="r ok">5.54</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.70);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">8.02</span> · sf <span class="r ok">7.80</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(236, 228, 255, 0.38);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.08</span> · sf <span class="r ok">3.13</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.38);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.08</span> · sf <span class="r ok">3.13</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.24);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.91</span> · sf <span class="r bad">1.97</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(236, 228, 255, 0.24);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.91</span> · sf <span class="r bad">1.97</span></span></div>
+      </div>
+      <div class="col surface" style="background:#161022">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#f0ecfa;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">16.84</span> · sf <span class="r ok">15.98</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(236, 228, 255, 0.57);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">5.61</span> · sf <span class="r ok">5.54</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(236, 228, 255, 0.38);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.08</span> · sf <span class="r ok">3.13</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(236, 228, 255, 0.24);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.91</span> · sf <span class="r bad">1.97</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:11px">green<em><span class="r ok">8.23</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:11px">yellow<em><span class="r ok">9.27</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:11px">red<em><span class="r ok">6.07</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:11px">orange<em><span class="r ok">5.86</span></em></span><span class="pill" style="color:#22d3ee;background:rgba(34, 211, 238, 0.10);font-size:11px">cyan<em><span class="r ok">8.69</span></em></span><span class="pill" style="color:#a855f7;background:rgba(168, 85, 247, 0.14);font-size:11px">accent<em><span class="r ok">4.02</span></em></span><span class="pill" style="color:#c4a1fd;background:rgba(168, 85, 247, 0.14);font-size:11px">accentLight<em><span class="r ok">7.48</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#34d399;background:rgba(52, 211, 153, 0.10);font-size:13px">green<em><span class="r ok">8.23</span></em></span><span class="pill" style="color:#fbbf24;background:rgba(251, 191, 36, 0.10);font-size:13px">yellow<em><span class="r ok">9.27</span></em></span><span class="pill" style="color:#f87171;background:rgba(248, 113, 113, 0.08);font-size:13px">red<em><span class="r ok">6.07</span></em></span><span class="pill" style="color:#f97316;background:rgba(249, 115, 22, 0.10);font-size:13px">orange<em><span class="r ok">5.86</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#34d399;font-size:11px">green <span class="r ok">9.66</span></span><span class="" style="color:#fbbf24;font-size:11px">yellow <span class="r ok">11.12</span></span><span class="" style="color:#f87171;font-size:11px">red <span class="r ok">6.71</span></span><span class="" style="color:#f97316;font-size:11px">orange <span class="r ok">6.62</span></span><span class="" style="color:#22d3ee;font-size:11px">cyan <span class="r ok">10.27</span></span><span class="" style="color:#a855f7;font-size:11px">accent <span class="r ok">4.69</span></span><span class="" style="color:#c4a1fd;font-size:11px">accentLight <span class="r ok">8.72</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(258 38% 6%)">
+      <div class="h">editor · shadcn muted-foreground <code>260 15% 60%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#948aa8;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">6.04</span></span></div>
+      <div class="row" style="background:hsl(258 36% 10%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#948aa8;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.70</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#948aa8;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.48</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="paper">
+    <div class="pairhead"><h2>paper</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(30, 28, 22, 0.44)</s> → <b>rgba(30, 28, 22, 0.49)</b></li><li><code>--textMuted</code>: <s>rgba(30, 28, 22, 0.26)</s> → <b>rgba(30, 28, 22, 0.30)</b></li><li><code>--textSecondary</code>: <s>rgba(30, 28, 22, 0.62)</s> → <b>rgba(30, 28, 22, 0.63)</b></li><li><code>--orange</code>: <s>#ea580c</s> → <b>#e65503</b></li><li><code>--muted-foreground</code>: <s>40 6% 42%</s> → <b>40 6% 40%</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#edeae3;--sf:#f8f6f1;--text:#1e1c16;--border:rgba(44, 40, 30, 0.11)">
+    <header><b>paper</b> <span>current</span> <code>bg #edeae3 · surface #f8f6f1</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#1e1c16;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">14.18</span> · sf <span class="r ok">15.77</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(30, 28, 22, 0.62);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r bad">4.48</span> · sf <span class="r ok">4.66</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(30, 28, 22, 0.62);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">4.48</span> · sf <span class="r ok">4.66</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.74);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">6.54</span> · sf <span class="r ok">6.93</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(30, 28, 22, 0.44);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.68</span> · sf <span class="r bad">2.73</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.44);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.68</span> · sf <span class="r bad">2.73</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.26);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.72</span> · sf <span class="r bad">1.73</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(30, 28, 22, 0.26);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.72</span> · sf <span class="r bad">1.73</span></span></div>
+      </div>
+      <div class="col surface" style="background:#f8f6f1">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#1e1c16;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">14.18</span> · sf <span class="r ok">15.77</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(30, 28, 22, 0.62);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r bad">4.48</span> · sf <span class="r ok">4.66</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(30, 28, 22, 0.44);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.68</span> · sf <span class="r bad">2.73</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.26);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.72</span> · sf <span class="r bad">1.73</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:11px">green<em><span class="r ok">3.19</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:11px">yellow<em><span class="r ok">4.08</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:11px">red<em><span class="r ok">3.97</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:11px">orange<em><span class="r bad">2.93</span></em></span><span class="pill" style="color:#0e7490;background:rgba(14, 116, 144, 0.10);font-size:11px">cyan<em><span class="r ok">4.34</span></em></span><span class="pill" style="color:#7c3aed;background:rgba(124, 58, 237, 0.10);font-size:11px">accent<em><span class="r ok">4.57</span></em></span><span class="pill" style="color:#6d28d9;background:rgba(124, 58, 237, 0.10);font-size:11px">accentLight<em><span class="r ok">5.69</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:13px">green<em><span class="r bad">3.19</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:13px">yellow<em><span class="r bad">4.08</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:13px">red<em><span class="r bad">3.97</span></em></span><span class="pill" style="color:#ea580c;background:rgba(234, 88, 12, 0.10);font-size:13px">orange<em><span class="r bad">2.93</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0d9463;font-size:11px">green <span class="r ok">3.58</span></span><span class="" style="color:#b45309;font-size:11px">yellow <span class="r ok">4.65</span></span><span class="" style="color:#dc2626;font-size:11px">red <span class="r ok">4.47</span></span><span class="" style="color:#ea580c;font-size:11px">orange <span class="r ok">3.30</span></span><span class="" style="color:#0e7490;font-size:11px">cyan <span class="r ok">4.96</span></span><span class="" style="color:#7c3aed;font-size:11px">accent <span class="r ok">5.28</span></span><span class="" style="color:#6d28d9;font-size:11px">accentLight <span class="r ok">6.58</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(42 20% 91%)">
+      <div class="h">editor · shadcn muted-foreground <code>40 6% 42%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#726d65;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r bad">4.27</span></span></div>
+      <div class="row" style="background:hsl(43 25% 96%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#726d65;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">4.75</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#726d65;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r bad">2.56</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#edeae3;--sf:#f8f6f1;--text:#1e1c16;--border:rgba(44, 40, 30, 0.11)">
+    <header><b>paper</b> <span>proposed</span> <code>bg #edeae3 · surface #f8f6f1</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#1e1c16;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">14.18</span> · sf <span class="r ok">15.77</span></span></div>
+        <div class="row chg"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(30, 28, 22, 0.63);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">4.62</span> · sf <span class="r ok">4.81</span></span></div>
+        <div class="row chg"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(30, 28, 22, 0.63);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">4.62</span> · sf <span class="r ok">4.81</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.74);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">6.54</span> · sf <span class="r ok">6.93</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(30, 28, 22, 0.49);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.07</span> · sf <span class="r ok">3.15</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.49);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.07</span> · sf <span class="r ok">3.15</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.30);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.88</span> · sf <span class="r bad">1.91</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(30, 28, 22, 0.30);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.88</span> · sf <span class="r bad">1.91</span></span></div>
+      </div>
+      <div class="col surface" style="background:#f8f6f1">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#1e1c16;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">14.18</span> · sf <span class="r ok">15.77</span></span></div>
+        <div class="row chg"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(30, 28, 22, 0.63);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">4.62</span> · sf <span class="r ok">4.81</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(30, 28, 22, 0.49);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.07</span> · sf <span class="r ok">3.15</span></span></div>
+        <div class="row chg"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(30, 28, 22, 0.30);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.88</span> · sf <span class="r bad">1.91</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:11px">green<em><span class="r ok">3.19</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:11px">yellow<em><span class="r ok">4.08</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:11px">red<em><span class="r ok">3.97</span></em></span><span class="pill chg" style="color:#e65503;background:rgba(234, 88, 12, 0.10);font-size:11px">orange<em><span class="r ok">3.05</span></em></span><span class="pill" style="color:#0e7490;background:rgba(14, 116, 144, 0.10);font-size:11px">cyan<em><span class="r ok">4.34</span></em></span><span class="pill" style="color:#7c3aed;background:rgba(124, 58, 237, 0.10);font-size:11px">accent<em><span class="r ok">4.57</span></em></span><span class="pill" style="color:#6d28d9;background:rgba(124, 58, 237, 0.10);font-size:11px">accentLight<em><span class="r ok">5.69</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0d9463;background:rgba(13, 148, 99, 0.10);font-size:13px">green<em><span class="r bad">3.19</span></em></span><span class="pill" style="color:#b45309;background:rgba(180, 83, 9, 0.10);font-size:13px">yellow<em><span class="r bad">4.08</span></em></span><span class="pill" style="color:#dc2626;background:rgba(220, 38, 38, 0.08);font-size:13px">red<em><span class="r bad">3.97</span></em></span><span class="pill chg" style="color:#e65503;background:rgba(234, 88, 12, 0.10);font-size:13px">orange<em><span class="r bad">3.05</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0d9463;font-size:11px">green <span class="r ok">3.58</span></span><span class="" style="color:#b45309;font-size:11px">yellow <span class="r ok">4.65</span></span><span class="" style="color:#dc2626;font-size:11px">red <span class="r ok">4.47</span></span><span class="chg" style="color:#e65503;font-size:11px">orange <span class="r ok">3.43</span></span><span class="" style="color:#0e7490;font-size:11px">cyan <span class="r ok">4.96</span></span><span class="" style="color:#7c3aed;font-size:11px">accent <span class="r ok">5.28</span></span><span class="" style="color:#6d28d9;font-size:11px">accentLight <span class="r ok">6.58</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(42 20% 91%)">
+      <div class="h">editor · shadcn muted-foreground <code>40 6% 40%</code></div>
+      <div class="row chg"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#6c6860;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">4.61</span></span></div>
+      <div class="row chg" style="background:hsl(43 25% 96%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#6c6860;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">5.13</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#6c6860;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r bad">2.68</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="pair" id="sunset">
+    <div class="pairhead"><h2>sunset</h2><ul class="diff"><li><code>--textTertiary</code>: <s>rgba(36, 22, 16, 0.50)</s> → <b>rgba(36, 22, 16, 0.53)</b></li><li><code>--green</code>: <s>#0b7a50</s> → <b>#03774d</b></li><li><code>--orange</code>: <s>#c94c08</s> → <b>#b74302</b></li></ul></div>
+    <div class="side-by-side">
+      
+  <section class="theme" style="--bg:#d3bea6;--sf:#dfcdb9;--text:#241610;--border:rgba(36, 22, 16, 0.14)">
+    <header><b>sunset</b> <span>current</span> <code>bg #d3bea6 · surface #dfcdb9</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#241610;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">9.76</span> · sf <span class="r ok">11.33</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(36, 22, 16, 0.68);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">4.57</span> · sf <span class="r ok">4.94</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(36, 22, 16, 0.68);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">4.57</span> · sf <span class="r ok">4.94</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.80);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.96</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(36, 22, 16, 0.50);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r bad">2.88</span> · sf <span class="r ok">3.01</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.50);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r bad">2.88</span> · sf <span class="r ok">3.01</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.32);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.93</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(36, 22, 16, 0.32);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.93</span></span></div>
+      </div>
+      <div class="col surface" style="background:#dfcdb9">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#241610;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">9.76</span> · sf <span class="r ok">11.33</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(36, 22, 16, 0.68);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">4.57</span> · sf <span class="r ok">4.94</span></span></div>
+        <div class="row"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(36, 22, 16, 0.50);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r bad">2.88</span> · sf <span class="r ok">3.01</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.32);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.93</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0b7a50;background:rgba(11, 122, 80, 0.12);font-size:11px">green<em><span class="r ok">3.01</span></em></span><span class="pill" style="color:#93440a;background:rgba(147, 68, 10, 0.12);font-size:11px">yellow<em><span class="r ok">3.79</span></em></span><span class="pill" style="color:#b32020;background:rgba(179, 32, 32, 0.10);font-size:11px">red<em><span class="r ok">3.74</span></em></span><span class="pill" style="color:#c94c08;background:rgba(201, 76, 8, 0.12);font-size:11px">orange<em><span class="r bad">2.64</span></em></span><span class="pill" style="color:#0a5f75;background:rgba(10, 95, 117, 0.12);font-size:11px">cyan<em><span class="r ok">3.97</span></em></span><span class="pill" style="color:#a23a25;background:rgba(162, 58, 37, 0.12);font-size:11px">accent<em><span class="r ok">3.66</span></em></span><span class="pill" style="color:#7f2a18;background:rgba(162, 58, 37, 0.12);font-size:11px">accentLight<em><span class="r ok">5.17</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill" style="color:#0b7a50;background:rgba(11, 122, 80, 0.12);font-size:13px">green<em><span class="r bad">3.01</span></em></span><span class="pill" style="color:#93440a;background:rgba(147, 68, 10, 0.12);font-size:13px">yellow<em><span class="r bad">3.79</span></em></span><span class="pill" style="color:#b32020;background:rgba(179, 32, 32, 0.10);font-size:13px">red<em><span class="r bad">3.74</span></em></span><span class="pill" style="color:#c94c08;background:rgba(201, 76, 8, 0.12);font-size:13px">orange<em><span class="r bad">2.64</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="" style="color:#0b7a50;font-size:11px">green <span class="r ok">3.47</span></span><span class="" style="color:#93440a;font-size:11px">yellow <span class="r ok">4.42</span></span><span class="" style="color:#b32020;font-size:11px">red <span class="r ok">4.32</span></span><span class="" style="color:#c94c08;font-size:11px">orange <span class="r ok">3.00</span></span><span class="" style="color:#0a5f75;font-size:11px">cyan <span class="r ok">4.67</span></span><span class="" style="color:#a23a25;font-size:11px">accent <span class="r ok">4.28</span></span><span class="" style="color:#7f2a18;font-size:11px">accentLight <span class="r ok">6.04</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(32 34% 74%)">
+      <div class="h">editor · shadcn muted-foreground <code>32 14% 26%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#4c4339;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.40</span></span></div>
+      <div class="row" style="background:hsl(32 38% 80%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#4c4339;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">6.27</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#4c4339;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.02</span></span></div>
+    </div>
+  </section>
+      
+  <section class="theme" style="--bg:#d3bea6;--sf:#dfcdb9;--text:#241610;--border:rgba(36, 22, 16, 0.14)">
+    <header><b>sunset</b> <span>proposed</span> <code>bg #d3bea6 · surface #dfcdb9</code></header>
+    <div class="onbg">
+      <div class="col">
+        <div class="h">on --bg</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#241610;font-size:13px;">Body text: “My brain stopped working mid hype”</span><span class="ratios">bg <span class="r ok">9.76</span> · sf <span class="r ok">11.33</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(36, 22, 16, 0.68);font-size:13px;">Secondary: Scheduled Thu 12:25 · 100T · 3 platforms</span><span class="ratios">bg <span class="r ok">4.57</span> · sf <span class="r ok">4.94</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 11.5px</span><span class="sample" style="color:rgba(36, 22, 16, 0.68);font-size:11.5px;">Secondary at 11.5px — section hint text</span><span class="ratios">bg <span class="r ok">4.57</span> · sf <span class="r ok">4.94</span></span></div>
+        <div class="row"><span class="lbl">labelStrong · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.80);font-size:10px;letter-spacing:.06em;font-weight:600">LABEL STRONG · UPPERCASE MICRO-LABEL</span><span class="ratios">bg <span class="r ok">6.26</span> · sf <span class="r ok">6.96</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(36, 22, 16, 0.53);font-size:11px;">Tertiary 11px: 2 approved · 4 rejected · 12 min ago</span><span class="ratios">bg <span class="r ok">3.10</span> · sf <span class="r ok">3.26</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.53);font-size:10px;">Tertiary 10px: settings description line</span><span class="ratios">bg <span class="r ok">3.10</span> · sf <span class="r ok">3.26</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.32);font-size:10px;">Muted 10px: 3/7 · publish_id: 8f2a · day off</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.93</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 9px</span><span class="sample" style="color:rgba(36, 22, 16, 0.32);font-size:9px;">Muted 9px: filename.example.mp4</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.93</span></span></div>
+      </div>
+      <div class="col surface" style="background:#dfcdb9">
+        <div class="h">on --surface (cards)</div>
+        <div class="row"><span class="lbl">text · 13px</span><span class="sample" style="color:#241610;font-size:13px;">Body text on a card</span><span class="ratios">bg <span class="r ok">9.76</span> · sf <span class="r ok">11.33</span></span></div>
+        <div class="row"><span class="lbl">textSecondary · 13px</span><span class="sample" style="color:rgba(36, 22, 16, 0.68);font-size:13px;">Secondary on a card at 13px</span><span class="ratios">bg <span class="r ok">4.57</span> · sf <span class="r ok">4.94</span></span></div>
+        <div class="row chg"><span class="lbl">textTertiary · 11px</span><span class="sample" style="color:rgba(36, 22, 16, 0.53);font-size:11px;">Tertiary on a card at 11px</span><span class="ratios">bg <span class="r ok">3.10</span> · sf <span class="r ok">3.26</span></span></div>
+        <div class="row"><span class="lbl">textMuted · 10px</span><span class="sample" style="color:rgba(36, 22, 16, 0.32);font-size:10px;">Muted on a card at 10px</span><span class="ratios">bg <span class="r bad">1.89</span> · sf <span class="r bad">1.93</span></span></div>
+        <div class="row"><span class="lbl">status pills · 11px on *Dim</span>
+          <span class="pills"><span class="pill chg" style="color:#03774d;background:rgba(11, 122, 80, 0.12);font-size:11px">green<em><span class="r ok">3.15</span></em></span><span class="pill" style="color:#93440a;background:rgba(147, 68, 10, 0.12);font-size:11px">yellow<em><span class="r ok">3.79</span></em></span><span class="pill" style="color:#b32020;background:rgba(179, 32, 32, 0.10);font-size:11px">red<em><span class="r ok">3.74</span></em></span><span class="pill chg" style="color:#b74302;background:rgba(201, 76, 8, 0.12);font-size:11px">orange<em><span class="r ok">3.12</span></em></span><span class="pill" style="color:#0a5f75;background:rgba(10, 95, 117, 0.12);font-size:11px">cyan<em><span class="r ok">3.97</span></em></span><span class="pill" style="color:#a23a25;background:rgba(162, 58, 37, 0.12);font-size:11px">accent<em><span class="r ok">3.66</span></em></span><span class="pill" style="color:#7f2a18;background:rgba(162, 58, 37, 0.12);font-size:11px">accentLight<em><span class="r ok">5.17</span></em></span></span></div>
+        <div class="row"><span class="lbl">status pills · 13px on *Dim</span>
+          <span class="pills"><span class="pill chg" style="color:#03774d;background:rgba(11, 122, 80, 0.12);font-size:13px">green<em><span class="r bad">3.15</span></em></span><span class="pill" style="color:#93440a;background:rgba(147, 68, 10, 0.12);font-size:13px">yellow<em><span class="r bad">3.79</span></em></span><span class="pill" style="color:#b32020;background:rgba(179, 32, 32, 0.10);font-size:13px">red<em><span class="r bad">3.74</span></em></span><span class="pill chg" style="color:#b74302;background:rgba(201, 76, 8, 0.12);font-size:13px">orange<em><span class="r bad">3.12</span></em></span></span></div>
+        <div class="row"><span class="lbl">status as plain text · 11px</span>
+          <span class="pills plain"><span class="chg" style="color:#03774d;font-size:11px">green <span class="r ok">3.62</span></span><span class="" style="color:#93440a;font-size:11px">yellow <span class="r ok">4.42</span></span><span class="" style="color:#b32020;font-size:11px">red <span class="r ok">4.32</span></span><span class="chg" style="color:#b74302;font-size:11px">orange <span class="r ok">3.56</span></span><span class="" style="color:#0a5f75;font-size:11px">cyan <span class="r ok">4.67</span></span><span class="" style="color:#a23a25;font-size:11px">accent <span class="r ok">4.28</span></span><span class="" style="color:#7f2a18;font-size:11px">accentLight <span class="r ok">6.04</span></span></span></div>
+      </div>
+    </div>
+    <div class="editor" style="background:hsl(32 34% 74%)">
+      <div class="h">editor · shadcn muted-foreground <code>32 14% 26%</code></div>
+      <div class="row"><span class="lbl">text-xs (12px)</span>
+        <span class="sample" style="color:#4c4339;font-size:12px">Muted foreground on --background</span>
+        <span class="ratios">background <span class="r ok">5.40</span></span></div>
+      <div class="row" style="background:hsl(32 38% 80%);padding:4px 6px;border-radius:4px"><span class="lbl">text-[11px] on card</span>
+        <span class="sample" style="color:#4c4339;font-size:11px">Muted foreground on --card</span>
+        <span class="ratios">card <span class="r ok">6.27</span></span></div>
+      <div class="row"><span class="lbl">text-[10px] /70 modifier</span>
+        <span class="sample" style="color:#4c4339;opacity:.7;font-size:10px">muted-foreground/70 — 30+ editor sites</span>
+        <span class="ratios">background <span class="r ok">3.02</span></span></div>
+    </div>
+  </section>
+    </div>
+  </div>
+</body>
+</html>

@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 248) — Measured contrast audit across the nine themes
+
+### Added
+- **A measured contrast audit of every theme, with a current-vs-proposed mock.** `scripts/dev/contrast-audit.js` reads `themes.css`, composites every translucent text tier over `--bg` and `--surface` (and every status colour over its `*Dim` pill tint on a card, the pixel the text actually sits on) and prints WCAG 2.x ratios plus APCA Lc for all nine themes; `--propose` solves lightness-only fixes (alpha for the rgba tiers, OKLCH lightness with hue held for the hex status colours) and `scripts/dev/contrast-mock.js` renders them side by side in `tasks/mocks/contrast-audit.html` with the ratios printed from the same code. Findings: `textTertiary` sits at 2.7–2.9:1 on every theme (about 250 sites at 10–13px, floor is 3:1); `textMuted` is under 2:1 everywhere and at APCA Lc 0 on the dark themes; Sunset's green and orange and Paper's orange miss 3:1 on the page background; Paper's `textSecondary` and shadcn `muted-foreground` sit a hair under 4.5:1. Nothing in `themes.css` changed this session — the proposal waits on Fega's read of the mock.
+- **Two issues filed from the audit for the code side.** #384: four labels print real information (a progress count, a day-off label, a publish id, a filename example) with the `textMuted` tier, which is the placeholder tier by design and should not be raised to 3:1 without collapsing the hierarchy. #385: the editor dims `text-muted-foreground` with Tailwind opacity modifiers at 62 sites, which takes 10–11px labels under 3:1 on Paper, Blush and Daylight even though the token itself clears 4.5:1 on every theme.
+
 ## [0.4.0-alpha.32] — 2026-09-10 (session 247) — The hashtag freeze and the Audio panel defaults reach the installed copies
 
 ### Changed
