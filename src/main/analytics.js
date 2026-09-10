@@ -325,6 +325,21 @@ function getAnalytics() {
     }
   }
 
+  // #401: what actually went out, per platform — every publish handler logs the
+  // exact title and caption it sent (clipTitle / clipCaption on its logBase).
+  // Newest-first, so the first success per clip+platform is the one that stuck.
+  const postedText = new Map();
+  for (const e of publishLog.getRecentLogs(500)) {
+    if (e?.status !== "success" || !e.clipId) continue;
+    const key = `${e.clipId}:${String(e.platform || "").toLowerCase()}`;
+    if (postedText.has(key)) continue;
+    postedText.set(key, {
+      title: e.youtubeTitle || e.clipTitle || "",
+      caption: e.clipCaption || "",
+      tags: Array.isArray(e.tags) && e.tags.length > 0 ? e.tags : null, // YouTube's hidden tag list, logged since #401
+    });
+  }
+
   const seen = new Set();
   const clips = [];
   for (const row of trackerData) {
@@ -334,6 +349,7 @@ function getAnalytics() {
     const hasPost = {};
     const urls = {};
     const engagement = {};
+    const posted = {};
     let total = 0;
     let fetchedAt = null;
     for (const p of PLATFORMS) {
@@ -343,6 +359,7 @@ function getAnalytics() {
       views[p] = m && Number.isFinite(m.views) ? m.views : null;
       urls[p] = pr?.url || m?.url || null; // #399: tracker link first, then what the refresh found
       engagement[p] = m ? { likes: m.likes ?? null, comments: m.comments ?? null, shares: m.shares ?? null } : null;
+      posted[p] = postedText.get(`${row.clipId}:${p}`) || null;
       if (views[p] != null) total += views[p];
       if (m?.fetched_at && (!fetchedAt || m.fetched_at > fetchedAt)) fetchedAt = m.fetched_at;
     }
@@ -362,6 +379,9 @@ function getAnalytics() {
       hasPost,
       urls,
       engagement,
+      // #401: {title, caption, tags} per platform from the publish log, null where the
+      // post predates the log window — the panel falls back to `caption` then.
+      posted,
       total,
       fetchedAt,
       // [[day, total], ...] oldest first — empty until the first snapshot lands (#398)

@@ -10,7 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
-import { Card, PageHeader, toFileUrl } from "../components/shared";
+import { Card, PageHeader, toFileUrl, CopyIconButton } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
 import { downloadBlob } from "../utils/recapCardImage";
 import {
@@ -28,6 +28,13 @@ const WINDOWS = [
 const SOURCE_ORDER = ["self", "ai_edited", "ai", "unknown"];
 const SOURCE_LABEL = { self: "Hand-written", ai_edited: "AI, edited", ai: "AI as-is", unknown: "Unknown" };
 const GRID_STEP = 16;
+// #401: the clip panel docks as a right column (never over the grid). Its height
+// is the window minus the 36px title bar, the 56px nav and a little breathing
+// room, so it scrolls on its own while the grid scrolls underneath.
+const PANEL_W = 620;
+const PANEL_H = "calc(100vh - 136px)";
+const SORTS = [{ id: "top", label: "Top" }, { id: "newest", label: "Newest" }, { id: "oldest", label: "Oldest" }];
+const TYPE_FILTERS = [{ id: "all", label: "All categories" }, { id: "main", label: "Main" }, { id: "other", label: "Variety" }];
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -49,6 +56,15 @@ const ago = (iso) => {
   return `${Math.round(h / 24)}d ago`;
 };
 const stripTags = (t) => String(t || "").replace(/#\w+/g, "").trim();
+const hashtagsOf = (t) => Array.from(new Set(String(t || "").match(/#\w+/g) || [])).join(" ");
+// "2:37 PM" → minutes since midnight, so same-day clips sort by post time.
+const timeMinutes = (t) => {
+  const m = /(\d+):(\d+)\s*(AM|PM)?/i.exec(t || "");
+  if (!m) return 0;
+  const h = (Number(m[1]) % 12) + (/pm/i.test(m[3] || "") ? 12 : 0);
+  return h * 60 + Number(m[2]);
+};
+const postedOrder = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : timeMinutes(a.time) - timeMinutes(b.time));
 const mix = (color, pct) => `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 const csvQuote = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
 
@@ -116,7 +132,7 @@ function ClipCard({ clip, rank, medianAll, selected, onClick }) {
   const color = clip.gameColor;
   const parts = PLATFORMS.filter((p) => clip.views[p] > 0);
   return (
-    <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{
+    <div data-keep-panel="" onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{
       padding: 6, borderRadius: 18, cursor: "pointer", position: "relative",
       background: `radial-gradient(90% 120% at 100% 0%, ${mix(color, 14)} 0%, transparent 55%), linear-gradient(160deg, ${mix(color, 10)} 0%, ${mix(color, 3)} 45%, rgba(var(--lift),0.02) 70%), ${T.surface}`,
       border: `1px solid ${selected ? T.accentBorder : hover ? mix(color, 45) : mix(color, 24)}`,
@@ -150,18 +166,25 @@ function ClipCard({ clip, rank, medianAll, selected, onClick }) {
 
 // ---- clip drawer ------------------------------------------------------------
 
+// Every <video> must release its source on unmount or Chromium's renderer
+// eventually crashes — same teardown as ProjectsView's ClipVideoPlayer. Its own
+// component so the cleanup runs on unmount ONLY: keyed on `playing` it ran
+// against the freshly mounted element and stripped the src before the first
+// frame (#401 "play does nothing").
+function DrawerVideo({ src }) {
+  const ref = useRef(null);
+  useEffect(() => () => {
+    const v = ref.current;
+    if (v) { try { v.pause(); v.removeAttribute("src"); v.load(); } catch (_) { /* already gone */ } }
+  }, []);
+  return <video ref={ref} src={src} controls autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }} />;
+}
+
 function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelect }) {
   const [playing, setPlaying] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
-  const videoRef = useRef(null);
-  useEffect(() => { setPlaying(false); setCaptionOpen(false); }, [clip?.clipId]);
-  const longCaption = (clip?.caption || "").length > 320 || (clip?.caption || "").split("\n").length > 7;
-  // Every <video> must release its source on unmount or Chromium's renderer
-  // eventually crashes — same teardown as ProjectsView's ClipVideoPlayer.
-  useEffect(() => () => {
-    const v = videoRef.current;
-    if (v) { try { v.pause(); v.removeAttribute("src"); v.load(); } catch (_) { /* already gone */ } }
-  }, [playing, clip?.clipId]);
+  const [capPlatform, setCapPlatform] = useState(null);
+  useEffect(() => { setPlaying(false); setCaptionOpen(false); setCapPlatform(null); }, [clip?.clipId]);
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -181,20 +204,39 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
   const h4 = { fontSize: 10.5, color: T.textTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", margin: "0 0 6px" };
   const box = { fontSize: 12, color: T.textSecondary, lineHeight: 1.5, background: "rgba(var(--lift),0.03)", border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", whiteSpace: "pre-wrap", wordBreak: "break-word" };
 
+  // #401: what each platform actually received. Platforms the clip went to, the
+  // logged text where the publish log has it, the tracker's single caption otherwise.
+  const postedOn = PLATFORMS.filter((p) => clip.posted?.[p] || clip.hasPost[p]);
+  const cp = capPlatform && postedOn.includes(capPlatform) ? capPlatform : postedOn[0] || null;
+  const logged = cp ? clip.posted?.[cp] : null;
+  const capTitle = logged?.title || clip.title;
+  const capText = logged ? logged.caption : clip.caption;
+  const capTags = hashtagsOf(capText);
+  const longCaption = (capText || "").length > 320 || (capText || "").split("\n").length > 7;
+  const copyRow = (label, value, body) => (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+        <span style={{ fontSize: 10.5, color: T.textTertiary, fontWeight: 600 }}>{label}</span>
+        {!!value && <CopyIconButton value={value} title={`Copy ${label.toLowerCase()}`} size={12} />}
+      </div>
+      {body}
+    </div>
+  );
+
   return (
-    <aside style={{
-      position: "fixed", top: 0, right: 0, bottom: 0, width: "min(800px, 72vw)", zIndex: 60, overflow: "auto",
-      background: glass, borderLeft: `1px solid ${T.borderHover}`, borderRadius: "22px 0 0 22px",
-      boxShadow: "-24px 0 60px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: "18px 20px 24px", fontFamily: T.font,
+    <aside data-keep-panel="" style={{
+      position: "sticky", top: 12, width: PANEL_W, height: PANEL_H, flexShrink: 0, overflow: "auto",
+      background: glass, border: `1px solid ${T.borderHover}`, borderRadius: 22,
+      boxShadow: shadowLift, padding: "18px 20px 24px", fontFamily: T.font, boxSizing: "border-box",
     }}>
       <button onClick={onClose} title="Close (Esc)" style={{ position: "absolute", top: 12, right: 14, width: 28, height: 28, borderRadius: "50%", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, fontSize: 15, cursor: "pointer", fontFamily: T.font }}>×</button>
 
-      <div style={{ display: "grid", gridTemplateColumns: "300px minmax(0, 1fr)", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "250px minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
         {/* Left: poster + platform breakdown + history */}
         <div>
           <div style={{ position: "relative", aspectRatio: "9/16", borderRadius: 18, overflow: "hidden", background: mix(color, 16), boxShadow: "0 20px 50px -20px rgba(var(--shade),calc(0.9 * var(--shadeK)))" }}>
             {playing && clip.renderPath ? (
-              <video ref={videoRef} src={toFileUrl(clip.renderPath)} controls autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }} />
+              <DrawerVideo key={clip.clipId} src={toFileUrl(clip.renderPath)} />
             ) : (
               <>
                 {clip.thumbnailPath && <img src={toFileUrl(clip.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
@@ -206,7 +248,7 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "88px 1fr 56px 44px 54px", gap: 8, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "82px 1fr 48px 40px 46px", gap: 6, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
               <span>Platform</span><span>share</span><span style={{ textAlign: "right" }}>views</span><span style={{ textAlign: "right" }}>likes</span><span style={{ textAlign: "right" }}>link</span>
             </div>
             {PLATFORMS.map((p) => {
@@ -214,7 +256,7 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
               const url = clip.urls?.[p];
               const posted = clip.hasPost[p];
               return (
-                <div key={p} style={{ display: "grid", gridTemplateColumns: "88px 1fr 56px 44px 54px", gap: 8, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
+                <div key={p} style={{ display: "grid", gridTemplateColumns: "82px 1fr 48px 40px 46px", gap: 6, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: T.text }}><Dot color={PLATFORM_BRAND[p].bar} /> {PLATFORM_LABEL[p]}</span>
                   <div style={{ height: 8, background: "rgba(var(--lift),0.05)", borderRadius: "0 3px 3px 0", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${v > 0 && clip.total > 0 ? (v / clip.total) * 100 : 0}%`, background: PLATFORM_BRAND[p].bar, borderRadius: "0 3px 3px 0" }} />
@@ -236,7 +278,7 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
               <div style={box}>
                 <span style={{ color: T.text, fontWeight: 600 }}>Day 2: {ms.day2 == null ? "—" : fmtK(ms.day2)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Day 7: {ms.day7 == null ? "—" : fmtK(ms.day7)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Now: {fmtK(ms.now)}</span>
                 <div style={{ marginTop: 6 }}>
-                  <Sparkline points={clip.history.map(([day, total]) => ({ day, total }))} width={260} height={34} color={T.accentLight} />
+                  <Sparkline points={clip.history.map(([day, total]) => ({ day, total }))} width={226} height={34} color={T.accentLight} />
                   <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 2 }}>{clip.history.length} daily snapshot{clip.history.length === 1 ? "" : "s"}, {fmtDate(ms.firstDay)} → {fmtDate(ms.lastDay)}</div>
                 </div>
               </div>
@@ -247,8 +289,8 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
         </div>
 
         {/* Right: title, chips, headline number, actions, caption, related */}
-        <div style={{ minWidth: 0, paddingRight: 24 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, color: T.text }}>{stripTags(clip.title) || clip.title}</h2>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, paddingRight: 30, color: T.text }}>{stripTags(clip.title) || clip.title}</h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0" }}>
             {chip(<><Dot color={color} size={6} /> {clip.gameName}</>)}
             {chip(`${fmtDate(clip.date)}${clip.time ? ` · ${clip.time}` : ""}`)}
@@ -283,14 +325,32 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <div style={h4}>Caption as posted</div>
-            {/* Captions carry the full description block (links, schedule, gear list) — clamp so the related clips stay in reach. */}
-            <div style={{ ...box, ...(captionOpen || !longCaption ? {} : { display: "-webkit-box", WebkitLineClamp: 7, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
-              {clip.caption || <span style={{ color: T.textTertiary }}>No caption stored for this post.</span>}
-            </div>
-            {longCaption && (
-              <button onClick={() => setCaptionOpen((o) => !o)} style={{ background: "transparent", border: "none", color: T.accentLight, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 2px 0" }}>{captionOpen ? "Show less" : "Show the whole caption"}</button>
+            <div style={{ ...h4, display: "flex", alignItems: "center", gap: 8 }}>As posted<span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, marginLeft: "auto" }}>copy what worked</span></div>
+            {postedOn.length > 1 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+                {postedOn.map((p) => (
+                  <button key={p} onClick={() => setCapPlatform(p)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
+                    background: p === cp ? "rgba(var(--lift),0.07)" : "transparent", color: p === cp ? T.text : T.textTertiary, border: `1px solid ${p === cp ? T.border : "transparent"}` }}>
+                    <PlatformIcon platform={p} size={12} /> {PLATFORM_LABEL[p]}
+                  </button>
+                ))}
+              </div>
             )}
+            {copyRow("Title", capTitle, <div style={{ ...box, color: T.text, fontWeight: 600 }}>{capTitle}</div>)}
+            {copyRow("Caption", capText, (
+              <>
+                {/* Captions carry the full description block (links, schedule, gear list) — clamp so the related clips stay in reach. */}
+                <div style={{ ...box, ...(captionOpen || !longCaption ? {} : { display: "-webkit-box", WebkitLineClamp: 7, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
+                  {capText || <span style={{ color: T.textTertiary }}>No caption stored for this post.</span>}
+                </div>
+                {longCaption && (
+                  <button onClick={() => setCaptionOpen((o) => !o)} style={{ background: "transparent", border: "none", color: T.accentLight, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 2px 0" }}>{captionOpen ? "Show less" : "Show the whole caption"}</button>
+                )}
+              </>
+            ))}
+            {capTags && copyRow("Hashtags", capTags, <div style={{ ...box, color: T.accentLight }}>{capTags}</div>)}
+            {logged?.tags && copyRow("YouTube tags", logged.tags.join(", "), <div style={box}>{logged.tags.join(", ")}</div>)}
+            {cp && !logged && <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 6 }}>From the tracker — this post predates the per-platform log, so every platform shows the same text.</div>}
           </div>
 
           {related.length > 0 && (
@@ -326,6 +386,11 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
   const [shown, setShown] = useState(GRID_STEP);
   const [tableOpen, setTableOpen] = useState(false);
   const [sort, setSort] = useState({ key: "total", dir: "desc" });
+  // #401: grid order and filters. The ranking (and every median) stays by views.
+  const [sortKey, setSortKey] = useState("top");
+  const [gameFilter, setGameFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
   const load = useCallback(async () => {
     try {
@@ -387,6 +452,18 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
 
   const ranked = useMemo(() => withViews(clips).sort((a, b) => b.total - a.total || (b.date < a.date ? -1 : 1)), [clips]);
   const medianAll = useMemo(() => median(ranked.map((c) => c.total)), [ranked]);
+  const rankOf = useMemo(() => new Map(ranked.map((c, i) => [c.clipId, i + 1])), [ranked]);
+  const gameNames = useMemo(() => [...new Set(ranked.map((c) => c.gameName))].sort((a, b) => a.localeCompare(b)), [ranked]);
+  const gridClips = useMemo(() => {
+    let list = ranked;
+    if (gameFilter !== "all") list = list.filter((c) => c.gameName === gameFilter);
+    if (typeFilter !== "all") list = list.filter((c) => (c.type === "main" ? "main" : "other") === typeFilter);
+    if (platformFilter !== "all") list = list.filter((c) => c.hasPost[platformFilter]);
+    if (sortKey === "newest") list = [...list].sort((a, b) => postedOrder(b, a));
+    else if (sortKey === "oldest") list = [...list].sort(postedOrder);
+    return list;
+  }, [ranked, gameFilter, typeFilter, platformFilter, sortKey]);
+  const filtered = gameFilter !== "all" || typeFilter !== "all" || platformFilter !== "all";
   const totals = useMemo(() => platformTotals(clips), [clips]);
   const delta = useMemo(() => windowDelta(allClips, win.days, today), [allClips, win.days, today]);
   const growth = useMemo(() => dailyTotals(allClips, win.days, today), [allClips, win.days, today]);
@@ -406,6 +483,9 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
   const selected = useMemo(() => allClips.find((c) => c.clipId === selectedId) || null, [allClips, selectedId]);
   const related = useMemo(() => (selected ? ranked.filter((c) => c.clipId !== selected.clipId && c.gameName === selected.gameName).slice(0, 4) : []), [selected, ranked]);
   const closeDrawer = useCallback(() => setSelectedId(null), []);
+  // #401: a click on the grid side closes the docked panel. Cards, table rows and
+  // the grid controls opt out with data-keep-panel so one click swaps or filters.
+  const clickAway = useCallback((e) => { if (!e.target.closest("[data-keep-panel]")) setSelectedId(null); }, []);
 
   const lastFetched = useMemo(() => {
     let latest = null;
@@ -454,26 +534,34 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
   const tile = { padding: "12px 14px", minHeight: 82, display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative", overflow: "hidden", background: glass, boxShadow: shadowCard };
   const tileLabel = { fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary, display: "flex", alignItems: "center", gap: 6 };
   const tileValue = (on) => ({ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 8, color: on ? T.text : T.textTertiary });
+  const sel = { fontSize: 12, fontWeight: 600, fontFamily: T.font, color: T.text, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 8px", cursor: "pointer", maxWidth: 170 };
+  // With the panel docked the content column narrows (562px at a 1280 window), so
+  // the fixed-column rows wrap instead of crushing.
+  const narrow = !!selected;
 
   return (
-    <div>
+    <div style={{ maxWidth: narrow ? 1440 + PANEL_W + 18 : 1440, margin: "0 auto", display: "flex", gap: 18, alignItems: "flex-start" }}>
+    <div style={{ flex: 1, minWidth: 0 }} onClick={narrow ? clickAway : undefined}>
       <PageHeader title="Analytics" style={{ marginBottom: 18 }}>
+       {/* One wrapping box so the switcher and Refresh drop to a second line beside a docked panel instead of running off the edge (#401). */}
+       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", gap: 14, rowGap: 8 }}>
         <span style={{ fontSize: 12, color: T.textTertiary, whiteSpace: "nowrap" }}>{clips.length} clip{clips.length === 1 ? "" : "s"} · {windowLabel}</span>
         <div style={{ display: "flex", gap: 2, background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: 3, marginLeft: "auto" }}>
           {WINDOWS.map((w) => (
-            <button key={w.id} onClick={() => { setWindowKey(w.id); setShown(GRID_STEP); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: windowKey === w.id ? "rgba(var(--lift),0.07)" : "transparent", color: windowKey === w.id ? T.text : T.textTertiary, fontSize: 12, fontWeight: 600, fontFamily: T.font }}>{w.label}</button>
+            <button key={w.id} onClick={() => { setWindowKey(w.id); setShown(GRID_STEP); setGameFilter("all"); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: windowKey === w.id ? "rgba(var(--lift),0.07)" : "transparent", color: windowKey === w.id ? T.text : T.textTertiary, fontSize: 12, fontWeight: 600, fontFamily: T.font }}>{w.label}</button>
           ))}
         </div>
         <span style={{ fontSize: 11, color: T.textTertiary, whiteSpace: "nowrap" }}>
           {refreshing ? "Refreshing…" : lastFetched ? `Refreshed ${ago(lastFetched)}` : "Not refreshed yet"}
         </span>
         <button onClick={refresh} disabled={refreshing} style={{ fontSize: 12, fontWeight: 700, padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, opacity: refreshing ? 0.6 : 1 }}>Refresh</button>
+       </div>
       </PageHeader>
 
       {loadError && <p style={{ color: T.red, fontSize: 12, margin: "0 0 14px" }}>{loadError}</p>}
 
       {/* Tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: narrow ? "repeat(auto-fit, minmax(150px, 1fr))" : "1.5fr 1fr repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
         <Card style={tile}>
           <div style={tileLabel}>Total views</div>
           <div>
@@ -510,7 +598,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
 
       {/* Insight sentences */}
       {insights.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(insights.length, 4)}, 1fr)`, gap: 10, marginBottom: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: narrow ? "repeat(auto-fit, minmax(230px, 1fr))" : `repeat(${Math.min(insights.length, 4)}, 1fr)`, gap: 10, marginBottom: 10 }}>
           {insights.map((ins) => (
             <Card key={ins.key} style={{ padding: "11px 13px", background: glass, boxShadow: shadowCard }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: ins.star ? T.yellow : T.accentLight, marginBottom: 5 }}>{ins.star ? "★ " : ""}{ins.label}</div>
@@ -523,21 +611,39 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
 
       {/* Top clips */}
       <Card style={{ padding: "12px 14px 14px", background: glass, boxShadow: shadowCard, marginBottom: 10 }}>
-        <h3 style={{ ...cardTitle, marginBottom: 10 }}>Top clips<span style={cardHint}>ranked against your median for this window · click a clip to open it</span></h3>
-        {ranked.length === 0 ? (
+        <div data-keep-panel="" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <h3 style={{ ...cardTitle, marginRight: 4 }}>{sortKey === "top" ? "Top clips" : "Clips"}<span style={{ ...cardHint, marginLeft: 8 }}>{filtered ? `${gridClips.length} of ${ranked.length}` : "ranked against your median for this window"}</span></h3>
+          <div style={{ display: "flex", gap: 2, background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: 3, marginLeft: "auto" }}>
+            {SORTS.map((s) => (
+              <button key={s.id} onClick={() => { setSortKey(s.id); setShown(GRID_STEP); }} style={{ padding: "5px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: sortKey === s.id ? "rgba(var(--lift),0.07)" : "transparent", color: sortKey === s.id ? T.text : T.textTertiary, fontSize: 12, fontWeight: 600, fontFamily: T.font }}>{s.label}</button>
+            ))}
+          </div>
+          <select value={gameFilter} onChange={(e) => { setGameFilter(e.target.value); setShown(GRID_STEP); }} style={sel} title="Game">
+            <option value="all">All games</option>
+            {gameNames.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setShown(GRID_STEP); }} style={sel} title="Category">
+            {TYPE_FILTERS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+          <select value={platformFilter} onChange={(e) => { setPlatformFilter(e.target.value); setShown(GRID_STEP); }} style={sel} title="Posted on">
+            <option value="all">All platforms</option>
+            {PLATFORMS.map((p) => <option key={p} value={p}>Posted on {PLATFORM_LABEL[p]}</option>)}
+          </select>
+        </div>
+        {gridClips.length === 0 ? (
           <p style={{ color: T.textTertiary, fontSize: 12, margin: 0, padding: "10px 0" }}>
-            {clips.length === 0 ? (data?.clips?.length ? "No clips published in this window." : "Publish a clip and its views show up here after the next refresh.") : "Views for these clips arrive with the next refresh."}
+            {ranked.length > 0 ? "No clips match these filters." : clips.length === 0 ? (data?.clips?.length ? "No clips published in this window." : "Publish a clip and its views show up here after the next refresh.") : "Views for these clips arrive with the next refresh."}
           </p>
         ) : (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 10 }}>
-              {ranked.slice(0, shown).map((c, i) => (
-                <ClipCard key={c.clipId} clip={c} rank={i + 1} medianAll={medianAll} selected={c.clipId === selectedId} onClick={() => setSelectedId(c.clipId)} />
+              {gridClips.slice(0, shown).map((c) => (
+                <ClipCard key={c.clipId} clip={c} rank={rankOf.get(c.clipId)} medianAll={medianAll} selected={c.clipId === selectedId} onClick={() => setSelectedId(c.clipId)} />
               ))}
             </div>
-            {ranked.length > shown && (
-              <div style={{ textAlign: "center", marginTop: 12 }}>
-                <Btn onClick={() => setShown((n) => n + GRID_STEP)}>Show {Math.min(GRID_STEP, ranked.length - shown)} more of {ranked.length}</Btn>
+            {gridClips.length > shown && (
+              <div data-keep-panel="" style={{ textAlign: "center", marginTop: 12 }}>
+                <Btn onClick={() => setShown((n) => n + GRID_STEP)}>Show {Math.min(GRID_STEP, gridClips.length - shown)} more of {gridClips.length}</Btn>
               </div>
             )}
           </>
@@ -545,7 +651,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
       </Card>
 
       {/* Learn */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr 1.3fr", gap: 10, alignItems: "start", marginBottom: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: narrow ? "repeat(auto-fit, minmax(250px, 1fr))" : "1.1fr 1fr 1fr 1.3fr", gap: 10, alignItems: "start", marginBottom: 10 }}>
         <Card style={{ padding: "12px 14px", background: glass, boxShadow: shadowCard }}>
           <h3 style={{ ...cardTitle, marginBottom: 8 }}>By game<span style={cardHint}>median views</span></h3>
           <Bars rows={byGame} max={Math.max(0, ...byGame.map((g) => g.median))} />
@@ -611,7 +717,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
               </tr></thead>
               <tbody>
                 {sorted.map((c) => (
-                  <tr key={c.clipId} onClick={() => setSelectedId(c.clipId)} style={{ cursor: "pointer" }}>
+                  <tr key={c.clipId} data-keep-panel="" onClick={() => setSelectedId(c.clipId)} style={{ cursor: "pointer" }}>
                     <td style={{ ...td, textAlign: "left", paddingLeft: 14, maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }} title={c.title}>{c.title}</td>
                     <td style={{ ...td, textAlign: "left", color: T.textSecondary }}><Dot color={c.gameColor} glow /> <span style={{ marginLeft: 4 }}>{c.gameName}</span></td>
                     <td style={{ ...td, color: T.textTertiary }}>{fmtDate(c.date)}</td>
@@ -625,6 +731,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
         )}
       </Card>
 
+    </div>
       {selected && (
         <ClipDrawer clip={selected} medianAll={medianAll} related={related} onClose={closeDrawer} onOpenInEditor={onOpenInEditor} onSelect={setSelectedId} />
       )}

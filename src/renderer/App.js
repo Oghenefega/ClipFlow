@@ -1182,8 +1182,8 @@ export default function App() {
           </div>
         </div>
         <div style={tabPaneStyle(view === "analytics")}>
-          {/* #397: wider than the other tabs — the clip grid wants the room */}
-          <div style={{ padding: "32px 40px", maxWidth: 1440, margin: "0 auto" }}>
+          {/* #397: wider than the other tabs — the clip grid wants the room. The view owns its maxWidth (it grows when the clip panel docks, #401). */}
+          <div style={{ padding: "32px 40px" }}>
             <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} localProjects={localProjects} onOpenInEditor={handleOpenAnalyticsClipInEditor} />
           </div>
         </div>

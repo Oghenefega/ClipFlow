@@ -5515,7 +5515,8 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 // directly with no renderer in existence. The IPC handler is now a pass-through;
 // arguments, return shape and publishLog writes are unchanged.
 async function publishYouTube({ accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest, scheduled }) {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "YouTube", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
+  // #401: youtubeTitle + tags ride along so Analytics can show what YouTube actually got (clipTitle stays the clip's own title — title-caption-log learns from it).
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", youtubeTitle: youtubeTitle || "", tags: tags || [], platform: "YouTube", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
