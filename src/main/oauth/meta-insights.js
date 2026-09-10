@@ -113,9 +113,33 @@ async function fetchFacebookVideoInsights(pageToken, videos) {
   return collect(ids, await graphBatch(pageToken, urls), toRow);
 }
 
+/**
+ * #399: the public link of each Instagram media, one field read per id.
+ * Covered by instagram_basic (no insights permission needed). Called only for
+ * media that have no stored url yet, so it costs one batch per new clip, ever.
+ * @returns {Promise<{results: Object<string,string>, errors: Array<{id,message}>, tokenDead: boolean}>}
+ */
+async function fetchInstagramPermalinks(pageToken, mediaIds) {
+  const ids = (mediaIds || []).filter(Boolean).map(String);
+  if (ids.length === 0) return { results: {}, errors: [], tokenDead: false };
+  const batch = await graphBatch(pageToken, ids.map((id) => `${id}?fields=permalink`));
+  const results = {};
+  const errors = [];
+  let tokenDead = false;
+  batch.forEach((r, i) => {
+    if (r.ok && typeof r.body?.permalink === "string") results[ids[i]] = r.body.permalink;
+    else {
+      if (r.error?.code === 190) tokenDead = true;
+      errors.push({ id: ids[i], message: r.error?.message || "No permalink returned" });
+    }
+  });
+  return { results, errors, tokenDead };
+}
+
 module.exports = {
   graphBatch,
   fetchInstagramMediaInsights,
+  fetchInstagramPermalinks,
   fetchFacebookVideoInsights,
   // exported for tests
   parseInsights,

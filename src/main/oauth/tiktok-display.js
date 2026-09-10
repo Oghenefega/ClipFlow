@@ -12,7 +12,7 @@
 const { apiPost } = require("./tiktok-publish");
 const log = require("electron-log/main").scope("tiktok");
 
-const FIELDS = "id,create_time,title,video_description,view_count,like_count,comment_count,share_count";
+const FIELDS = "id,create_time,title,video_description,share_url,view_count,like_count,comment_count,share_count";
 const PAGE = 20; // video/list max_count and video/query video_ids both cap at 20
 const MAX_PAGES = 50; // 1,000 videos — a safety stop, not a limit anyone should reach
 const PAGE_GAP_MS = 300;
@@ -29,6 +29,7 @@ function toRow(v) {
     likes: Number.isFinite(v.like_count) ? v.like_count : null,
     comments: Number.isFinite(v.comment_count) ? v.comment_count : null,
     shares: Number.isFinite(v.share_count) ? v.share_count : null,
+    url: typeof v.share_url === "string" && v.share_url ? v.share_url : null, // #399
   };
 }
 

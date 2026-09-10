@@ -1,15 +1,24 @@
-// #387: the Analytics tab — "what worked?", as opposed to the Tracker's "did I
-// post?". Reads what analytics.js joined in the main process: every published
-// clip with its per-platform view counts, plus the state of each platform's
-// connection. Numbers come from the daily background pull; Refresh runs it now.
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// #387 → #397: the Analytics tab — "what worked?", as opposed to the Tracker's
+// "did I post?". Reads what analytics.js joined in the main process (every
+// published clip with per-platform counts, links, engagement and daily
+// snapshots) and joins the clip's project in the renderer (thumbnail, rendered
+// file, cut length) from localProjects, the way App.js builds allClips.
+//
+// The page reads top to bottom as: how am I doing (tiles) → what's working
+// (insight sentences) → which clips (thumbnail grid ranked against the median)
+// → why (learn cards). The spreadsheet survives, collapsed at the bottom.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import T from "../styles/theme";
-import { Card, PageHeader } from "../components/shared";
+import PLATFORM_BRAND from "../styles/platformBrand";
+import { Card, PageHeader, toFileUrl } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
+import { downloadBlob } from "../utils/recapCardImage";
+import {
+  PLATFORMS, PLATFORM_LABEL, LENGTH_BUCKETS, DAYS, HOUR_BANDS,
+  median, withViews, lengthBucket, slotGrid, rollup, platformTotals,
+  windowDelta, dailyTotals, clipMilestones, snapshotDays, buildInsights, fmtK,
+} from "../../shared/analyticsInsights";
 
-const PLATFORMS = ["youtube", "instagram", "facebook", "tiktok"];
-const LABEL = { youtube: "YouTube", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
-const SHORT = { youtube: "YT", instagram: "IG", facebook: "FB", tiktok: "TT" };
 const WINDOWS = [
   { id: "7d", days: 7, label: "7d" },
   { id: "30d", days: 30, label: "30d" },
@@ -17,16 +26,13 @@ const WINDOWS = [
   { id: "all", days: null, label: "All" },
 ];
 const SOURCE_ORDER = ["self", "ai_edited", "ai", "unknown"];
-const SOURCE_LABEL = { self: "Written by you", ai_edited: "AI, edited", ai: "AI, as suggested", unknown: "Unknown" };
+const SOURCE_LABEL = { self: "Hand-written", ai_edited: "AI, edited", ai: "AI as-is", unknown: "Unknown" };
+const GRID_STEP = 16;
 
 const pad2 = (n) => String(n).padStart(2, "0");
-// Local calendar date N days back, as YYYY-MM-DD — the tracker's `date` format.
-// Never via toISOString (that is UTC and shifts the day for EST evenings).
-const localDateDaysAgo = (days) => {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-};
+const localDay = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+// Local calendar date N days back — never via toISOString (UTC shifts EST evenings).
+const localDateDaysAgo = (days) => { const d = new Date(); d.setDate(d.getDate() - days); return localDay(d); };
 const fmt = (n) => (n == null ? "—" : n.toLocaleString());
 const fmtDate = (iso) => {
   const d = new Date(`${iso}T00:00:00`);
@@ -42,16 +48,283 @@ const ago = (iso) => {
   if (h < 24) return `${h}h ago`;
   return `${Math.round(h / 24)}d ago`;
 };
+const stripTags = (t) => String(t || "").replace(/#\w+/g, "").trim();
+const mix = (color, pct) => `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+const csvQuote = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
 
-const th = { fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: T.textTertiary, textAlign: "right", padding: "7px 10px", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" };
-const td = { padding: "6px 10px", textAlign: "right", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", color: T.text };
-const cardTitle = { fontSize: 11, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textSecondary, margin: 0, padding: "11px 14px 9px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 };
+// ---- shared bits ------------------------------------------------------------
 
-export default function AnalyticsView({ gamesDb = [], active }) {
+const cardTitle = { fontSize: 11, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textSecondary, margin: 0, display: "flex", alignItems: "center", gap: 8 };
+const cardHint = { fontSize: 11, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: T.textTertiary, marginLeft: "auto" };
+const foot = { fontSize: 11, color: T.textTertiary, marginTop: 8, lineHeight: 1.45 };
+const shadowCard = "0 1px 2px rgba(var(--shade),calc(0.5 * var(--shadeK))), 0 14px 34px -16px rgba(var(--shade),calc(0.7 * var(--shadeK)))";
+const shadowLift = `0 2px 4px rgba(var(--shade),calc(0.5 * var(--shadeK))), 0 26px 60px -22px rgba(var(--shade),calc(0.85 * var(--shadeK))), 0 0 0 1px ${T.accentBorder}`;
+const glass = `linear-gradient(180deg, rgba(var(--lift),0.022), rgba(var(--lift),0)), ${T.surface}`;
+
+const Btn = ({ children, onClick, primary, disabled, title, style: x }) => (
+  <button onClick={onClick} disabled={disabled} title={title} style={{
+    display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, fontFamily: T.font,
+    cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.45 : 1,
+    background: primary ? T.accent : "rgba(var(--lift),0.04)", color: primary ? "#fff" : T.text,
+    border: `1px solid ${primary ? T.accent : T.border}`, ...x,
+  }}>{children}</button>
+);
+
+const Dot = ({ color, size = 7, glow }) => (
+  <span style={{ width: size, height: size, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0, boxShadow: glow ? `0 0 6px ${color}` : "none" }} />
+);
+
+/** Horizontal median bars — the one chart form every learn card uses. */
+function Bars({ rows, max }) {
+  if (rows.length === 0) return <div style={{ fontSize: 12, color: T.textTertiary, padding: "6px 0" }}>Nothing ranked yet.</div>;
+  return rows.map((r) => (
+    <div key={r.key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 118px) 1fr 50px", gap: 8, alignItems: "center", fontSize: 12, padding: "3px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, color: T.text }} title={r.label}>
+        {r.color && <Dot color={r.color} size={6} />}
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
+        <span style={{ color: T.textTertiary, fontSize: 10.5, flexShrink: 0 }}>{r.n}</span>
+      </div>
+      <div style={{ height: 14, background: "rgba(var(--lift),0.05)", borderRadius: "0 4px 4px 0", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${max > 0 ? (r.median / max) * 100 : 0}%`, borderRadius: "0 4px 4px 0", background: r.n < 3 ? "rgba(var(--lift),0.18)" : T.accent, transition: "width 0.3s ease" }} />
+      </div>
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: T.textSecondary }}>{fmtK(r.median)}</div>
+    </div>
+  ));
+}
+
+function Sparkline({ points, width = 84, height = 24, color }) {
+  if (points.length < 2) return null;
+  const max = Math.max(...points.map((p) => p.total), 1);
+  const min = Math.min(...points.map((p) => p.total));
+  const span = Math.max(max - min, 1);
+  const d = points.map((p, i) => `${i ? "L" : "M"}${((i / (points.length - 1)) * width).toFixed(1)} ${(height - 3 - ((p.total - min) / span) * (height - 6)).toFixed(1)}`).join(" ");
+  const last = points[points.length - 1];
+  return (
+    <svg width={width} height={height} style={{ display: "block" }}>
+      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.6" />
+      <circle cx={width} cy={(height - 3 - ((last.total - min) / span) * (height - 6)).toFixed(1)} r="3" fill={color} />
+    </svg>
+  );
+}
+
+// ---- clip card --------------------------------------------------------------
+
+function ClipCard({ clip, rank, medianAll, selected, onClick }) {
+  const [hover, setHover] = useState(false);
+  const x = medianAll > 0 ? clip.total / medianAll : 0;
+  const hot = x >= 2, cold = x < 0.7;
+  const color = clip.gameColor;
+  const parts = PLATFORMS.filter((p) => clip.views[p] > 0);
+  return (
+    <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{
+      padding: 6, borderRadius: 18, cursor: "pointer", position: "relative",
+      background: `radial-gradient(90% 120% at 100% 0%, ${mix(color, 14)} 0%, transparent 55%), linear-gradient(160deg, ${mix(color, 10)} 0%, ${mix(color, 3)} 45%, rgba(var(--lift),0.02) 70%), ${T.surface}`,
+      border: `1px solid ${selected ? T.accentBorder : hover ? mix(color, 45) : mix(color, 24)}`,
+      boxShadow: selected ? `0 0 0 2px ${T.accentDim}, ${shadowCard}` : hover ? shadowLift : shadowCard,
+      transform: hover ? "translateY(-2px)" : "none",
+      transition: "border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease",
+    }}>
+      <div style={{ position: "relative", aspectRatio: "9/16", borderRadius: 13, overflow: "hidden", background: mix(color, 16) }}>
+        {clip.thumbnailPath && <img src={toFileUrl(clip.thumbnailPath)} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 55%, rgba(var(--shade),calc(.45 * var(--shadeK))))", pointerEvents: "none" }} />
+        <span style={{ position: "absolute", top: 6, left: 6, fontSize: 10.5, fontWeight: 700, padding: "2px 6px", borderRadius: 6, backdropFilter: "blur(4px)",
+          background: "rgba(10,11,16,0.78)", color: hot ? T.green : cold ? "rgba(255,255,255,0.6)" : "#fff", border: `1px solid ${hot ? T.greenBorder : "transparent"}` }}>
+          {x >= 1 ? `${x.toFixed(1)}× median` : `${Math.round(x * 100)}% of median`}
+        </span>
+        <span style={{ position: "absolute", top: 6, right: 6, width: 18, height: 18, borderRadius: "50%", background: "rgba(10,11,16,0.72)", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{rank}</span>
+        {clip.duration > 0 && <span style={{ position: "absolute", right: 6, bottom: 6, fontSize: 10.5, padding: "1px 5px", borderRadius: 5, background: "rgba(10,11,16,0.72)", color: "rgba(255,255,255,0.8)" }}>{Math.round(clip.duration)}s</span>}
+      </div>
+      <div style={{ padding: "9px 5px 4px" }}>
+        <div title={clip.title} style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, color: T.text, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{stripTags(clip.title) || clip.title}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 5, letterSpacing: "-0.2px", color: T.text }}>{fmtK(clip.total)}<span style={{ fontSize: 10.5, fontWeight: 400, color: T.textTertiary, marginLeft: 4 }}>views</span></div>
+        <div style={{ display: "flex", gap: 2, height: 4, borderRadius: 2, overflow: "hidden", marginTop: 6, background: "rgba(var(--lift),0.05)" }}>
+          {parts.map((p) => <span key={p} style={{ width: `${(clip.views[p] / clip.total) * 100}%`, background: PLATFORM_BRAND[p].bar, display: "block" }} />)}
+        </div>
+        <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 5, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+          <Dot color={color} size={6} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.gameName} · {fmtDate(clip.date)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- clip drawer ------------------------------------------------------------
+
+function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelect }) {
+  const [playing, setPlaying] = useState(false);
+  const [captionOpen, setCaptionOpen] = useState(false);
+  const videoRef = useRef(null);
+  useEffect(() => { setPlaying(false); setCaptionOpen(false); }, [clip?.clipId]);
+  const longCaption = (clip?.caption || "").length > 320 || (clip?.caption || "").split("\n").length > 7;
+  // Every <video> must release its source on unmount or Chromium's renderer
+  // eventually crashes — same teardown as ProjectsView's ClipVideoPlayer.
+  useEffect(() => () => {
+    const v = videoRef.current;
+    if (v) { try { v.pause(); v.removeAttribute("src"); v.load(); } catch (_) { /* already gone */ } }
+  }, [playing, clip?.clipId]);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  if (!clip) return null;
+
+  const x = medianAll > 0 ? clip.total / medianAll : 0;
+  const color = clip.gameColor;
+  const ms = clipMilestones(clip);
+  const eng = (k) => PLATFORMS.reduce((a, p) => a + (clip.engagement?.[p]?.[k] || 0), 0);
+  const likes = eng("likes"), comments = eng("comments");
+  const open = (url) => url && window.clipflow?.openExternal?.(url);
+  const chip = (text, accent) => (
+    <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 7, background: accent ? T.accentDim : "rgba(var(--lift),0.05)", border: `1px solid ${accent ? T.accentBorder : T.border}`, color: accent ? T.accentLight : T.textSecondary, display: "inline-flex", gap: 5, alignItems: "center" }}>{text}</span>
+  );
+  const h4 = { fontSize: 10.5, color: T.textTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", margin: "0 0 6px" };
+  const box = { fontSize: 12, color: T.textSecondary, lineHeight: 1.5, background: "rgba(var(--lift),0.03)", border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", whiteSpace: "pre-wrap", wordBreak: "break-word" };
+
+  return (
+    <aside style={{
+      position: "fixed", top: 0, right: 0, bottom: 0, width: "min(800px, 72vw)", zIndex: 60, overflow: "auto",
+      background: glass, borderLeft: `1px solid ${T.borderHover}`, borderRadius: "22px 0 0 22px",
+      boxShadow: "-24px 0 60px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: "18px 20px 24px", fontFamily: T.font,
+    }}>
+      <button onClick={onClose} title="Close (Esc)" style={{ position: "absolute", top: 12, right: 14, width: 28, height: 28, borderRadius: "50%", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, fontSize: 15, cursor: "pointer", fontFamily: T.font }}>×</button>
+
+      <div style={{ display: "grid", gridTemplateColumns: "300px minmax(0, 1fr)", gap: 18, alignItems: "start" }}>
+        {/* Left: poster + platform breakdown + history */}
+        <div>
+          <div style={{ position: "relative", aspectRatio: "9/16", borderRadius: 18, overflow: "hidden", background: mix(color, 16), boxShadow: "0 20px 50px -20px rgba(var(--shade),calc(0.9 * var(--shadeK)))" }}>
+            {playing && clip.renderPath ? (
+              <video ref={videoRef} src={toFileUrl(clip.renderPath)} controls autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }} />
+            ) : (
+              <>
+                {clip.thumbnailPath && <img src={toFileUrl(clip.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                <button onClick={() => clip.renderPath && setPlaying(true)} disabled={!clip.renderPath} title={clip.renderPath ? "Play" : "Rendered file not in the library"} style={{ position: "absolute", inset: 0, background: "transparent", border: "none", cursor: clip.renderPath ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(10,11,16,0.72)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", paddingLeft: 3, opacity: clip.renderPath ? 1 : 0.4 }}>▶</span>
+                </button>
+              </>
+            )}
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "88px 1fr 56px 44px 54px", gap: 8, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
+              <span>Platform</span><span>share</span><span style={{ textAlign: "right" }}>views</span><span style={{ textAlign: "right" }}>likes</span><span style={{ textAlign: "right" }}>link</span>
+            </div>
+            {PLATFORMS.map((p) => {
+              const v = clip.views[p];
+              const url = clip.urls?.[p];
+              const posted = clip.hasPost[p];
+              return (
+                <div key={p} style={{ display: "grid", gridTemplateColumns: "88px 1fr 56px 44px 54px", gap: 8, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: T.text }}><Dot color={PLATFORM_BRAND[p].bar} /> {PLATFORM_LABEL[p]}</span>
+                  <div style={{ height: 8, background: "rgba(var(--lift),0.05)", borderRadius: "0 3px 3px 0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${v > 0 && clip.total > 0 ? (v / clip.total) * 100 : 0}%`, background: PLATFORM_BRAND[p].bar, borderRadius: "0 3px 3px 0" }} />
+                  </div>
+                  <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: v == null ? T.textTertiary : T.text, fontWeight: 600 }}>{v == null ? (posted ? "…" : "—") : fmtK(v)}</span>
+                  <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: T.textSecondary }}>{clip.engagement?.[p]?.likes != null ? fmtK(clip.engagement[p].likes) : "—"}</span>
+                  <span style={{ textAlign: "right" }}>
+                    {url ? <a onClick={(e) => { e.preventDefault(); open(url); }} href={url} style={{ color: T.accentLight, fontSize: 11.5, cursor: "pointer" }}>open ↗</a>
+                      : <span style={{ color: T.textTertiary, fontSize: 11 }} title={posted ? (p === "tiktok" ? "Link arrives with TikTok's approval" : "Link arrives with the next refresh") : "Not posted here"}>{posted ? "soon" : "—"}</span>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <div style={h4}>Views over time</div>
+            {ms ? (
+              <div style={box}>
+                <span style={{ color: T.text, fontWeight: 600 }}>Day 2: {ms.day2 == null ? "—" : fmtK(ms.day2)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Day 7: {ms.day7 == null ? "—" : fmtK(ms.day7)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Now: {fmtK(ms.now)}</span>
+                <div style={{ marginTop: 6 }}>
+                  <Sparkline points={clip.history.map(([day, total]) => ({ day, total }))} width={260} height={34} color={T.accentLight} />
+                  <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 2 }}>{clip.history.length} daily snapshot{clip.history.length === 1 ? "" : "s"}, {fmtDate(ms.firstDay)} → {fmtDate(ms.lastDay)}</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ ...box, color: T.textTertiary }}>Daily snapshots start with the next refresh. Day 2, day 7 and the curve fill in from there.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: title, chips, headline number, actions, caption, related */}
+        <div style={{ minWidth: 0, paddingRight: 24 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, color: T.text }}>{stripTags(clip.title) || clip.title}</h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0" }}>
+            {chip(<><Dot color={color} size={6} /> {clip.gameName}</>)}
+            {chip(`${fmtDate(clip.date)}${clip.time ? ` · ${clip.time}` : ""}`)}
+            {clip.duration > 0 && chip(`${Math.round(clip.duration)}s`)}
+            {chip(`${SOURCE_LABEL[SOURCE_ORDER.includes(clip.titleSource) ? clip.titleSource : "unknown"]} title`, clip.titleSource === "self")}
+            {clip.repostOf && chip("Repost")}
+            {clip.source === "import" && chip("Import")}
+          </div>
+          <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-1px", lineHeight: 1, color: T.text }}>
+            {clip.fetchedAt ? fmtK(clip.total) : "—"}<span style={{ fontSize: 12, color: T.textTertiary, fontWeight: 400, marginLeft: 8, letterSpacing: 0 }}>views across {PLATFORMS.filter((p) => clip.views[p] != null).length} platform{PLATFORMS.filter((p) => clip.views[p] != null).length === 1 ? "" : "s"}</span>
+          </div>
+          <div style={{ fontSize: 12, color: T.textSecondary, marginTop: 6 }}>
+            {clip.fetchedAt && medianAll > 0 && (x >= 1
+              ? <span style={{ color: T.green, fontWeight: 600 }}>{x.toFixed(1)}× your median</span>
+              : <span style={{ color: T.red, fontWeight: 600 }}>{Math.round(x * 100)}% of your median</span>)}
+            {clip.fetchedAt && medianAll > 0 && " · "}{fmtK(likes)} likes · {fmtK(comments)} comments
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
+            <Btn primary onClick={() => onOpenInEditor?.(clip.projectId, clip.clipId)} disabled={!clip.projectId || !onOpenInEditor} title={clip.projectId ? "Open this clip in the editor" : "Project not found in the library"}>Open in editor</Btn>
+            <Btn onClick={() => window.clipflow?.revealInFolder?.(clip.renderPath)} disabled={!clip.renderPath} title={clip.renderPath ? "Show the rendered file in Explorer" : "Rendered file not in the library"}>Show in folder</Btn>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+            {PLATFORMS.map((p) => {
+              const url = clip.urls?.[p];
+              return (
+                <Btn key={p} onClick={() => open(url)} disabled={!url} title={url || (clip.hasPost[p] ? (p === "tiktok" ? "Link arrives with TikTok's approval" : "Link arrives with the next refresh") : "Not posted here")}>
+                  <PlatformIcon platform={p} size={13} /> {PLATFORM_LABEL[p]} ↗
+                </Btn>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <div style={h4}>Caption as posted</div>
+            {/* Captions carry the full description block (links, schedule, gear list) — clamp so the related clips stay in reach. */}
+            <div style={{ ...box, ...(captionOpen || !longCaption ? {} : { display: "-webkit-box", WebkitLineClamp: 7, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
+              {clip.caption || <span style={{ color: T.textTertiary }}>No caption stored for this post.</span>}
+            </div>
+            {longCaption && (
+              <button onClick={() => setCaptionOpen((o) => !o)} style={{ background: "transparent", border: "none", color: T.accentLight, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 2px 0" }}>{captionOpen ? "Show less" : "Show the whole caption"}</button>
+            )}
+          </div>
+
+          {related.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={h4}>Same game, this window</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {related.map((r) => (
+                  <div key={r.clipId} onClick={() => onSelect(r.clipId)} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11.5, cursor: "pointer", padding: 4, borderRadius: 9 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                    <div style={{ width: 34, aspectRatio: "9/16", borderRadius: 7, overflow: "hidden", flexShrink: 0, background: mix(color, 16) }}>
+                      {r.thumbnailPath && <img src={toFileUrl(r.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                    </div>
+                    <span style={{ color: T.textSecondary, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{stripTags(r.title) || r.title} · <span style={{ color: T.text, fontWeight: 600 }}>{fmtK(r.total)}</span></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ---- the tab ----------------------------------------------------------------
+
+export default function AnalyticsView({ gamesDb = [], active, localProjects = [], onOpenInEditor }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [windowKey, setWindowKey] = useState("30d");
+  const [selectedId, setSelectedId] = useState(null);
+  const [shown, setShown] = useState(GRID_STEP);
+  const [tableOpen, setTableOpen] = useState(false);
   const [sort, setSort] = useState({ key: "total", dir: "desc" });
 
   const load = useCallback(async () => {
@@ -67,6 +340,8 @@ export default function AnalyticsView({ gamesDb = [], active }) {
   // The pane is always mounted; the boot-time pull lands ~30s after launch,
   // so re-read whenever the tab is opened rather than only on mount.
   useEffect(() => { if (active) load(); }, [active, load]);
+  // Leaving the tab closes the drawer so no <video> stays mounted off-screen.
+  useEffect(() => { if (!active) setSelectedId(null); }, [active]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -80,36 +355,70 @@ export default function AnalyticsView({ gamesDb = [], active }) {
   const gameOf = useCallback((raw) => {
     const key = (raw || "").toLowerCase();
     const g = gamesDb.find((x) => [x.hashtag, x.tag, x.name].some((v) => (v || "").toLowerCase() === key));
-    return g ? { name: g.name, color: g.color } : { name: (raw || "?").toUpperCase(), color: T.textMuted };
+    return g ? { name: g.name, color: g.color } : { name: (raw || "?").toUpperCase(), color: "#8a9bb8" };
   }, [gamesDb]);
 
-  const win = WINDOWS.find((w) => w.id === windowKey) || WINDOWS[1];
-  const clips = useMemo(() => {
-    const all = data?.clips || [];
-    if (!win.days) return all;
-    const cutoff = localDateDaysAgo(win.days);
-    return all.filter((c) => c.date >= cutoff);
-  }, [data, win]);
-
-  const totals = useMemo(() => {
-    const t = { total: 0 };
-    for (const p of PLATFORMS) t[p] = { views: 0, withViews: 0, withPost: 0 };
-    for (const c of clips) {
-      for (const p of PLATFORMS) {
-        if (c.hasPost[p]) t[p].withPost++;
-        if (c.views[p] != null) { t[p].views += c.views[p]; t[p].withViews++; }
+  // clipId → what only the project knows: thumbnail, rendered file, cut length.
+  const projectIndex = useMemo(() => {
+    const m = new Map();
+    for (const p of localProjects) {
+      for (const c of p.clips || []) {
+        const segs = Array.isArray(c.nleSegments) && c.nleSegments.length > 0
+          ? c.nleSegments.reduce((a, s) => a + Math.max(0, (s.sourceEnd ?? 0) - (s.sourceStart ?? 0)), 0)
+          : Math.max(0, (c.endTime ?? 0) - (c.startTime ?? 0));
+        m.set(c.id, { projectId: p.id, thumbnailPath: c.thumbnailPath || null, renderPath: c.renderPath || null, duration: segs });
       }
-      t.total += c.total;
     }
-    t.anyViews = PLATFORMS.some((p) => t[p].withViews > 0);
-    return t;
-  }, [clips]);
+    return m;
+  }, [localProjects]);
 
+  const allClips = useMemo(() => (data?.clips || []).map((c) => {
+    const g = gameOf(c.game);
+    return { ...c, ...(projectIndex.get(c.clipId) || { projectId: null, thumbnailPath: null, renderPath: null, duration: 0 }), gameName: g.name, gameColor: g.color };
+  }), [data, projectIndex, gameOf]);
+
+  const win = WINDOWS.find((w) => w.id === windowKey) || WINDOWS[1];
+  const today = localDay();
+  const clips = useMemo(() => {
+    if (!win.days) return allClips;
+    const cutoff = localDateDaysAgo(win.days - 1);
+    return allClips.filter((c) => c.date >= cutoff);
+  }, [allClips, win]);
+
+  const ranked = useMemo(() => withViews(clips).sort((a, b) => b.total - a.total || (b.date < a.date ? -1 : 1)), [clips]);
+  const medianAll = useMemo(() => median(ranked.map((c) => c.total)), [ranked]);
+  const totals = useMemo(() => platformTotals(clips), [clips]);
+  const delta = useMemo(() => windowDelta(allClips, win.days, today), [allClips, win.days, today]);
+  const growth = useMemo(() => dailyTotals(allClips, win.days, today), [allClips, win.days, today]);
+  const insights = useMemo(() => buildInsights(clips, { delta }), [clips, delta]);
+  const byGame = useMemo(() => rollup(clips, (c) => c.gameName).map((g) => ({ ...g, label: g.key, color: g.clips[0].gameColor })), [clips]);
+  const bySource = useMemo(() => {
+    const r = rollup(clips, (c) => (SOURCE_ORDER.includes(c.titleSource) ? c.titleSource : "unknown"));
+    return r.map((g) => ({ ...g, label: SOURCE_LABEL[g.key] }));
+  }, [clips]);
+  const byLength = useMemo(() => {
+    const r = rollup(clips, (c) => lengthBucket(c.duration));
+    return LENGTH_BUCKETS.map((k) => r.find((g) => g.key === k)).filter(Boolean).map((g) => ({ ...g, label: g.key }));
+  }, [clips]);
+  const slots = useMemo(() => slotGrid(clips, 2), [clips]);
+  const firstSnapshot = useMemo(() => snapshotDays(allClips)[0] || null, [allClips]);
+
+  const selected = useMemo(() => allClips.find((c) => c.clipId === selectedId) || null, [allClips, selectedId]);
+  const related = useMemo(() => (selected ? ranked.filter((c) => c.clipId !== selected.clipId && c.gameName === selected.gameName).slice(0, 4) : []), [selected, ranked]);
+  const closeDrawer = useCallback(() => setSelectedId(null), []);
+
+  const lastFetched = useMemo(() => {
+    let latest = null;
+    for (const c of data?.clips || []) if (c.fetchedAt && (!latest || c.fetchedAt > latest)) latest = c.fetchedAt;
+    return latest;
+  }, [data]);
+
+  // Table (collapsed by default)
   const sorted = useMemo(() => {
     const dir = sort.dir === "asc" ? 1 : -1;
     const val = (c) => {
       if (sort.key === "title") return c.title.toLowerCase();
-      if (sort.key === "game") return gameOf(c.game).name.toLowerCase();
+      if (sort.key === "game") return c.gameName.toLowerCase();
       if (sort.key === "date") return c.date;
       if (sort.key === "total") return c.total;
       return c.views[sort.key] ?? -1;
@@ -119,57 +428,40 @@ export default function AnalyticsView({ gamesDb = [], active }) {
       if (x === y) return b.date < a.date ? -1 : 1;
       return (x < y ? -1 : 1) * dir;
     });
-  }, [clips, sort, gameOf]);
-
-  const byGame = useMemo(() => {
-    const m = new Map();
-    for (const c of clips) {
-      const g = gameOf(c.game);
-      const e = m.get(g.name) || { ...g, clips: 0, views: 0, withViews: 0 };
-      e.clips++;
-      e.views += c.total;
-      if (PLATFORMS.some((p) => c.views[p] != null)) e.withViews++;
-      m.set(g.name, e);
-    }
-    return [...m.values()].sort((a, b) => b.views - a.views);
-  }, [clips, gameOf]);
-
-  const bySource = useMemo(() => {
-    const m = {};
-    for (const c of clips) {
-      const k = SOURCE_ORDER.includes(c.titleSource) ? c.titleSource : "unknown";
-      const e = m[k] || { clips: 0, yt: 0, withYt: 0 };
-      e.clips++;
-      if (c.views.youtube != null) { e.yt += c.views.youtube; e.withYt++; }
-      m[k] = e;
-    }
-    return SOURCE_ORDER.filter((k) => m[k]).map((k) => ({ key: k, ...m[k] }));
-  }, [clips]);
-
-  const lastFetched = useMemo(() => {
-    let latest = null;
-    for (const c of data?.clips || []) if (c.fetchedAt && (!latest || c.fetchedAt > latest)) latest = c.fetchedAt;
-    return latest;
-  }, [data]);
-
+  }, [clips, sort]);
   const onSort = (key) => setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: key === "title" || key === "game" ? "asc" : "desc" }));
-  const arrow = (key) => (sort.key === key ? <span style={{ fontSize: 9, marginLeft: 3 }}>{sort.dir === "desc" ? "▼" : "▲"}</span> : null);
+  const th = { fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: T.textTertiary, textAlign: "right", padding: "7px 10px", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" };
+  const td = { padding: "6px 10px", textAlign: "right", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", color: T.text };
   const Th = ({ k, children, left }) => (
-    <th onClick={() => onSort(k)} style={{ ...th, textAlign: left ? "left" : "right", color: sort.key === k ? T.text : T.textTertiary }}>{children}{arrow(k)}</th>
+    <th onClick={() => onSort(k)} style={{ ...th, textAlign: left ? "left" : "right", color: sort.key === k ? T.text : T.textTertiary }}>{children}{sort.key === k && <span style={{ fontSize: 9, marginLeft: 3 }}>{sort.dir === "desc" ? "▼" : "▲"}</span>}</th>
   );
+  const exportCSV = () => {
+    const h = "Title,Game,Date,Time,Length s,Title by,YouTube,Facebook,Instagram,TikTok,Total,YouTube link,Facebook link,Instagram link,TikTok link\n";
+    const rows = sorted.map((c) => [
+      csvQuote(c.title), csvQuote(c.gameName), c.date, csvQuote(c.time), Math.round(c.duration || 0), SOURCE_LABEL[SOURCE_ORDER.includes(c.titleSource) ? c.titleSource : "unknown"],
+      ...PLATFORMS.map((p) => c.views[p] ?? ""), c.fetchedAt ? c.total : "", ...PLATFORMS.map((p) => csvQuote(c.urls?.[p] || "")),
+    ].join(",")).join("\n");
+    downloadBlob(new Blob([h + rows], { type: "text/csv" }), `corva-analytics-${today}.csv`);
+  };
 
   const platformNote = (p) => {
     const err = data?.platforms?.[p]?.error;
     if (err) return { text: err, warn: true };
-    return { text: `${totals[p].withViews} of ${totals[p].withPost} clips`, warn: false };
+    if (totals.platforms[p].clips === 0) return { text: "no views fetched yet", warn: false };
+    return { text: `${Math.round(totals.platforms[p].share * 100)}% of views · ${totals.platforms[p].clips} clip${totals.platforms[p].clips === 1 ? "" : "s"}`, warn: false };
   };
+  const windowLabel = win.days ? `last ${win.days} days` : "all time";
+  const tile = { padding: "12px 14px", minHeight: 82, display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative", overflow: "hidden", background: glass, boxShadow: shadowCard };
+  const tileLabel = { fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary, display: "flex", alignItems: "center", gap: 6 };
+  const tileValue = (on) => ({ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 8, color: on ? T.text : T.textTertiary });
 
   return (
     <div>
-      <PageHeader title="Analytics" style={{ marginBottom: 22 }}>
-        <div style={{ display: "flex", gap: 2, background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: 3 }}>
+      <PageHeader title="Analytics" style={{ marginBottom: 18 }}>
+        <span style={{ fontSize: 12, color: T.textTertiary, whiteSpace: "nowrap" }}>{clips.length} clip{clips.length === 1 ? "" : "s"} · {windowLabel}</span>
+        <div style={{ display: "flex", gap: 2, background: "rgba(var(--lift),0.03)", borderRadius: T.radius.md, padding: 3, marginLeft: "auto" }}>
           {WINDOWS.map((w) => (
-            <button key={w.id} onClick={() => setWindowKey(w.id)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: windowKey === w.id ? "rgba(var(--lift),0.07)" : "transparent", color: windowKey === w.id ? T.text : T.textTertiary, fontSize: 12, fontWeight: 600, fontFamily: T.font }}>{w.label}</button>
+            <button key={w.id} onClick={() => { setWindowKey(w.id); setShown(GRID_STEP); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: windowKey === w.id ? "rgba(var(--lift),0.07)" : "transparent", color: windowKey === w.id ? T.text : T.textTertiary, fontSize: 12, fontWeight: 600, fontFamily: T.font }}>{w.label}</button>
           ))}
         </div>
         <span style={{ fontSize: 11, color: T.textTertiary, whiteSpace: "nowrap" }}>
@@ -180,24 +472,35 @@ export default function AnalyticsView({ gamesDb = [], active }) {
 
       {loadError && <p style={{ color: T.red, fontSize: 12, margin: "0 0 14px" }}>{loadError}</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.3fr repeat(4, 1fr)", gap: 10, marginBottom: 18 }}>
-        <Card style={{ padding: "12px 14px", minHeight: 74, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary }}>Total views</div>
+      {/* Tiles */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
+        <Card style={tile}>
+          <div style={tileLabel}>Total views</div>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 8, color: totals.anyViews ? T.text : T.textTertiary }}>{totals.anyViews ? fmt(totals.total) : "—"}</div>
-            <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 4 }}>{clips.length} clip{clips.length === 1 ? "" : "s"} · {win.days ? `${win.days} days` : "all time"}</div>
+            <div style={{ ...tileValue(totals.total > 0), fontSize: 30 }}>{totals.total > 0 ? fmtK(totals.total) : "—"}</div>
+            <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 4, display: "flex", gap: 6, alignItems: "baseline" }}>
+              {delta ? <><span style={{ color: delta.pct >= 0 ? T.green : T.red, fontWeight: 700 }}>{delta.pct >= 0 ? "▲" : "▼"} {Math.abs(delta.pct)}%</span><span>vs previous {delta.days} days</span></>
+                : <span title={firstSnapshot ? `Daily snapshots since ${firstSnapshot}` : "Daily snapshots start with the next refresh"}>{firstSnapshot ? `snapshots since ${fmtDate(firstSnapshot)}` : "delta after two days of snapshots"}</span>}
+            </div>
+          </div>
+          {growth.length >= 2 && <div style={{ position: "absolute", right: 12, bottom: 12 }}><Sparkline points={growth} color={T.accentLight} /></div>}
+        </Card>
+        <Card style={tile}>
+          <div style={tileLabel}>Median per clip</div>
+          <div>
+            <div style={tileValue(medianAll > 0)}>{medianAll > 0 ? fmtK(medianAll) : "—"}</div>
+            <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 4 }}>{ranked.length} of {clips.length} clips ranked</div>
           </div>
         </Card>
         {PLATFORMS.map((p) => {
           const note = platformNote(p);
-          const hasNumber = totals[p].withViews > 0;
+          const on = totals.platforms[p].clips > 0;
           return (
-            <Card key={p} style={{ padding: "12px 14px", minHeight: 74, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary }}>
-                <PlatformIcon platform={p} size={13} />{LABEL[p]}
-              </div>
+            <Card key={p} style={tile}>
+              <span style={{ position: "absolute", left: 0, right: 0, top: 0, height: 2, background: PLATFORM_BRAND[p].bar }} />
+              <div style={tileLabel}><PlatformIcon platform={p} size={13} />{PLATFORM_LABEL[p]}</div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 8, color: hasNumber ? T.text : T.textTertiary }}>{hasNumber ? fmt(totals[p].views) : "—"}</div>
+                <div style={tileValue(on)}>{on ? fmtK(totals.platforms[p].views) : "—"}</div>
                 <div style={{ fontSize: 11, color: note.warn ? T.yellow : T.textTertiary, marginTop: 4, lineHeight: 1.4 }}>{note.text}</div>
               </div>
             </Card>
@@ -205,100 +508,156 @@ export default function AnalyticsView({ gamesDb = [], active }) {
         })}
       </div>
 
-      <Card style={{ overflow: "hidden", marginBottom: 14 }}>
-        <h3 style={cardTitle}>Clips <span style={{ fontWeight: 600, color: T.textTertiary, letterSpacing: 0, textTransform: "none" }}>· {clips.length} published {win.days ? `in the last ${win.days} days` : "all time"}</span></h3>
-        {clips.length === 0 ? (
-          <p style={{ color: T.textTertiary, fontSize: 12, margin: 0, padding: "18px 14px" }}>
-            {data?.clips?.length ? "No clips published in this window." : "Publish a clip and its views show up here after the next refresh."}
+      {/* Insight sentences */}
+      {insights.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(insights.length, 4)}, 1fr)`, gap: 10, marginBottom: 10 }}>
+          {insights.map((ins) => (
+            <Card key={ins.key} style={{ padding: "11px 13px", background: glass, boxShadow: shadowCard }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: ins.star ? T.yellow : T.accentLight, marginBottom: 5 }}>{ins.star ? "★ " : ""}{ins.label}</div>
+              <p style={{ fontSize: 12.5, color: T.text, lineHeight: 1.45, margin: 0 }}>{ins.parts.map((pt, i) => (pt.bold ? <strong key={i} style={{ fontWeight: 700 }}>{pt.text}</strong> : <span key={i}>{pt.text}</span>))}</p>
+              <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 5 }}>{ins.why}</div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Top clips */}
+      <Card style={{ padding: "12px 14px 14px", background: glass, boxShadow: shadowCard, marginBottom: 10 }}>
+        <h3 style={{ ...cardTitle, marginBottom: 10 }}>Top clips<span style={cardHint}>ranked against your median for this window · click a clip to open it</span></h3>
+        {ranked.length === 0 ? (
+          <p style={{ color: T.textTertiary, fontSize: 12, margin: 0, padding: "10px 0" }}>
+            {clips.length === 0 ? (data?.clips?.length ? "No clips published in this window." : "Publish a clip and its views show up here after the next refresh.") : "Views for these clips arrive with the next refresh."}
           </p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <Th k="title" left>Title</Th>
-                  <Th k="game" left>Game</Th>
-                  <Th k="date">Date</Th>
-                  {PLATFORMS.map((p) => (
-                    <Th key={p} k={p}><PlatformIcon platform={p} size={12} style={{ display: "inline-block", verticalAlign: -2, marginRight: 4 }} />{SHORT[p]}</Th>
-                  ))}
-                  <Th k="total">Total</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((c) => {
-                  const g = gameOf(c.game);
-                  return (
-                    <tr key={c.clipId}>
-                      <td style={{ ...td, textAlign: "left", paddingLeft: 14, maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }} title={c.title}>{c.title}</td>
-                      <td style={{ ...td, textAlign: "left", color: T.textSecondary }}>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", marginRight: 6, background: g.color, boxShadow: `0 0 6px ${g.color}` }} />{g.name}
-                      </td>
-                      <td style={{ ...td, color: T.textTertiary }}>{fmtDate(c.date)}</td>
-                      {PLATFORMS.map((p) => (
-                        <td key={p} style={{ ...td, color: c.views[p] == null ? T.textTertiary : T.text }}>{fmt(c.views[p])}</td>
-                      ))}
-                      <td style={{ ...td, fontWeight: 700, color: c.fetchedAt ? T.text : T.textTertiary }}>{c.fetchedAt ? fmt(c.total) : "—"}</td>
-                    </tr>
-                  );
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 10 }}>
+              {ranked.slice(0, shown).map((c, i) => (
+                <ClipCard key={c.clipId} clip={c} rank={i + 1} medianAll={medianAll} selected={c.clipId === selectedId} onClick={() => setSelectedId(c.clipId)} />
+              ))}
+            </div>
+            {ranked.length > shown && (
+              <div style={{ textAlign: "center", marginTop: 12 }}>
+                <Btn onClick={() => setShown((n) => n + GRID_STEP)}>Show {Math.min(GRID_STEP, ranked.length - shown)} more of {ranked.length}</Btn>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+
+      {/* Learn */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr 1.3fr", gap: 10, alignItems: "start", marginBottom: 10 }}>
+        <Card style={{ padding: "12px 14px", background: glass, boxShadow: shadowCard }}>
+          <h3 style={{ ...cardTitle, marginBottom: 8 }}>By game<span style={cardHint}>median views</span></h3>
+          <Bars rows={byGame} max={Math.max(0, ...byGame.map((g) => g.median))} />
+          <div style={foot}>Medians, so one runaway clip can't drag a game up. Grey = fewer than 3 clips, treat as a hint.</div>
+        </Card>
+        <Card style={{ padding: "12px 14px", background: glass, boxShadow: shadowCard }}>
+          <h3 style={{ ...cardTitle, marginBottom: 8 }}>By title<span style={cardHint}>who wrote it</span></h3>
+          <Bars rows={bySource} max={Math.max(0, ...bySource.map((g) => g.median))} />
+          <div style={foot}>"Unknown" are imports and reposts that never went through the title generator.</div>
+        </Card>
+        <Card style={{ padding: "12px 14px", background: glass, boxShadow: shadowCard }}>
+          <h3 style={{ ...cardTitle, marginBottom: 8 }}>By length<span style={cardHint}>median views</span></h3>
+          <Bars rows={byLength} max={Math.max(0, ...byLength.map((g) => g.median))} />
+          <div style={foot}>Length is the cut-down timeline, not the raw recording span.</div>
+        </Card>
+        <Card style={{ padding: "12px 14px", background: glass, boxShadow: shadowCard }}>
+          <h3 style={{ ...cardTitle, marginBottom: 8 }}>Best posting slots<span style={cardHint}>median views · local time</span></h3>
+          <div style={{ display: "grid", gridTemplateColumns: "34px repeat(7, 1fr)", gap: 3, fontSize: 10.5, color: T.textTertiary }}>
+            <span />{DAYS.map((d) => <span key={d} style={{ textAlign: "center", paddingBottom: 2 }}>{d}</span>)}
+            {HOUR_BANDS.map((b) => (
+              <React.Fragment key={b.key}>
+                <span style={{ alignSelf: "center", textAlign: "right", paddingRight: 4 }}>{b.key}</span>
+                {DAYS.map((d) => {
+                  const cell = slots.grid.find((g) => g.day === d && g.band === b.key);
+                  const best = slots.best.includes(cell);
+                  const pct = cell.n > 0 && slots.max > 0 ? 10 + (cell.median / slots.max) * 75 : 3;
+                  return <span key={d} title={`${d} ${b.label}: ${cell.n} clip${cell.n === 1 ? "" : "s"}${cell.n ? `, median ${fmtK(cell.median)}` : ""}`} style={{ height: 18, borderRadius: 4, background: mix(T.accent, pct), boxShadow: best ? `inset 0 0 0 1.5px ${T.green}` : "none" }} />;
                 })}
+              </React.Fragment>
+            ))}
+          </div>
+          <div style={foot}>Darker = more views for clips posted in that slot. Green ring = your best three. Needs a few clips per slot to trust.</div>
+        </Card>
+      </div>
+
+      {/* Growth */}
+      <Card style={{ padding: "12px 14px", background: glass, boxShadow: shadowCard, marginBottom: 10 }}>
+        <h3 style={{ ...cardTitle, marginBottom: 8 }}>Growth<span style={cardHint}>views across all platforms, by day</span></h3>
+        {growth.length >= 2 ? (
+          <GrowthLine points={growth} />
+        ) : (
+          <div style={{ fontSize: 12, color: T.textTertiary, padding: "4px 0" }}>
+            {firstSnapshot ? `Collecting daily snapshots since ${fmtDate(firstSnapshot)} — the line appears once there are two days.` : "Daily snapshots start with the next refresh. Once two days exist this shows views per day and the tiles show their change against the previous window."}
+          </div>
+        )}
+      </Card>
+
+      {/* Table */}
+      <Card style={{ overflow: "hidden", background: glass, boxShadow: shadowCard }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px" }}>
+          <button onClick={() => setTableOpen((o) => !o)} style={{ background: "transparent", border: "none", color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10 }}>{tableOpen ? "▼" : "▶"}</span>All {clips.length} clips as a table
+          </button>
+          <span style={{ marginLeft: "auto" }} /><Btn onClick={exportCSV} disabled={clips.length === 0}>Export CSV</Btn>
+        </div>
+        {tableOpen && (
+          <div style={{ overflowX: "auto", borderTop: `1px solid ${T.border}` }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead><tr>
+                <Th k="title" left>Title</Th><Th k="game" left>Game</Th><Th k="date">Date</Th>
+                {PLATFORMS.map((p) => <Th key={p} k={p}><PlatformIcon platform={p} size={12} style={{ display: "inline-block", verticalAlign: -2, marginRight: 4 }} />{PLATFORM_LABEL[p]}</Th>)}
+                <Th k="total">Total</Th>
+              </tr></thead>
+              <tbody>
+                {sorted.map((c) => (
+                  <tr key={c.clipId} onClick={() => setSelectedId(c.clipId)} style={{ cursor: "pointer" }}>
+                    <td style={{ ...td, textAlign: "left", paddingLeft: 14, maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }} title={c.title}>{c.title}</td>
+                    <td style={{ ...td, textAlign: "left", color: T.textSecondary }}><Dot color={c.gameColor} glow /> <span style={{ marginLeft: 4 }}>{c.gameName}</span></td>
+                    <td style={{ ...td, color: T.textTertiary }}>{fmtDate(c.date)}</td>
+                    {PLATFORMS.map((p) => <td key={p} style={{ ...td, color: c.views[p] == null ? T.textTertiary : T.text }}>{fmt(c.views[p])}</td>)}
+                    <td style={{ ...td, fontWeight: 700, color: c.fetchedAt ? T.text : T.textTertiary }}>{c.fetchedAt ? fmt(c.total) : "—"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr", gap: 14 }}>
-        <Card style={{ overflow: "hidden" }}>
-          <h3 style={cardTitle}>By game</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr>
-                <th style={{ ...th, textAlign: "left", paddingLeft: 14, cursor: "default" }}>Game</th>
-                <th style={{ ...th, cursor: "default" }}>Clips</th>
-                <th style={{ ...th, cursor: "default", color: T.text }}>Views</th>
-                <th style={{ ...th, cursor: "default" }}>Avg / clip</th>
-              </tr>
-            </thead>
-            <tbody>
-              {byGame.length === 0 && <tr><td colSpan={4} style={{ ...td, textAlign: "left", paddingLeft: 14, color: T.textTertiary }}>—</td></tr>}
-              {byGame.map((g) => (
-                <tr key={g.name}>
-                  <td style={{ ...td, textAlign: "left", paddingLeft: 14, color: T.textSecondary }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", marginRight: 6, background: g.color, boxShadow: `0 0 6px ${g.color}` }} />{g.name}
-                  </td>
-                  <td style={td}>{g.clips}</td>
-                  <td style={td}>{fmt(g.views)}</td>
-                  <td style={td}>{g.withViews ? fmt(Math.round(g.views / g.withViews)) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-        <Card style={{ overflow: "hidden" }}>
-          <h3 style={cardTitle}>By title source</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr>
-                <th style={{ ...th, textAlign: "left", paddingLeft: 14, cursor: "default" }}>Title</th>
-                <th style={{ ...th, cursor: "default" }}>Clips</th>
-                <th style={{ ...th, cursor: "default" }}>Avg YT views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bySource.length === 0 && <tr><td colSpan={3} style={{ ...td, textAlign: "left", paddingLeft: 14, color: T.textTertiary }}>—</td></tr>}
-              {bySource.map((s) => (
-                <tr key={s.key}>
-                  <td style={{ ...td, textAlign: "left", paddingLeft: 14, color: T.textSecondary }}>{SOURCE_LABEL[s.key]}</td>
-                  <td style={td}>{s.clips}</td>
-                  <td style={td}>{s.withYt ? fmt(Math.round(s.yt / s.withYt)) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{ fontSize: 11, color: T.textTertiary, padding: "8px 14px", borderTop: `1px solid ${T.border}` }}>YouTube only — that is the number the title generator ranks its examples by.</div>
-        </Card>
-      </div>
+      {selected && (
+        <ClipDrawer clip={selected} medianAll={medianAll} related={related} onClose={closeDrawer} onOpenInEditor={onOpenInEditor} onSelect={setSelectedId} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * One line, one series — the accent hue, endpoint labelled, hairline grid.
+ * The svg stretches to the card (preserveAspectRatio none, non-scaling
+ * stroke); labels are HTML so they never stretch with it.
+ */
+function GrowthLine({ points }) {
+  const W = 1000, H = 100, padT = 10, padB = 6;
+  const max = Math.max(...points.map((p) => p.total), 1);
+  const min = Math.min(...points.map((p) => p.total));
+  const span = Math.max(max - min, 1);
+  const xs = (i) => (i / Math.max(points.length - 1, 1)) * W;
+  const ys = (v) => padT + (1 - (v - min) / span) * (H - padT - padB);
+  const d = points.map((p, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)} ${ys(p.total).toFixed(1)}`).join(" ");
+  const last = points[points.length - 1], first = points[0];
+  const lastPct = (ys(last.total) / H) * 100;
+  return (
+    <div style={{ position: "relative", paddingRight: 64, paddingBottom: 16 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: "block" }}>
+        {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={0} x2={W} y1={padT + f * (H - padT - padB)} y2={padT + f * (H - padT - padB)} stroke="rgba(var(--lift),0.06)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
+        <path d={`${d} L${W} ${H} L0 ${H} Z`} fill={T.accent} opacity="0.1" />
+        <path d={d} fill="none" stroke={T.accentLight} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span style={{ position: "absolute", right: 64, top: `calc(${lastPct}% - 4px)`, width: 8, height: 8, borderRadius: "50%", background: T.accentLight, transform: "translateX(50%)", boxShadow: `0 0 0 2px ${T.surface}` }} />
+      <span style={{ position: "absolute", right: 0, top: `calc(${lastPct}% - 8px)`, fontSize: 12, fontWeight: 700, color: T.text }}>{fmtK(last.total)}</span>
+      <span style={{ position: "absolute", left: 0, bottom: 0, fontSize: 10.5, color: T.textTertiary }}>{fmtDate(first.day)}</span>
+      <span style={{ position: "absolute", right: 64, bottom: 0, fontSize: 10.5, color: T.textTertiary }}>{fmtDate(last.day)}</span>
     </div>
   );
 }

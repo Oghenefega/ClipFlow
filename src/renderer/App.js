@@ -806,6 +806,11 @@ export default function App() {
     handleOpenInEditor(projectId, clipId, "tracker");
   }, [handleOpenInEditor]);
 
+  // #397: opened from an Analytics clip panel — Back returns to Analytics.
+  const handleOpenAnalyticsClipInEditor = useCallback((projectId, clipId) => {
+    handleOpenInEditor(projectId, clipId, "analytics");
+  }, [handleOpenInEditor]);
+
   // #125: open a raw recording in the editor (watch-only source-preview, no project/clip)
   const handleOpenSourcePreview = useCallback((path, label) => {
     setEditorContext({ sourcePreviewPath: path, label });
@@ -1177,8 +1182,9 @@ export default function App() {
           </div>
         </div>
         <div style={tabPaneStyle(view === "analytics")}>
-          <div style={{ padding: "32px 40px", maxWidth: 960, margin: "0 auto" }}>
-            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} />
+          {/* #397: wider than the other tabs — the clip grid wants the room */}
+          <div style={{ padding: "32px 40px", maxWidth: 1440, margin: "0 auto" }}>
+            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} localProjects={localProjects} onOpenInEditor={handleOpenAnalyticsClipInEditor} />
           </div>
         </div>
         <div style={tabPaneStyle(view === "settings")}>

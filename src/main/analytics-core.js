@@ -161,6 +161,16 @@ function matchTikTokVideos(targets, videos) {
   return matched;
 }
 
+/**
+ * #398: the LOCAL calendar day a snapshot belongs to, as YYYY-MM-DD — the
+ * tracker's date format. Never toISOString (UTC shifts EST evenings a day).
+ */
+function localDayKey(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /** @param {{fetched_at?: string}|undefined} existing — the clip_metrics row, if any */
 function needsRefresh(target, existing, now = Date.now()) {
   const fetched = existing?.fetched_at ? Date.parse(existing.fetched_at) : NaN;
@@ -183,4 +193,5 @@ module.exports = {
   buildTikTokTargets,
   matchTikTokVideos,
   needsRefresh,
+  localDayKey,
 };

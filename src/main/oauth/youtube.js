@@ -285,7 +285,8 @@ async function fetchChannelInfo(accessToken) {
  *
  * @param {string} accessToken
  * @param {string[]} videoIds - Max 50
- * @returns {Promise<Object<string, number>>} videoId → view count
+ * @returns {Promise<Object<string, {views: number, likes: number|null, comments: number|null}>>} by videoId
+ *   (#399: likes/comments ride along — the same call already returns them)
  */
 async function fetchVideoStats(accessToken, videoIds) {
   const ids = (videoIds || []).filter(Boolean).slice(0, 50);
@@ -295,10 +296,12 @@ async function fetchVideoStats(accessToken, videoIds) {
     { Authorization: `Bearer ${accessToken}` }
   );
   if (res.error) throw new Error(res.error.message || "YouTube stats request failed");
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
   const out = {};
   for (const item of res.items || []) {
-    const views = Number(item?.statistics?.viewCount);
-    if (item.id && Number.isFinite(views)) out[item.id] = views;
+    const st = item?.statistics || {};
+    const views = num(st.viewCount);
+    if (item.id && views != null) out[item.id] = { views, likes: num(st.likeCount), comments: num(st.commentCount) };
   }
   return out;
 }

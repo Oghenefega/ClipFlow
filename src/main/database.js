@@ -261,6 +261,33 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_clip_metrics_platform ON clip_metrics(platform, fetched_at)`);
     },
   },
+  {
+    version: 11,
+    description: "clip_metrics_history (daily snapshots) + clip_metrics.url (#398, #399)",
+    up(database) {
+      // #398: the live row is overwritten on every refresh, so nothing could
+      // say "vs last month" or draw a curve. One row per clip/platform/LOCAL
+      // day; a second refresh the same day replaces that day's row. Written
+      // from whatever the refresh already fetched — no extra network.
+      database.run(`
+        CREATE TABLE clip_metrics_history (
+          clip_id    TEXT NOT NULL,
+          platform   TEXT NOT NULL,
+          day        TEXT NOT NULL,
+          views      INTEGER,
+          likes      INTEGER,
+          comments   INTEGER,
+          shares     INTEGER,
+          fetched_at TEXT NOT NULL,
+          PRIMARY KEY (clip_id, platform, day)
+        )
+      `);
+      database.run(`CREATE INDEX idx_clip_metrics_history_clip ON clip_metrics_history(clip_id, day)`);
+      // #399: the post's public link when the publish flow never stored one
+      // (Instagram permalink, TikTok share_url). Tracker urls stay where they are.
+      database.run(`ALTER TABLE clip_metrics ADD COLUMN url TEXT`);
+    },
+  },
 ];
 
 /**

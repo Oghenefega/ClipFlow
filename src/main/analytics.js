@@ -20,7 +20,7 @@ const metaInsights = require("./oauth/meta-insights");
 const tiktokDisplay = require("./oauth/tiktok-display");
 const { accountToPlatformKey } = require("../shared/captionResolve");
 const {
-  hasInsightsScope, buildTargets, buildTikTokTargets, matchTikTokVideos, needsRefresh,
+  hasInsightsScope, buildTargets, buildTikTokTargets, matchTikTokVideos, needsRefresh, localDayKey,
   TIKTOK_VIEWS_ENABLED, TIKTOK_VIEWS_PENDING,
 } = require("./analytics-core");
 const log = require("electron-log/main").scope("analytics");
@@ -48,9 +48,21 @@ function loadMetrics() {
   const d = db();
   if (!d) return [];
   try {
-    return database.toRows(d.exec("SELECT clip_id, platform, post_id, views, likes, comments, shares, fetched_at FROM clip_metrics"));
+    return database.toRows(d.exec("SELECT clip_id, platform, post_id, views, likes, comments, shares, url, fetched_at FROM clip_metrics"));
   } catch (err) {
     log.warn("loadMetrics failed", { error: err.message });
+    return [];
+  }
+}
+
+/** #398: every (clip, platform, local day) row, oldest first. */
+function loadHistory() {
+  const d = db();
+  if (!d) return [];
+  try {
+    return database.toRows(d.exec("SELECT clip_id, platform, day, views, likes, comments, shares FROM clip_metrics_history ORDER BY day"));
+  } catch (err) {
+    log.warn("loadHistory failed", { error: err.message });
     return [];
   }
 }
@@ -58,16 +70,40 @@ function loadMetrics() {
 function upsertMetrics(rows) {
   const d = db();
   if (!d || rows.length === 0) return;
-  const fetchedAt = new Date().toISOString();
+  const now = new Date();
+  const fetchedAt = now.toISOString();
+  const day = localDayKey(now);
   for (const r of rows) {
+    // url: keep whatever is already stored when this fetch brought none (#399).
     d.run(
-      `INSERT INTO clip_metrics (clip_id, platform, post_id, views, likes, comments, shares, fetched_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO clip_metrics (clip_id, platform, post_id, views, likes, comments, shares, url, fetched_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(clip_id, platform) DO UPDATE SET
          post_id = excluded.post_id, views = excluded.views, likes = excluded.likes,
-         comments = excluded.comments, shares = excluded.shares, fetched_at = excluded.fetched_at`,
-      [r.clipId, r.platform, r.postId ?? null, r.views ?? null, r.likes ?? null, r.comments ?? null, r.shares ?? null, fetchedAt]
+         comments = excluded.comments, shares = excluded.shares,
+         url = COALESCE(excluded.url, clip_metrics.url), fetched_at = excluded.fetched_at`,
+      [r.clipId, r.platform, r.postId ?? null, r.views ?? null, r.likes ?? null, r.comments ?? null, r.shares ?? null, r.url ?? null, fetchedAt]
     );
+    // #398: the day's snapshot, from the numbers this refresh already fetched.
+    d.run(
+      `INSERT INTO clip_metrics_history (clip_id, platform, day, views, likes, comments, shares, fetched_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(clip_id, platform, day) DO UPDATE SET
+         views = excluded.views, likes = excluded.likes, comments = excluded.comments,
+         shares = excluded.shares, fetched_at = excluded.fetched_at`,
+      [r.clipId, r.platform, day, r.views ?? null, r.likes ?? null, r.comments ?? null, r.shares ?? null, fetchedAt]
+    );
+  }
+  database.save();
+}
+
+/** #399: store a public link for rows that have none, without touching counts. */
+function storeUrls(platform, byPostId) {
+  const d = db();
+  const entries = Object.entries(byPostId || {});
+  if (!d || entries.length === 0) return;
+  for (const [postId, url] of entries) {
+    d.run("UPDATE clip_metrics SET url = ? WHERE platform = ? AND post_id = ? AND url IS NULL", [url, platform, String(postId)]);
   }
   database.save();
 }
@@ -89,7 +125,7 @@ async function fetchPlatform(platform, account, due) {
     for (let i = 0; i < due.length; i += YT_BATCH) {
       const batch = due.slice(i, i + YT_BATCH);
       const stats = await youtubeOAuth.fetchVideoStats(account.accessToken, batch.map((t) => t.postId));
-      for (const id of Object.keys(stats)) results[id] = { views: stats[id] };
+      for (const id of Object.keys(stats)) results[id] = stats[id]; // {views, likes, comments} (#399)
     }
     return { results, errors: [], tokenDead: false };
   }
@@ -151,7 +187,23 @@ async function runPlatform(platform, targets, existingByKey, force) {
       if (platform === "youtube") titleCaptionLog.recordViews(t.clipId, r.views);
     }
   }
-  return finish(platform, out, due, rows, errors, existingByKey);
+  const result = finish(platform, out, due, rows, errors, existingByKey);
+
+  // #399: Instagram publishes never stored a link; read the permalink once per
+  // media (instagram_basic covers it) and keep it on the metrics row.
+  if (platform === "instagram") {
+    const missing = targets.filter((t) => !existingByKey.get(`${t.clipId}:instagram`)?.url).map((t) => t.postId);
+    if (missing.length > 0) {
+      try {
+        const links = await metaInsights.fetchInstagramPermalinks(account.accessToken, missing);
+        storeUrls("instagram", links.results);
+        if (links.errors.length > 0) log.warn(`Instagram: ${links.errors.length} of ${missing.length} permalinks missing`, { sample: links.errors.slice(0, 3) });
+      } catch (err) {
+        log.warn("Instagram permalink pass failed", { error: err.message });
+      }
+    }
+  }
+  return result;
 }
 
 /**
@@ -246,6 +298,23 @@ function getAnalytics() {
   const metrics = loadMetrics();
   const byKey = new Map(metrics.map((m) => [`${m.clip_id}:${m.platform}`, m]));
 
+  // #398: per clip, the daily total across platforms (sum of that day's rows).
+  // A platform missing on a given day carries its last known count forward so
+  // one late fetch never dents the curve.
+  const history = new Map();
+  {
+    const last = new Map();
+    for (const h of loadHistory()) {
+      if (!Number.isFinite(h.views)) continue;
+      const perClip = history.get(h.clip_id) || new Map();
+      const known = last.get(h.clip_id) || {};
+      known[h.platform] = h.views;
+      last.set(h.clip_id, known);
+      perClip.set(h.day, Object.values(known).reduce((a, v) => a + v, 0));
+      history.set(h.clip_id, perClip);
+    }
+  }
+
   let sources = new Map();
   const d = db();
   if (d) {
@@ -263,6 +332,8 @@ function getAnalytics() {
     seen.add(row.clipId);
     const views = {};
     const hasPost = {};
+    const urls = {};
+    const engagement = {};
     let total = 0;
     let fetchedAt = null;
     for (const p of PLATFORMS) {
@@ -270,22 +341,31 @@ function getAnalytics() {
       hasPost[p] = !!(pr && (pr.postId || pr.url || p === "tiktok")); // #388: TikTok posts carry no id
       const m = byKey.get(`${row.clipId}:${p}`);
       views[p] = m && Number.isFinite(m.views) ? m.views : null;
+      urls[p] = pr?.url || m?.url || null; // #399: tracker link first, then what the refresh found
+      engagement[p] = m ? { likes: m.likes ?? null, comments: m.comments ?? null, shares: m.shares ?? null } : null;
       if (views[p] != null) total += views[p];
       if (m?.fetched_at && (!fetchedAt || m.fetched_at > fetchedAt)) fetchedAt = m.fetched_at;
     }
+    const perClip = history.get(row.clipId);
     clips.push({
       clipId: row.clipId,
       title: row.title || "",
       game: row.game || "",
       date: row.date || "",
+      time: row.time || "",
       type: row.type || "other",
       source: row.source || "clipflow",
       repostOf: !!row.repostOf,
       titleSource: sources.get(row.clipId) || null,
+      caption: row.published?.description || "",
       views,
       hasPost,
+      urls,
+      engagement,
       total,
       fetchedAt,
+      // [[day, total], ...] oldest first — empty until the first snapshot lands (#398)
+      history: perClip ? [...perClip.entries()] : [],
     });
   }
 
