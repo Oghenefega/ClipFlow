@@ -592,6 +592,18 @@ function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, 
   );
 }
 
+// #402: first row of each Glow section. One shared preference; turning it on
+// also snaps that panel's glow colour to its text colour right away.
+function MatchTextRow({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-1.5 pb-1">
+      <ToggleSwitch size="sm" value={!!value} onChange={onChange} />
+      <span className="text-[12px] text-foreground">Match text color</span>
+      <span className="text-[11px] text-muted-foreground truncate" title="Every text colour change — a word, a line, the whole box — sets the glow to the same colour. Glow is not switched on by it.">glow follows the text</span>
+    </div>
+  );
+}
+
 function useUserPresets() {
   const [userPresets, setUserPresets] = useState([]);
   useEffect(() => {
@@ -1254,11 +1266,16 @@ function SubtitlesPanel() {
   const subUnderline = useSubtitleStore((s) => s.subUnderline);
   const toggleSubUnderline = useSubtitleStore((s) => s.toggleSubUnderline);
   const [align, setAlign] = useState("center");
-  const [fontColor, setFontColor] = useState("#ffffff");
   const { userPresets, persist } = useUserPresets();
+  // #402: shared "glow follows text colour" preference (both panels).
+  const linkGlow = useEditorStore((s) => s.linkGlowToText);
+  const setLinkGlow = useEditorStore((s) => s.setLinkGlowToText);
 
   // ── Per-word style override (#270) — driven by the transcript word selection ──
+  // #402: the font toolbar's swatch used to write a local value nothing read; it
+  // now sets the store's subColor like the preview's inline toolbar does.
   const subColor = useSubtitleStore((s) => s.subColor);
+  const setSubColor = useSubtitleStore((s) => s.setSubColor);
   const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
   const editSegments = useSubtitleStore((s) => s.editSegments);
   const setWordStyle = useSubtitleStore((s) => s.setWordStyle);
@@ -1324,7 +1341,7 @@ function SubtitlesPanel() {
               bold={subBold} setBold={toggleSubBold}
               italic={subItalic} setItalic={toggleSubItalic}
               underline={subUnderline} setUnderline={toggleSubUnderline}
-              color={fontColor} setColor={setFontColor}
+              color={subColor} setColor={setSubColor}
               lineMode={lineMode} setLineMode={setLineMode}
             />
 
@@ -1380,7 +1397,7 @@ function SubtitlesPanel() {
               if (key === "glow") return (
                 <EffectSection key="glow" label="Glow" enabled={glowOn} onToggle={setGlowOn} color={glowColor} onColorChange={setGlowColor} {...dragProps}>
                   <div className="space-y-2">
-                    <EffectSlider label="Opacity" value={glowOpacity} onChange={setGlowOpacity} min={0} max={100} suffix="%" />
+                    <MatchTextRow value={linkGlow} onChange={(v) => { setLinkGlow(v); if (v) setGlowColor(subColor); }} />
                     <EffectSlider label="Intensity" value={glowIntensity} onChange={setGlowIntensity} min={0} max={100} suffix="%" />
                     <EffectSlider label="Softness" value={glowBlur} onChange={setGlowBlur} min={0} max={50} />
                     <EffectSlider label="Blend" value={glowBlend} onChange={setGlowBlend} min={0} max={100} suffix="%" />
@@ -1591,6 +1608,9 @@ function TextPanel() {
   const captionEffectOrder = useCaptionStore((s) => s.captionEffectOrder);
   const setCaptionEffectOrder = useCaptionStore((s) => s.setCaptionEffectOrder);
   const markDirty = useEditorStore((s) => s.markDirty);
+  // #402: shared "glow follows text colour" preference (same flag as the Subtitles panel).
+  const linkGlow = useEditorStore((s) => s.linkGlowToText);
+  const setLinkGlow = useEditorStore((s) => s.setLinkGlowToText);
   const { userPresets, persist } = useUserPresets();
 
   const [align, setAlign] = useState("center");
@@ -1725,7 +1745,7 @@ function TextPanel() {
               if (key === "glow") return (
                 <EffectSection key="glow" label="Glow" enabled={captionGlowOn} onToggle={(v) => { setCaptionGlowOn(v); markDirty(); }} color={captionGlowColor} onColorChange={(c) => { setCaptionGlowColor(c); markDirty(); }} {...dragProps}>
                   <div className="space-y-2">
-                    <EffectSlider label="Opacity" value={captionGlowOpacity} onChange={(v) => { setCaptionGlowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <MatchTextRow value={linkGlow} onChange={(v) => { setLinkGlow(v); if (v) { setCaptionGlowColor(captionColor); markDirty(); } }} />
                     <EffectSlider label="Intensity" value={captionGlowIntensity} onChange={(v) => { setCaptionGlowIntensity(v); markDirty(); }} min={0} max={100} suffix="%" />
                     <EffectSlider label="Softness" value={captionGlowBlur} onChange={(v) => { setCaptionGlowBlur(v); markDirty(); }} min={0} max={50} />
                     <EffectSlider label="Blend" value={captionGlowBlend} onChange={(v) => { setCaptionGlowBlend(v); markDirty(); }} min={0} max={100} suffix="%" />

@@ -10,6 +10,11 @@ import { visibleSubtitleSegments } from "../models/timeMapping";
 import useCaptionStore from "./useCaptionStore";
 import useLayoutStore from "./useLayoutStore";
 import useEditorStore from "./useEditorStore";
+
+// #402: a word/line colour patch also carries the glow colour while "Match
+// text color" is on. Glow is never switched on by it.
+const _linkGlow = (patch) =>
+  (useEditorStore.getState().linkGlowToText && typeof patch?.color === "string" ? { ...patch, glowColor: patch.color } : patch);
 import usePlaybackStore from "./usePlaybackStore";
 
 // Collision-proof segment ID. Date.now() alone has only ms resolution, so two
@@ -562,7 +567,8 @@ const useSubtitleStore = create((set, get) => ({
   // wordIdx is the text-token index — words[] is parallel to text tokens (same
   // positional convention as updateWordInSegment). The style lives ON the word
   // object so it rides every split/merge/trim/save path for free.
-  setWordStyle: (segId, wordIdx, patch) => {
+  setWordStyle: (segId, wordIdx, rawPatch) => {
+    const patch = _linkGlow(rawPatch);
     get()._pushUndo();
     set((s) => ({
       editSegments: s.editSegments.map(seg => {
@@ -1234,7 +1240,8 @@ const useSubtitleStore = create((set, get) => ({
   setBgRadius: (r) => { get()._pushStyleUndo(); set({ bgRadius: r }); },
   setEffectOrder: (order) => { get()._pushStyleUndo(); set({ effectOrder: order }); },
   setHighlightColor: (c) => { get()._pushStyleUndo(); set({ highlightColor: c }); },
-  setSubColor: (c) => { get()._pushStyleUndo(); set({ subColor: c }); },
+  // #402: with "Match text color" on, the glow takes the same colour in the same undo step.
+  setSubColor: (c) => { get()._pushStyleUndo(); set(useEditorStore.getState().linkGlowToText ? { subColor: c, glowColor: c } : { subColor: c }); },
   setSubPos: (p) => { get()._pushStyleUndo(); set({ subPos: p }); },
   setPunctOn: (v) => { get()._pushStyleUndo(); set({ punctOn: v }); },
   setShowSubs: (v) => { get()._pushStyleUndo(); set({ showSubs: v }); },

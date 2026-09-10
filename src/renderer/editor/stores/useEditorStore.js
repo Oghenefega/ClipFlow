@@ -226,6 +226,16 @@ const useEditorStore = create((set, get) => ({
   // the same Detect the button runs. Cleared on consume, cancel, and clip load.
   reframeAutoDetectPending: false,
 
+  // #402: glow colour follows text colour. One preference for both the
+  // Subtitles and Text panels, persisted in the app store; the colour setters
+  // in useSubtitleStore / useCaptionStore read it so every entry point (word,
+  // line, whole subtitle, whole caption, either toolbar) links the same way.
+  linkGlowToText: false,
+  setLinkGlowToText: (v) => {
+    set({ linkGlowToText: !!v });
+    window.clipflow?.storeSet?.("editorLinkGlowToText", !!v);
+  },
+
   // #349: which target the Layout panel writes to — the open clip (Phase A
   // behaviour) or the section under the playhead. Reset on clip load.
   layoutScope: "clip",
@@ -478,7 +488,9 @@ const useEditorStore = create((set, get) => ({
         window.clipflow.storeGet("defaultTemplateId"),
         window.clipflow.storeGet("layoutTemplates"),
         window.clipflow.storeGet("builtInTemplateDeleted"),
-      ]).then(([defaultId, savedTemplates, builtInDeleted]) => {
+        window.clipflow.storeGet("editorLinkGlowToText"),
+      ]).then(([defaultId, savedTemplates, builtInDeleted, linkGlow]) => {
+        set({ linkGlowToText: linkGlow === true }); // #402: a preference, not clip state — safe before the guard
         // A newer load started while storeGet resolved — don't apply this run's
         // template/style over the current clip (was the style-revert race).
         if (myGen !== _loadGen) return;

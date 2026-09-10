@@ -2,6 +2,12 @@ import { create } from "zustand";
 // Cross-store import — accessed only inside _pushCrossUndo (after init),
 // ESM live bindings resolve the cycle.
 import useSubtitleStore from "./useSubtitleStore";
+import useEditorStore from "./useEditorStore";
+
+// #402: a word/line colour patch also carries the glow colour while "Match
+// text color" is on. Glow is never switched on by it.
+const _linkGlow = (patch) =>
+  (useEditorStore.getState().linkGlowToText && typeof patch?.color === "string" ? { ...patch, glowColor: patch.color } : patch);
 
 // Push to the cross-store undo stack (lives in subtitle store)
 function _pushCrossUndo() {
@@ -227,7 +233,8 @@ const useCaptionStore = create((set, get) => ({
   setActiveCaptionWord: (info) => set({ activeCaptionWord: info, activeCaptionLine: null }),
   setActiveCaptionLine: (info) => set({ activeCaptionLine: info, activeCaptionWord: null }),
 
-  setCaptionWordStyle: (segId, wordIdx, patch) => {
+  setCaptionWordStyle: (segId, wordIdx, rawPatch) => {
+    const patch = _linkGlow(rawPatch);
     _pushCrossUndo();
     set((s) => ({
       captionSegments: s.captionSegments.map((seg) =>
@@ -236,7 +243,8 @@ const useCaptionStore = create((set, get) => ({
     }));
   },
 
-  setCaptionLineStyle: (segId, lineIdx, patch) => {
+  setCaptionLineStyle: (segId, lineIdx, rawPatch) => {
+    const patch = _linkGlow(rawPatch);
     _pushCrossUndo();
     set((s) => ({
       captionSegments: s.captionSegments.map((seg) =>
@@ -311,7 +319,8 @@ const useCaptionStore = create((set, get) => ({
   setCaptionFontFamily: (f) => { _pushCrossUndo(); set({ captionFontFamily: f }); },
   setCaptionFontWeight: (w) => { _pushCrossUndo(); set({ captionFontWeight: w }); },
   setCaptionFontSize: (s) => { _pushCrossUndo(); set({ captionFontSize: s }); },
-  setCaptionColor: (c) => { _pushCrossUndo(); set({ captionColor: c }); },
+  // #402: with "Match text color" on, the glow takes the same colour in the same undo step.
+  setCaptionColor: (c) => { _pushCrossUndo(); set(useEditorStore.getState().linkGlowToText ? { captionColor: c, captionGlowColor: c } : { captionColor: c }); },
   setCaptionBold: (b) => { _pushCrossUndo(); set({ captionBold: b }); },
   setCaptionItalic: (i) => { _pushCrossUndo(); set({ captionItalic: i }); },
   setCaptionUnderline: (u) => { _pushCrossUndo(); set({ captionUnderline: u }); },

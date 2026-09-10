@@ -1946,3 +1946,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** the rule was written during a real review in June and never re-checked once that review landed. Each later session inherited the sentence, not the state.
 
 **Rule:** a rule that says "don't touch X until Y resolves" carries an expiry — when a session's work depends on it, verify Y's state at the source (the dashboard, not the memory) before repeating the rule, and rewrite the rule the moment the fact changes.
+
+## Session 253 (2026-09-10) — a ✅/❌ pair read as two steps to perform
+
+**What happened:** the one-minute check for the glow link ended "✅ The glow changes with it in one click. ❌ You still need a second click." Fega asked what the ❌ line meant — it read as a second instruction, not as the failure tell.
+
+**Why:** the checklist format (✅ good / ❌ flag-it) is mine, not his; without the words "if" and "tell me" the two lines look like a sequence.
+
+**Rule:** write the tell as a sentence, not a glyph pair: "If the glow changes with it, it works. If the glow keeps its old colour, tell me." Glyphs only inside a list where every item already reads as a condition.
