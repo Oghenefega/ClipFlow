@@ -129,7 +129,11 @@ async function runPlatform(platform, targets, existingByKey, force) {
   out.failed = due.length - rows.length;
   if (out.failed > 0) {
     log.warn(`${LABEL[platform]}: ${out.failed} of ${due.length} ids returned no view count`, { sample: errors.slice(0, 3) });
-    if (out.updated === 0 && errors[0]) out.error = errors[0].message;
+    // #393: a per-id error speaks for the whole platform only when nothing has
+    // ever come back. Repeat runs re-attempt just the rows that failed last
+    // time, so "updated 0" is the normal state once one post is gone for good.
+    const everWorked = [...existingByKey.values()].some((m) => m.platform === platform && Number.isFinite(m.views));
+    if (out.updated === 0 && !everWorked && errors[0]) out.error = errors[0].message;
   }
   return out;
 }
