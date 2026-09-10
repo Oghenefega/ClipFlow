@@ -12,6 +12,19 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.31",
+    date: "2026-09-09",
+    added: [
+      "Sunset, a new theme for evenings. It is a light theme turned down: dark text on a soft sandy page with a terracotta accent, for when dark mode is not what you want but Daylight, Paper and Blush are too bright after dark. Pick it in Settings → Appearance.",
+      "Edit a YouTube tag without retyping it. In the tag box on the Queue's YouTube card and in Captions & Descriptions, click a tag's text to change just that one — Enter keeps the new spelling, Escape puts the old one back, and clearing it removes the tag.",
+      "Undo in the tag box. Ctrl+Z brings back a tag you removed, a Clear all you didn't mean, or an edit you want to reverse, and Ctrl+Y puts it forward again — as far back as when you started editing the list.",
+    ],
+    changed: [
+      "A duplicate tag no longer vanishes without a word. Type or paste a tag that is already in the list and the one already there lights up for a moment, with a line underneath saying so. Editing a tag into a spelling another tag already has is stopped the same way instead of quietly merging the two.",
+      "The tabs along the bottom now sit together in the middle instead of being spread across the whole window, so switching from Rename to Settings is a short move rather than a trip from one edge of the screen to the other.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.30",
     date: "2026-09-07",
     added: [

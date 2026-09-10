@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-alpha.31] — 2026-09-09 (session 247) — Sunset, the clustered tab bar and the editable tag box reach the installed copies
+
+### Changed
+- **Version bumped to 0.4.0-alpha.31 and an installer cut to the R2 update feed.** Promotes the three changes merged since alpha.30 (`0718e1f`, `0f6427e`, `7e22504`): the Sunset dim-light theme, the bottom tabs gathered into one centred cluster, and the shared YouTube tag box gaining in-place editing, session undo/redo and visible duplicate handling. Cut on Fega's explicit ask. All three are user-facing and carried in What's New. Desktop and laptop pick it up from the "Update available" banner on next launch.
+
 ## [Unreleased] — 2026-09-09 (session 247) — Sunset: a dim light theme for evenings
 
 ### Added
