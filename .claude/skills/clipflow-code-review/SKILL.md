@@ -154,6 +154,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **Make a new negative assertion fail once on purpose — and know that `toContain`/`notToContain` are STRING-ONLY here (session 246).** The hand-rolled runners (`ai-prompt.test.js`, `game-profiles.test.js`, `segmentWords.test.js`) define `notToContain` as `if (typeof actual === "string" && …) throw`, so calling it on an ARRAY short-circuits and passes unconditionally. Five chip assertions tested nothing; only the oppositely-guarded `toContain` throwing exposed it. Assert on arrays via a delimited join (`"," + keys.join(",") + ","`, matched as `",key,"`) or an explicit throwing loop. A green negative test that cannot fail is worse than no test — it looks like coverage.
 
+- **A step the USER is told to perform is part of the deliverable and gets verified like code (session 249).** "Reconnect Instagram and Facebook once" shipped in alpha.33 after the chip and the fetchers were verified — the reconnect itself had not run in months and died in the browser (the Meta app had gone Live; localhost return addresses are Development-only), leaving both accounts disconnected on the daily driver with clips scheduled. Before asking for any OAuth re-run: probe the dashboard state the code cannot see (`GET /{app-id}?fields=app_domains` with `appId|appSecret`, app mode vs the redirect URI, new scopes added on the dashboard), and never hand over a procedure that begins with a disconnect on the publishing machine.
+
 ## Lesson Capture
 
 After ANY correction from the user:
