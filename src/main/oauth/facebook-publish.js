@@ -386,4 +386,6 @@ module.exports = {
   publish,
   publishReel,
   publishLegacyVideo,
+  // #387: meta-insights.js drives the Graph batch endpoint through the same helper
+  graphPost,
 };

@@ -18,6 +18,7 @@ import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
 import TrackerView from "./views/TrackerView";
+import AnalyticsView from "./views/AnalyticsView";
 import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
@@ -982,6 +983,7 @@ export default function App() {
     { id: "editor", icon: "\ud83c\udfac", label: "Editor" },
     { id: "queue", icon: "\ud83d\udccb", label: "Queue", badge: totalApproved },
     { id: "tracker", icon: "\ud83d\udcca", label: "Tracker" },
+    { id: "analytics", icon: "\ud83d\udcc8", label: "Analytics" },
     { id: "settings", icon: "\u2699\ufe0f", label: "Settings" },
   ];
 
@@ -1172,6 +1174,11 @@ export default function App() {
               onRescheduleClip={(projectId, clipId, scheduledAt) => handleUpdateClipFields(projectId, clipId, { scheduledAt })}
               onRepostClip={handleRepostClip}
             />
+          </div>
+        </div>
+        <div style={tabPaneStyle(view === "analytics")}>
+          <div style={{ padding: "32px 40px", maxWidth: 960, margin: "0 auto" }}>
+            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} />
           </div>
         </div>
         <div style={tabPaneStyle(view === "settings")}>

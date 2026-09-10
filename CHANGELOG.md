@@ -4,6 +4,18 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 249) — Analytics tab: views per clip across YouTube, Instagram and Facebook (#386, #387)
+
+### Added
+- **An Analytics tab, between Tracker and Settings, that shows what worked.** Every published clip with its view count per platform (YouTube, Instagram, Facebook; TikTok shows "—" until TikTok approves the app, #388), a 7d / 30d / 90d / all-time window by publish date, five stat tiles (total and one per platform), a sortable clip table, a by-game rollup (clips, views, average per clip) and a by-title-source rollup (written by you / AI edited / AI as suggested, average YouTube views — the number the title generator already ranks its examples by). A platform tile that cannot fetch prints the reason in one line ("Reconnect Instagram in Settings to enable views", "No YouTube account connected") instead of a blank. Refresh runs the pull now; it also runs 30 s after every launch. New view `src/renderer/views/AnalyticsView.js`; mock in `tasks/mocks/analytics-tab.html`.
+- **Per-platform view counts stored in a new `clip_metrics` table (migration v10).** One row per clip and platform, refreshed daily and weekly once a clip is a month old. Nothing new is collected at publish time — the post ids have been landing in the tracker rows on every publish since the tracker existed (168 YouTube, 167 Instagram, 166 Facebook of 170 published clips). `src/main/analytics.js` generalises the old YouTube-only pull; the pure target/freshness/scope logic lives in `src/main/analytics-core.js` with 13 jest tests; `src/main/oauth/meta-insights.js` reads Instagram media insights and Facebook video insights through the Graph batch endpoint, 50 per call, and reports per-id errors instead of throwing.
+- **"Reconnect for views" chip on the Instagram and Facebook cards in Settings.** Reading views needs one extra permission each (`instagram_manage_insights`; `read_insights` + `pages_manage_engagement`), which the connect flows now request. Accounts connected before this carry the shorter permission list, so the chip offers a one-time reconnect; publishing keeps working either way. Probed read-only against the real accounts: both Meta endpoints answer with exactly the missing-permission error the reconnect fixes, and all 167 Facebook targets resolve to a video id (151 from the Reels url, 16 legacy uploads).
+- **Analytics epic filed (#386) with the roadmap as child issues:** TikTok views once the dev app unfreezes (#388), title/caption generation learning from cross-platform performance (#389), a trending-games card and caption/hashtag rollups (#390).
+
+### Changed
+- **The YouTube view pull no longer waits a day between runs.** It used to gate on a store timestamp shared between the source run and the installed app, while the table it fills is not shared — so one could starve the other. Freshness is now per row, so a repeat run is one database read and no network. YouTube views still feed the title/caption example ranking on the way through; that input stays YouTube-only on purpose (a cross-platform sum would inflate clips that shipped to more platforms).
+- **Facebook view lookups use the video id, not the post id the tracker stores.** The tracker's Facebook `postId` is the Reels post id; Meta's video insights live on the video id, which the stored `/reel/{id}` url carries. Resolved once per clip and remembered.
+
 ## [Unreleased] — 2026-09-10 (session 248) — Measured contrast audit across the nine themes
 
 ### Added

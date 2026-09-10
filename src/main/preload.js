@@ -241,7 +241,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   titleCaptionRecordPublish: (params) => ipcRenderer.invoke("titleCaptionLog:recordPublish", params),
   titleCaptionGetStats: () => ipcRenderer.invoke("titleCaptionLog:getStats"),
   titleCaptionGetExamples: (limit) => ipcRenderer.invoke("titleCaptionLog:getExamples", limit),
-  titleCaptionRefreshViews: () => ipcRenderer.invoke("titleCaptionLog:refreshViews"),
+
+  // Analytics tab (#387): cross-platform view counts
+  analyticsGet: () => ipcRenderer.invoke("analytics:get"),
+  analyticsRefresh: () => ipcRenderer.invoke("analytics:refresh"),
 
   // Subtitle debug log
   debugLogSubtitle: (entry) => ipcRenderer.invoke("debug:logSubtitle", entry),

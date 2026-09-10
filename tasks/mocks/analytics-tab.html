@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corva — Analytics tab mock (#387)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --lift:255,255,255;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --textSecondary:rgba(255,255,255,0.55); --textTertiary:rgba(255,255,255,0.35); --textMuted:rgba(255,255,255,0.22);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.25);
+    --yellow:#fbbf24; --yellowDim:rgba(251,191,36,0.10); --yellowBorder:rgba(251,191,36,0.22);
+    --green:#34d399;
+    --font:'DM Sans',-apple-system,sans-serif;
+  }
+  [data-theme="sunset"]{
+    --bg:#c9b39a; --surface:#d6c3ac; --lift:20,14,8;
+    --border:rgba(20,14,8,0.10); --borderHover:rgba(20,14,8,0.18);
+    --text:#1c1410; --textSecondary:rgba(28,20,16,0.68); --textTertiary:rgba(28,20,16,0.52); --textMuted:rgba(28,20,16,0.34);
+    --accent:#6d3fd6; --accentLight:#5b2fc4; --accentDim:rgba(109,63,214,0.12); --accentBorder:rgba(109,63,214,0.28);
+    --yellow:#8a5a00; --yellowDim:rgba(138,90,0,0.10); --yellowBorder:rgba(138,90,0,0.25);
+    --green:#0b7a4b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:32px 40px 80px}
+  .wrap{max-width:960px;margin:0 auto}
+  .mocknote{font-size:12px;color:var(--textTertiary);margin:0 0 22px;line-height:1.6;padding:10px 14px;border:1px dashed var(--borderHover);border-radius:10px}
+  .mocknote b{color:var(--textSecondary)}
+  .themebar{display:flex;gap:6px;margin-bottom:18px}
+  .themebar button{font:inherit;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--textSecondary);cursor:pointer}
+
+  /* ── page header (PageHeader) ── */
+  .head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .head h2{font-size:28px;font-weight:800;letter-spacing:-.6px;margin:0;flex:1}
+  .seg{display:flex;gap:2px;background:rgba(var(--lift),0.03);border-radius:10px;padding:3px}
+  .seg button{font:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;border:none;background:transparent;color:var(--textTertiary);cursor:pointer}
+  .seg button.on{background:rgba(var(--lift),0.07);color:var(--text)}
+  .refreshed{font-size:11px;color:var(--textTertiary);white-space:nowrap}
+  .btn{font:inherit;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:1px solid var(--accentBorder);background:var(--accentDim);color:var(--accentLight);cursor:pointer}
+
+  /* ── stat tiles ── */
+  .tiles{display:grid;grid-template-columns:1.3fr repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;min-height:74px;display:flex;flex-direction:column;justify-content:space-between}
+  .tile .lab{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--textTertiary)}
+  .tile .val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1;margin-top:8px}
+  .tile .sub{font-size:11px;color:var(--textTertiary);margin-top:4px}
+  .tile .note{font-size:11px;color:var(--yellow);line-height:1.4;margin-top:6px}
+  .tile .dash{color:var(--textTertiary)}
+  .pi{width:14px;height:14px;border-radius:3px;display:inline-block;flex-shrink:0}
+  .pi.yt{background:#ff0033}.pi.ig{background:linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)}.pi.fb{background:#1877f2}.pi.tt{background:#25f4ee;box-shadow:2px 0 0 #fe2c55 inset}
+
+  /* ── cards + tables ── */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
+  .card h3{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--textSecondary);margin:0;padding:11px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .card h3 .cnt{font-weight:600;color:var(--textTertiary);letter-spacing:0;text-transform:none}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--textTertiary);text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+  th:first-child,td:first-child{text-align:left;padding-left:14px}
+  th.on{color:var(--text)}
+  th .ar{font-size:9px;margin-left:3px}
+  th .pi{vertical-align:-2px;margin-right:4px}
+  td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(var(--lift),0.025)}
+  td.t{text-align:left;max-width:380px;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+  td.g{text-align:left;color:var(--textSecondary)}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:0}
+  td.d{color:var(--textTertiary)}
+  td.tot{font-weight:700}
+  td .dash{color:var(--textTertiary)}
+  .two{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+  .foot{font-size:11px;color:var(--textTertiary);padding:8px 14px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="themebar">
+    <button onclick="document.body.removeAttribute('data-theme')">Midnight</button>
+    <button onclick="document.body.setAttribute('data-theme','sunset')">Sunset</button>
+  </div>
+  <p class="mocknote"><b>Mock for the Analytics tab (#387).</b> YouTube numbers are real (last 30 days of Fega's tracker + title log, 2026-09-10). Instagram and Facebook columns are <b>illustrative</b> — they fill in after the one-time reconnect. Two states are shown: the tiles show the <b>before-reconnect</b> state for Instagram, the <b>after</b> state for Facebook.</p>
+
+  <!-- header -->
+  <div class="head">
+    <h2>Analytics</h2>
+    <div class="seg"><button>7d</button><button class="on">30d</button><button>90d</button><button>All</button></div>
+    <span class="refreshed">Refreshed 2h ago</span>
+    <button class="btn">Refresh</button>
+  </div>
+
+  <!-- tiles -->
+  <div class="tiles">
+    <div class="tile"><div class="lab">Total views</div><div><div class="val">271,240</div><div class="sub">107 clips · 30 days</div></div></div>
+    <div class="tile"><div class="lab"><span class="pi yt"></span>YouTube</div><div><div class="val">159,773</div><div class="sub">106 of 107 clips</div></div></div>
+    <div class="tile"><div class="lab"><span class="pi ig"></span>Instagram</div><div><div class="val dash">—</div><div class="note">Reconnect Instagram in Settings to enable views</div></div></div>
+    <div class="tile"><div class="lab"><span class="pi fb"></span>Facebook</div><div><div class="val">111,467</div><div class="sub">104 of 107 clips</div></div></div>
+    <div class="tile"><div class="lab"><span class="pi tt"></span>TikTok</div><div><div class="val dash">—</div><div class="sub">Arrives once TikTok approves the app</div></div></div>
+  </div>
+
+  <!-- clip table -->
+  <div class="card">
+    <h3>Clips <span class="cnt">· 107 published in the last 30 days</span></h3>
+    <table>
+      <thead><tr>
+        <th>Title</th><th style="text-align:left">Game</th><th>Date</th>
+        <th><span class="pi yt"></span>YT</th><th><span class="pi ig"></span>IG</th><th><span class="pi fb"></span>FB</th><th><span class="pi tt"></span>TT</th>
+        <th class="on">Total<span class="ar">▼</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="t">I found the Luckiest player in Meccha Chameleon #mecchachameleon</td><td class="g"><span class="dot" style="background:#00ff88"></span>Meccha Chameleon</td><td class="d">Sep 3</td><td>11,127</td><td><span class="dash">—</span></td><td>8,410</td><td><span class="dash">—</span></td><td class="tot">19,537</td></tr>
+        <tr><td class="t">Sato is a MONSTER! #valorant</td><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td class="d">Aug 29</td><td>9,534</td><td><span class="dash">—</span></td><td>5,102</td><td><span class="dash">—</span></td><td class="tot">14,636</td></tr>
+        <tr><td class="t">His knees gave out instantly #humanoidrobots</td><td class="g"><span class="dot" style="background:#8a9bb8"></span>Robot Olympics Reacts</td><td class="d">Sep 3</td><td>6,590</td><td><span class="dash">—</span></td><td>7,955</td><td><span class="dash">—</span></td><td class="tot">14,545</td></tr>
+        <tr><td class="t">These clankers created a new way to run #humanoidrobots</td><td class="g"><span class="dot" style="background:#8a9bb8"></span>Robot Olympics Reacts</td><td class="d">Sep 3</td><td>4,134</td><td><span class="dash">—</span></td><td>6,210</td><td><span class="dash">—</span></td><td class="tot">10,344</td></tr>
+        <tr><td class="t">100T Cryo INSANE CLUTCH #valorant</td><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td class="d">Sep 5</td><td>4,382</td><td><span class="dash">—</span></td><td>2,880</td><td><span class="dash">—</span></td><td class="tot">7,262</td></tr>
+        <tr><td class="t">Asuna almost pulled off the impossible #valorant</td><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td class="d">Sep 6</td><td>4,045</td><td><span class="dash">—</span></td><td>2,144</td><td><span class="dash">—</span></td><td class="tot">6,189</td></tr>
+        <tr><td class="t">You can get FAT in this game #gta6</td><td class="g"><span class="dot" style="background:#f042a0"></span>GTA6 Reacts</td><td class="d">Aug 28</td><td>2,896</td><td><span class="dash">—</span></td><td>3,015</td><td><span class="dash">—</span></td><td class="tot">5,911</td></tr>
+        <tr><td class="t">Cryo got that 500 IQ #valorant</td><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td class="d">Sep 5</td><td>2,695</td><td><span class="dash">—</span></td><td>1,930</td><td><span class="dash">—</span></td><td class="tot">4,625</td></tr>
+        <tr><td class="t">100T Cryo WENT CRAZY #valorant</td><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td class="d">Sep 8</td><td>2,684</td><td><span class="dash">—</span></td><td>1,702</td><td><span class="dash">—</span></td><td class="tot">4,386</td></tr>
+        <tr><td class="t">100 Thieves completely broke their mental #valorant</td><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td class="d">Sep 5</td><td>2,587</td><td><span class="dash">—</span></td><td>1,511</td><td><span class="dash">—</span></td><td class="tot">4,098</td></tr>
+        <tr><td class="t">CHAT led me astray in Egging on #eggingon</td><td class="g"><span class="dot" style="background:#ffd23f"></span>Egging On</td><td class="d">Aug 21</td><td>2,564</td><td><span class="dash">—</span></td><td>1,209</td><td><span class="dash">—</span></td><td class="tot">3,773</td></tr>
+        <tr><td class="t">They are never finding this guy #mecchachameleon</td><td class="g"><span class="dot" style="background:#00ff88"></span>Meccha Chameleon</td><td class="d">Sep 4</td><td>2,340</td><td><span class="dash">—</span></td><td>1,388</td><td><span class="dash">—</span></td><td class="tot">3,728</td></tr>
+      </tbody>
+    </table>
+    <div class="foot">Showing 12 of 107 · scroll for the rest</div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>By game</h3>
+      <table>
+        <thead><tr><th>Game</th><th>Clips</th><th class="on">Views<span class="ar">▼</span></th><th>Avg / clip</th></tr></thead>
+        <tbody>
+          <tr><td class="g"><span class="dot" style="background:#ea3323"></span>100T Valorant Reacts</td><td>61</td><td>88,549</td><td>1,452</td></tr>
+          <tr><td class="g"><span class="dot" style="background:#8a9bb8"></span>Robot Olympics Reacts</td><td>12</td><td>20,692</td><td>1,724</td></tr>
+          <tr><td class="g"><span class="dot" style="background:#00ff88"></span>Meccha Chameleon</td><td>4</td><td>16,347</td><td class="tot">4,087</td></tr>
+          <tr><td class="g"><span class="dot" style="background:#f042a0"></span>GTA6 Reacts</td><td>11</td><td>14,608</td><td>1,328</td></tr>
+          <tr><td class="g"><span class="dot" style="background:#00b4d8"></span>Rocket League</td><td>14</td><td>12,594</td><td>900</td></tr>
+          <tr><td class="g"><span class="dot" style="background:#ffd23f"></span>Egging On</td><td>4</td><td>5,918</td><td>1,480</td></tr>
+          <tr><td class="g"><span class="dot" style="background:#fca311"></span>Deadline Delivery</td><td>1</td><td>1,065</td><td>1,065</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>By title source</h3>
+      <table>
+        <thead><tr><th>Title</th><th>Clips</th><th>Avg YT views</th></tr></thead>
+        <tbody>
+          <tr><td class="g">Written by you</td><td>46</td><td>1,419</td></tr>
+          <tr><td class="g">AI, edited</td><td>10</td><td>1,371</td></tr>
+          <tr><td class="g">AI, as suggested</td><td>18</td><td class="tot">1,749</td></tr>
+          <tr><td class="g">Unknown</td><td>33</td><td>1,701</td></tr>
+        </tbody>
+      </table>
+      <div class="foot">YouTube only — that is the number the title generator ranks its examples by.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

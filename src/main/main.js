@@ -147,7 +147,6 @@ const publishLog = require("./publish-log");
 // Chromium timer throttling on a hidden window.
 const publishScheduler = require("./publish");
 const { buildTrackerRow } = require("../shared/trackerRow");
-const { accountToPlatformKey } = require("../shared/captionResolve");
 const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
 if (userDataMigration && userDataMigration.outcome !== "noop") {
@@ -163,6 +162,7 @@ const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
 const titleCaptionPrompt = require("./ai/title-caption-prompt");
 const titleCaptionLog = require("./title-caption-log");
+const analytics = require("./analytics");
 const queueImports = require("./queue-imports");
 const transcriptionProvider = require("./ai/transcription-provider");
 // Load provider adapters (self-register on require)
@@ -1320,20 +1320,17 @@ app.whenReady().then(async () => {
     logger.warn(logger.MODULES.titleGeneration, "Title/caption backfill failed", { error: err.message });
   }
 
-  // #183 Phase 4: refresh view counts once a day, in the background, well after
-  // the window is up. Never blocks startup and never surfaces an error — with
-  // no counts the examples simply fall back to recency ordering.
-  const DAY_MS = 24 * 60 * 60 * 1000;
-  if (Date.now() - (store.get("titleCaptionViewsRefreshedAt") || 0) > DAY_MS) {
-    setTimeout(() => {
-      refreshYoutubeViews()
-        .then((r) => {
-          store.set("titleCaptionViewsRefreshedAt", Date.now());
-          if (r.updated > 0) logger.info(logger.MODULES.titleGeneration, "Refreshed YouTube view counts", r);
-        })
-        .catch((err) => logger.warn(logger.MODULES.titleGeneration, "View refresh failed", { error: err.message }));
-    }, 30000);
-  }
+  // #183 Phase 4 → #387: refresh view counts in the background, well after the
+  // window is up. Every boot, not behind a once-a-day store flag — the flag
+  // would be shared between prod-from-source and the packaged exe while the
+  // clip_metrics table is not (same split as the backfill above), and the
+  // per-row freshness rule inside refreshAllViews makes a repeat run one
+  // SELECT and no network. Never blocks startup, never surfaces an error.
+  analytics.init({ store, preflightAccount });
+  setTimeout(() => {
+    analytics.refreshAllViews()
+      .catch((err) => logger.warn(logger.MODULES.titleGeneration, "View refresh failed", { error: err.message }));
+  }, 30000);
 
   // #60: reconcile is_test flag against physical location on every startup.
   // Invariant: a file inside testWatchFolder has is_test=1; a file outside
@@ -4299,76 +4296,20 @@ ipcMain.handle("titleCaptionLog:recordPublish", async (_, params = {}) => {
   }
 });
 
-// #183 Phase 4: pull YouTube view counts back onto the training rows so the
-// few-shot examples can be ranked by what actually performed rather than by
-// how recently it was posted. The video ids were already being stored in
-// trackerData.platformResults on every publish — nothing new is collected.
-//
-// Read-only, own-channel, and throttled to once a day. Returns counts rather
-// than throwing so a disconnected account degrades to "no ranking data".
-async function refreshYoutubeViews() {
-  const pending = titleCaptionLog.getRowsNeedingViews();
-  if (pending.length === 0) return { updated: 0, skipped: 0 };
-
-  // clipId → YouTube video id, from the tracker rows written at publish time.
-  const videoIdByClip = new Map();
-  for (const row of store.get("trackerData") || []) {
-    if (!row?.clipId || !Array.isArray(row.platformResults)) continue;
-    const yt = row.platformResults.find((p) => p?.platform === "youtube" && p.postId);
-    if (yt) videoIdByClip.set(row.clipId, yt.postId);
-  }
-
-  const targets = pending
-    .map((r) => ({ clipId: r.clip_id, videoId: videoIdByClip.get(r.clip_id) }))
-    .filter((t) => t.videoId);
-  if (targets.length === 0) return { updated: 0, skipped: pending.length };
-
-  // #375: match through accountToPlatformKey, the same mapper the tracker rows
-  // are written with. A raw `a.platform === "youtube"` never matched, because
-  // the OAuth flow persists "YouTube" — so this returned {updated: 0} on every
-  // call and #183's view-count ranking never received a single row.
-  const account = (tokenStore.getAllAccounts() || []).find((a) => accountToPlatformKey(a) === "youtube");
-  if (!account) {
-    logger.warn(logger.MODULES.publishing, "View refresh skipped: no YouTube account connected");
-    return { updated: 0, skipped: targets.length, error: "No YouTube account connected" };
-  }
-
-  let accessToken = account.accessToken;
-  if (account.expiresAt && Date.now() > account.expiresAt) {
-    const clientId = store.get("youtubeClientId");
-    const clientSecret = store.get("youtubeClientSecret");
-    if (!clientId || !clientSecret || !account.refreshToken) {
-      logger.warn(logger.MODULES.publishing, "View refresh skipped: YouTube token expired and cannot be refreshed");
-      return { updated: 0, skipped: targets.length, error: "YouTube token expired — reconnect in Settings" };
-    }
-    const r = await youtubeOAuth.refreshAccessToken(clientId, clientSecret, account.refreshToken);
-    if (r.error || !r.access_token) {
-      logger.warn(logger.MODULES.publishing, "View refresh skipped: YouTube token refresh failed");
-      return { updated: 0, skipped: targets.length, error: "YouTube token refresh failed" };
-    }
-    tokenStore.updateTokens(account.id, r.access_token, account.refreshToken, Date.now() + (r.expires_in || 3600) * 1000);
-    accessToken = r.access_token;
-  }
-
-  let updated = 0;
-  // videos.list caps `id` at 50 per request.
-  for (let i = 0; i < targets.length; i += 50) {
-    const batch = targets.slice(i, i + 50);
-    const stats = await youtubeOAuth.fetchVideoStats(accessToken, batch.map((t) => t.videoId));
-    for (const t of batch) {
-      const views = stats[t.videoId];
-      if (Number.isFinite(views)) { titleCaptionLog.recordViews(t.clipId, views); updated++; }
-    }
-  }
-  logger.info(logger.MODULES.publishing, `View refresh: ${updated} row(s) updated, ${targets.length - updated} skipped`);
-  return { updated, skipped: targets.length - updated };
-}
-
-ipcMain.handle("titleCaptionLog:refreshViews", async () => {
+// #387: the Analytics tab. View counts for every published clip, per platform.
+// The pull itself (was refreshYoutubeViews, #183 Phase 4) lives in analytics.js
+// and still feeds YouTube views to the title/caption ranking on the way through.
+ipcMain.handle("analytics:get", async () => {
   try {
-    const result = await refreshYoutubeViews();
-    store.set("titleCaptionViewsRefreshedAt", Date.now());
-    return { success: true, data: result };
+    return { success: true, data: analytics.getAnalytics() };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("analytics:refresh", async () => {
+  try {
+    return { success: true, data: await analytics.refreshAllViews() };
   } catch (err) {
     return { error: err.message };
   }
@@ -5232,6 +5173,7 @@ ipcMain.handle("oauth:instagram:connect", async () => {
         openId: accountData.openId,
         igAccountId: accountData.igAccountId,
         loginType: "facebook_login",
+        insightsScope: true, // #387: a fresh connect always carries the insight scope
       },
     };
   } catch (err) {
@@ -5272,6 +5214,7 @@ ipcMain.handle("oauth:facebook:connect", async () => {
         pageId: accountData.pageId,
         pageName: accountData.pageName,
         loginType: "facebook_login",
+        insightsScope: true, // #387: a fresh connect always carries the insight scope
       },
     };
   } catch (err) {

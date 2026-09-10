@@ -35,21 +35,29 @@ const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 const CALLBACK_PORT = 8083;
 const REDIRECT_URI = `http://localhost:${CALLBACK_PORT}/callback`;
 
+// #387: read_insights + pages_manage_engagement are what /{video}/video_insights
+// requires (both, per Meta's docs) — the Analytics tab's Facebook view counts.
+// Accounts connected before this carry the shorter scope string; Settings
+// shows "Reconnect for views" on them (analytics-core.hasInsightsScope).
 const FACEBOOK_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_posts",
   "business_management",
+  "read_insights",
+  "pages_manage_engagement",
 ].join(",");
 
 // IG-via-FB needs page lookup scopes to resolve the linked IG Business Account,
 // plus the IG publishing scopes. Deliberately omits pages_manage_posts.
+// #387: instagram_manage_insights unlocks /{media}/insights (view counts).
 const INSTAGRAM_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "instagram_basic",
   "instagram_content_publish",
   "business_management",
+  "instagram_manage_insights",
 ].join(",");
 
 // ── HTTP helpers ──

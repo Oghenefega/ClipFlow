@@ -290,22 +290,6 @@ function getPublishedRounds(gameTag, gameName, limit = 30) {
   }
 }
 
-/** Rows that have a published clip but no view count yet (Phase 4 input). */
-function getRowsNeedingViews() {
-  const d = db();
-  if (!d) return [];
-  try {
-    return database.toRows(d.exec(
-      `SELECT clip_id, published_at FROM title_caption_rounds
-        WHERE published_at IS NOT NULL
-          AND (views IS NULL OR views_updated_at < datetime('now', '-7 days'))`
-    ));
-  } catch (err) {
-    log.warn("getRowsNeedingViews failed", { error: err.message });
-    return [];
-  }
-}
-
 /** Summary for the Settings debug panel. */
 function getStats() {
   const d = db();
@@ -417,7 +401,6 @@ module.exports = {
   recordViews,
   getVoiceExamples,
   getPublishedRounds,
-  getRowsNeedingViews,
   getStats,
   backfill,
   // exported for tests / prompt builder

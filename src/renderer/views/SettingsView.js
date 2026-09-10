@@ -1286,6 +1286,16 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               {p.needsReconnect && (
                 <span title={`${p.platform} connection expired — reconnect to keep scheduled posts going out.`} style={{ fontSize: 9, fontWeight: 800, color: T.yellow, background: "rgba(251,191,36,0.12)", border: `1px solid ${T.yellowBorder}`, padding: "2px 7px", borderRadius: 4, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Needs reconnect</span>
               )}
+              {/* #387: connected before the insight scopes existed — publishing still
+                  works, but the Analytics tab can't read views until a reconnect */}
+              {!p.needsReconnect && p.insightsScope === false && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); (p.platform === "Facebook" ? handleConnectFacebook : handleConnectInstagram)(); }}
+                  disabled={!!connectingPlatform}
+                  title="Views need one extra permission. Reconnect once to enable the Analytics tab."
+                  style={{ fontSize: 9, fontWeight: 800, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}`, padding: "2px 7px", borderRadius: 4, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap", cursor: connectingPlatform ? "default" : "pointer", fontFamily: T.font }}
+                >Reconnect for views</button>
+              )}
               <PulseDot color={p.needsReconnect ? T.yellow : T.green} size={7} />
               <button
                 onClick={(e) => { e.stopPropagation(); setDisconnectTarget(p.key); }}

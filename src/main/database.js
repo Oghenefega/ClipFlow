@@ -234,6 +234,33 @@ const MIGRATIONS = [
       database.run(`ALTER TABLE file_metadata ADD COLUMN sub_part TEXT`);
     },
   },
+  {
+    version: 10,
+    description: "Create clip_metrics: per-platform view counts for the Analytics tab (#387)",
+    up(database) {
+      // One row per (clip, platform). Separate from title_caption_rounds on
+      // purpose: that table only holds training-eligible clips (imports and
+      // reposts are fenced out), while Analytics must show every real post.
+      // post_id is the id actually queried — for Facebook that is the VIDEO
+      // id resolved from the Reels url, not the post id the tracker stores.
+      // fetched_at is an ISO string written by analytics.js (not datetime('now')
+      // so the freshness rule parses one format).
+      database.run(`
+        CREATE TABLE clip_metrics (
+          clip_id    TEXT NOT NULL,
+          platform   TEXT NOT NULL,
+          post_id    TEXT,
+          views      INTEGER,
+          likes      INTEGER,
+          comments   INTEGER,
+          shares     INTEGER,
+          fetched_at TEXT NOT NULL,
+          PRIMARY KEY (clip_id, platform)
+        )
+      `);
+      database.run(`CREATE INDEX idx_clip_metrics_platform ON clip_metrics(platform, fetched_at)`);
+    },
+  },
 ];
 
 /**

@@ -9,6 +9,7 @@
  */
 const { createStore } = require("./store-factory");
 const { safeStorage } = require("electron");
+const { hasInsightsScope } = require("./analytics-core");
 
 const PLATFORM_ABBR = {
   TikTok: "TT",
@@ -150,6 +151,9 @@ function getAccountsForUI() {
     channelId: acct.channelId || "",
     // #244: dead refresh token — Settings badges the account
     needsReconnect: !!acct.needsReconnect,
+    // #387: false = connected before the insight scopes existed; Settings
+    // offers "Reconnect for views". null = nothing to check (TikTok).
+    insightsScope: hasInsightsScope(acct),
   }));
 }
 
