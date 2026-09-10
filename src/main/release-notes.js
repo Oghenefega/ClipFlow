@@ -12,6 +12,23 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.4.0-alpha.34",
+    date: "2026-09-10",
+    added: [
+      "The Analytics tab now teaches you what works instead of listing numbers. It opens with your totals and median views per clip, then a few plain-English findings worked out from your own clips (which platform carries your views, whether shouted or hand-written titles do better, the clip length with the best median, and what to repeat), then your clips as a thumbnail grid ranked against your typical clip, with cards for views by game, by who wrote the title, by length, and a day-by-hour map of your best posting slots. The old table is still there, collapsed at the bottom, with a CSV export.",
+      "Click any clip in Analytics to open it: the first frame with a play button, the caption exactly as it was posted, how each platform did with a link to the post, other clips from the same game, and buttons to open it in the editor, show the rendered file in Explorer, or open it on YouTube, Facebook, Instagram or TikTok.",
+      "Corva now keeps a daily record of every clip's views. From the second day it can show how your views changed against the previous period, a growth line across all platforms, and each clip's day 2, day 7 and now. Until then those spots say the record is still collecting.",
+      "TikTok view counts are built in and switch on the moment TikTok approves the app's read permission; a later update will turn them on and ask you to reconnect TikTok once.",
+    ],
+    fixed: [
+      "Connecting Facebook or Instagram works again. Sign-in now returns through a hosted Corva page, which Facebook requires for a live app, so the reconnect no longer stops in the browser with a domain error.",
+      "Facebook and Instagram stay connected on their own. Corva renews each sign-in once it is past its halfway point, so opening the app about once a month keeps both platforms live instead of asking you to reconnect every two months.",
+      "Pasting a platform key or secret with a stray space no longer breaks the connect; the Save buttons in Settings trim it.",
+      "The Analytics tiles no longer show one deleted post's error in place of your counts.",
+      "Sign-in flows no longer write account tokens into the log file.",
+    ],
+  },
+  {
     version: "0.4.0-alpha.33",
     date: "2026-09-10",
     added: [

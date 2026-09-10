@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 252) — Version 0.4.0-alpha.34: installer cut with the Analytics rebuild, daily snapshots, the Meta sign-in repairs and the TikTok view-count build
+
+### Changed
+- **Bumped to 0.4.0-alpha.34 and cut an installer.** Promotes everything since alpha.33: the Meta sign-in repairs (one flow at a time, the hosted https return page, the state check, token renewal past halfway, #391/#394), the per-post error fix on the Analytics tiles (#393), the TikTok view-count build behind its switch plus caption-and-time post matching (#388), Settings credential trimming, the token-logging fix (#396), and this session's Analytics rebuild with the clip panel, daily view snapshots and captured post links (#397, #398, #399). Migration v11 runs on first launch. What's New is written for these.
+
 ## [Unreleased] — 2026-09-10 (session 252) — Analytics tab rebuilt to teach what works: thumbnail grid, clip panel, plain-English insights, daily snapshots (#397, #398, #399)
 
 ### Added
