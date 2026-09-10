@@ -17,6 +17,7 @@ const crypto = require("crypto");
 const { URL } = require("url");
 const { shell } = require("electron");
 const log = require("electron-log/main").scope("youtube");
+const { renderResultPage } = require("./result-page");
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -145,7 +146,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
       const error = url.searchParams.get("error");
 
       if (error) {
-        const html = buildResultPage(false, `Google authorization failed: ${error}`);
+        const html = renderResultPage({ ok: false, platform: "YouTube", reason: `Google authorization failed: ${error}` });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
@@ -155,7 +156,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
 
       if (!code) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildResultPage(false, "No authorization code received."));
+        res.end(renderResultPage({ ok: false, platform: "YouTube", reason: "Google did not send back a sign-in code." }));
         cleanup();
         reject(new Error("No authorization code received"));
         return;
@@ -163,7 +164,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
 
       if (returnedState !== state) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildResultPage(false, "State mismatch — possible CSRF attack."));
+        res.end(renderResultPage({ ok: false, platform: "YouTube", reason: "The sign-in that came back was not the one Corva started. Nothing was saved." }));
         cleanup();
         reject(new Error("OAuth state mismatch"));
         return;
@@ -204,7 +205,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
           channelId,
         };
 
-        const html = buildResultPage(true, `Connected as ${displayName}! You can close this tab.`);
+        const html = renderResultPage({ ok: true, platform: "YouTube", account: displayName });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
@@ -212,7 +213,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
       } catch (err) {
         log.error("OAuth error", { error: err.message });
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildResultPage(false, `Error: ${err.message}`));
+        res.end(renderResultPage({ ok: false, platform: "YouTube", reason: err.message }));
         cleanup();
         reject(err);
       }
@@ -314,51 +315,6 @@ async function refreshAccessToken(clientId, clientSecret, refreshToken) {
   });
 }
 
-/**
- * Build HTML result page (same styling as TikTok).
- */
-function buildResultPage(success, message) {
-  const color = success ? "#34d399" : "#f87171";
-  const icon = success ? "&#10003;" : "&#10007;";
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Corva — YouTube ${success ? "Connected" : "Error"}</title>
-  <style>
-    body {
-      margin: 0; padding: 0;
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh;
-      background: #0a0b10; color: #edeef2;
-      font-family: 'DM Sans', -apple-system, sans-serif;
-    }
-    .card {
-      text-align: center; padding: 48px;
-      background: #111218; border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.06);
-      max-width: 420px;
-    }
-    .icon {
-      font-size: 48px; color: ${color};
-      width: 80px; height: 80px; line-height: 80px;
-      border-radius: 50%; margin: 0 auto 24px;
-      background: ${success ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)"};
-      border: 2px solid ${color};
-    }
-    h2 { margin: 0 0 12px; font-size: 20px; }
-    p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.5; margin: 0; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="icon">${icon}</div>
-    <h2>${success ? "Connected!" : "Connection Failed"}</h2>
-    <p>${message}</p>
-  </div>
-</body>
-</html>`;
-}
 
 module.exports = {
   startOAuthFlow,

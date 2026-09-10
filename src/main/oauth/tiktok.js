@@ -15,6 +15,7 @@ const crypto = require("crypto");
 const { URL } = require("url");
 const { shell } = require("electron");
 const log = require("electron-log/main").scope("tiktok");
+const { renderResultPage } = require("./result-page");
 
 const TIKTOK_AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/";
 const TIKTOK_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
@@ -149,7 +150,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
       const errorDescription = url.searchParams.get("error_description");
 
       if (error) {
-        const html = buildResultPage(false, `TikTok authorization failed: ${errorDescription || error}`);
+        const html = renderResultPage({ ok: false, platform: "TikTok", reason: errorDescription || error });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
@@ -158,7 +159,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
       }
 
       if (!code) {
-        const html = buildResultPage(false, "No authorization code received from TikTok.");
+        const html = renderResultPage({ ok: false, platform: "TikTok", reason: "TikTok did not send back a sign-in code." });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
@@ -167,7 +168,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
       }
 
       if (returnedState !== state) {
-        const html = buildResultPage(false, "State mismatch — possible CSRF attack. Authorization rejected.");
+        const html = renderResultPage({ ok: false, platform: "TikTok", reason: "The sign-in that came back was not the one Corva started. Nothing was saved." });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
@@ -183,7 +184,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
 
         if (tokenData.error || !tokenData.access_token) {
           const errMsg = tokenData.error_description || tokenData.error || "Token exchange failed";
-          const html = buildResultPage(false, `Token exchange failed: ${errMsg}`);
+          const html = renderResultPage({ ok: false, platform: "TikTok", reason: `Token exchange failed: ${errMsg}` });
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(html);
           cleanup();
@@ -211,14 +212,14 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
           avatarUrl,
         };
 
-        const html = buildResultPage(true, `Successfully connected as ${displayName}! You can close this tab.`);
+        const html = renderResultPage({ ok: true, platform: "TikTok", account: displayName });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
         resolve(accountData);
       } catch (err) {
         log.error("Error during token exchange", { error: err.message });
-        const html = buildResultPage(false, `Error: ${err.message}`);
+        const html = renderResultPage({ ok: false, platform: "TikTok", reason: err.message });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
         cleanup();
@@ -301,51 +302,6 @@ async function refreshAccessToken(clientKey, clientSecret, refreshToken) {
   });
 }
 
-/**
- * Build a simple HTML page shown in the browser after OAuth callback.
- */
-function buildResultPage(success, message) {
-  const color = success ? "#34d399" : "#f87171";
-  const icon = success ? "&#10003;" : "&#10007;";
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Corva — TikTok ${success ? "Connected" : "Error"}</title>
-  <style>
-    body {
-      margin: 0; padding: 0;
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh;
-      background: #0a0b10; color: #edeef2;
-      font-family: 'DM Sans', -apple-system, sans-serif;
-    }
-    .card {
-      text-align: center; padding: 48px;
-      background: #111218; border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.06);
-      max-width: 420px;
-    }
-    .icon {
-      font-size: 48px; color: ${color};
-      width: 80px; height: 80px; line-height: 80px;
-      border-radius: 50%; margin: 0 auto 24px;
-      background: ${success ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)"};
-      border: 2px solid ${color};
-    }
-    h2 { margin: 0 0 12px; font-size: 20px; }
-    p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.5; margin: 0; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="icon">${icon}</div>
-    <h2>${success ? "Connected!" : "Connection Failed"}</h2>
-    <p>${message}</p>
-  </div>
-</body>
-</html>`;
-}
 
 module.exports = {
   startOAuthFlow,

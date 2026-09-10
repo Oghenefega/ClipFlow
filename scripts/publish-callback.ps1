@@ -16,8 +16,10 @@
 
 param(
     [string]$Source    = (Join-Path $PSScriptRoot "hosted\meta-callback.html"),
+    [string]$Mark      = (Join-Path (Split-Path $PSScriptRoot -Parent) "src\renderer\assets\brand\clipflow-mark.png"),
     [string]$Bucket    = "clipflow-engine",
     [string]$Key       = "auth/meta/callback",
+    [string]$MarkKey   = "auth/meta/corva-mark.png",
     [string]$PublicUrl = "https://engine.flowve.app"
 )
 
@@ -33,6 +35,18 @@ function Find-Rclone {
 
 $rclone = Find-Rclone
 if (-not (Test-Path $Source)) { throw "Return page not found: $Source" }
+if (-not (Test-Path $Mark)) { throw "Brand mark not found: $Mark" }
+
+# --- the mark first: the page references it by URL, so it must be there before the page is ---
+Write-Host "Uploading $Mark -> r2:$Bucket/$MarkKey"
+& $rclone copyto $Mark "r2:$Bucket/$MarkKey" `
+    --header-upload "Content-Type: image/png" `
+    --header-upload "Cache-Control: public, max-age=86400"
+if ($LASTEXITCODE -ne 0) { throw "rclone failed uploading the brand mark" }
+$markResp = Invoke-WebRequest -Uri "$PublicUrl/$MarkKey" -Method Head -UseBasicParsing
+$markType = "$($markResp.Headers['Content-Type'])"
+Write-Host "Live: $PublicUrl/$MarkKey ($($markResp.StatusCode), $markType)"
+if ($markType -notlike "image/png*") { throw "Mark served as '$markType', not image/png" }
 
 Write-Host "Uploading $Source -> r2:$Bucket/$Key"
 & $rclone copyto $Source "r2:$Bucket/$Key" `

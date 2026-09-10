@@ -29,6 +29,7 @@ const crypto = require("crypto");
 const { URL } = require("url");
 const { shell } = require("electron");
 const log = require("electron-log/main").scope("meta");
+const { renderResultPage } = require("./result-page");
 
 const GRAPH_API_VERSION = "v21.0";
 const AUTH_URL = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`;
@@ -111,6 +112,7 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
     let server = null;
     let settled = false;
     const state = generateState();
+    const platform = scopeName === "facebook" ? "Facebook" : "Instagram";
 
     const cleanup = () => {
       if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -142,21 +144,21 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
 
       if (error) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildCallbackPage(false, `Error: ${errorDescription || error}`));
+        res.end(renderResultPage({ ok: false, platform, reason: errorDescription || error }));
         settle(() => reject(new Error(`Meta auth error: ${errorDescription || error}`)));
         return;
       }
 
       if (!code) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildCallbackPage(false, "No authorization code received"));
+        res.end(renderResultPage({ ok: false, platform, reason: "Meta did not send back a sign-in code." }));
         settle(() => reject(new Error("No authorization code received from Meta")));
         return;
       }
 
       if (returnedState !== state) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildCallbackPage(false, "State mismatch — possible CSRF attack. Authorization rejected."));
+        res.end(renderResultPage({ ok: false, platform, reason: "The sign-in that came back was not the one Corva started. Nothing was saved." }));
         settle(() => reject(new Error("OAuth state mismatch")));
         return;
       }
@@ -182,12 +184,12 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
         const accountData = await finalizer({ accessToken, expiresIn, scopes });
 
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildCallbackPage(true, `Connected as ${accountData.displayName}!`));
+        res.end(renderResultPage({ ok: true, platform, account: accountData.displayName }));
         settle(() => resolve(accountData));
       } catch (err) {
         log.error(`${scopeName} OAuth error`, { error: err.message });
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildCallbackPage(false, err.message));
+        res.end(renderResultPage({ ok: false, platform, reason: err.message }));
         settle(() => reject(err));
       }
     });
@@ -351,25 +353,6 @@ function startInstagramOAuthFlow(appId, appSecret, timeoutMs = 300000) {
     finalizer: instagramFinalizer,
     scopeName: "instagram",
   });
-}
-
-/**
- * Build the HTML page shown after OAuth callback.
- */
-function buildCallbackPage(success, message) {
-  const color = success ? "#10B981" : "#EF4444";
-  const icon = success
-    ? '<circle cx="50" cy="50" r="45" stroke="#10B981" stroke-width="3" fill="none"/><path d="M30 50 L45 65 L70 35" stroke="#10B981" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-    : '<circle cx="50" cy="50" r="45" stroke="#EF4444" stroke-width="3" fill="none"/><path d="M35 35 L65 65 M65 35 L35 65" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>';
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Corva — Meta</title>
-<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e0e0e0}
-.card{background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:48px;text-align:center;max-width:400px}
-svg{width:80px;height:80px;margin-bottom:16px}
-h1{font-size:24px;color:${color};margin:0 0 8px}
-p{font-size:14px;color:#888;margin:0}</style></head>
-<body><div class="card"><svg viewBox="0 0 100 100">${icon}</svg>
-<h1>${success ? "Connected!" : "Connection Failed"}</h1>
-<p>${message}${success ? " You can close this tab." : ""}</p></div></body></html>`;
 }
 
 /**
