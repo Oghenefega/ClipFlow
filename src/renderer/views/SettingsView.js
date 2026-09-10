@@ -232,6 +232,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   };
 
   const [connectingPlatform, setConnectingPlatform] = useState(null); // "tiktok" while connecting
+  const metaConnecting = connectingPlatform === "instagram" || connectingPlatform === "facebook";
   const [disconnectTarget, setDisconnectTarget] = useState(null); // account key to disconnect (confirmation dialog)
 
   const handleConnectTikTok = async () => {
@@ -1239,18 +1240,20 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             >
               {connectingPlatform === "tiktok" ? "Connecting..." : "+ TikTok"}
             </button>
+            {/* Instagram and Facebook share one sign-in port, so while either
+                is waiting on the browser BOTH buttons are off (s249). */}
             <button
               onClick={handleConnectInstagram}
-              disabled={connectingPlatform === "instagram"}
+              disabled={metaConnecting}
               title="Authenticates via Facebook. Your Instagram must be linked to a Facebook Page you manage."
-              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "instagram" ? 0.5 : 1 }}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: metaConnecting ? 0.5 : 1 }}
             >
               {connectingPlatform === "instagram" ? "Connecting..." : "+ Instagram"}
             </button>
             <button
               onClick={handleConnectFacebook}
-              disabled={connectingPlatform === "facebook"}
-              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "facebook" ? 0.5 : 1 }}
+              disabled={metaConnecting}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: metaConnecting ? 0.5 : 1 }}
             >
               {connectingPlatform === "facebook" ? "Connecting..." : "+ Facebook Page"}
             </button>

@@ -183,7 +183,13 @@ function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeNam
     });
 
     server.on("error", (err) => {
-      settle(() => reject(new Error(`Meta OAuth server error: ${err.message}`)));
+      // Both Meta flows share one callback port, so a second click while the
+      // first sign-in is still open in the browser lands here (s249: eleven
+      // EADDRINUSE alerts in four minutes). Say what is actually going on.
+      const msg = err.code === "EADDRINUSE"
+        ? "A Facebook or Instagram sign-in is already open in your browser. Finish that one first (or wait for it to time out), then try again."
+        : `Meta OAuth server error: ${err.message}`;
+      settle(() => reject(new Error(msg)));
     });
 
     timeoutHandle = setTimeout(() => {
@@ -298,7 +304,11 @@ async function instagramFinalizer({ accessToken, expiresIn, scopes }) {
 /**
  * Start the Facebook Page OAuth flow.
  */
-function startFacebookOAuthFlow(appId, appSecret, timeoutMs = 120000) {
+// 5 minutes, not the 2 the other platforms use: the Meta dialog walks through
+// page selection, the linked Instagram account and a permission review — with
+// the #387 insight scopes it is several screens, and a timeout mid-way closes
+// the callback port under the user (s249).
+function startFacebookOAuthFlow(appId, appSecret, timeoutMs = 300000) {
   return runOAuthFlow({
     appId, appSecret, timeoutMs,
     scopes: FACEBOOK_SCOPES,
@@ -310,7 +320,7 @@ function startFacebookOAuthFlow(appId, appSecret, timeoutMs = 120000) {
 /**
  * Start the Instagram (via Facebook Login) OAuth flow.
  */
-function startInstagramOAuthFlow(appId, appSecret, timeoutMs = 120000) {
+function startInstagramOAuthFlow(appId, appSecret, timeoutMs = 300000) {
   return runOAuthFlow({
     appId, appSecret, timeoutMs,
     scopes: INSTAGRAM_SCOPES,
