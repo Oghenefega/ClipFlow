@@ -692,7 +692,13 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   // ============ DAY DETECTION ============
   const detectGame = (fileName, games, currentPending) => {
-    const game = games.find((g) => g.name === mainGameName) || games[0] || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
+    // #406: games[0] used to win here, and on a fresh install that is the
+    // migration-injected "Just Chatting" CONTENT type — so every recording was
+    // silently tagged JC. Only a real game may stand in for an unset main game;
+    // with none added we genuinely don't know, and Unknown says so.
+    const game = games.find((g) => g.name === mainGameName)
+      || games.find((g) => g.entryType !== "content")
+      || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
     return detectForGame(game, fileName, currentPending);
   };
 
@@ -1747,6 +1753,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   // #153: what the status strip should say. "watching" is the only state that
   // gets the pulsing dot — the other two are dead-stop conditions the user
   // has to fix in Settings, so they carry the button.
+  // #406: a library with only content types (or nothing at all) means neither
+  // game detector can ever match, and naming has nothing to go on.
+  const hasRealGame = (gamesDb || []).some((g) => g.entryType !== "content");
   const watchTone = watchStatus.state === "watching" ? T.green : watchStatus.state === "unset" ? T.yellow : T.red;
   const watchLabel = watchStatus.state === "watching" ? "WATCHING" : watchStatus.state === "unset" ? "NO FOLDER SET" : "FOLDER NOT FOUND";
   const watchDetail = watchStatus.state === "watching"
@@ -1823,7 +1832,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             <button onClick={() => onAddGame("game")} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(var(--lift),0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={watchDetail}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(var(--lift),0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: hasRealGame ? `0 0 ${T.radius.lg} ${T.radius.lg}` : 0 }} title={watchDetail}>
           {watchStatus.state === "watching"
             ? <PulseDot size={8} />
             : <span style={{ width: 8, height: 8, borderRadius: "50%", background: watchTone, boxShadow: `0 0 6px ${watchTone}`, flexShrink: 0 }} />}
@@ -1833,6 +1842,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             <button onClick={() => onNavigate("settings")} style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Choose folder</button>
           )}
         </div>
+        {/* #406: without a real game neither detector can match and naming has
+            nothing to go on — say so here rather than quietly tagging Unknown. */}
+        {!hasRealGame && (
+          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: T.yellowDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title="Corva recognises what you're playing by matching against the games you've added.">
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.yellow, boxShadow: `0 0 6px ${T.yellow}`, flexShrink: 0 }} />
+            <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: T.yellow, flexShrink: 0 }}>NO GAMES SET UP</span>
+            <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Corva can't tell what you're playing — recordings stay Unknown until you add a game.</span>
+            <button onClick={() => onAddGame("game")} style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}

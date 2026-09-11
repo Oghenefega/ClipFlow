@@ -3307,9 +3307,13 @@ ipcMain.handle("pipeline:degradeAnswer", async (_, requestId, answer) => {
 ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
   // #251: refuse before any work if a dependency is missing — a plain message
   // now beats a confusing failure 40% into a run.
+  // #407: only BLOCKING issues refuse. An unset output folder is surfaced by
+  // the banner but must not stop generation — clips are generated and reviewed
+  // long before anything is rendered.
   const deps = await depsCheck.checkDependencies(store);
-  if (!deps.ok) {
-    return { error: deps.issues.map((i) => `${i.title}. ${i.fix}`).join("\n\n") };
+  if (!deps.canRunJobs) {
+    const blockers = deps.issues.filter((i) => i.blocking);
+    return { error: blockers.map((i) => `${i.title}. ${i.fix}`).join("\n\n") };
   }
 
   // #169: multi-track files must have a verified track layout before we
@@ -4691,7 +4695,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
     // Determine output path if not provided
     if (!outputPath) {
       const outputFolder = resolveTestAwareOutputFolder(projectData);
-      if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
+      if (!outputFolder) return { error: "Output folder not configured. Set one in Settings → Files & Folders." };
       outputPath = () => resolveRenderOutputPath(outputFolder, clipData, projectData); // #181 lazy: resolved when the job runs
     }
     const encoder = await resolveClipCutEncoder();
@@ -4709,7 +4713,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 ipcMain.handle("thumbnail:capture", async (event, clipData, projectData, timelineTime, options) => {
   try {
     const outputFolder = resolveTestAwareOutputFolder(projectData);
-    if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
+    if (!outputFolder) return { error: "Output folder not configured. Set one in Settings → Files & Folders." };
     // #347: the id tail makes the name deterministic per CLIP, not per title —
     // recapturing still overwrites the clip's own PNG, but two same-titled
     // clips in one project can no longer clobber each other's screenshot. The
@@ -4753,7 +4757,7 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
   try {
     if (!outputDir) {
       outputDir = resolveTestAwareOutputFolder(projectData);
-      if (!outputDir) return { error: "Output folder not configured. Go to Settings." };
+      if (!outputDir) return { error: "Output folder not configured. Set one in Settings → Files & Folders." };
     }
 
     const encoder = await resolveClipCutEncoder();

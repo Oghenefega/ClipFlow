@@ -1125,6 +1125,7 @@ export default function App() {
               setLocalProjects={setLocalProjects}
               onRepostClip={handleRepostClip}
               mainGameTag={mainGameTag}
+              outputFolder={outputFolder}
               platforms={platforms}
               trackerData={trackerData}
               weeklyTemplate={weeklyTemplate}

@@ -617,7 +617,7 @@ function TiktokInteractionToggle({ label, userOn, forceOn, onToggle }) {
 // the failure banner are all written or raised by the main process now, so the Queue no
 // longer needs the setters - it reads trackerData, it does not author it.
 export default function QueueView({
-  allClips, localProjects, setLocalProjects, mainGameTag, platforms, trackerData,
+  allClips, localProjects, setLocalProjects, mainGameTag, platforms, trackerData, outputFolder,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, streamSchedule,
   platformOptions, setPlatformOptions, gamesDb, setGamesDb, streamingMode, onOpenInEditor, onCreateGame,
@@ -2154,7 +2154,7 @@ export default function QueueView({
 
         {filteredUnscheduled.length === 0 && (
           <div style={{ padding: 30, textAlign: "center" }}>
-            <div style={{ color: T.textTertiary, fontSize: 13 }}>{approved.length === 0 ? "No clips queued — approve clips in the Projects tab, or drop finished videos here to import them." : "No unscheduled clips matching filter."}</div>
+            <div style={{ color: T.textTertiary, fontSize: 13 }}>{approved.length !== 0 ? "No unscheduled clips matching filter." : outputFolder ? "No clips queued — approve clips in the Projects tab, or drop finished videos here to import them." : "No clips queued — approve clips in the Projects tab. Set an Output Folder in Settings to import finished videos here too."}</div>
           </div>
         )}
 

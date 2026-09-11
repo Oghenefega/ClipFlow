@@ -26,6 +26,16 @@ export default function DependencyBanner({ onFinishSetup }) {
 
   if (dismissed || issues.length === 0) return null;
 
+  // #407: issues now come in two weights. With nothing blocking, the banner is
+  // a heads-up about a setting needed later — it must not claim jobs can't run.
+  const blocking = issues.some((i) => i.blocking);
+  const headline = blocking
+    ? "Corva can't run jobs on this machine yet"
+    : "Corva needs one more thing set up";
+  const dismissHint = blocking
+    ? "Hide — Corva will still refuse to start a job until this is fixed"
+    : "Hide — you'll hit this again when you render";
+
   return (
     <div style={{
       flexShrink: 0,
@@ -40,7 +50,7 @@ export default function DependencyBanner({ onFinishSetup }) {
       <span style={{ color: T.yellow, fontWeight: 700, lineHeight: "20px" }}>⚠</span>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
         <span style={{ color: T.text, fontWeight: 700 }}>
-          Corva can't run jobs on this machine yet
+          {headline}
         </span>
         {issues.map((issue) => (
           <div key={issue.id} style={{ color: T.textSecondary, fontSize: 12, lineHeight: 1.5 }}>
@@ -87,7 +97,7 @@ export default function DependencyBanner({ onFinishSetup }) {
       </button>
       <button
         onClick={() => setDismissed(true)}
-        title="Hide — Corva will still refuse to start a job until this is fixed"
+        title={dismissHint}
         style={{
           background: "transparent",
           color: T.textTertiary,

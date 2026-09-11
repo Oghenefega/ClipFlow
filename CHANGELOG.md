@@ -4,6 +4,21 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-11 (session 255) — The two silent failures a new install walks into (#406, #407)
+
+### Fixed
+- **An empty games library no longer labels every recording "Just Chatting" (#406).** On a clean install the games list ships empty and first boot injects a single "Just Chatting" entry — which is a *content type*, not a game. The Rename tab picked its game with `games[0]`, so that injected entry won every time: a new user's first Valorant recording was silently filed as JC, with no prompt and no warning. Only a real game may now stand in for an unset main game; with none added the recording reads "Unknown", which is at least true. Existing libraries are unaffected — the injected entry is appended last, so `games[0]` was already a real game for anyone who had added one, and a set main game short-circuits the fallback entirely.
+- **The Rename tab says when no games are set up.** A second row under the watch-folder strip, in the same yellow language: "NO GAMES SET UP — Corva can't tell what you're playing, recordings stay Unknown until you add a game", with an Add Game button. Without it the failure was completely invisible: both game detectors loop over the games list, so an empty one makes process-watch and AI frame-sniff permanent no-ops that announce nothing. The card's bottom rounding moves to whichever row is last.
+- **An unset output folder is surfaced up front instead of at Render (#407).** It was only ever checked at render time, which meant a new user recorded, renamed, generated, reviewed and edited a clip before being told "Output folder not configured" — the payoff for an hour of work on a multi-gigabyte pipeline. It is now part of the first-run dependency check, so the existing banner names it on launch.
+- **The Queue stops advertising an import it cannot perform.** Its empty state offered "drop finished videos here to import them" while the drop handler refuses without an output folder. With one unset it now says what to set instead; with one set the original offer returns.
+- **The render-time message names where to go.** "Output folder not configured. Go to Settings." became "… Set one in Settings → Files & Folders.", matching the newer dependency copy. Three call sites.
+
+### Changed
+- **Dependency issues now carry weight, and only blocking ones stop a job.** Missing FFmpeg or Whisper means a run physically cannot happen; an unset output folder is a setting needed later. Previously any issue in the check refused clip generation outright, so adding the output folder there would have blocked generating and reviewing clips — work that succeeds without it. `checkDependencies` returns `canRunJobs` alongside `ok`, the pipeline gate refuses only on blockers and lists only those, and the banner drops its "Corva can't run jobs on this machine yet" headline for "Corva needs one more thing set up" when nothing is actually blocking.
+
+### Added
+- **Four issues filed from a first-run audit of a clean profile** — #405 (dead Instagram OAuth connect flow that misleads anyone debugging IG login; only `refreshLongLivedToken` is live), #406, #407, and #408 (Settings reports Gemini as configured and "titles see the clip video" on a bundled-token install, while `gemini-watch` hard-requires a raw key and the pipeline silently falls back to stills).
+
 ## [Unreleased] — 2026-09-10 (session 254) — Version 0.5.0-alpha.3: the Analytics tab decluttered
 
 ### Changed
