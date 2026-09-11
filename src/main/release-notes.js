@@ -12,6 +12,15 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.3",
+    date: "2026-09-10",
+    changed: [
+      "Clip tiles in Analytics are quieter. The ranking number in the corner and the thin multi-coloured bar under the view count are both gone — the bar split your views by platform at a size too small to read, and the number only repeated the order the clips were already in. Each tile now shows how it did against your median, its length, its title, its views, and the game.",
+      "The clip panel drops the \"share\" bar beside each platform. The view count sitting right next to it already said the same thing, more precisely, and losing the bar gives the platform names room to spell themselves out.",
+      "\"Copy what worked\" now shows the caption on its own. The title was identical on every platform and already printed at the top of the panel, and the hashtag box was only ever the hashtags lifted back out of the caption above it. Switching platform still swaps the caption, which is the part that genuinely differs between YouTube, Facebook, Instagram and TikTok. Your other clips from the same game are now in view without scrolling.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.2",
     date: "2026-09-10",
     added: [

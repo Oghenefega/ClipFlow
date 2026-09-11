@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-10 (session 254) — Version 0.5.0-alpha.3: installer cut for the Analytics declutter
+
+### Changed
+- **Bumped to 0.5.0-alpha.3 and cut an installer.** Promotes the Analytics declutter from this session: the clip tiles lose the rank number and the platform share bar, the clip panel loses the "share" column, and "Copy what worked" is down to the caption alone. Nothing else changed since alpha.2 — the only other commit in the range is a session wrap touching docs and lessons.
+
 ## [Unreleased] — 2026-09-10 (session 254) — Version 0.5.0-alpha.2: the subtitle-timing model that never could verify, republished (#403); Analytics decluttered
 
 ### Fixed
