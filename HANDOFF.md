@@ -10,7 +10,7 @@ alpha.2's exe and blockmap were pruned from the feed.
 Master is clean at `133d522` plus this wrap. Fega's installed app was on alpha.2 when the session
 ended (he took that update mid-session); the alpha.3 banner appears on his next relaunch.
 
-Carried forward from the parallel s254 session: #401 (Analytics clip panel) and #402 (editor
+Carried forward from the parallel s253 session: #401 (Analytics clip panel) and #402 (editor
 glow/text colour link) are still **`status: untested`** — Fega has only confirmed that setup runs
 through to the end (#403).
 
