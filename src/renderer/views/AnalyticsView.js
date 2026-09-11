@@ -56,7 +56,6 @@ const ago = (iso) => {
   return `${Math.round(h / 24)}d ago`;
 };
 const stripTags = (t) => String(t || "").replace(/#\w+/g, "").trim();
-const hashtagsOf = (t) => Array.from(new Set(String(t || "").match(/#\w+/g) || [])).join(" ");
 // "2:37 PM" → minutes since midnight, so same-day clips sort by post time.
 const timeMinutes = (t) => {
   const m = /(\d+):(\d+)\s*(AM|PM)?/i.exec(t || "");
@@ -125,12 +124,11 @@ function Sparkline({ points, width = 84, height = 24, color }) {
 
 // ---- clip card --------------------------------------------------------------
 
-function ClipCard({ clip, rank, medianAll, selected, onClick }) {
+function ClipCard({ clip, medianAll, selected, onClick }) {
   const [hover, setHover] = useState(false);
   const x = medianAll > 0 ? clip.total / medianAll : 0;
   const hot = x >= 2, cold = x < 0.7;
   const color = clip.gameColor;
-  const parts = PLATFORMS.filter((p) => clip.views[p] > 0);
   return (
     <div data-keep-panel="" onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{
       padding: 6, borderRadius: 18, cursor: "pointer", position: "relative",
@@ -147,16 +145,12 @@ function ClipCard({ clip, rank, medianAll, selected, onClick }) {
           background: "rgba(10,11,16,0.78)", color: hot ? T.green : cold ? "rgba(255,255,255,0.6)" : "#fff", border: `1px solid ${hot ? T.greenBorder : "transparent"}` }}>
           {x >= 1 ? `${x.toFixed(1)}× median` : `${Math.round(x * 100)}% of median`}
         </span>
-        <span style={{ position: "absolute", top: 6, right: 6, width: 18, height: 18, borderRadius: "50%", background: "rgba(10,11,16,0.72)", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{rank}</span>
         {clip.duration > 0 && <span style={{ position: "absolute", right: 6, bottom: 6, fontSize: 10.5, padding: "1px 5px", borderRadius: 5, background: "rgba(10,11,16,0.72)", color: "rgba(255,255,255,0.8)" }}>{Math.round(clip.duration)}s</span>}
       </div>
       <div style={{ padding: "9px 5px 4px" }}>
         <div title={clip.title} style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, color: T.text, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{stripTags(clip.title) || clip.title}</div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 5, letterSpacing: "-0.2px", color: T.text }}>{fmtK(clip.total)}<span style={{ fontSize: 10.5, fontWeight: 400, color: T.textTertiary, marginLeft: 4 }}>views</span></div>
-        <div style={{ display: "flex", gap: 2, height: 4, borderRadius: 2, overflow: "hidden", marginTop: 6, background: "rgba(var(--lift),0.05)" }}>
-          {parts.map((p) => <span key={p} style={{ width: `${(clip.views[p] / clip.total) * 100}%`, background: PLATFORM_BRAND[p].bar, display: "block" }} />)}
-        </div>
-        <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 5, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+        <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 8, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
           <Dot color={color} size={6} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.gameName} · {fmtDate(clip.date)}</span>
         </div>
       </div>
@@ -209,9 +203,7 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
   const postedOn = PLATFORMS.filter((p) => clip.posted?.[p] || clip.hasPost[p]);
   const cp = capPlatform && postedOn.includes(capPlatform) ? capPlatform : postedOn[0] || null;
   const logged = cp ? clip.posted?.[cp] : null;
-  const capTitle = logged?.title || clip.title;
   const capText = logged ? logged.caption : clip.caption;
-  const capTags = hashtagsOf(capText);
   const longCaption = (capText || "").length > 320 || (capText || "").split("\n").length > 7;
   const copyRow = (label, value, body) => (
     <div style={{ marginTop: 8 }}>
@@ -248,19 +240,16 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "82px 1fr 48px 40px 46px", gap: 6, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
-              <span>Platform</span><span>share</span><span style={{ textAlign: "right" }}>views</span><span style={{ textAlign: "right" }}>likes</span><span style={{ textAlign: "right" }}>link</span>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 44px 46px", gap: 6, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
+              <span>Platform</span><span style={{ textAlign: "right" }}>views</span><span style={{ textAlign: "right" }}>likes</span><span style={{ textAlign: "right" }}>link</span>
             </div>
             {PLATFORMS.map((p) => {
               const v = clip.views[p];
               const url = clip.urls?.[p];
               const posted = clip.hasPost[p];
               return (
-                <div key={p} style={{ display: "grid", gridTemplateColumns: "82px 1fr 48px 40px 46px", gap: 6, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
+                <div key={p} style={{ display: "grid", gridTemplateColumns: "1fr 52px 44px 46px", gap: 6, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: T.text }}><Dot color={PLATFORM_BRAND[p].bar} /> {PLATFORM_LABEL[p]}</span>
-                  <div style={{ height: 8, background: "rgba(var(--lift),0.05)", borderRadius: "0 3px 3px 0", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${v > 0 && clip.total > 0 ? (v / clip.total) * 100 : 0}%`, background: PLATFORM_BRAND[p].bar, borderRadius: "0 3px 3px 0" }} />
-                  </div>
                   <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: v == null ? T.textTertiary : T.text, fontWeight: 600 }}>{v == null ? (posted ? "…" : "—") : fmtK(v)}</span>
                   <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: T.textSecondary }}>{clip.engagement?.[p]?.likes != null ? fmtK(clip.engagement[p].likes) : "—"}</span>
                   <span style={{ textAlign: "right" }}>
@@ -336,7 +325,6 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
                 ))}
               </div>
             )}
-            {copyRow("Title", capTitle, <div style={{ ...box, color: T.text, fontWeight: 600 }}>{capTitle}</div>)}
             {copyRow("Caption", capText, (
               <>
                 {/* Captions carry the full description block (links, schedule, gear list) — clamp so the related clips stay in reach. */}
@@ -348,7 +336,6 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
                 )}
               </>
             ))}
-            {capTags && copyRow("Hashtags", capTags, <div style={{ ...box, color: T.accentLight }}>{capTags}</div>)}
             {logged?.tags && copyRow("YouTube tags", logged.tags.join(", "), <div style={box}>{logged.tags.join(", ")}</div>)}
             {cp && !logged && <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 6 }}>From the tracker — this post predates the per-platform log, so every platform shows the same text.</div>}
           </div>
@@ -452,7 +439,6 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
 
   const ranked = useMemo(() => withViews(clips).sort((a, b) => b.total - a.total || (b.date < a.date ? -1 : 1)), [clips]);
   const medianAll = useMemo(() => median(ranked.map((c) => c.total)), [ranked]);
-  const rankOf = useMemo(() => new Map(ranked.map((c, i) => [c.clipId, i + 1])), [ranked]);
   const gameNames = useMemo(() => [...new Set(ranked.map((c) => c.gameName))].sort((a, b) => a.localeCompare(b)), [ranked]);
   const gridClips = useMemo(() => {
     let list = ranked;
@@ -638,7 +624,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 10 }}>
               {gridClips.slice(0, shown).map((c) => (
-                <ClipCard key={c.clipId} clip={c} rank={rankOf.get(c.clipId)} medianAll={medianAll} selected={c.clipId === selectedId} onClick={() => setSelectedId(c.clipId)} />
+                <ClipCard key={c.clipId} clip={c} medianAll={medianAll} selected={c.clipId === selectedId} onClick={() => setSelectedId(c.clipId)} />
               ))}
             </div>
             {gridClips.length > shown && (
