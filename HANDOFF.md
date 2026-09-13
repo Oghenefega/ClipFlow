@@ -1,85 +1,92 @@
-# HANDOFF — Session 254 (2026-09-10)
+# HANDOFF — Session 255 (2026-09-11 → 13)
 
 ## Current State
 
-**0.5.0-alpha.3 is on the feed**, cut and published from `133d522`. It promotes one change: the
-Analytics tab declutter (`3023a17`). The served installer was content-verified — its ETag matches
-the local build's MD5 byte-for-byte — not just size-matched, which is the trap #403 fell into.
-alpha.2's exe and blockmap were pruned from the feed.
+Master is clean at `77be529` plus this wrap. **No installer was cut** — one commit since
+alpha.3, well short of the batch rule, so #406 and #407 are closed `status: untested` and
+reach Fega's machine on the next cut.
 
-Master is clean at `133d522` plus this wrap. Fega's installed app was on alpha.2 when the session
-ended (he took that update mid-session); the alpha.3 banner appears on his next relaunch.
+The session started from a real symptom: connecting platform accounts on the **laptop** (the
+de-Fega'd fresh-customer machine) produced four "Configure your Client ID and Secret" dialogs.
+Fega chose to treat that as a product finding rather than paste his own credentials over it,
+so the laptop keeps its job as the customer simulator. The output is a full first-run audit,
+two fixes, a map, and an ops handoff to Wick.
 
-Carried forward from the parallel s253 session: #401 (Analytics clip panel) and #402 (editor
-glow/text colour link) are still **`status: untested`** — Fega has only confirmed that setup runs
-through to the end (#403).
+**The map:** https://claude.ai/code/artifact/6ac33ed0-5120-4816-b735-d574c9e550b1 — all ten
+gates between download and first published clip, ownership per gate, platform readiness,
+recommended order, issue ledger. Updated after the fixes landed; gates 06–08 read Fixed with
+a "Was:" line preserving the original finding.
 
 ## Key Decisions
 
-- **Analytics clip tile keeps five elements, not three.** Fega's call. The rank number and the
-  multi-colour platform share bar are gone; the `N× median` badge, duration, title, views and
-  game·date all stay. "Only 3 things" was the framing, but he chose the smaller change when shown
-  the full seven-element inventory.
-- **"Copy what worked" is caption-only.** Title and Hashtags both removed. Evidence, not taste:
-  titles are byte-identical across Facebook/Instagram/TikTok in **121 of 121** logged posts *and*
-  the title is already the panel's `<h2>`; hashtags were `hashtagsOf(capText)`, a regex extraction
-  from the caption printed directly above. The caption is the only field that genuinely varies
-  (0 of 121 identical — each platform gets its own tags), so the platform switcher stays.
-- **The alpha.2 What's New entry was left unedited** even though it promises "title, caption and
-  hashtags" in that panel, which alpha.3 makes untrue. `lastSeenVersion` is `0.5.0-alpha.2`, so
-  Fega has already read it; the alpha.3 note supersedes it rather than rewriting what was shown.
-- **The redesign effort was abandoned and its artefacts deleted.** Two before/after mockups
-  (`mockups/redesign-pass-*.html`) were binned at Fega's request — "none of them are good". See
-  Watch Out For; the failure is worth not repeating.
+- **Dependency issues gained a weight rather than a blanket gate.** Adding the output folder
+  to `deps-check` naively would have blocked clip generation, which succeeds fine without one.
+  `checkDependencies` now returns `canRunJobs` alongside `ok`; the pipeline refuses only on
+  blockers. Fega's call: **warn, don't block**.
+- **With no games set up, a recording reads `Unknown`, not `Just Chatting`.** Fega's call.
+  Accepted edge case: a library holding *only* content types and no main game now reads
+  Unknown where it read the first content entry. That is the state the new strip row exists
+  to fix; revisit if a genuinely content-only creator ever hits it.
+- **The laptop stays a customer simulator.** Copying the six credential values across would
+  have had it publishing in 15 minutes and burned its testing value. Not done.
+- **No installer.** Deliberate, per the batch rule.
 
 ## Next Steps
 
-1. **Visually confirm alpha.3's Analytics changes.** See the warning below — they were never seen
-   running. Open Analytics, check a clip tile has no rank circle and no share bar, and that the
-   clip panel's platform table has no `share` column and the copy block shows only Caption.
-2. **#404 — 79 hardcoded Midnight colours** across 11 renderer files, leaking into the other eight
-   themes. Filed this session with per-file counts, two worked examples and a repro grep. Most
-   visible on Blush and Sunset.
-3. **#401 / #402 still need Fega's confirmation** to drop `status: untested`.
+1. **Google OAuth consent screen — verified, or just published?** (Fega, 5 minutes, Google
+   Cloud console → APIs & Services.) `youtube.upload` + `youtube.readonly` are restricted
+   scopes; published-to-Production is not the same as verified, and unverified means a warning
+   screen and a 100-user cap. **This changes sequencing** — it decides whether YouTube is
+   ready for strangers or joins the weeks-long lane. Cheapest unknown on the board.
+2. **#265 — first-run setup checklist.** Now the largest remaining code item and the one that
+   makes the walk coherent: ask for the folders and a game up front instead of asking about
+   content vibe. Multi-session; wants a clean context.
+3. **#408** — Settings claims Gemini is configured and "titles see the clip video" on a
+   bundled-token install, while `gemini-watch` hard-requires a raw key. An hour, same
+   honesty family as this session's work.
+4. **#405** — dead Instagram OAuth connect flow (cosmetic, misleads anyone debugging IG login).
+5. **#21** — the credentials Worker. Well scoped already, but see the bottleneck below: it
+   only pays off for TikTok and probably YouTube until the ops lane moves.
 
 ## Watch Out For
 
-- **The alpha.3 Analytics change was never visually verified.** It is source-traced (mount point
-  confirmed at `App.js:1187`, every removed identifier grep'd to zero references) and the renderer
-  builds clean, but no one has seen it render. Two attempts to screenshot the dev build were lost
-  to window-focus fights, then Fega asked for the installer instead. Treat step 1 above as real
-  work, not a formality.
-- **`open_application "Electron"` launches Electron's built-in demo app**, not this project's dev
-  instance. It opens a window titled "Electron" showing the atom logo and
-  `$ electron.exe path-to-app`. Close it and use the AppActivate recipe below.
-- **Three skills were installed into `~/.claude/skills/` this session** at Fega's request —
-  `ui-ux-pro-max`, `ui-styling`, `design-system` (from `nextlevelbuilder/ui-ux-pro-max-skill`).
-  They are not part of this repo. Worth knowing: `ui-ux-pro-max`'s top style hits for this product
-  are *Aurora UI*, *Glassmorphism* and *Soft UI Evolution* — families `impeccable` explicitly bans.
-  Its narrower queries are better (Adobe Spectrum for creative tools). Use it as a lookup, never as
-  a driver.
-- **`PageHeader` is one shared component** (`src/renderer/components/shared.js:364`) used by five
-  views at 28px/800 with a 14px subtitle and `marginBottom: 28`. Anything about "the page header"
-  is one edit, not eight — but it also means one edit changes five tabs at once.
+- **The launch critical path is not code.** Meta App Review needs Tech Provider → business
+  verification → **a registered legal entity**, and an OV/EV code-signing cert (#51) is issued
+  against that same registry. **Flowve is not incorporated.** These are the only two blockers
+  measured in weeks. Routed to Wick's inbox 2026-09-11 with the full chain; do not re-derive
+  it in a dev session, and do not let a plan imply #21 alone unblocks four platforms.
+- **A "virgin" profile on this machine is not a fresh customer.** Deleting `%APPDATA%\clipflow-dev`
+  and letting the app recreate it produced a profile showing **167 of Fega's real clips** —
+  `main.js:501` pins the legacy `W:` watch folder whenever that path exists on disk, and
+  `libraryRoot()` falls back `projectsRoot || watchFolder`. Nothing looks broken. Before any
+  test that writes through the app, print `projectsRoot`, `watchFolder` and the clip count and
+  require the count you expect. Repoint `projectsRoot` at a scratch dir. Now in
+  `clipflow-trace-verify`.
+- **Fresh-install behaviour guarded by `fs.existsSync` on a Fega path cannot be reproduced
+  here at all.** The NO FOLDER SET + NO GAMES stacked case is one of them. Say so rather than
+  reporting it verified.
+- **AI already works with zero setup** — the gateway ships on and the installer carries a
+  bundled token, so detection and titles run on a clean install. Don't plan onboarding work
+  that asks a customer for an API key.
+- **`deps.ok` is now informational.** Only `canRunJobs` gates the pipeline; the banner keys on
+  `issues.length`. Anything new reading `.ok` as "can we run" is wrong.
 
-## Logs/Debugging
+## Logs / Debugging
 
-- **Focusing the dev window from a script** (when the Browser/other apps keep stealing front):
-  ```bash
-  powershell -NoProfile -Command "(New-Object -ComObject WScript.Shell).AppActivate('Corva')"
-  ```
-  Returns `True` on success. Note both the installed exe and a source run title their window
-  "Corva", so this can grab the wrong one when both are up.
-- **Booting current source without touching the daily driver:**
-  `CLIPFLOW_PROFILE=dev npx electron .` — loads from `build/`, no Vite. The dev profile is fully
-  populated and its `clipflow-tokens.json` is `{"accounts":{}}`, which is the required pre-boot
-  state. The boot log confirms `Scheduler: dev profile — scheduled publishing disabled`.
-  Clean up with `taskkill //F //IM electron.exe` (double slash; **never** `Corva.exe`).
-- **A probe that reported "121 of 121 identical" was reading fields that don't exist.** The publish
-  log stores `clipCaption`/`clipTitle` and capitalised platforms (`"YouTube"`); the probe used
-  `caption`/`title`/`"youtube"`. `filter(Boolean)` dropped every `undefined` and count-distinct
-  over the empty result scored as "all identical" — a clean, plausible, exactly-backwards answer
-  that got stated to Fega before it was caught. Real answer: 0 of 121. Distilled into
-  `clipflow-trace-verify`; dump one raw record before trusting any aggregate.
-- Publish-log entry keys, for future probes:
-  `clipId, clipTitle, clipCaption, platform, accountId, accountName, videoPath, status, publishId, postId, apiResponse, timestamp`
+- **CDP probe used this session:** `scratchpad/probe.js`, a port-parameterised copy of
+  `scripts/dev/cdp.js` (`CDP_PORT=<port> node probe.js "<expr>"`). Boot with
+  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=<port> --disable-backgrounding-occluded-windows`.
+  That runs the **built** renderer from `build/`, not Vite — the profile is isolated, the code is not HMR.
+- **Never type a Windows path through the shell into a CDP expression.** One did, and stored
+  as `C:UsersIAMABS~1...(0x0F)9c7f5b...`; the assertion that followed still passed, because a
+  corrupt non-empty string is truthy. Build it as
+  `['C:','Users',…].join(String.fromCharCode(92))` inside the evaluated JS and read it back
+  checking for control chars.
+- **Scan generated files for control bytes before committing.** `grep` reporting
+  "Binary file … matches" is the tell; it caught four real control bytes this session — in the
+  lessons entry describing that exact trap.
+- **Nav elements are not buttons.** The tab rail's label is a `<span>` inside a `<button>`;
+  select the span by exact text and click `.parentElement`. Allow ~700–900ms after a synthetic
+  click before asserting.
+- `taskkill //F //IM electron.exe` (double slash). Killing a backgrounded boot surfaces as a
+  failed task notification — expected, not an error.
