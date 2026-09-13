@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-13 (session 256) — Version 0.5.0-alpha.4: layouts, overlays, and the fresh-install fixes
+
+### Changed
+- **Bumped to 0.5.0-alpha.4 and cut an installer.** Promotes everything on master since alpha.3: the two silent first-run failures (#406 empty games library no longer labels recordings "Just Chatting", #407 an unset output folder is surfaced at launch instead of at Render), transparent ProRes overlays playing in the editor preview (#409), and the layout rework (#410–#415: Apply is a snapshot, explicit Save as new / Update, delete and duplicate in the drawer, Result preview on top with the background sliders folded, Result following each section during playback, and the − / + crop zoom per box).
+
 ## [Unreleased] — 2026-09-13 (session 256) — Layout rework: snapshots, an honest library, a usable edit drawer (#410–#415), and transparent overlays in the preview (#409)
 
 ### Fixed

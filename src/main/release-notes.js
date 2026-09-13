@@ -12,6 +12,24 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.4",
+    date: "2026-09-13",
+    added: [
+      "Two kinds of zoom on a layout box. Drag a corner to make the webcam or game band bigger, as before, or use the new − and + on each box row to tighten or widen the crop without moving anything else.",
+      "Saved layouts can be duplicated and deleted from the Layout panel, and a row shows an Apply chip when you hover it, so it is clear that clicking a layout applies it to the section or clip you are on.",
+    ],
+    changed: [
+      "Applying a layout no longer changes your saved layouts. It only sets the section or clip you are editing. To put a change into the library, use \"Save as new…\" or \"Update\" under the Apply button — and you can save as many layouts as you like.",
+      "The Layout panel shows the result first when you edit: the preview sits at the top with the Webcam and Game rows right under it, and the background sliders are tucked into a \"Background & edge\" section you open when you need it.",
+      "While you edit a layout, playback shows each section's own layout as it passes through your cuts; your in-progress layout shows only where it will land.",
+    ],
+    fixed: [
+      "A video with a transparent background (a ProRes export from DaVinci, for example) now shows its picture in the editor preview and the Media panel. It used to play the sound with nothing visible; the render was always fine.",
+      "A brand-new install no longer files every recording as \"Just Chatting\" when no games have been added yet. Until you add a game, recordings read Unknown and the Rename tab says so, with an Add Game button.",
+      "If no output folder is set, Corva tells you at launch instead of at Render time, and the Queue no longer offers an import it cannot do.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.3",
     date: "2026-09-10",
     changed: [
