@@ -2185,7 +2185,8 @@ export default function PreviewPanelNew() {
   // One painter, two targets: the full-size composite in normal mode, the
   // vertical PiP (painted from the live draft) while calibrating.
   const paintActive = useCallback(() => {
-    if (calibratingRef.current) { paintComposite(pipElRef.current, draftRef.current); return; }
+    const calibrating = calibratingRef.current;
+    const draft = draftRef.current;
     // #349: paint the layout of the section under the playhead. The <video>
     // clock is SOURCE time, so the section is found by source range —
     // half-open, so a join belongs to the section that starts there, with an
@@ -2196,7 +2197,7 @@ export default function PreviewPanelNew() {
     const video = videoRef.current;
     const segs = layoutSegsRef.current;
     const rfs = segReframesRef.current;
-    let rf = reframeRef.current;
+    let rf = calibrating ? draft : reframeRef.current;
     if (video && segs.length > 0) {
       const t = video.currentTime;
       // The playhead's timeline section first (#351) — repeated footage puts
@@ -2208,14 +2209,23 @@ export default function PreviewPanelNew() {
       if (idx === -1) idx = segs.findIndex((s) => t >= s.sourceStart && t <= s.sourceEnd);
       if (idx === -1) idx = Math.min(lastLayoutIdxRef.current, segs.length - 1);
       lastLayoutIdxRef.current = idx;
-      rf = rfs[idx];
+      // #414: while editing, the Result shows the draft ONLY where the draft
+      // will land — the target section, or (clip scope) every section that
+      // inherits the clip layout. Every other section paints its own saved
+      // look, so a section edit can be judged against its neighbours as the
+      // playhead crosses the cuts, without applying first.
+      const seg = segs[idx];
+      const draftHere = calibrating && draft && (
+        draft.targetSegmentId ? seg?.id === draft.targetSegmentId : seg?.reframe === undefined
+      );
+      rf = draftHere ? draft : rfs[idx];
       const on = (r) => !!(r && (r.camRect || r.camRect === null) && r.gameRect);
       if (!on(rf)) {
-        const donor = rfs.find(on);
+        const donor = rfs.find(on) || (calibrating ? draft : null);
         rf = donor && video.videoWidth ? fitToScreenReframe(video.videoWidth, video.videoHeight, donor.style) : null;
       }
     }
-    paintComposite(compositeCanvasRef.current, rf);
+    paintComposite(calibrating ? pipElRef.current : compositeCanvasRef.current, rf);
   }, [paintComposite]);
 
   // Paint on every presented video frame. requestVideoFrameCallback fires

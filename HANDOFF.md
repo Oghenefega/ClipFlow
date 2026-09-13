@@ -2,63 +2,75 @@
 
 ## Current State
 
-Master is clean at this wrap's commit. **No installer was cut** — two commits since alpha.3,
-short of the batch rule. #409 is closed `status: untested`: the fix is verified on the dev
-build against Fega's real clip, but Fega tests on the installed exe and hasn't seen it.
+Master is clean at this wrap's commit. **No installer was cut** — three commits since alpha.3.
+Everything below is closed `status: untested`: verified on the dev build over CDP, not yet
+seen by Fega on the installed exe.
 
-**What shipped:** transparent ProRes 4444 overlays (DaVinci exports) now show in the editor
-preview. Chromium can't decode ProRes and silently plays audio-only, so `assets:previewPath`
-hands the overlay a cached VP9-alpha WebM stand-in (`.clipflow/assets/previews/<hash>.webm`)
-while the render keeps compositing the original. See CHANGELOG for the full account.
+Two things shipped:
+
+1. **Transparent ProRes overlays show in the preview (#409).** Chromium can't decode ProRes
+   and silently plays audio-only; `assets:previewPath` now hands the overlay a cached
+   VP9-alpha WebM stand-in (`.clipflow/assets/previews/<hash>.webm`) while the render keeps
+   compositing the original.
+2. **Layout rework, epic #410 (#411–#415).** Apply is a snapshot onto its target and never
+   writes the library; Save as new / Update are explicit; delete / duplicate / visible
+   click-to-apply on saved-layout rows; Result preview first in the edit drawer with the
+   background sliders folded; Result follows each section's own layout during playback; a
+   tighter-crop − / + per box. Plan: `~/.claude/plans/gentle-riding-tiger.md`.
 
 ## Key Decisions
 
-- **Lazy stand-in, not import-time transcode.** `getPreviewPath` resolves on demand, like
-  `getPeaks`, keyed on path + mtime + size. One IPC covers library uploads, watched-folder
-  files and placements saved before this session, with no index schema change or migration.
-- **HEVC is treated as undecodable for overlays** even though the source-recording warning
-  list counts it as playable. It only plays where the GPU decodes it; a customer machine may
-  not, and the stand-in is cheap.
-- **Always `yuva420p`.** An opaque source just gets a solid alpha plane; the cost is small and
-  it can never drop transparency by misreading a pixel format.
+- **Snapshots, not links.** A section or clip never changes unless touched. `layoutId` on the
+  inline copy is bookkeeping for the "In use" badge only (`sameReframeLook` ignores it).
+  This reverses s205's "Apply also saves" (`tasks/todo.md:4909-4922`) — that rule is what
+  made Fega see "three slots".
+- **Zoom is not a new data concept.** Band height is `1080 × h / w`, so the tighter crop is
+  a rect scaled about its centre (`scaleRectAboutCenter`, `reframeStyle.js`). Drag-resize
+  stays the "bigger band" zoom. Nothing in `render.js` changed.
+- **HEVC counts as undecodable for overlays** (stand-in made) even though the source-recording
+  warning list treats it as playable — GPU-only decode isn't a customer guarantee.
+- **Result preview is 140px wide** so the box rows fit under it at 1280×860. Legibility over
+  size; the boxes on the main preview are what get dragged.
+- **No installer.** Batch rule.
 
 ## Next Steps
 
-1. **Cut an installer when the batch fills** — #406/#407/#409 all wait on it.
-2. **#265 — first-run setup checklist**, still the largest code item (see s255 handoff).
+1. **Cut an installer** when the batch fills — #406/#407/#409/#411–#415 all wait on it.
+2. **#265 first-run setup checklist**, still the largest code item.
 3. **#408**, **#405**, **#21** — unchanged from s255.
-4. **Open question from s255 still open:** is the Google OAuth consent screen verified or
-   only published? Five minutes in the Cloud console; changes YouTube's launch sequencing.
+4. Still open from s255: is the Google OAuth consent screen verified or only published?
 
 ## Watch Out For
 
-- **Opening a clip in the editor rewrites its project.json even with no edit.** Observed on
-  the approved "Vora ALMOST Clutched" clip: `updatedAt` moved and two subtitle ids in the
-  first clip shifted by one (408→407, 409→408). Content otherwise identical. Pre-existing,
-  not from this session's change; restored from snapshot. Worth a look if subtitle ids are
-  ever used as stable references.
-- **`taskkill //F //IM electron.exe` is no longer safe on this machine.** DaVinci Resolve's
-  Epidemic Sound plugin runs as `electron.exe` (five processes, `D:\DaVinci Resolve\Electron\`).
-  Kill the dev app by PID, filtering `Win32_Process` on a command line containing
-  `Desktop\ClipFlow`. PowerShell output carries `\r` — `tr -d '\r'` before looping.
-- **The Media panel thumbnail of a transparent clip shows its first frame**, which for a
-  CTA animation is nearly empty (a dot on the cell background). Not wrong, just uninformative.
-- **`previews/` accumulates.** A re-exported file gets a new hash; the old copy is never
-  pruned. Fine for now, worth a sweep if the folder ever matters.
+- **Two "Save" buttons in the editor DOM while the drawer's Save-as-new row is open** — the
+  top bar's project Save and the drawer's. A first-match text click hits the top bar
+  (gotcha 3 again). Scope to `input.parentElement.querySelectorAll('button')`.
+- **Two `.click()`s in one JS tick apply one crop step** — the second click sees the same
+  `reframeDraft` closure. A human clicking twice gets two steps. Space CDP clicks by a tick.
+- **Opening a clip in the editor rewrites its project.json with no edit** (`updatedAt`, and
+  two subtitle ids shifted by one in the first clip). Pre-existing. Snapshot before opening.
+- **`taskkill //F //IM electron.exe` now kills DaVinci's Epidemic Sound plugin.** Kill by PID,
+  filtering `Win32_Process` on a CommandLine containing `Desktop\ClipFlow`; strip `\r`.
+- **The dev profile's `projectsRoot` can be repointed at a scratch root** —
+  `scratchpad/repoint.js <root>` / `repoint.js restore` (restores the whole settings file
+  from `dev-settings-snapshot.json`, library included). `localProjects` is cleared so the
+  stale-cache fallback (gotcha 34) can't leak real clips in. Restore before the next dev boot.
+- **Media panel thumbnail of a transparent clip shows its first frame** — nearly empty for a
+  CTA animation. Not wrong, just uninformative.
+- **`previews/` accumulates**; a re-exported file gets a new hash and the old copy stays.
 
 ## Logs / Debugging
 
-- **CDP driver this session:** `scratchpad/cdp.js` — `node cdp.js eval "<js>" | shot <png> |
-  click <x> <y>`, global `WebSocket`, exits after each command. Boot with
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
+- **CDP driver:** `scratchpad/cdp.js` — `eval "<js>" | shot <png> | shotclip x y w h [png]
+  | click x y`. `shotclip` prints a sha1; compare captures with
+  `ffmpeg -i a.png -i b.png -lavfi psnr -f null -` — identical frames land ≥ 60 dB, a real
+  layout change ~17 dB. Boot: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
   --disable-features=CalculateNativeWinOcclusion --disable-renderer-backgrounding
-  --disable-background-timer-throttling`. Runs the **built** renderer from `build/`.
-- **Alpha proof outside the app:** `scratchpad/alpha-probe.js` loads a page with the WebM over
-  a red body in an offscreen BrowserWindow and reads pixels from `capturePage` — red at the
-  corners, white on the text. Faster than driving the editor when the question is "does
-  Chromium keep the alpha".
-- **Render-side alpha check:** composite the file over `color=c=red` with the exact
-  `format=rgba,scale,overlay` chain from `render.js:468` and average the frame; red means
-  the alpha survived.
-- **Snapshot-before-open** (gotcha 32) held: `project.json` copied to the scratchpad before
-  the editor opened, field-diffed after, restored by copy once the dev app was dead.
+  --disable-background-timer-throttling` (built renderer, not Vite).
+- **Library state lives in the dev settings file** (`%APPDATA%\clipflow-dev\clipflow-settings.json`,
+  keys `reframeLayouts` / `reframeLayoutDefaultId`); hash `JSON.stringify(reframeLayouts)`
+  before and after an Apply to prove the library was untouched.
+- **Alpha proof outside the app:** `scratchpad/alpha-probe.js` (offscreen BrowserWindow,
+  WebM over red, pixel read from `capturePage`).
+- **Render-side alpha check:** composite over `color=c=red` with the `format=rgba,scale,
+  overlay` chain from `render.js:468` and average the frame.

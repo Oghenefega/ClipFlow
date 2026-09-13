@@ -1248,68 +1248,97 @@ const useEditorStore = create((set, get) => ({
   // its new id in the SAME write. Default is only claimed when no valid
   // default exists. Re-checks project AND clip identity after the IPC await so
   // a rapid clip/project switch can't get a stale write (#97 family).
-  commitReframeDraft: async (layoutName) => {
+  // #410: Apply writes ONLY its target — the section under edit or the clip —
+  // as a snapshot of the draft. It never touches the library any more: the old
+  // "Apply also saves" upsert meant a per-section tweak silently rewrote the
+  // saved layout it was seeded from, and no new entry was ever created unless
+  // the clip had no layout at all (Fega saw "three slots"). Saving is now an
+  // explicit act: saveDraftAsLayout / updateLayoutFromDraft below. layoutId
+  // rides along as bookkeeping so the "In use" badge still points at the
+  // entry the snapshot came from.
+  commitReframeDraft: async () => {
     const { project, clip, reframeDraft } = get();
     if (!project?.id || !reframeDraft) return { error: "Nothing to apply" };
     if (!clip?.id) return { error: "Open a clip to apply a layout" };
     const clipId = clip.id;
-    const name = (layoutName || "").trim() || "Layout";
-    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
-    const existingIdx = reframeDraft.layoutId
-      ? layouts.findIndex((l) => l.id === reframeDraft.layoutId)
-      : -1;
-    const id = existingIdx >= 0 ? layouts[existingIdx].id : "layout_" + Date.now();
     const reframe = {
-      layoutId: id,
+      layoutId: reframeDraft.layoutId ?? null,
       // #164 B3: {...null} would become {} — null camRect must copy as null.
       camRect: reframeDraft.camRect ? { ...reframeDraft.camRect } : null,
       gameRect: { ...reframeDraft.gameRect },
       style: resolveReframeStyle(reframeDraft.style),
     };
-    if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
     if (reframeDraft.targetSegmentId) {
       // #349: section scope — a store write; autosave persists nleSegments.
       const r = get().setSegmentReframe(reframeDraft.targetSegmentId, reframe);
       if (r?.error) return r;
-    } else {
-      const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
-      if (result?.error) return result;
-      if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
-    }
-    const now = new Date().toISOString();
-    const entryFields = {
-      name,
-      camRect: reframe.camRect ? { ...reframe.camRect } : null,
-      gameRect: { ...reframe.gameRect },
-      style: { ...reframe.style },
-      updatedAt: now,
-    };
-    if (existingIdx >= 0) {
-      layouts[existingIdx] = { ...layouts[existingIdx], ...entryFields };
-    } else {
-      layouts.push({
-        id,
-        sourceWidth: project.sourceWidth,
-        sourceHeight: project.sourceHeight,
-        createdAt: now,
-        ...entryFields,
-      });
-    }
-    await window.clipflow.storeSet("reframeLayouts", layouts);
-    const currentDefaultId = await window.clipflow.storeGet("reframeLayoutDefaultId");
-    if (!(currentDefaultId && layouts.some((l) => l.id === currentDefaultId))) {
-      await window.clipflow.storeSet("reframeLayoutDefaultId", id);
-    }
-    if (reframeDraft.targetSegmentId) {
       set({ reframeDraft: null });
       return { success: true };
     }
+    const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
+    if (result?.error) return result;
+    if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
     set({
       clip: { ...get().clip, reframe },
       project: projectWithClipReframe(get().project, clipId, reframe),
       reframeDraft: null,
     });
     return { success: true };
+  },
+
+  // The draft's geometry + style as a library entry's fields.
+  _draftLayoutFields: () => {
+    const { reframeDraft } = get();
+    return {
+      camRect: reframeDraft.camRect ? { ...reframeDraft.camRect } : null,
+      gameRect: { ...reframeDraft.gameRect },
+      style: resolveReframeStyle(reframeDraft.style),
+    };
+  },
+
+  // #410: "Save as new…" — a fresh library entry from the draft. Links the
+  // draft to it so the Apply that follows records where the snapshot came
+  // from. Claims the ★ default only when none valid exists (moved here from
+  // the old Apply path — a first-ever save is still the natural default).
+  // Leaves the draft open: saving and applying are two decisions.
+  saveDraftAsLayout: async (name) => {
+    const { project, reframeDraft } = get();
+    if (!project?.id || !reframeDraft) return { error: "Nothing to save" };
+    const trimmed = (name || "").trim();
+    if (!trimmed) return { error: "Give the layout a name" };
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    const now = new Date().toISOString();
+    const id = "layout_" + Date.now();
+    layouts.push({
+      id,
+      name: trimmed,
+      sourceWidth: project.sourceWidth,
+      sourceHeight: project.sourceHeight,
+      createdAt: now,
+      updatedAt: now,
+      ...get()._draftLayoutFields(),
+    });
+    await window.clipflow.storeSet("reframeLayouts", layouts);
+    const currentDefaultId = await window.clipflow.storeGet("reframeLayoutDefaultId");
+    if (!(currentDefaultId && layouts.some((l) => l.id === currentDefaultId))) {
+      await window.clipflow.storeSet("reframeLayoutDefaultId", id);
+    }
+    if (get().reframeDraft) set({ reframeDraft: { ...get().reframeDraft, layoutId: id } });
+    return { success: true, id };
+  },
+
+  // #410: 'Update "<name>"' — overwrite the linked entry with the draft. Only
+  // the library changes: every clip and section holds its own copy, so
+  // nothing already applied moves (sameReframeLook ignores layoutId).
+  updateLayoutFromDraft: async () => {
+    const { reframeDraft } = get();
+    if (!reframeDraft?.layoutId) return { error: "This draft isn't linked to a saved layout" };
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    const idx = layouts.findIndex((l) => l.id === reframeDraft.layoutId);
+    if (idx < 0) return { error: "That saved layout is gone" };
+    layouts[idx] = { ...layouts[idx], ...get()._draftLayoutFields(), updatedAt: new Date().toISOString() };
+    await window.clipflow.storeSet("reframeLayouts", layouts);
+    return { success: true, id: layouts[idx].id };
   },
 
   // #349: write ONE section's layout. reframe: object = section override,

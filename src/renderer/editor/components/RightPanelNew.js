@@ -20,6 +20,7 @@ import {
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
   UploadCloud, FileImage, Film, PenLine, Crop, ClipboardCopy, ClipboardPaste,
+  Trash2, Copy,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -31,7 +32,7 @@ import { segmentIdAtTimeline } from "../models/timeMapping";
 import AudioPanel from "./audio/AudioPanel";
 import MediaPanel from "./media/MediaPanel";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
-import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
+import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe, resolveSegmentReframe, scaleRectAboutCenter } from "../utils/reframeStyle";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 
 // ════════════════════════════════════════════════════════════════
@@ -1801,19 +1802,25 @@ function TextPanel() {
 
 // One calibration rect row (Webcam or Game): color swatch, live w×h@x,y readout,
 // and a 16:9 snap chip that only changes height (keeps x/y/w).
-function RectRow({ label, color, rect, onSnap169 }) {
+// #415: the −/+ pair is the tighter-crop zoom — the box scales about its own
+// centre, so its band on the output stays exactly where it is and only the
+// framing changes. Dragging a corner is the other zoom (bigger band).
+const RECT_BTN = "text-xs px-1.5 py-0.5 rounded bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/30 shrink-0";
+function RectRow({ label, color, rect, onSnap169, onCrop }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-md border border-border/40 px-2.5 py-2">
+    <div className="flex items-center gap-2 rounded-md border border-border/40 px-2.5 py-2">
       <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium text-foreground">{label}</div>
         <div className="text-xs text-muted-foreground">{rect.w} × {rect.h} @ {rect.x}, {rect.y}</div>
       </div>
-      <button
-        onClick={onSnap169}
-        className="text-xs px-1.5 py-0.5 rounded bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/30 shrink-0"
-        title="Snap height to 16:9"
-      >
+      <button onClick={() => onCrop(-1)} className={RECT_BTN} title="Tighter crop — keeps the box shape, so the band stays the same size">
+        <Minus className="h-3 w-3" />
+      </button>
+      <button onClick={() => onCrop(1)} className={RECT_BTN} title="Wider crop — keeps the box shape, so the band stays the same size">
+        <Plus className="h-3 w-3" />
+      </button>
+      <button onClick={onSnap169} className={RECT_BTN} title="Snap height to 16:9">
         16:9
       </button>
     </div>
@@ -1825,9 +1832,12 @@ function RectRow({ label, color, rect, onSnap169 }) {
 // applies the entry (only when its calibrated source dims match this
 // project's); the star sets the default and the pencil renames in place —
 // both independent of applying.
-function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight, linkedLayoutId, applying, onApply, onSetDefault, onRename }) {
+function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight, linkedLayoutId, applying, applyTargetLabel, onApply, onSetDefault, onRename, onDelete, onDuplicate }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
+  // #412: delete is two-step and inline — the trash swaps to a red "Delete"
+  // that must be clicked again; leaving the row cancels.
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   // Enter commits by blurring — blur is the single commit path, so an
   // Enter-then-blur sequence can't rename twice. Escape flags a cancel first.
   const renameCancelRef = useRef(false);
@@ -1840,12 +1850,14 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
           const matches = l.sourceWidth === sourceWidth && l.sourceHeight === sourceHeight;
           const inUse = l.id === linkedLayoutId;
           const editing = editingId === l.id;
+          const confirming = confirmDeleteId === l.id;
           return (
             <div
               key={l.id}
               onClick={() => !editing && matches && onApply(l)}
-              title={matches ? undefined : `Calibrated for ${l.sourceWidth}×${l.sourceHeight} — this clip is ${sourceWidth}×${sourceHeight}`}
-              className={`flex items-center gap-2.5 rounded-md border border-border/40 px-2.5 py-2 ${
+              onMouseLeave={() => { if (confirming) setConfirmDeleteId(null); }}
+              title={matches ? `Apply to ${applyTargetLabel}` : `Calibrated for ${l.sourceWidth}×${l.sourceHeight} — this clip is ${sourceWidth}×${sourceHeight}`}
+              className={`group flex items-center gap-2 rounded-md border border-border/40 px-2.5 py-2 ${
                 matches && !editing ? "cursor-pointer hover:border-border/70" : ""
               } ${matches ? "" : "opacity-50 cursor-default"}`}
             >
@@ -1882,16 +1894,45 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
                   <div className="text-xs text-muted-foreground">{l.sourceWidth}×{l.sourceHeight}</div>
                 </div>
               )}
-              {!editing && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setEditingId(l.id); setEditName(l.name); }}
-                  title="Rename"
-                  className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground"
-                >
-                  <PenLine className="h-3 w-3" />
-                </button>
+              {inUse && !editing && !confirming && <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full shrink-0">In use</span>}
+              {matches && !editing && !confirming && !inUse && (
+                // #412: the row was always clickable; now it says so.
+                <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">Apply</span>
               )}
-              {inUse && !editing && <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full shrink-0">In use</span>}
+              {!editing && (
+                confirming ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); onDelete(l.id); }}
+                    className="shrink-0 text-[10px] font-medium text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded-full hover:bg-red-500/20"
+                  >
+                    Delete
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingId(l.id); setEditName(l.name); }}
+                      title="Rename"
+                      className="p-0.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <PenLine className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDuplicate(l.id); }}
+                      title="Duplicate"
+                      className="p-0.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(l.id); }}
+                      title="Delete"
+                      className="p-0.5 text-muted-foreground hover:text-red-400"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                )
+              )}
             </div>
           );
         })}
@@ -1909,6 +1950,8 @@ function LayoutPanel() {
   const updateReframeStyle = useEditorStore((s) => s.updateReframeStyle);
   const cancelReframeDraft = useEditorStore((s) => s.cancelReframeDraft);
   const commitReframeDraft = useEditorStore((s) => s.commitReframeDraft);
+  const saveDraftAsLayout = useEditorStore((s) => s.saveDraftAsLayout);
+  const updateLayoutFromDraft = useEditorStore((s) => s.updateLayoutFromDraft);
   const clearClipReframe = useEditorStore((s) => s.clearClipReframe);
   const disableClipReframe = useEditorStore((s) => s.disableClipReframe);
   const applyReframeToAllClips = useEditorStore((s) => s.applyReframeToAllClips);
@@ -1962,26 +2005,45 @@ function LayoutPanel() {
 
   useEffect(() => { reloadLayouts(); }, [reloadLayouts]);
 
-  // Name field for the calibrating view — Apply saves the layout under this
-  // name. Seeded when calibration opens (and re-seeded if the library loads a
-  // beat later) until the user actually types; touching it stops re-seeds.
-  const [layoutName, setLayoutName] = useState("");
-  const nameTouchedRef = useRef(false);
+  // #411: Apply is a snapshot onto its target and nothing else. Saving to the
+  // library is the explicit "Save as new…" / "Update" pair below; the name
+  // input only exists while "Save as new…" is open.
+  const [saveAsOpen, setSaveAsOpen] = useState(false);
+  const [saveAsName, setSaveAsName] = useState("");
+  const [savingLayout, setSavingLayout] = useState(false);
+  // #413: the six background sliders fold away — set once, rarely revisited.
+  const [bgOpen, setBgOpen] = useState(false);
   useEffect(() => {
-    if (!reframeDraft) { nameTouchedRef.current = false; setDetectStatus(""); setNocamDetected(false); return; }
-    if (nameTouchedRef.current) return;
-    const linked = savedLayouts.find((l) => l.id === reframeDraft.layoutId);
-    setLayoutName(linked ? linked.name : `Layout ${savedLayouts.length + 1}`);
-  }, [reframeDraft, savedLayouts]);
+    if (!reframeDraft) { setDetectStatus(""); setNocamDetected(false); setSaveAsOpen(false); setSaveAsName(""); }
+  }, [reframeDraft]);
 
   const handleApply = useCallback(async () => {
     setError("");
     setApplying(true);
-    const result = await commitReframeDraft(layoutName);
+    const result = await commitReframeDraft();
     setApplying(false);
     if (result?.error) { setError(result.error); return; }
+  }, [commitReframeDraft]);
+
+  const handleSaveAsNew = useCallback(async () => {
+    setError("");
+    setSavingLayout(true);
+    const result = await saveDraftAsLayout(saveAsName);
+    setSavingLayout(false);
+    if (result?.error) { setError(result.error); return; }
+    setSaveAsOpen(false);
+    setSaveAsName("");
     reloadLayouts();
-  }, [commitReframeDraft, layoutName, reloadLayouts]);
+  }, [saveDraftAsLayout, saveAsName, reloadLayouts]);
+
+  const handleUpdateLayout = useCallback(async () => {
+    setError("");
+    setSavingLayout(true);
+    const result = await updateLayoutFromDraft();
+    setSavingLayout(false);
+    if (result?.error) { setError(result.error); return; }
+    reloadLayouts();
+  }, [updateLayoutFromDraft, reloadLayouts]);
 
   // #348: the remove-type actions share one busy flag — they're mutually
   // exclusive buttons in the same view.
@@ -2040,6 +2102,14 @@ function LayoutPanel() {
     const maxH = (reframeDraft.sourceH || Infinity) - rect.y;
     const h = Math.max(1, Math.min(Math.round(rect.w * 9 / 16), maxH));
     updateReframeDraft(key, { x: rect.x, y: rect.y, w: rect.w, h });
+  }, [reframeDraft, updateReframeDraft]);
+
+  // #415: −/+ on a box row. 10% a step, about the box's centre, clamped to
+  // the source the draft was seeded from.
+  const handleCrop = useCallback((key, dir) => {
+    if (!reframeDraft || !reframeDraft[key]) return;
+    const factor = dir < 0 ? 1 / 1.1 : 1.1;
+    updateReframeDraft(key, scaleRectAboutCenter(reframeDraft[key], factor, reframeDraft.sourceW, reframeDraft.sourceH));
   }, [reframeDraft, updateReframeDraft]);
 
   // #164 B2: auto-detect the layout from the source video (B1 hidden-window
@@ -2114,6 +2184,38 @@ function LayoutPanel() {
     const idx = layouts.findIndex((l) => l.id === id);
     if (idx < 0) return;
     layouts[idx] = { ...layouts[idx], name, updatedAt: new Date().toISOString() };
+    await window.clipflow.storeSet("reframeLayouts", layouts);
+    reloadLayouts();
+  }, [reloadLayouts]);
+
+  // #412: library housekeeping from the drawer. Delete mirrors Settings: a
+  // deleted ★ default clears the default. Clips and sections that used the
+  // entry keep their own copies — only the badge stops pointing anywhere.
+  const handleDeleteLayout = useCallback(async (id) => {
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    await window.clipflow.storeSet("reframeLayouts", layouts.filter((l) => l.id !== id));
+    const defId = await window.clipflow.storeGet("reframeLayoutDefaultId");
+    if (defId === id) await window.clipflow.storeSet("reframeLayoutDefaultId", null);
+    reloadLayouts();
+  }, [reloadLayouts]);
+
+  const handleDuplicateLayout = useCallback(async (id) => {
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    const idx = layouts.findIndex((l) => l.id === id);
+    if (idx < 0) return;
+    const now = new Date().toISOString();
+    const src = layouts[idx];
+    const copy = {
+      ...src,
+      id: "layout_" + Date.now(),
+      name: `${src.name} copy`,
+      camRect: src.camRect ? { ...src.camRect } : null,
+      gameRect: { ...src.gameRect },
+      style: { ...(src.style || {}) },
+      createdAt: now,
+      updatedAt: now,
+    };
+    layouts.splice(idx + 1, 0, copy);
     await window.clipflow.storeSet("reframeLayouts", layouts);
     reloadLayouts();
   }, [reloadLayouts]);
@@ -2257,10 +2359,14 @@ function LayoutPanel() {
     // #164 B3: preset chips on a fresh draft (nothing saved/linked yet), after
     // a 'nocam' detection, or while editing an already game-only layout.
     const showPresets = (!reframeDraft.layoutId && !shown) || nocamDetected || reframeDraft.camRect === null;
+    const linkedEntry = savedLayouts.find((l) => l.id === reframeDraft.layoutId) || null;
+    const busy = applying || savingLayout;
+    // #413: the picture first, the knobs after. Result → boxes → detect →
+    // apply → library → the folded background sliders.
     return (
-      <div className="p-3 space-y-4">
+      <div className="p-3 space-y-3">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Click a box on the preview to select it, then drag or resize — purple is your webcam, cyan is the game. The result updates live below.
+          Drag the boxes: purple is webcam, cyan is game.
           {/* #349: the target was captured when calibration began. */}
           {hasSections && (
             <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
@@ -2269,7 +2375,38 @@ function LayoutPanel() {
           )}
         </p>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
+          <div
+            className="rounded-lg overflow-hidden mx-auto"
+            style={{
+              // #413: small enough that the box rows still show under it in
+              // the default drawer at 1280×860 — the picture only has to be
+              // legible, the boxes are what get dragged.
+              width: "100%", maxWidth: 100, aspectRatio: "9 / 16", background: "#000", boxShadow: "0 0 0 1px hsl(var(--border-hsl))",
+              touchAction: "none", cursor: resultDragging ? "grabbing" : "grab",
+            }}
+            title={`Drag to move the background.${hasSections ? " During playback each section shows its own layout; yours shows only where it will land." : ""}`}
+            onPointerDown={handleResultPointerDown}
+            onPointerMove={handleResultPointerMove}
+            onPointerUp={handleResultPointerUp}
+            onPointerCancel={handleResultPointerUp}
+          >
+            {/* setReframePipCanvas is a stable store action used as a callback ref —
+                React calls it with the element on mount, null on unmount, which is
+                exactly the registration lifecycle the preview compositor needs. */}
+            <canvas ref={setReframePipCanvas} className="w-full h-full block" />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          {/* #164 B3: no Webcam row on a game-only draft (camRect null). */}
+          {reframeDraft.camRect && (
+            <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} onCrop={(dir) => handleCrop("camRect", dir)} />
+          )}
+          <RectRow label="Game" color="#22d3ee" rect={reframeDraft.gameRect} onSnap169={() => handleSnap169("gameRect")} onCrop={(dir) => handleCrop("gameRect", dir)} />
+        </div>
+
+        <div className="space-y-1.5">
           <Button size="sm" variant="outline" onClick={handleDetect} disabled={detecting} className="w-full h-8 text-xs gap-1.5">
             {detecting ? (<><Loader2 className="h-3 w-3 animate-spin" /> Analyzing 8 frames…</>) : "Detect layout"}
           </Button>
@@ -2299,66 +2436,73 @@ function LayoutPanel() {
           )}
         </div>
 
-        <div className="space-y-2">
-          {/* #164 B3: no Webcam row on a game-only draft (camRect null). */}
-          {reframeDraft.camRect && (
-            <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} />
-          )}
-          <RectRow label="Game" color="#22d3ee" rect={reframeDraft.gameRect} onSnap169={() => handleSnap169("gameRect")} />
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-xs font-medium text-muted-foreground">Background & edge</div>
-          <EffectSlider label="Blur" value={style.blur} onChange={(v) => updateReframeStyle({ blur: v })} min={0} max={100} labelWidth="w-16" />
-          <EffectSlider label="Darkness" value={style.darken} onChange={(v) => updateReframeStyle({ darken: v })} min={0} max={100} suffix="%" labelWidth="w-16" />
-          <EffectSlider label="Zoom" value={style.bgZoom} onChange={(v) => updateReframeStyle({ bgZoom: v })} min={0} max={100} labelWidth="w-16" />
-          <EffectSlider label="Horizontal" value={style.bgPosX} onChange={(v) => updateReframeStyle({ bgPosX: v })} min={0} max={100} labelWidth="w-16" />
-          <EffectSlider label="Vertical" value={style.bgPosY} onChange={(v) => updateReframeStyle({ bgPosY: v })} min={0} max={100} labelWidth="w-16" />
-          <EffectSlider label="Edge size" value={style.seamSize} onChange={(v) => updateReframeStyle({ seamSize: v })} min={0} max={25} suffix="%" labelWidth="w-16" />
-        </div>
-
         {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
 
-        {/* Apply both applies to the clip AND saves the layout under this name. */}
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-muted-foreground w-16">Name</span>
-          <input
-            value={layoutName}
-            onChange={(e) => { nameTouchedRef.current = true; setLayoutName(e.target.value); }}
-            onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-            placeholder="Layout name..."
-            className="flex-1 min-w-0 h-8 px-2.5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
-          />
-        </div>
-
+        {/* #411: Apply is a snapshot onto the section/clip — it never writes the library. */}
         <div className="flex gap-1.5">
-          <Button size="sm" onClick={handleApply} disabled={applying} className="flex-1 h-8 text-xs">
+          <Button size="sm" onClick={handleApply} disabled={busy} className="flex-1 h-8 text-xs">
             {applying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply layout"}
           </Button>
-          <Button variant="outline" size="sm" onClick={cancelReframeDraft} disabled={applying} className="h-8 px-3 text-xs">
+          <Button variant="outline" size="sm" onClick={cancelReframeDraft} disabled={busy} className="h-8 px-3 text-xs">
             Cancel
           </Button>
         </div>
 
+        {/* #411/#412: the library is written only here, on purpose. */}
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground">Result</div>
-          <div
-            className="rounded-lg overflow-hidden mx-auto"
-            style={{
-              width: "100%", maxWidth: 240, aspectRatio: "9 / 16", background: "#000", boxShadow: "0 0 0 1px hsl(var(--border-hsl))",
-              touchAction: "none", cursor: resultDragging ? "grabbing" : "grab",
-            }}
-            onPointerDown={handleResultPointerDown}
-            onPointerMove={handleResultPointerMove}
-            onPointerUp={handleResultPointerUp}
-            onPointerCancel={handleResultPointerUp}
+          {saveAsOpen ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={saveAsName}
+                onChange={(e) => setSaveAsName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveAsNew();
+                  if (e.key === "Escape") { setSaveAsOpen(false); setSaveAsName(""); }
+                }}
+                placeholder="Layout name…"
+                className="flex-1 min-w-0 h-7 px-2 text-xs rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+              />
+              <Button size="sm" onClick={handleSaveAsNew} disabled={busy || !saveAsName.trim()} className="h-7 px-2.5 text-xs">
+                {savingLayout ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setSaveAsOpen(false); setSaveAsName(""); }} disabled={busy} className="h-7 px-2 text-xs">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-1.5">
+              <Button size="sm" variant="ghost" onClick={() => setSaveAsOpen(true)} disabled={busy} className="flex-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+                Save as new…
+              </Button>
+              {linkedEntry && (
+                <Button size="sm" variant="ghost" onClick={handleUpdateLayout} disabled={busy} className="flex-1 h-7 text-xs text-muted-foreground hover:text-foreground truncate" title={`Overwrite the saved "${linkedEntry.name}" with these boxes and settings`}>
+                  {savingLayout ? <Loader2 className="h-3 w-3 animate-spin" /> : `Update "${linkedEntry.name}"`}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setBgOpen((o) => !o)}
+            className="w-full flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
-            {/* setReframePipCanvas is a stable store action used as a callback ref —
-                React calls it with the element on mount, null on unmount, which is
-                exactly the registration lifecycle the preview compositor needs. */}
-            <canvas ref={setReframePipCanvas} className="w-full h-full block" />
-          </div>
-          <p className="text-xs text-muted-foreground text-center">Drag the preview to reposition the background</p>
+            {bgOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            Background & edge
+          </button>
+          {bgOpen && (
+            <>
+              <EffectSlider label="Blur" value={style.blur} onChange={(v) => updateReframeStyle({ blur: v })} min={0} max={100} labelWidth="w-16" />
+              <EffectSlider label="Darkness" value={style.darken} onChange={(v) => updateReframeStyle({ darken: v })} min={0} max={100} suffix="%" labelWidth="w-16" />
+              <EffectSlider label="Zoom" value={style.bgZoom} onChange={(v) => updateReframeStyle({ bgZoom: v })} min={0} max={100} labelWidth="w-16" />
+              <EffectSlider label="Horizontal" value={style.bgPosX} onChange={(v) => updateReframeStyle({ bgPosX: v })} min={0} max={100} labelWidth="w-16" />
+              <EffectSlider label="Vertical" value={style.bgPosY} onChange={(v) => updateReframeStyle({ bgPosY: v })} min={0} max={100} labelWidth="w-16" />
+              <EffectSlider label="Edge size" value={style.seamSize} onChange={(v) => updateReframeStyle({ seamSize: v })} min={0} max={25} suffix="%" labelWidth="w-16" />
+            </>
+          )}
         </div>
       </div>
     );
@@ -2445,9 +2589,12 @@ function LayoutPanel() {
             sourceHeight={project.sourceHeight}
             linkedLayoutId={shown.layoutId ?? null}
             applying={applyingSavedLayout}
+            applyTargetLabel={sectionScope ? "this section" : "this clip"}
             onApply={handleApplySavedLayout}
             onSetDefault={handleSetDefaultLayout}
             onRename={handleRenameLayout}
+            onDelete={handleDeleteLayout}
+            onDuplicate={handleDuplicateLayout}
           />
         )}
 
@@ -2592,9 +2739,12 @@ function LayoutPanel() {
           sourceHeight={project.sourceHeight}
           linkedLayoutId={null}
           applying={applyingSavedLayout}
+          applyTargetLabel={sectionScope ? "this section" : "this clip"}
           onApply={handleApplySavedLayout}
           onSetDefault={handleSetDefaultLayout}
           onRename={handleRenameLayout}
+          onDelete={handleDeleteLayout}
+          onDuplicate={handleDuplicateLayout}
         />
       )}
     </div>

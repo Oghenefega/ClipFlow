@@ -138,6 +138,33 @@ function fitToScreenReframe(srcW, srcH, style) {
   return { layoutId: null, ...presetFitToScreen(srcW, srcH), style: resolveReframeStyle(style) };
 }
 
+// ── #410: the tighter-crop zoom ──
+// A band's height on the 1080-wide output is 1080 × rect.h / rect.w, so a box
+// scaled about its own centre keeps the band exactly where it is and only
+// changes how much of the source fills it. That is the "crop tighter" zoom;
+// dragging a box taller is the other one (bigger band, next band pushed down).
+// Rounds to whole pixels, refuses to go under MIN_CROP_PX on either side, and
+// stays inside the source: shifted back in first, capped only if it can't fit.
+const MIN_CROP_PX = 64;
+function scaleRectAboutCenter(rect, factor, srcW, srcH) {
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  let w = Math.round(rect.w * factor);
+  let h = Math.round(rect.h * factor);
+  if (w < MIN_CROP_PX || h < MIN_CROP_PX) {
+    const up = MIN_CROP_PX / Math.min(w, h);
+    w = Math.round(w * up);
+    h = Math.round(h * up);
+  }
+  if (srcW > 0) w = Math.min(w, Math.round(srcW));
+  if (srcH > 0) h = Math.min(h, Math.round(srcH));
+  let x = Math.round(cx - w / 2);
+  let y = Math.round(cy - h / 2);
+  if (srcW > 0) x = Math.max(0, Math.min(x, Math.round(srcW) - w));
+  if (srcH > 0) y = Math.max(0, Math.min(y, Math.round(srcH) - h));
+  return { x, y, w, h };
+}
+
 // ── #164 B4: first-recording auto-offer trigger ──
 // Pure decision for "offer a vertical-layout setup when this project opens?"
 // True only when the dims are decidable and non-9:16, the project has no
@@ -172,4 +199,6 @@ module.exports = {
   sameReframeLook,
   fitToScreenReframe,
   shouldOfferReframe,
+  scaleRectAboutCenter,
+  MIN_CROP_PX,
 };
