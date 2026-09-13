@@ -718,7 +718,7 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
 // land on exact halves, an overlay just wants to go where it's put.
 const MEDIA_HANDLES = ["nw", "ne", "sw", "se"];
 
-function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange, videoRegistry, pending }) {
+function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChange, videoRegistry, onVideoMount, pending }) {
   const elRef = useRef(null);
   const dragRef = useRef(null);
   const mediaRef = useRef(null);
@@ -727,10 +727,26 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
   // picture is missing, and saying so beats an invisible box the user deletes.
   const [previewFailed, setPreviewFailed] = useState(false);
 
+  // #409: a ProRes / DNxHR overlay plays AUDIO-ONLY here — Chromium drops the
+  // video stream without an error event, so previewFailed never trips. Main
+  // hands back a VP9-alpha stand-in for those files and null for the rest.
+  // The element waits for that answer: mounting the original first would start
+  // its sound and register a dead picture.
+  const isVideo = p.mediaType === "video";
+  const [previewSrc, setPreviewSrc] = useState(null);
+  useEffect(() => {
+    if (!isVideo) return undefined;
+    let alive = true;
+    setPreviewSrc(null);
+    window.clipflow.assetsPreviewPath(p.path)
+      .then((r) => { if (alive) setPreviewSrc(toFileUrl(r?.path || p.path)); })
+      .catch(() => { if (alive) setPreviewSrc(toFileUrl(p.path)); });
+    return () => { alive = false; };
+  }, [isVideo, p.path]);
+
   // #311: a video overlay hands its element to the panel's registry, which
   // drives it off the same clock as everything else. Teardown on the way out is
   // the standing <video> rule — a dropped element without it crashes Chromium.
-  const isVideo = p.mediaType === "video";
   useEffect(() => {
     if (!isVideo || !videoRegistry) return undefined;
     const el = mediaRef.current;
@@ -740,14 +756,20 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
     // below strips src off the live element and React never re-applies an
     // unchanged src prop, so restore it here or every video overlay is a dead
     // blank box under the dev server. No-op outside that cycle.
-    if (!el.src) el.src = toFileUrl(p.path);
+    if (!el.src) el.src = previewSrc;
+    // The element arrives a beat after the block did (the stand-in answer is
+    // async), so the panel's seek sync has already run for this instant — tell
+    // it to run again or a paused scrub sits on frame 0 until the next tick.
+    onVideoMount?.();
     return () => {
       videoRegistry.delete(p.id);
       el.pause();
       el.removeAttribute("src");
       el.load();
     };
-  }, [isVideo, p.id, videoRegistry]);
+    // previewSrc: the element only exists once the stand-in answer is in, so
+    // the registration has to re-run when it mounts.
+  }, [isVideo, p.id, videoRegistry, previewSrc, onVideoMount]);
 
   const beginDrag = useCallback((e, mode) => {
     if (e.button !== 0) return;
@@ -825,11 +847,18 @@ function MediaOverlay({ p, canvasRef, selected, onSelect, onGestureStart, onChan
       onPointerUp={endDrag}
       onClick={(e) => e.stopPropagation()}
     >
-      {isVideo ? (
+      {isVideo && !previewSrc ? (
+        <div
+          className="w-full flex items-center justify-center rounded border border-dashed border-white/20 bg-black/50 px-2 text-center pointer-events-none"
+          style={{ aspectRatio: "16 / 9" }}
+        >
+          <span className="text-[10px] leading-tight text-white/60">Preparing preview{"…"}</span>
+        </div>
+      ) : isVideo ? (
         <>
           <video
             ref={mediaRef}
-            src={toFileUrl(p.path)}
+            src={previewSrc}
             playsInline
             draggable={false}
             onError={() => setPreviewFailed(true)}
@@ -1570,6 +1599,10 @@ export default function PreviewPanelNew() {
   // an overlay shows a frame at every scrub position, not just during playback
   // — so the tolerance tightens when the clock isn't running.
   const mediaVideoRef = useRef(new Map()); // placementId → HTMLVideoElement
+  // #409: bumped when an overlay's element registers late (after its stand-in
+  // resolved), so the sync effect below re-drives it for the current instant.
+  const [mediaMounts, setMediaMounts] = useState(0);
+  const noteMediaMount = useCallback(() => setMediaMounts((n) => n + 1), []);
   const syncMediaVideos = useCallback((placements, timelineTime, isPlaying) => {
     const map = mediaVideoRef.current;
     if (map.size === 0) return;
@@ -1630,7 +1663,7 @@ export default function PreviewPanelNew() {
   // dep missed that).
   useEffect(() => {
     syncMediaVideos(resolvedMedia, currentTime, playing);
-  }, [resolvedMedia, currentTime, playing, laneEnabled, syncMediaVideos]);
+  }, [resolvedMedia, currentTime, playing, laneEnabled, syncMediaVideos, mediaMounts]);
 
   // Full teardown on unmount (standing <media> cleanup rule). MediaOverlay
   // already tears down its own element as it unmounts; this catches anything
@@ -2512,6 +2545,7 @@ export default function PreviewPanelNew() {
               onGestureStart={mediaGestureStart}
               onChange={setMediaProps}
               videoRegistry={mediaVideoRef.current}
+              onVideoMount={noteMediaMount}
               pending={currentTime < m.tlStart}
             />
           ))}

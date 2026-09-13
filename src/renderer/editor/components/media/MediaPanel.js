@@ -38,10 +38,22 @@ const ALL_GAMES = "__all__";
 function VideoThumb({ path }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
+  // #409: ProRes/DNxHR cells stayed black with no error — Chromium drops the
+  // video stream and plays the audio. Main hands back a stand-in for those.
+  const [src, setSrc] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    setSrc(null);
+    window.clipflow.assetsPreviewPath(path)
+      .then((r) => { if (alive) setSrc(toFileUrl(r?.path || path)); })
+      .catch(() => { if (alive) setSrc(toFileUrl(path)); });
+    return () => { alive = false; };
+  }, [path]);
   useEffect(() => () => {
     const v = ref.current;
     if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
   }, []);
+  if (!src) return <div className="w-full h-16 bg-secondary/40" />;
   if (failed) {
     return (
       <div
@@ -56,7 +68,7 @@ function VideoThumb({ path }) {
   return (
     <video
       ref={ref}
-      src={toFileUrl(path)}
+      src={src}
       muted
       preload="metadata"
       onError={() => setFailed(true)}

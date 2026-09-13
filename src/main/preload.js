@@ -130,6 +130,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsAddTagToMany: (assetIds, tag) => ipcRenderer.invoke("assets:addTagToMany", assetIds, tag),
   assetsMarkUsed: (assetId, filePath) => ipcRenderer.invoke("assets:markUsed", assetId, filePath),
   assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
+  assetsPreviewPath: (filePath) => ipcRenderer.invoke("assets:previewPath", filePath),
   // Background duration scan of watched audio folders (#208)
   onAssetsScanProgress: (callback) => {
     ipcRenderer.on("assets:scanProgress", (_, data) => callback(data));

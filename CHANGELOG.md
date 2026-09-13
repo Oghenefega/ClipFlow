@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-13 (session 256) — Transparent overlays show up in the preview (#409)
+
+### Fixed
+- **A transparent ProRes overlay is no longer an invisible box that plays sound (#409).** Fega dropped a DaVinci export with a transparent background (ProRes 4444) on the Media track; the render composited it perfectly, but the editor preview showed nothing. Chromium has no ProRes decoder, and rather than raising an error it quietly drops the video stream and plays the audio, so even the #319 "No preview for this file" placeholder never fired. The editor now asks the main process for a preview stand-in before it mounts the overlay's video: for a codec Chromium can't play (ProRes, DNxHR, Animation, HEVC) FFmpeg makes a VP9 WebM copy *with its alpha plane kept* under `.clipflow/assets/previews/`, and the overlay and the Media panel thumbnail play that copy. Files Chromium already decodes (H.264, VP8/VP9, AV1) get no copy. The render still uses the original file, so export quality is untouched. The copy is cached by path, size and modification time, and a thumbnail and an overlay asking at the same moment share one transcode. Verified on Fega's real clip: "Follow" shows over the game with clean transparency at a paused scrub, and the 1.8s file converts in under two seconds.
+- **A video overlay whose element mounts late is seeked to the current instant.** The stand-in answer is asynchronous, so the overlay's `<video>` now appears a beat after its block does, after the preview panel's seek sync has already run for that instant. The panel counts overlay mounts and re-runs the sync when one lands; without it a paused scrub into a block sat on frame 0 until the next tick.
+
+### Added
+- **Unit tests for the preview stand-in resolver** (`assetPreviewPath.test.js`): decodable codecs get no transcode, ProRes lands as a VP9-alpha WebM under `previews/`, concurrent callers share one transcode and the disk cache answers a fresh process without probing, a failed transcode leaves no half-written file, a missing file resolves without probing.
+
 ## [Unreleased] — 2026-09-11 (session 255) — The two silent failures a new install walks into (#406, #407)
 
 ### Fixed

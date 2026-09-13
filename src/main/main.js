@@ -2070,6 +2070,18 @@ ipcMain.handle("assets:peaks", async (_, filePath) => {
   }
 });
 
+// #409: a Chromium-playable stand-in for a video overlay the preview can't
+// decode (ProRes 4444 etc.), or path null when the file plays as-is.
+ipcMain.handle("assets:previewPath", async (_, filePath) => {
+  try {
+    if (!filePath) return { success: false, error: "No file path", path: null };
+    const p = await assetLibrary.getPreviewPath(assetsRootOrThrow(), filePath);
+    return { success: true, path: p };
+  } catch (err) {
+    return { success: false, error: err.message, path: null };
+  }
+});
+
 // ============ DEPENDENCY CHECK (#251) ============
 // Cheap preflight the renderer runs at boot (DependencyBanner) and the
 // pipeline runs before starting work. Plain-language issues, no jargon.

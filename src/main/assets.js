@@ -1,6 +1,8 @@
 const path = require("path");
 const fs = require("fs");
+const { execFile } = require("child_process");
 const ffmpeg = require("./ffmpeg");
+const { FFMPEG_BIN } = require("./app-paths");
 const { uniquePath } = require("./projects");
 
 // Asset library for SFX / music / pictures placed on clips (session 134).
@@ -736,6 +738,76 @@ async function getPeaks(assetsRoot, filePath) {
   return { peaks: result.peaks, cached: false };
 }
 
+// Video codecs Electron's Chromium decodes on its own. Anything else dropped on
+// the Media track — ProRes 4444 out of DaVinci, DNxHR, Animation — plays
+// AUDIO-ONLY in the preview: the demuxer drops the video stream without an
+// error event, so the #319 placeholder never fires and the overlay is an
+// invisible box that talks (#409). The render is untouched by this — FFmpeg
+// decodes all of them, alpha included. HEVC is deliberately NOT here: it only
+// plays where the GPU decodes it, and a customer machine may not.
+const CHROMIUM_VIDEO_CODECS = new Set(["h264", "vp8", "vp9", "av1"]);
+
+// One promise per file so a thumbnail and an overlay asking at the same moment
+// share a single transcode, and a decodable file memoises its "no proxy"
+// answer instead of re-probing on every playhead crossing.
+const previewMemo = new Map();
+
+function transcodePreview(src, dest) {
+  const tmp = `${dest}.tmp`;
+  const args = [
+    "-y", "-i", src,
+    "-map", "0:v:0", "-map", "0:a:0?",
+    // Preview only — cap the width so a 4K overlay doesn't cost minutes.
+    // yuva420p keeps the alpha plane; an opaque source just gets a solid one.
+    "-vf", "scale=trunc(min(iw\\,1080)/2)*2:-2",
+    "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-crf", "18", "-b:v", "0",
+    "-deadline", "realtime", "-cpu-used", "6", "-row-mt", "1",
+    "-c:a", "libopus", "-ac", "2",
+    "-f", "webm", tmp,
+  ];
+  return new Promise((resolve, reject) => {
+    execFile(FFMPEG_BIN, args, { timeout: 600000 }, (err) => {
+      if (err) {
+        try { fs.unlinkSync(tmp); } catch (_) { /* never written */ }
+        return reject(err);
+      }
+      fs.renameSync(tmp, dest);
+      resolve();
+    });
+  });
+}
+
+/**
+ * Path of a Chromium-playable stand-in for a video overlay, or null when the
+ * file plays as-is. Cached under {assetsRoot}/previews/ keyed on path + mtime +
+ * size, so a file the user re-exports gets a fresh copy. A transcode that
+ * fails resolves null too — the original then plays audio-only, which is
+ * where the user already was.
+ */
+function getPreviewPath(assetsRoot, filePath) {
+  let st;
+  try { st = fs.statSync(filePath); } catch (_) { return Promise.resolve(null); }
+  const key = require("crypto").createHash("sha1")
+    .update(`${filePath.toLowerCase()}|${st.mtimeMs}|${st.size}`).digest("hex").slice(0, 16);
+  if (previewMemo.has(key)) return previewMemo.get(key);
+
+  const job = (async () => {
+    const cachePath = path.join(assetsRoot, "previews", `${key}.webm`);
+    if (fs.existsSync(cachePath)) return cachePath;
+    const info = await ffmpeg.probe(filePath);
+    const codec = (info.videoCodec || "").toLowerCase();
+    if (!codec || CHROMIUM_VIDEO_CODECS.has(codec)) return null;
+    fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+    await transcodePreview(filePath, cachePath);
+    return cachePath;
+  })().catch((err) => {
+    console.warn(`[Assets] Preview proxy for ${path.basename(filePath)} failed: ${err.message}`);
+    return null;
+  });
+  previewMemo.set(key, job);
+  return job;
+}
+
 function toggleFavorite(assetsRoot, assetId) {
   const assets = loadIndex(assetsRoot);
   const entry = assets.find((a) => a.id === assetId);
@@ -763,4 +835,5 @@ module.exports = {
   deleteAsset,
   toggleFavorite,
   getPeaks,
+  getPreviewPath,
 };
