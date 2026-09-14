@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-14 (session 257) — A scheduled clip finally shows what it will post (#417)
+
+### Added
+- **Scheduled clips show their captions in the Queue tab (#417).** An Unscheduled clip has always shown everything it will publish with — the caption per platform, the YouTube description, title, privacy and tags, the social hashtag line, the TikTok options. A Scheduled clip showed a thumbnail, a title, a game pill, a time and three buttons, so the only way to read a queued clip's description was to unschedule it, look, and schedule it again — losing the slot in the process. The expanded scheduled row now renders the same block, between the platform row and Remove / Unschedule / Post now, and it stays editable: a caption fixed there saves against the clip and leaves the schedule untouched. The block moved out of the Unscheduled card into one `renderCaptionCards(clip)` in `QueueView.js`, so the two views cannot drift apart.
+
+### Fixed
+- **The orange CUSTOM badge no longer lies on every scheduled clip.** Scheduling freezes a clip's social tag line and YouTube tag list onto the clip itself (#383) so a later edit to the game's lists can't rewrite a post that is already queued. The caption block read "this clip carries its own line" as "the user customised this" and stamped a CUSTOM badge plus a "Reset to game tags" button on work nobody had done — which every scheduled clip would now have shown, twice. Both badges compare the frozen value against the game's current line and appear only when they actually differ.
+
 ## [Unreleased] — 2026-09-13 (session 256) — Version 0.5.0-alpha.4: layouts, overlays, and the fresh-install fixes
 
 ### Changed

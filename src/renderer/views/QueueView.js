@@ -1103,6 +1103,329 @@ export default function QueueView({
   // Phase 2: Get which platform keys are enabled for a clip
   const getEnabledPlatforms = (clip) => resolveEnabledPlatforms(clip, activePlat);
 
+  // #417: the per-platform caption block — the social tag line, then one card per
+  // enabled platform (caption / description, YouTube title, privacy and tags, the
+  // TikTok options). It lived inline in the Unscheduled card until a SCHEDULED clip
+  // needed the same view; one definition so the two can never drift apart.
+  const renderCaptionCards = (clip) => {
+    const enabledKeys = getEnabledPlatforms(clip);
+    if (enabledKeys.length === 0) return (
+      <div style={{ padding: "10px 14px", borderRadius: 8, background: T.redDim, border: `1px solid ${T.redBorder}`, marginBottom: 14, fontSize: 11, color: T.red, fontWeight: 600 }}>
+        All platforms disabled — toggle at least one to post.
+      </div>
+    );
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+        {/* #383: one hashtag line for every social caption below. Reads
+            through to the game's line until this clip is given its own. */}
+        {enabledKeys.some((k) => k !== "youtube") && (() => {
+          const line = resolveSocialTags(clip, ytDescriptions, gamesDb);
+          // #417: scheduling freezes this line onto the clip (#383), so "carries its own
+          // copy" is not the same as "the user changed it" — compare against the game's
+          // current line, or every scheduled clip wears a badge it never earned.
+          const custom = line !== gameSocialTagsFor(clip);
+          const editing = editingSocialTags === clip.id;
+          return (
+            <div style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.02)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <div style={FIELD_LABEL}>Social tags</div>
+                <span style={{ fontSize: 10.5, color: T.textTertiary }}>TikTok · Instagram · Facebook</span>
+                {custom && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
+                {captionSavedFlash === `${clip.id}:social-tags` && (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                    Saved
+                  </span>
+                )}
+                <div style={{ flex: 1 }} />
+                {custom && !editing && (
+                  <button onClick={(e) => { e.stopPropagation(); resetSocialTags(clip); }} style={{ padding: "2px 9px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to game tags</button>
+                )}
+              </div>
+              {editing ? (
+                <input
+                  autoFocus
+                  value={editSocialTagsValue}
+                  onChange={(e) => setEditSocialTagsValue(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingSocialTags(null); }}
+                  // Click anywhere outside = save; Escape unmounts without blur, so it cancels.
+                  onBlur={() => saveSocialTags(clip, editSocialTagsValue)}
+                  placeholder="#vct #100thieves #100T"
+                  style={{ width: "100%", boxSizing: "border-box", background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none" }}
+                />
+              ) : (
+                <div
+                  onClick={(e) => { e.stopPropagation(); setEditingSocialTags(clip.id); setEditSocialTagsValue(line); }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
+                  style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "7px 54px 7px 10px", fontSize: 12.5, color: line ? T.text : T.textMuted, fontStyle: line ? "normal" : "italic", cursor: "text", wordBreak: "break-word", transition: "border-color 0.15s" }}
+                  title="Click to edit"
+                >
+                  {line || "No social tags — click to add"}
+                  <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                    Edit
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {enabledKeys.map((pk) => {
+          const meta = PLATFORM_META[pk];
+          const isYt = pk === "youtube";
+          const caption = getEffectiveCaption(clip, pk);
+          const hasOverride = clip.captionOverrides?.[pk] != null;
+          const isEditingThis = editingCaption?.clipId === clip.id && editingCaption?.platform === pk;
+          const isEditingYtTitleThis = isYt && editingYtTitle === clip.id;
+          const charLimit = isYt ? PLATFORM_CHAR_LIMITS.youtube_desc : PLATFORM_CHAR_LIMITS[pk];
+          const ytTitleVal = clip.youtubeTitle || clip.title || "";
+
+          // #325: brand identity comes from the header wash, the block's
+          // border and a 2px top edge — deliberately not a left-edge colour bar.
+          return (
+            <div key={pk} style={{ borderRadius: 8, border: `1px solid ${meta.edge}`, boxShadow: `inset 0 2px 0 ${meta.bar}`, background: "rgba(var(--lift),0.02)", overflow: "hidden" }}>
+              {/* Caption card header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}`, background: meta.band }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <PlatformIcon platform={pk} size={16} />
+                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.1, color: meta.accent }}>{meta.label}</span>
+                  {hasOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.mono, color: charCountColor(caption.length, charLimit) }}>
+                  {caption.length}/{charLimit}
+                </span>
+              </div>
+
+              {/* YouTube: separate title field */}
+              {isYt && (
+                <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ ...FIELD_LABEL, minWidth: 52, flexShrink: 0 }}>Title</span>
+                  {isEditingYtTitleThis ? (
+                    <input
+                      autoFocus
+                      value={editYtTitleValue}
+                      onChange={(e) => setEditYtTitleValue(e.target.value)}
+                      onBlur={() => saveYoutubeTitle(clip, editYtTitleValue)}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveYoutubeTitle(clip, editYtTitleValue); if (e.key === "Escape") setEditingYtTitle(null); }}
+                      maxLength={100}
+                      style={{ flex: 1, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 4, padding: "4px 8px", color: T.text, fontSize: 11, fontFamily: T.font, outline: "none" }}
+                    />
+                  ) : (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setEditingYtTitle(clip.id); setEditYtTitleValue(ytTitleVal); }}
+                      style={{ flex: 1, fontSize: 12.5, color: T.text, cursor: "text", padding: "4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >{ytTitleVal}</div>
+                  )}
+                  <span style={{ fontSize: 10, fontFamily: T.mono, color: charCountColor(ytTitleVal.length, PLATFORM_CHAR_LIMITS.youtube_title) }}>{ytTitleVal.length}/100</span>
+                </div>
+              )}
+
+              {/* YouTube: privacy selector */}
+              {isYt && (
+                <div style={{ padding: "6px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ ...FIELD_LABEL, minWidth: 52, flexShrink: 0 }}>Privacy</span>
+                  {/* Custom Select (not native <select>) — Chromium's native
+                      option popup renders near-unreadable on the dark theme,
+                      same reason the TikTok privacy picker uses it. */}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={clip.youtubePrivacy || "public"}
+                      onChange={(value) => saveYoutubePrivacy(clip, value)}
+                      options={[
+                        { value: "public", label: "Public" },
+                        { value: "unlisted", label: "Unlisted" },
+                        { value: "private", label: "Private" },
+                      ]}
+                      style={{ padding: 0, fontSize: 11, minWidth: 110 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Caption body — rendered ABOVE the platform-specific
+                  options so it sits near the top of the card (close to the
+                  title), and styled as a clearly editable field. */}
+              <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={FIELD_LABEL}>{isYt ? "Description" : "Caption"}</div>
+                  {captionSavedFlash === `${clip.id}:${pk}` && (
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                      Saved
+                    </span>
+                  )}
+                </div>
+                {isEditingThis ? (
+                  <textarea
+                    autoFocus
+                    // Open at content height (≥120px, matching the read view)
+                    // and auto-grow while typing — never the old 2-line box.
+                    // dataset.sized guards the inline ref re-running on every
+                    // keystroke render so a manual drag-resize isn't undone.
+                    ref={(el) => {
+                      if (el && !el.dataset.sized) {
+                        el.dataset.sized = "1";
+                        el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
+                      }
+                    }}
+                    value={editCaptionValue}
+                    onChange={(e) => {
+                      setEditCaptionValue(e.target.value);
+                      const el = e.target;
+                      if (el.scrollHeight > el.clientHeight) el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(null); }}
+                    // Click anywhere outside the box = save. Escape unmounts the
+                    // textarea without firing blur, so it still cancels cleanly.
+                    onBlur={() => saveCaptionOverride(clip, pk, editCaptionValue)}
+                    style={{ width: "100%", minHeight: 120, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
+                  />
+                ) : (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); setEditingCaption({ clipId: clip.id, platform: pk }); setEditCaptionValue(caption); }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
+                    style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "10px 54px 10px 12px", fontSize: 13, color: T.text, lineHeight: 1.55, cursor: "text", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflow: "hidden", transition: "border-color 0.15s" }}
+                    title="Click to edit"
+                  >
+                    {caption || <span style={{ color: T.textMuted, fontStyle: "italic" }}>No caption — click to add</span>}
+                    <span style={{ position: "absolute", top: 8, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                      </svg>
+                      Edit
+                    </span>
+                  </div>
+                )}
+                {/* Char count + cancel — saving happens on click-outside (textarea blur).
+                    Cancel uses onMouseDown + preventDefault so it runs BEFORE the
+                    textarea's blur would save; Escape does the same from the keyboard. */}
+                {isEditingThis && (
+                  <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, fontFamily: T.mono, color: charCountColor(editCaptionValue.length, charLimit) }}>{editCaptionValue.length}/{charLimit}</span>
+                    <span style={{ fontSize: 10.5, color: T.textTertiary }}>click outside to save</span>
+                    <div style={{ flex: 1 }} />
+                    <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingCaption(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                  </div>
+                )}
+                {!isEditingThis && hasOverride && (
+                  <div style={{ marginTop: 8 }}>
+                    <button onClick={(e) => { e.stopPropagation(); resetCaptionOverride(clip, pk); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to template</button>
+                  </div>
+                )}
+              </div>
+
+              {/* #291: YouTube tags — under the description, not above it.
+                  Reads through to the game's list (Captions & Descriptions)
+                  until this clip is given its own. */}
+              {isYt && (() => {
+                const tags = resolveTags(clip, ytDescriptions, gamesDb);
+                // #417: same as the social tag line above — the frozen copy is not a user edit.
+                const gameYtTags = resolveTags({ ...clip, youtubeTags: undefined }, ytDescriptions, gamesDb);
+                const hasTagOverride = tagsToText(tags) !== tagsToText(gameYtTags);
+                const isEditingTags = editingYtTags === clip.id;
+                // Price the half-typed word too, so the counter can't read under
+                // budget on a list that is about to be refused.
+                const shown = isEditingTags ? parseTags([...editYtTags, editYtTagsDraft].join(",")) : tags;
+                const len = tagsLength(shown);
+                const over = len > TAGS_MAX;
+                const refused = ytTagsError === clip.id;
+                return (
+                  <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <div style={FIELD_LABEL}>Tags</div>
+                      {tags.length > 0 && !isEditingTags && <CopyIconButton value={tagsToText(tags)} title="Copy tags" />}
+                      {hasTagOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
+                      {captionSavedFlash === `${clip.id}:youtube-tags` && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                          Saved
+                        </span>
+                      )}
+                      <div style={{ flex: 1 }} />
+                      <span style={{ fontSize: 10, fontFamily: T.mono, color: over ? T.red : T.textTertiary }}>{len}/{TAGS_MAX}</span>
+                    </div>
+                    {isEditingTags ? (
+                      <TagInput
+                        autoFocus
+                        tags={editYtTags}
+                        draft={editYtTagsDraft}
+                        invalid={over}
+                        placeholder="rocket league, rocket league clips, gaming shorts"
+                        onChange={(next, d) => { setEditYtTags(next); setEditYtTagsDraft(d); }}
+                        onEscape={() => { setEditingYtTags(null); setYtTagsError(null); }}
+                        // Saved from the argument, not from state: the click that
+                        // leaves the field commits the last word in the same event.
+                        onCommitBlur={(finalTags) => saveYoutubeTags(clip, tagsToText(finalTags))}
+                      />
+                    ) : (
+                      <div
+                        onClick={(e) => { e.stopPropagation(); setYtTagsError(null); setEditingYtTags(clip.id); setEditYtTags(tags); setEditYtTagsDraft(""); }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
+                        style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "8px 54px 8px 10px", minHeight: 20, cursor: "text", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", transition: "border-color 0.15s" }}
+                        title="Click to edit"
+                      >
+                        {tags.length === 0 ? (
+                          <span style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>No tags — click to add</span>
+                        ) : tags.map((t) => (
+                          <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>{t}</span>
+                        ))}
+                        <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                          </svg>
+                          Edit
+                        </span>
+                      </div>
+                    )}
+                    {isEditingTags && (
+                      <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 10.5, color: over ? T.red : T.textTertiary }}>
+                          {over
+                            ? `Over YouTube's ${TAGS_MAX}-character limit by ${len - TAGS_MAX}${refused ? " — not saved" : ""}. Shorten the list.`
+                            : "Comma or Enter adds a tag · click outside to save"}
+                        </span>
+                        <div style={{ flex: 1 }} />
+                        <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingYtTags(null); setYtTagsError(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                      </div>
+                    )}
+                    {!isEditingTags && hasTagOverride && (
+                      <div style={{ marginTop: 8 }}>
+                        <button onClick={(e) => { e.stopPropagation(); resetYoutubeTags(clip); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to game tags</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* TikTok: per-clip options panel (Content Posting API audit) */}
+              {pk === "tiktok" && (() => {
+                const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
+                if (!tiktokAccount) return null;
+                return (
+                  <TiktokOptionsPanel
+                    clip={clip}
+                    account={tiktokAccount}
+                    onSave={(partial) => saveTiktokFields(clip, partial)}
+                    onCreatorInfoLoaded={onTiktokCreatorInfoLoaded}
+                  />
+                );
+              })()}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // TikTok Content Posting API audit: returns a human-readable reason string if
   // publishing should be blocked because the clip's TikTok options are incomplete
   // or invalid, or null if TikTok publishing is allowed (or TikTok isn't enabled).
@@ -2352,319 +2675,7 @@ export default function QueueView({
                           </div>
 
                           {/* Phase 2: Caption preview cards per enabled platform */}
-                          {(() => {
-                            const enabledKeys = getEnabledPlatforms(clip);
-                            if (enabledKeys.length === 0) return (
-                              <div style={{ padding: "10px 14px", borderRadius: 8, background: T.redDim, border: `1px solid ${T.redBorder}`, marginBottom: 14, fontSize: 11, color: T.red, fontWeight: 600 }}>
-                                All platforms disabled — toggle at least one to post.
-                              </div>
-                            );
-                            return (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                                {/* #383: one hashtag line for every social caption below. Reads
-                                    through to the game's line until this clip is given its own. */}
-                                {enabledKeys.some((k) => k !== "youtube") && (() => {
-                                  const line = resolveSocialTags(clip, ytDescriptions, gamesDb);
-                                  const custom = typeof clip.captionTags === "string";
-                                  const editing = editingSocialTags === clip.id;
-                                  return (
-                                    <div style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.02)" }}>
-                                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                        <div style={FIELD_LABEL}>Social tags</div>
-                                        <span style={{ fontSize: 10.5, color: T.textTertiary }}>TikTok · Instagram · Facebook</span>
-                                        {custom && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
-                                        {captionSavedFlash === `${clip.id}:social-tags` && (
-                                          <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
-                                            Saved
-                                          </span>
-                                        )}
-                                        <div style={{ flex: 1 }} />
-                                        {custom && !editing && (
-                                          <button onClick={(e) => { e.stopPropagation(); resetSocialTags(clip); }} style={{ padding: "2px 9px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to game tags</button>
-                                        )}
-                                      </div>
-                                      {editing ? (
-                                        <input
-                                          autoFocus
-                                          value={editSocialTagsValue}
-                                          onChange={(e) => setEditSocialTagsValue(e.target.value)}
-                                          onClick={(e) => e.stopPropagation()}
-                                          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingSocialTags(null); }}
-                                          // Click anywhere outside = save; Escape unmounts without blur, so it cancels.
-                                          onBlur={() => saveSocialTags(clip, editSocialTagsValue)}
-                                          placeholder="#vct #100thieves #100T"
-                                          style={{ width: "100%", boxSizing: "border-box", background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none" }}
-                                        />
-                                      ) : (
-                                        <div
-                                          onClick={(e) => { e.stopPropagation(); setEditingSocialTags(clip.id); setEditSocialTagsValue(line); }}
-                                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
-                                          style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "7px 54px 7px 10px", fontSize: 12.5, color: line ? T.text : T.textMuted, fontStyle: line ? "normal" : "italic", cursor: "text", wordBreak: "break-word", transition: "border-color 0.15s" }}
-                                          title="Click to edit"
-                                        >
-                                          {line || "No social tags — click to add"}
-                                          <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-                                              <path d="M12 20h9" />
-                                              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                            </svg>
-                                            Edit
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                                {enabledKeys.map((pk) => {
-                                  const meta = PLATFORM_META[pk];
-                                  const isYt = pk === "youtube";
-                                  const caption = getEffectiveCaption(clip, pk);
-                                  const hasOverride = clip.captionOverrides?.[pk] != null;
-                                  const isEditingThis = editingCaption?.clipId === clip.id && editingCaption?.platform === pk;
-                                  const isEditingYtTitleThis = isYt && editingYtTitle === clip.id;
-                                  const charLimit = isYt ? PLATFORM_CHAR_LIMITS.youtube_desc : PLATFORM_CHAR_LIMITS[pk];
-                                  const ytTitleVal = clip.youtubeTitle || clip.title || "";
-
-                                  // #325: brand identity comes from the header wash, the block's
-                                  // border and a 2px top edge — deliberately not a left-edge colour bar.
-                                  return (
-                                    <div key={pk} style={{ borderRadius: 8, border: `1px solid ${meta.edge}`, boxShadow: `inset 0 2px 0 ${meta.bar}`, background: "rgba(var(--lift),0.02)", overflow: "hidden" }}>
-                                      {/* Caption card header */}
-                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}`, background: meta.band }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                          <PlatformIcon platform={pk} size={16} />
-                                          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.1, color: meta.accent }}>{meta.label}</span>
-                                          {hasOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
-                                        </div>
-                                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.mono, color: charCountColor(caption.length, charLimit) }}>
-                                          {caption.length}/{charLimit}
-                                        </span>
-                                      </div>
-
-                                      {/* YouTube: separate title field */}
-                                      {isYt && (
-                                        <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-                                          <span style={{ ...FIELD_LABEL, minWidth: 52, flexShrink: 0 }}>Title</span>
-                                          {isEditingYtTitleThis ? (
-                                            <input
-                                              autoFocus
-                                              value={editYtTitleValue}
-                                              onChange={(e) => setEditYtTitleValue(e.target.value)}
-                                              onBlur={() => saveYoutubeTitle(clip, editYtTitleValue)}
-                                              onKeyDown={(e) => { if (e.key === "Enter") saveYoutubeTitle(clip, editYtTitleValue); if (e.key === "Escape") setEditingYtTitle(null); }}
-                                              maxLength={100}
-                                              style={{ flex: 1, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 4, padding: "4px 8px", color: T.text, fontSize: 11, fontFamily: T.font, outline: "none" }}
-                                            />
-                                          ) : (
-                                            <div
-                                              onClick={(e) => { e.stopPropagation(); setEditingYtTitle(clip.id); setEditYtTitleValue(ytTitleVal); }}
-                                              style={{ flex: 1, fontSize: 12.5, color: T.text, cursor: "text", padding: "4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                            >{ytTitleVal}</div>
-                                          )}
-                                          <span style={{ fontSize: 10, fontFamily: T.mono, color: charCountColor(ytTitleVal.length, PLATFORM_CHAR_LIMITS.youtube_title) }}>{ytTitleVal.length}/100</span>
-                                        </div>
-                                      )}
-
-                                      {/* YouTube: privacy selector */}
-                                      {isYt && (
-                                        <div style={{ padding: "6px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-                                          <span style={{ ...FIELD_LABEL, minWidth: 52, flexShrink: 0 }}>Privacy</span>
-                                          {/* Custom Select (not native <select>) — Chromium's native
-                                              option popup renders near-unreadable on the dark theme,
-                                              same reason the TikTok privacy picker uses it. */}
-                                          <div onClick={(e) => e.stopPropagation()}>
-                                            <Select
-                                              value={clip.youtubePrivacy || "public"}
-                                              onChange={(value) => saveYoutubePrivacy(clip, value)}
-                                              options={[
-                                                { value: "public", label: "Public" },
-                                                { value: "unlisted", label: "Unlisted" },
-                                                { value: "private", label: "Private" },
-                                              ]}
-                                              style={{ padding: 0, fontSize: 11, minWidth: 110 }}
-                                            />
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {/* Caption body — rendered ABOVE the platform-specific
-                                          options so it sits near the top of the card (close to the
-                                          title), and styled as a clearly editable field. */}
-                                      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                          <div style={FIELD_LABEL}>{isYt ? "Description" : "Caption"}</div>
-                                          {captionSavedFlash === `${clip.id}:${pk}` && (
-                                            <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
-                                              Saved
-                                            </span>
-                                          )}
-                                        </div>
-                                        {isEditingThis ? (
-                                          <textarea
-                                            autoFocus
-                                            // Open at content height (≥120px, matching the read view)
-                                            // and auto-grow while typing — never the old 2-line box.
-                                            // dataset.sized guards the inline ref re-running on every
-                                            // keystroke render so a manual drag-resize isn't undone.
-                                            ref={(el) => {
-                                              if (el && !el.dataset.sized) {
-                                                el.dataset.sized = "1";
-                                                el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
-                                              }
-                                            }}
-                                            value={editCaptionValue}
-                                            onChange={(e) => {
-                                              setEditCaptionValue(e.target.value);
-                                              const el = e.target;
-                                              if (el.scrollHeight > el.clientHeight) el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
-                                            }}
-                                            onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(null); }}
-                                            // Click anywhere outside the box = save. Escape unmounts the
-                                            // textarea without firing blur, so it still cancels cleanly.
-                                            onBlur={() => saveCaptionOverride(clip, pk, editCaptionValue)}
-                                            style={{ width: "100%", minHeight: 120, background: "rgba(var(--lift),0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
-                                          />
-                                        ) : (
-                                          <div
-                                            onClick={(e) => { e.stopPropagation(); setEditingCaption({ clipId: clip.id, platform: pk }); setEditCaptionValue(caption); }}
-                                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
-                                            style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "10px 54px 10px 12px", fontSize: 13, color: T.text, lineHeight: 1.55, cursor: "text", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflow: "hidden", transition: "border-color 0.15s" }}
-                                            title="Click to edit"
-                                          >
-                                            {caption || <span style={{ color: T.textMuted, fontStyle: "italic" }}>No caption — click to add</span>}
-                                            <span style={{ position: "absolute", top: 8, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
-                                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-                                                <path d="M12 20h9" />
-                                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                              </svg>
-                                              Edit
-                                            </span>
-                                          </div>
-                                        )}
-                                        {/* Char count + cancel — saving happens on click-outside (textarea blur).
-                                            Cancel uses onMouseDown + preventDefault so it runs BEFORE the
-                                            textarea's blur would save; Escape does the same from the keyboard. */}
-                                        {isEditingThis && (
-                                          <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
-                                            <span style={{ fontSize: 11, fontFamily: T.mono, color: charCountColor(editCaptionValue.length, charLimit) }}>{editCaptionValue.length}/{charLimit}</span>
-                                            <span style={{ fontSize: 10.5, color: T.textTertiary }}>click outside to save</span>
-                                            <div style={{ flex: 1 }} />
-                                            <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingCaption(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                                          </div>
-                                        )}
-                                        {!isEditingThis && hasOverride && (
-                                          <div style={{ marginTop: 8 }}>
-                                            <button onClick={(e) => { e.stopPropagation(); resetCaptionOverride(clip, pk); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to template</button>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* #291: YouTube tags — under the description, not above it.
-                                          Reads through to the game's list (Captions & Descriptions)
-                                          until this clip is given its own. */}
-                                      {isYt && (() => {
-                                        const tags = resolveTags(clip, ytDescriptions, gamesDb);
-                                        const hasTagOverride = Array.isArray(clip.youtubeTags);
-                                        const isEditingTags = editingYtTags === clip.id;
-                                        // Price the half-typed word too, so the counter can't read under
-                                        // budget on a list that is about to be refused.
-                                        const shown = isEditingTags ? parseTags([...editYtTags, editYtTagsDraft].join(",")) : tags;
-                                        const len = tagsLength(shown);
-                                        const over = len > TAGS_MAX;
-                                        const refused = ytTagsError === clip.id;
-                                        return (
-                                          <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                              <div style={FIELD_LABEL}>Tags</div>
-                                              {tags.length > 0 && !isEditingTags && <CopyIconButton value={tagsToText(tags)} title="Copy tags" />}
-                                              {hasTagOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
-                                              {captionSavedFlash === `${clip.id}:youtube-tags` && (
-                                                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
-                                                  Saved
-                                                </span>
-                                              )}
-                                              <div style={{ flex: 1 }} />
-                                              <span style={{ fontSize: 10, fontFamily: T.mono, color: over ? T.red : T.textTertiary }}>{len}/{TAGS_MAX}</span>
-                                            </div>
-                                            {isEditingTags ? (
-                                              <TagInput
-                                                autoFocus
-                                                tags={editYtTags}
-                                                draft={editYtTagsDraft}
-                                                invalid={over}
-                                                placeholder="rocket league, rocket league clips, gaming shorts"
-                                                onChange={(next, d) => { setEditYtTags(next); setEditYtTagsDraft(d); }}
-                                                onEscape={() => { setEditingYtTags(null); setYtTagsError(null); }}
-                                                // Saved from the argument, not from state: the click that
-                                                // leaves the field commits the last word in the same event.
-                                                onCommitBlur={(finalTags) => saveYoutubeTags(clip, tagsToText(finalTags))}
-                                              />
-                                            ) : (
-                                              <div
-                                                onClick={(e) => { e.stopPropagation(); setYtTagsError(null); setEditingYtTags(clip.id); setEditYtTags(tags); setEditYtTagsDraft(""); }}
-                                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
-                                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
-                                                style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(var(--lift),0.045)", padding: "8px 54px 8px 10px", minHeight: 20, cursor: "text", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", transition: "border-color 0.15s" }}
-                                                title="Click to edit"
-                                              >
-                                                {tags.length === 0 ? (
-                                                  <span style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>No tags — click to add</span>
-                                                ) : tags.map((t) => (
-                                                  <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>{t}</span>
-                                                ))}
-                                                <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
-                                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-                                                    <path d="M12 20h9" />
-                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                                  </svg>
-                                                  Edit
-                                                </span>
-                                              </div>
-                                            )}
-                                            {isEditingTags && (
-                                              <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
-                                                <span style={{ fontSize: 10.5, color: over ? T.red : T.textTertiary }}>
-                                                  {over
-                                                    ? `Over YouTube's ${TAGS_MAX}-character limit by ${len - TAGS_MAX}${refused ? " — not saved" : ""}. Shorten the list.`
-                                                    : "Comma or Enter adds a tag · click outside to save"}
-                                                </span>
-                                                <div style={{ flex: 1 }} />
-                                                <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingYtTags(null); setYtTagsError(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                                              </div>
-                                            )}
-                                            {!isEditingTags && hasTagOverride && (
-                                              <div style={{ marginTop: 8 }}>
-                                                <button onClick={(e) => { e.stopPropagation(); resetYoutubeTags(clip); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to game tags</button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-
-                                      {/* TikTok: per-clip options panel (Content Posting API audit) */}
-                                      {pk === "tiktok" && (() => {
-                                        const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
-                                        if (!tiktokAccount) return null;
-                                        return (
-                                          <TiktokOptionsPanel
-                                            clip={clip}
-                                            account={tiktokAccount}
-                                            onSave={(partial) => saveTiktokFields(clip, partial)}
-                                            onCreatorInfoLoaded={onTiktokCreatorInfoLoaded}
-                                          />
-                                        );
-                                      })()}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })()}
+                          {renderCaptionCards(clip)}
 
                           {/* Publishing progress (if active) — only shows enabled platforms.
                               After success we keep the panel visible with green styling so
@@ -2902,6 +2913,9 @@ export default function QueueView({
                           );
                         })}
                       </div>
+                      {/* #417: what this clip will actually post with. Reading a scheduled
+                          clip's description used to mean unscheduling it first. */}
+                      {renderCaptionCards(clip)}
                       {/* Actions */}
                       <div style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 14, borderTop: `1px solid ${T.border}`, flexWrap: "wrap" }}>
                         <button onClick={() => dequeueClip(clip)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, transition: "all 0.15s" }}
