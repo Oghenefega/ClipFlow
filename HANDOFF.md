@@ -2,9 +2,10 @@
 
 ## Current State
 
-Master is clean at this wrap's commit. **No installer was cut** — three commits since alpha.3.
-Everything below is closed `status: untested`: verified on the dev build over CDP, not yet
-seen by Fega on the installed exe.
+Master is clean at this wrap's commit. **0.5.0-alpha.4 is on the feed** (`98f7cea`), promoting
+everything since alpha.3: #406/#407 (fresh-install fixes, s255), #409, and #410–#415. All
+seven are closed `status: untested` — verified on the dev build over CDP, not yet confirmed by
+Fega on the installed exe. Clear the labels when he says the layouts and the overlay behave.
 
 Two things shipped:
 
@@ -31,11 +32,15 @@ Two things shipped:
   warning list treats it as playable — GPU-only decode isn't a customer guarantee.
 - **Result preview is 140px wide** so the box rows fit under it at 1280×860. Legibility over
   size; the boxes on the main preview are what get dragged.
-- **No installer.** Batch rule.
+- **alpha.4 was cut on Fega's ask**, three commits after alpha.3 — the batch rule yields to
+  an explicit request.
 
 ## Next Steps
 
-1. **Cut an installer** when the batch fills — #406/#407/#409/#411–#415 all wait on it.
+1. **Fega tests alpha.4** on the installed exe: transparent CTA on the Media track; a
+   section tweak + Apply leaves the saved layout untouched; Result switches at cuts during
+   playback; − on the Webcam row tightens without moving the game band. Then clear the
+   `status: untested` labels on #406, #407, #409–#415.
 2. **#265 first-run setup checklist**, still the largest code item.
 3. **#408**, **#405**, **#21** — unchanged from s255.
 4. Still open from s255: is the Google OAuth consent screen verified or only published?
