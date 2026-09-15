@@ -1,98 +1,91 @@
-# HANDOFF — Session 257 (2026-09-14)
+# HANDOFF — Session 258 (2026-09-15)
 
 ## Current State
 
-Master is clean at this wrap's commit. **No installer was cut** — alpha.4 is still what's on
-the feed and on Fega's daily driver, so the one code change this session (#417) is on master
-only. One commit of product code: `3d8c729`.
+Master is clean at this wrap's commit. **No installer was cut** — alpha.4 is still on the feed
+and on Fega's daily driver. Unshipped on master: #417 + the CUSTOM-badge fix (s257) and this
+session's four render/transcription hardening changes. One commit of product code this session.
 
-Two asks, both done:
+The session started as a question ("is anything in this FFmpeg-skill post useful?"), became a
+five-point comparison of the skill's engineering rules against the live code, and shipped the
+four that were fixes:
 
-1. **Caption templates got the follow line (data, not code).** All three social templates now
-   read `{title} | FOLLOW FOR MORE!😏 <platform tags> {gametags}`. Instagram also gained the
-   `!` it was missing. YouTube untouched. Written directly into
-   `%APPDATA%\Corva\clipflow-settings.json` with Corva closed; backup at
-   `clipflow-settings.backup-2026-09-14-pre-followline.json`.
-2. **#417 — a scheduled clip shows its captions.** The expanded scheduled row now renders the
-   same per-platform block the Unscheduled card has, editable, so reading or fixing a
-   description no longer means unscheduling. Closed `status: untested`.
+1. **Render output verification** (`verifyRenderOutput`, `src/main/main.js` just above
+   `doRenderClip`) — probe the file, require video + expected audio + length within 0.5 s of the
+   timeline, delete and fail otherwise.
+2. **Idle watchdog on the main render spawn** (`RENDER_IDLE_TIMEOUT_MS` in `src/main/render.js`,
+   5 min of ffmpeg silence → kill, unlink partial, reject "ffmpeg render hung").
+3. **`-pix_fmt yuv420p`** on the render's output args, so a 10-bit source can't reach NVENC.
+4. **stable-ts spawns python.exe with an argv array** (all three sites), no more `cmd /c` string.
 
-**#416 is open** — filed, not started.
+The fifth (per-platform pre-flight compliance) is **#418**, filed, not started.
 
 ## Key Decisions
 
-- **The three social templates are global, and Fega believes they're per-game.** He opened with
-  "broken into categories and games… I can't just change 1". They are three strings shared by
-  all 16 library entries. The panel's two disclaimers are the smallest, faintest text on it.
-  That's #416.
-- **Editable, not read-only, in the scheduled panel.** Read-only would have left the
-  unschedule-to-edit loop intact, which is the whole ticket; the panel already let him toggle
-  platforms, so nothing new is being risked.
-- **`renderCaptionCards(clip)` is a pure move**, not a rewrite — the block read nothing from the
-  unscheduled map's loop scope. Both views call the one function so they can't drift.
-- **CUSTOM now means "differs from the game's line", not "carries its own copy".** Scheduling
-  freezes the tag lines onto the clip (#383), which the old check read as a user edit — every
-  scheduled clip would have worn two badges it never earned.
-- **Titles keep their trailing `#valorant`.** Offered to move it into the tag line; Fega:
-  "leave the titles the way it is. Don't wanna excavate that."
+- **Tolerance is 0.5 s, measured.** 195 real renders: file − timeline = min −0.001, p50 0,
+  p99 0.02, max 2.351. The 2.35 s outlier is a *rejected* clip re-trimmed after its render
+  (file exactly 16.000 = the old 106–122 range) — a stale render, not a render defect, so it
+  did not move the threshold. Nothing marks a render stale when its timeline changes; not filed,
+  mention it if it bites.
+- **Watchdog is idle-based, not a fixed budget.** Renders vary 100× in length; a healthy encode
+  prints stats every ~0.5 s. Five minutes of silence is a hang by construction. The env override
+  is a probe seam only.
+- **Verification failure deletes the file.** A re-render overwrites its own prior `renderPath`
+  in place, so on a failed re-render the previous good file is already gone anyway; leaving a
+  truncated file under the clip's name would be worse than none.
+- **`audioExpected` comes from `renderClip`** (`useNle`): the NLE graph always maps audio (a
+  muted lane is `volume=0`, not dropped); the legacy no-NLE path maps `0:a?` and may
+  legitimately produce a silent file.
+- **checkSetup's shell string was fixed in the same commit** as the twin it sat beside (s210
+  rule), verified by running it.
+- **Not adopted from the skill, on purpose:** loudness normalization (conflicts with #272's
+  no-limiter decision), stream-copy cuts (every render composites), silence/filler removal,
+  multicam sync, the contract/MCP layer.
 
 ## Next Steps
 
-1. **Cut an installer, or wait.** #417 and the CUSTOM fix are the only unshipped changes; the
-   batch rule says wait for ~10 or an explicit ask. Fega was told to say "cut it".
-2. **Clear the `status: untested` labels** on #406, #407, #409–#415 once he confirms alpha.4's
-   layouts and overlays, and on #417 once it reaches him.
-3. **#416** — the Captions panel reading as per-game.
-4. **#265 first-run setup checklist**, still the largest code item.
-5. **#408**, **#405**, **#21** — unchanged from s255/s256.
-6. Still open from s255: is the Google OAuth consent screen verified or only published?
+1. **Cut an installer, or wait.** Six unshipped changes on master now (s257 + s258). Batch rule
+   says ~10 or an explicit ask.
+2. **Clear `status: untested`** on #406, #407, #409–#415, #417 once Fega confirms them.
+3. **#418** when the pre-launch list comes up; **#416** (Captions panel reads as per-game);
+   **#265** first-run checklist.
+4. Still open from s255: is the Google OAuth consent screen verified or only published?
 
 ## Watch Out For
 
-- **A source run of the prod profile rewrites the tracked `data/clipflow.db`** (245KB → 564KB
-  via the boot backfill) and `git add -A` will commit it. Stage by path in any session that
-  launched from source; `git show --name-only HEAD` before pushing. `--amend --only <paths>`
-  does **not** drop an already-committed path — `git checkout HEAD~1 -- <path>` then a plain
-  `--amend` does.
-- **Never edit `clipflow-settings.json` while Corva runs.** electron-store holds the file in
-  memory and rewrites the whole thing on the next `store.set`. Close the app first (the store
-  is not created with `watch`), and verify the values survived the next boot.
-- **Expanding a scheduled row now fires TikTok's `creator_info` call**, because the TikTok
-  options panel is part of the shared block. Same call the Unscheduled card always made; six
-  rows opened one after another means six calls.
-- **An expanded scheduled row is now tall** — four platforms, four caption cards. Bounded (each
-  caption's read view caps at 120px) but no longer a small panel. Folding it behind a reveal is
-  the follow-up if it reads badly.
-- **`taskkill /IM Corva.exe` without `/F` does not close it** — the signal is accepted and the
-  processes stay. `/F` is needed. Killing the source run is different: filter `Win32_Process`
-  on a CommandLine containing `Desktop\ClipFlow` rather than `/IM electron.exe`, which takes
-  DaVinci's Epidemic Sound plugin with it.
-- **`TaskStop` on a backgrounded `npx electron .` kills the wrapper, not the Electron tree.**
-  Five processes survived it; kill by PID afterwards.
-- **Approved clips missing from the Queue are usually correct** — `scheduledClipIds` knocks out
-  anything the tracker already has with a `clipId`. Two approved, rendered, unscheduled AIMBOT
-  clips are absent for exactly that reason (published 2026-09-08/09). Not a bug.
+- **`verifyRenderOutput` runs for `render:batch` too** — both handlers enqueue through
+  `doRenderClip`. A batch with one bad file now reports that one as failed instead of rendered.
+- **The watchdog fires on the main render only.** The three ffprobe spawns in `render.js`
+  (`probeFps`/`probeDims`/duration) and `transcodeCopy` / `cutTitlePreview` / `remuxToMp4` in
+  `ffmpeg.js` still have no timeout. Left alone: none of them sit in the publish path.
+- **A probe timeout is a verification failure.** `ffmpeg.probe` has a 15 s timeout; on a
+  pathologically slow disk a good render could be refused and deleted. Never observed; the
+  message would say "output unreadable".
+- **Scratch fixture library still exists** under the session scratchpad (`lib/`, `out/`), with
+  a *copy* of the all-rejected project `2026-07-17 RL Day8 Pt5` and a rendered "Clip 1.mp4" that
+  belongs to nobody. Disposable. The dev profile's `projectsRoot`/`outputFolder` were pointed at
+  it for the in-app test and **restored from `dev-settings.backup.json`** — confirmed by
+  re-reading the store.
+- **`git status` was clean apart from the three source files** after the dev-profile source
+  run — the s257 `data/clipflow.db` trap is a *prod*-profile source run only.
 
 ## Logs / Debugging
 
-- **CDP driver:** `scratchpad/cdp.js` — `eval "<js>" | shot <png> [w h]`. Boot the prod profile
-  from source with `npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion
-  --disable-renderer-backgrounding --disable-background-timer-throttling` (built renderer, not
-  Vite), with the installed Corva closed or it exits on the single-instance lock.
-- **Clicking a queue row over CDP:** `document.querySelectorAll('div')` finds the outer layout
-  div first — filter on `style.display==='grid' && style.cursor==='pointer' &&
-  style.gridTemplateColumns.startsWith('48px')` or you click a 936px-tall wrapper and nothing
-  happens.
-- **Typing into a React field over CDP:** the native value setter plus
-  `dispatchEvent(new Event('input',{bubbles:true}))`, then `.blur()` to trigger the save.
-- **Reversible data round-trip:** `window.clipflow.projectUpdateClip(pid, cid, {...})` from the
-  renderer is the same call the UI makes, so a clip can be unscheduled and restored exactly;
-  `location.reload()` between steps. Diff the clip's fields against a snapshot afterwards —
-  only the project's `updatedAt` should move.
-- **Emulated viewport:** `Emulation.setDeviceMetricsOverride` at 1280×860 yields a 960px CSS
-  viewport here (a 1.333 zoom factor is in play), so it's a stricter fit test than asked for.
-  Clear the override afterwards.
-- **Settings history is on disk:** `clipflow-settings.backup-*.json` and `.bak-*` beside the
-  live file date any change to the store — that's how "FOLLOW FOR MORE was added this morning"
-  was established. `clipflow-publish-log.json` holds what actually went out, under
-  `clipTitle` / `clipCaption` (not `title` / `caption`).
+- **Render probes:** `scratchpad/render-hardening-probe.js <good|bad|hang>` runs the real
+  `renderClip` on the fixture (`npx electron …`; `hang` with `CORVA_RENDER_IDLE_TIMEOUT_MS=1`).
+  `scratchpad/measure-drift.js` is the read-only 195-render timeline-vs-file survey; rerun it
+  before ever moving `RENDER_DURATION_TOLERANCE_SEC`.
+- **10-bit fixture:** `scratchpad/fixture-10bit.mp4` (8 s of the newest recording, x265
+  `yuv420p10le`, 2560×2880 60 fps). Recreate with `ffmpeg -ss 60 -t 8 -i <rec> -c:v libx265
+  -pix_fmt yuv420p10le -crf 28 -r 60 -c:a aac`. NVENC on it without `-pix_fmt`: "10 bit encode
+  not supported".
+- **In-app path:** dev profile with `projectsRoot`/`outputFolder` repointed at the scratch lib,
+  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`, then
+  `scripts/dev/cdp.js "window.clipflow.renderClip(clip, project, null, {})"` — the same IPC the
+  Projects tab's Render button hits. Dev tokens were `{accounts:{}}` before boot.
+- **Transcription A/B:** `scratchpad/transcribe-ab-probe.js <old|new>` (old = `git show HEAD~1`
+  copy with absolute requires) on `speech.wav` (26 s, AR Day16 Pt4 at 258 s); `transcribe-batch-probe.js`
+  covers `checkSetup` + `transcribeBatch`. Model-cache warm-up explains old 87 s vs new 25 s.
+- **`console.log` from render.js does not reach `%APPDATA%\Corva\logs\app.log`** — only the
+  scoped electron-log lines (`(tiktok)`, `(video-processing)`, …) land there. Render timings
+  have to come from a source run's stdout or the render pill, not the log file.

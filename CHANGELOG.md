@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-15 (session 258) — A render is done when the file is right, not when ffmpeg exits
+
+### Added
+- **Every render is checked on disk before the clip is marked rendered.** Until now a clip became "rendered" the moment ffmpeg exited with code 0 — #363 was exactly that: exit 0 with the title card missing. The main process now probes the finished file and requires a video stream, an audio stream when the timeline has one, and a length within half a second of what the timeline promised; a miss takes the same error path a failed encode does and the bad file is deleted so the publish scheduler can never pick it up. The half-second tolerance was measured, not guessed: across all 195 renders on disk the file ran 0–0.02 s over its timeline (one frame of rounding at 60 fps). Proven in the running app with a clip whose section runs past the end of its source file: ffmpeg exits 0 with a 6 s file for a 10 s timeline, and the clip now stays "pending" with the reason "Render verification failed: file is 6.00s, timeline is 10.00s" instead of a truncated render waiting for its slot.
+- **A hung render is killed instead of holding the queue.** ffmpeg prints a stats line every half second while it encodes, so five minutes of silence means a wedged process, not a slow clip. The main render spawn now carries an idle watchdog (the thumbnail render has had a fixed one since its first day): it kills ffmpeg, removes the partial file, and fails the render with a message that says so. Renders are serialized, so a hung one used to block every render behind it — and any scheduled publish waiting on a render — until someone noticed. The `CORVA_RENDER_IDLE_TIMEOUT_MS` environment override exists only so the kill path can be exercised by a probe; nothing in the app sets it.
+
+### Fixed
+- **A 10-bit recording no longer breaks a render that keeps the source frame.** The vertical layout chain already forced 8-bit output, but a clip rendered at the source's own frame inherited the source pixel format. A 10-bit HEVC recording (what OBS writes for HDR capture) then reached the encoder as 10-bit, which NVENC refuses outright ("10 bit encode not supported", confirmed against the bundled ffmpeg). The output is now pinned to 8-bit `yuv420p` on every path; on Fega's 8-bit recordings ffmpeg inserts no conversion, so nothing changes for him. Verified by rendering a synthetic 10-bit HEVC clip through the real render: 8-bit H.264 out, sound intact.
+- **The transcription engine is launched with typed arguments instead of a hand-quoted shell string.** `stable-ts` was the only child process in the app built as a `cmd /c "…"` string with the Python path, cache folder and audio paths quoted by hand, so a path containing `&`, `%` or `^` would have broken the command. All three call sites (the setup check, single-clip transcription, and the batch retranscription) now spawn `python.exe` directly with an argument array, the same shape the pipeline, signals and setup-runtime processes already use; the cache folder rides in the environment, which is all the shell `set` did. Verified by transcribing the same 26 s of speech through the old and new code: identical text, 47 words, identical timestamps; the batch path and the setup check were run as well.
+
+### Filed
+- **#418 — pre-flight platform compliance check before a scheduled publish.** YouTube, TikTok and X have no limits encoded at all; Instagram's and Facebook's are reactive. A feature with UI, parked for the pre-launch list.
+
 ## [Unreleased] — 2026-09-14 (session 257) — A scheduled clip finally shows what it will post (#417)
 
 ### Added

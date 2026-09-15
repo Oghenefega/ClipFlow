@@ -11,7 +11,7 @@
  *   hfHome            - HuggingFace cache directory
  */
 
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { app } = require("electron");
@@ -50,11 +50,11 @@ function checkSetup(config = {}) {
       return resolve({ installed: false, error: "Python path not found" });
     }
 
-    const cmd = `"${pythonPath}" -c "import stable_whisper; import torch; print('CUDA:' + str(torch.cuda.is_available())); print('torch:' + torch.__version__); print('stable_ts:' + stable_whisper.__version__)"`;
+    const probe = "import stable_whisper; import torch; print('CUDA:' + str(torch.cuda.is_available())); print('torch:' + torch.__version__); print('stable_ts:' + stable_whisper.__version__)";
     // Default 30s suits the warm boot-time check; the post-install probe passes
     // a longer budget — the first import after unpack runs while Defender scans
     // every fresh binary and can far exceed 30s on a cold machine (#256).
-    exec(cmd, { timeout: config.timeoutMs || 30000 }, (err, stdout, stderr) => {
+    execFile(pythonPath, ["-c", probe], { timeout: config.timeoutMs || 30000 }, (err, stdout, stderr) => {
       if (err) {
         return resolve({ installed: false, error: `stable-ts not importable: ${err.message}` });
       }
@@ -154,26 +154,29 @@ function transcribe(wavPath, opts = {}) {
 
     // Build command
     const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || defaultHfHome();
-    let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
-    cmd += ` --audio "${wavPath}"`;
-    cmd += ` --output "${jsonOutPath}"`;
-    cmd += ` --model ${model}`;
-    cmd += ` --language ${language}`;
-    cmd += ` --batch_size ${batchSize}`;
-    cmd += ` --compute_type ${computeType}`;
-    if (opts.hfToken) {
-      cmd += ` --hf_token ${opts.hfToken}`;
-    }
-    cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
-    if (opts.wordTiming === "light") cmd += " --word-timing-light";
-    else if (opts.wordTiming) cmd += " --word-timing";
-    cmd += `"`;
+    // Typed argv, no shell — the shape every other Python child already uses
+    // (ai-pipeline, signals, setup-runtime). The old cmd /c string quoted the
+    // paths by hand, so a Python path or cache dir with a &, % or ^ in it broke
+    // the command. HF_HOME rides in the environment, which is all `set` did.
+    const args = [
+      scriptPath,
+      "--audio", wavPath,
+      "--output", jsonOutPath,
+      "--model", model,
+      "--language", language,
+      "--batch_size", String(batchSize),
+      "--compute_type", computeType,
+    ];
+    if (opts.hfToken) args.push("--hf_token", opts.hfToken);
+    args.push("--initial_prompt", initialPrompt);
+    if (opts.wordTiming === "light") args.push("--word-timing-light");
+    else if (opts.wordTiming) args.push("--word-timing");
 
-    const proc = exec(cmd, {
+    const proc = execFile(pythonPath, args, {
       timeout: 3600000, // 60 minutes max
       maxBuffer: 100 * 1024 * 1024,
       // WhisperX loads audio by shelling out to ffmpeg — resolve the bundled copy (#251)
-      env: { ...envWithBundledFfmpeg(), ...timingModelEnv(store) },
+      env: { ...envWithBundledFfmpeg(), ...timingModelEnv(store), HF_HOME: hfHome },
     }, (err, stdout, stderr) => {
       if (err) {
         const errOutput = (stderr || "").slice(-2000);
@@ -251,22 +254,23 @@ function transcribeBatch(items, opts = {}) {
     const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
 
     const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || defaultHfHome();
-    let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
-    cmd += ` --batch "${manifestPath}"`;
-    cmd += ` --model ${model}`;
-    cmd += ` --language ${language}`;
-    cmd += ` --compute_type ${computeType}`;
-    if (opts.hfToken) cmd += ` --hf_token ${opts.hfToken}`;
-    cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
+    const args = [
+      scriptPath,
+      "--batch", manifestPath,
+      "--model", model,
+      "--language", language,
+      "--compute_type", computeType,
+    ];
+    if (opts.hfToken) args.push("--hf_token", opts.hfToken);
+    args.push("--initial_prompt", initialPrompt);
     // Batch = clip retranscription, the only place the word-timing voters run (#359).
-    cmd += " --word-timing";
-    cmd += `"`;
+    args.push("--word-timing");
 
-    const proc = exec(cmd, {
+    const proc = execFile(pythonPath, args, {
       timeout: 3600000, // 60 minutes max for the whole batch
       maxBuffer: 100 * 1024 * 1024,
       // WhisperX loads audio by shelling out to ffmpeg — resolve the bundled copy (#251)
-      env: { ...envWithBundledFfmpeg(), ...timingModelEnv(store) },
+      env: { ...envWithBundledFfmpeg(), ...timingModelEnv(store), HF_HOME: hfHome },
     }, (err, stdout, stderr) => {
       try { fs.unlinkSync(manifestPath); } catch (_) {}
       if (err) {

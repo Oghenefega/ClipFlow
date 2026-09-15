@@ -4538,6 +4538,36 @@ async function drainRenderQueue() {
   renderDraining = false;
 }
 
+// A render is done when the FILE is right, not when ffmpeg exits 0 — #363 was
+// exit 0 with the title card missing, and a killed encoder or a full disk can
+// leave a readable stub. So the output is probed and held to what the timeline
+// promised before the clip is marked rendered; a miss takes the same error path
+// a failed encode does, and the file is removed so no later step (the publish
+// scheduler reads renderPath) can pick it up.
+// Tolerance: across 195 real renders the file ran 0–0.02 s over the timeline
+// (frame rounding at 60 fps, p99 0.02 s), so half a second is 25x the widest
+// honest gap and still catches any truncation a person would notice.
+const RENDER_DURATION_TOLERANCE_SEC = 0.5;
+async function verifyRenderOutput(result) {
+  const problems = [];
+  let info = null;
+  try {
+    info = await ffmpeg.probe(result.path);
+  } catch (e) {
+    problems.push(`output unreadable (${e.message})`);
+  }
+  if (info) {
+    if (!info.videoCodec) problems.push("no video stream");
+    if (result.audioExpected && !info.audioCodec) problems.push("no audio stream");
+    if (result.duration > 0 && Math.abs(info.duration - result.duration) > RENDER_DURATION_TOLERANCE_SEC) {
+      problems.push(`file is ${info.duration.toFixed(2)}s, timeline is ${result.duration.toFixed(2)}s`);
+    }
+  }
+  if (problems.length === 0) return;
+  try { fs.unlinkSync(result.path); } catch (_) {}
+  throw new Error(`Render verification failed: ${problems.join("; ")}`);
+}
+
 // The actual per-clip render work (unchanged logic: render → thumbnail →
 // project update), with all progress routed through `emit`.
 async function doRenderClip(clipData, projectData, outputPath, options, emit) {
@@ -4558,6 +4588,8 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
       emit({ stage: "canceled" });
       return { canceled: true };
     }
+
+    await verifyRenderOutput(result);
 
     // Extract thumbnail from rendered clip. #205: it lives in the project's own
     // clips folder, NOT beside the MP4 — the output folder is a folder the user

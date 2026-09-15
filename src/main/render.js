@@ -12,6 +12,14 @@ const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe } = require("../renderer/editor/utils/reframeStyle");
 
+// Hang watchdog for the main render: ffmpeg prints a stats line every ~half
+// second while it encodes, so this much silence means a wedged process (a pipe
+// nobody is feeding, a driver that stopped answering), not a slow clip — a long
+// CPU encode still talks. Idle-based rather than a fixed budget because
+// renders legitimately vary 100x in length. The env override exists for the
+// dev probe that proves the kill path; nothing in the app sets it.
+const RENDER_IDLE_TIMEOUT_MS = parseInt(process.env.CORVA_RENDER_IDLE_TIMEOUT_MS, 10) || 5 * 60 * 1000;
+
 /**
  * Probe a video file for its FPS using ffprobe.
  * @param {string} filePath
@@ -1068,6 +1076,13 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const renderEncoder = options.encoder === "nvenc" ? "nvenc" : "x264";
       args.push(
         "-r", String(Math.round(sourceFps)),
+        // 8-bit output whatever the source is. The reframe chain already ends
+        // in format=yuv420p, but a clip rendered at the source frame inherits
+        // the source's pixel format — a 10-bit HEVC recording (OBS HDR capture)
+        // would reach the encoder as 10-bit, which h264_nvenc cannot encode at
+        // all and x264 would write as a High 10 stream no platform spec asks
+        // for. On an 8-bit source ffmpeg inserts no conversion: a no-op.
+        "-pix_fmt", "yuv420p",
         ...require("./ffmpeg").buildEncoderArgs(renderEncoder),
         "-c:a", "aac",
         // 128k, not 192k: Meta documents 128 kbps AAC as the Reels audio spec and
@@ -1098,6 +1113,21 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       }
       let stderr = "";
       let overlayError = null;
+
+      // Re-armed by every stderr chunk (see RENDER_IDLE_TIMEOUT_MS). Without it
+      // a hung render holds the serialized render queue — and any scheduled
+      // publish waiting on it — until someone notices.
+      let watchdogFired = false;
+      let watchdog = null;
+      const armWatchdog = () => {
+        clearTimeout(watchdog);
+        watchdog = setTimeout(() => {
+          watchdogFired = true;
+          console.error(`[Render] No ffmpeg output for ${RENDER_IDLE_TIMEOUT_MS / 1000}s — killing the hung render`);
+          try { proc.kill("SIGTERM"); } catch (_) {}
+        }, RENDER_IDLE_TIMEOUT_MS);
+      };
+      armWatchdog();
 
       // Stream overlay frames into FFmpeg's stdin concurrently with the encode.
       if (hasFrames) {
@@ -1142,6 +1172,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       }
 
       proc.stderr.on("data", (data) => {
+        armWatchdog();
         stderr += data.toString();
         if (timelineDuration > 0) {
           const timeMatch = data.toString().match(/time=(\d+):(\d+):(\d+\.?\d*)/);
@@ -1159,6 +1190,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       });
 
       proc.on("close", (code) => {
+        clearTimeout(watchdog);
         if (overlaySession) overlaySession.destroy();
 
         // #140: user canceled — the kill fired this close with a non-zero/null code.
@@ -1170,15 +1202,26 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         }
         active = null;
 
+        if (watchdogFired) {
+          // Same cleanup as a cancel: the partial file must not sit in the
+          // output folder looking like a render.
+          try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch (_) {}
+          return reject(new Error(`ffmpeg render hung: no output for ${RENDER_IDLE_TIMEOUT_MS / 1000}s, killed. ${stderr.slice(-300)}`));
+        }
+
         if (code !== 0) {
           console.error("[Render] FFmpeg failed:", stderr.slice(-500));
           const overlayMsg = overlayError ? ` (overlay capture error: ${overlayError.message})` : "";
           return reject(new Error(`ffmpeg render failed (code ${code})${overlayMsg}: ${stderr.slice(-500)}`));
         }
-        resolve({ success: true, path: outputPath, duration: timelineDuration });
+        // audioExpected: the NLE graph always maps an audio stream (a muted
+        // lane is volume=0, not dropped); the legacy path maps 0:a? so a silent
+        // clip MP4 legitimately has none. The caller verifies the file on this.
+        resolve({ success: true, path: outputPath, duration: timelineDuration, audioExpected: useNle });
       });
 
       proc.on("error", (err) => {
+        clearTimeout(watchdog);
         if (overlaySession) overlaySession.destroy();
         if (active && active.canceled) {
           active = null;
