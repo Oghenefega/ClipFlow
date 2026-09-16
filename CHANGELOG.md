@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-16 (session 259) — The Layout drawer's Result preview fills the drawer
+
+### Changed
+- **The Result preview in the Layout drawer's edit mode grows with the drawer instead of sitting at 100 pixels wide.** Session 256 capped the picture so the box rows stayed visible in a 1280×860 window, and the cap never lifted — in a drawer dragged out to its 600-pixel maximum the preview stayed a thumbnail and every button stretched across the empty width. The preview now measures the space the controls leave and takes the largest 9:16 that fits it. When the drawer is at least 460 pixels wide the picture sits beside a fixed 260-pixel control column, so the buttons stop stretching; narrower drawers stack as before. Measured in the running app: a 600-pixel drawer in a 1280×860 window gives a 190×337 preview, and in a 1600×1100 window 303×538 — nearly the size of the main preview — with nothing scrolling. The default 340-pixel drawer in a 1280×860 window keeps the old 101×179 size, and there the controls scroll before the picture shrinks.
+- **The Webcam and Game rows are one line each.** Name and size on the left, the − / + crop and 16:9 buttons on the right, 32 pixels tall instead of 40. The box's position moved into the row's tooltip — it did not fit beside three buttons in the narrower column, and the box in the main preview shows where it sits.
+
 ## [Unreleased] — 2026-09-15 (session 258) — A render is done when the file is right, not when ffmpeg exits
 
 ### Added

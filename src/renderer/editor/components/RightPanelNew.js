@@ -1806,14 +1806,15 @@ function TextPanel() {
 // centre, so its band on the output stays exactly where it is and only the
 // framing changes. Dragging a corner is the other zoom (bigger band).
 const RECT_BTN = "text-xs px-1.5 py-0.5 rounded bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/30 shrink-0";
+// One line per box (s259): name and size, then the buttons. The position
+// moved to the row's tooltip — it did not fit beside three buttons in a
+// 260px column, and the box itself shows where it sits.
 function RectRow({ label, color, rect, onSnap169, onCrop }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border/40 px-2.5 py-2">
-      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-foreground">{label}</div>
-        <div className="text-xs text-muted-foreground">{rect.w} × {rect.h} @ {rect.x}, {rect.y}</div>
-      </div>
+    <div className="flex items-center gap-1.5 rounded-md border border-border/40 px-2 py-1" title={`${label}: ${rect.w} × ${rect.h} at ${rect.x}, ${rect.y}`}>
+      <span className="h-2 w-2 rounded-full shrink-0" style={{ background: color }} />
+      <span className="text-xs font-medium text-foreground shrink-0">{label}</span>
+      <span className="flex-1 min-w-0 text-xs text-muted-foreground truncate">{rect.w}×{rect.h}</span>
       <button onClick={() => onCrop(-1)} className={RECT_BTN} title="Tighter crop — keeps the box shape, so the band stays the same size">
         <Minus className="h-3 w-3" />
       </button>
@@ -1825,6 +1826,26 @@ function RectRow({ label, color, rect, onSnap169, onCrop }) {
       </button>
     </div>
   );
+}
+
+// s259: the edit-mode Result preview sizes itself to the space the controls
+// leave over, and the drawer goes two-column when it is wide enough. Both
+// need a measured box; the observer reports the element's content size.
+// `mounted` re-attaches when the observed element appears (the edit view
+// mounts after the panel does).
+function useElementSize(ref, mounted) {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize((s) => (s.w === width && s.h === height ? s : { w: width, h: height }));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref, mounted]);
+  return size;
 }
 
 // Rows for the app-level layout library (electron-store `reframeLayouts`).
@@ -2013,6 +2034,12 @@ function LayoutPanel() {
   const [savingLayout, setSavingLayout] = useState(false);
   // #413: the six background sliders fold away — set once, rarely revisited.
   const [bgOpen, setBgOpen] = useState(false);
+  // s259: edit view — root width picks one or two columns, the preview area
+  // gives the Result its 9:16 box.
+  const draftRootRef = useRef(null);
+  const previewAreaRef = useRef(null);
+  const draftRootSize = useElementSize(draftRootRef, !!reframeDraft);
+  const previewArea = useElementSize(previewAreaRef, !!reframeDraft);
   useEffect(() => {
     if (!reframeDraft) { setDetectStatus(""); setNocamDetected(false); setSaveAsOpen(false); setSaveAsName(""); }
   }, [reframeDraft]);
@@ -2363,26 +2390,22 @@ function LayoutPanel() {
     const busy = applying || savingLayout;
     // #413: the picture first, the knobs after. Result → boxes → detect →
     // apply → library → the folded background sliders.
+    // s259: the Result takes whatever the controls leave — beside a 260px
+    // control column when the drawer is wide, above it when narrow. The box
+    // is the largest 9:16 that fits its measured area, so it grows with the
+    // drawer instead of sitting at a fixed cap. In a short narrow drawer
+    // (1280×860 with the timeline open) the controls scroll before the
+    // preview drops under 180px tall — the size #413's cap gave it.
+    const wide = draftRootSize.w >= 460;
+    const pvW = Math.max(0, Math.floor(Math.min(previewArea.w, previewArea.h * 9 / 16)));
+    const pvH = Math.floor(pvW * 16 / 9);
     return (
-      <div className="p-3 space-y-3">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Drag the boxes: purple is webcam, cyan is game.
-          {/* #349: the target was captured when calibration began. */}
-          {hasSections && (
-            <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
-              {reframeDraft.targetSegmentId ? "This section" : "This clip"}
-            </span>
-          )}
-        </p>
-
-        <div className="space-y-1.5">
+      <div ref={draftRootRef} className={`h-full p-3 flex gap-3 ${wide ? "flex-row" : "flex-col"}`}>
+        <div ref={previewAreaRef} className="flex-1 min-w-0 min-h-[180px] flex items-center justify-center">
           <div
-            className="rounded-lg overflow-hidden mx-auto"
+            className="rounded-lg overflow-hidden shrink-0"
             style={{
-              // #413: small enough that the box rows still show under it in
-              // the default drawer at 1280×860 — the picture only has to be
-              // legible, the boxes are what get dragged.
-              width: "100%", maxWidth: 100, aspectRatio: "9 / 16", background: "#000", boxShadow: "0 0 0 1px hsl(var(--border-hsl))",
+              width: pvW, height: pvH, background: "#000", boxShadow: "0 0 0 1px hsl(var(--border-hsl))",
               touchAction: "none", cursor: resultDragging ? "grabbing" : "grab",
             }}
             title={`Drag to move the background.${hasSections ? " During playback each section shows its own layout; yours shows only where it will land." : ""}`}
@@ -2398,7 +2421,18 @@ function LayoutPanel() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div className={`flex flex-col gap-2 min-h-0 overflow-y-auto ${wide ? "w-[260px] shrink-0" : ""}`}>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Drag the boxes: purple is webcam, cyan is game.
+          {/* #349: the target was captured when calibration began. */}
+          {hasSections && (
+            <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
+              {reframeDraft.targetSegmentId ? "This section" : "This clip"}
+            </span>
+          )}
+        </p>
+
+        <div className="space-y-1">
           {/* #164 B3: no Webcam row on a game-only draft (camRect null). */}
           {reframeDraft.camRect && (
             <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} onCrop={(dir) => handleCrop("camRect", dir)} />
@@ -2503,6 +2537,7 @@ function LayoutPanel() {
               <EffectSlider label="Edge size" value={style.seamSize} onChange={(v) => updateReframeStyle({ seamSize: v })} min={0} max={25} suffix="%" labelWidth="w-16" />
             </>
           )}
+        </div>
         </div>
       </div>
     );
@@ -2782,6 +2817,9 @@ export default function RightPanelNew({ gamesDb }) {
   const activePanel = useLayoutStore((s) => s.activePanel);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
+  // s259: the Layout drawer's edit view owns its height (the Result preview
+  // fills what the controls leave), so it opts out of the scroll area.
+  const layoutCalibrating = useEditorStore((s) => !!s.reframeDraft);
 
   const renderDrawer = () => {
     switch (activePanel) {
@@ -2849,7 +2887,7 @@ export default function RightPanelNew({ gamesDb }) {
           </div>
           {/* Body */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {activePanel === "audio" || activePanel === "media" || activePanel === "subs" || activePanel === "text" ? (
+            {activePanel === "audio" || activePanel === "media" || activePanel === "subs" || activePanel === "text" || (activePanel === "layout" && layoutCalibrating) ? (
               renderDrawer()
             ) : (
               <ScrollArea className="h-full">{renderDrawer()}</ScrollArea>
