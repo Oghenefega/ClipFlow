@@ -2,16 +2,17 @@
 
 ## Current State
 
-Master is clean at this wrap's commit. **No installer was cut** — alpha.4 is still on the feed
-and on Fega's daily driver. Unshipped on master: s257 (#417), s258 (render hardening), s259
-(Layout drawer), and this session's six title/caption issues. Two product commits this session.
+Master is clean at this wrap's commit. **0.5.0-alpha.5 is on the feed** (`aec7632`), pruning
+alpha.4; Fega's daily driver picks it up on next launch. It promotes everything since alpha.4:
+s257 (#417), s258 (render hardening), s259 (Layout drawer), and this session's six
+title/caption issues.
 
 The session was the title/caption bottleneck: #419 (rules contradicted Fega's voice), #420
 (generate on approve), #421 (thinking cap), plus three filed and fixed along the way — #422
 (context box ignored), #423 (Regenerate/Rephrase blind on Claude), #424 (nothing was logged).
-Everything is verified: 23 real Gemini calls on five of Fega's clips for the prompt and the
-thinking level (tables posted on #419/#421/#422/#423), and a CDP drive of the dev profile for
-approve → cards, Regenerate, Apply, restart, switch off, and the Gemini-unavailable fallback.
+Verified with 23 real Gemini calls on five of Fega's clips (tables on #419/#421/#422/#423) and
+a CDP drive of the dev profile: approve → cards, Regenerate, Apply, restart, switch off, and the
+Gemini-unavailable fallback.
 
 ## Key Decisions
 
@@ -19,28 +20,27 @@ approve → cards, Regenerate, Apply, restart, switch off, and the Gemini-unavai
   take-rate 10% → 39% since Gemini) and chose Gemini only. Claude stills is the fallback and it
   is *named* on screen — "silent fallback" was the phrase that triggered the #424 correction.
 - **`runTitleCaptionCall` is the only way to call the model for titles.** Generate, the
-  approve path, Regenerate and Rephrase all go through it; that is what makes the logging
-  claim hold. `ai_calls` (migration v12) is the operational record; `title_caption_rounds`
-  stays the training record.
+  approve path, Regenerate and Rephrase all go through it. `ai_calls` (migration v12) is the
+  operational record; `title_caption_rounds` stays the training record.
 - **Thinking level `low`, not `minimal`.** Minimal was cheaper ($0.011 vs $0.015) but dropped
   half the context cards in the #422 run. Gemini 3.6 Flash takes a level, not a token budget.
 - **The rules defer to the examples on casing, emphasis and vocabulary.** Only Title Case is
   still banned. Cold-start examples rewritten to the same shape.
 - **Cards persist on `clip.suggestions`**; session cache wins when it has something, disk
   otherwise, spinner while the approve-time batch is in flight (`titlegen:pending`).
-- **#420 switch ships OFF.** Fega's call when to flip it — suggestion: after the first 30 rows
-  show #419 moved the take-rate.
+- **The approve switch: Fega will turn it on now, not after 30 rows.** I had recommended
+  waiting on cost; priced at wrap it is under a dollar a month. Lesson filed.
 
 ## Next Steps
 
-1. **Cut an installer.** The #419 scoreboard (next 30 published rows, `title_source`
-   `ai`+`ai_edited` > 60% titles / > 40% captions) cannot start until the daily driver has the
-   new prompt. Ten unshipped changes now.
+1. **Read the scoreboard, not Fega's memory.** #419 is open for the measurement:
+   `title_source` over the next 30 published rows (targets `ai`+`ai_edited` > 60% titles,
+   > 40% captions, from 38% / 21%). `ai_calls` shows the per-kind spend and the
+   `auto_generate` rows once he flips the switch.
 2. **Watch for over-shouting.** New rules produced a shouted word in 15/15 titles; Fega does it
    in 67%. If the first rows read as too loud, soften "usually one" to "often one" in
    `hardRules` (`title-caption-prompt.js`).
-3. **Clear `status: untested`** on #420–#424 once Fega has used them on the installed build;
-   #419 stays open for the measurement.
+3. **Clear `status: untested`** on #420–#424 once Fega has used them on alpha.5.
 4. Carry-overs: #418 pre-flight compliance, #416 Captions panel, #265 first-run checklist,
    s255's Google OAuth consent-screen question.
 
@@ -57,9 +57,13 @@ approve → cards, Regenerate, Apply, restart, switch off, and the Gemini-unavai
   `callGemini` outside Electron's main: OLD prompt from `git show`, NEW from src, DB copy,
   stub store over prod settings. Rebuild it from `project_title_caption_paths` memory if
   the prompt changes again; do not commit it.
-- **Line endings are mixed across the tree** (main.js, database.js, preload.js, SettingsView,
-  RightPanelNew are CRLF; gemini.js, useAIStore, the prompt files are LF). The patch scripts
-  detect and preserve; a naive script patch corrupts one or the other.
+- **Line endings are mixed across the tree** (database.js, preload.js, SettingsView,
+  RightPanelNew, release-notes.js are CRLF; main.js became LF via `sed -i` this session —
+  the repo normalises, so no diff noise; gemini.js, useAIStore, the prompt files are LF).
+  Patch scripts must detect and preserve.
+- **Gateway calls to Gemini stalled to 114–146 s twice during the probe** (Cloudflare BYOK
+  route); the 180 s provider timeout held. If title generation feels slow in daily use, check
+  `duration_ms` in `ai_calls` before blaming the model.
 
 ## Logs / Debugging
 
