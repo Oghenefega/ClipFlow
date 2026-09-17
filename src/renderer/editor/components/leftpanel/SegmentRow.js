@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../../../components/ui/tooltip";
-import { Trash2, Film, Scissors, Merge } from "lucide-react";
+import { Trash2, Film, Scissors, Merge, MoveVertical } from "lucide-react";
 import useSubtitleStore from "../../stores/useSubtitleStore";
 import useEditorStore from "../../stores/useEditorStore";
 import usePlaybackStore from "../../stores/usePlaybackStore";
@@ -403,6 +403,24 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
             </button>
           </TimecodePopover>
           <span className="text-xs text-muted-foreground ml-auto">{seg.dur}</span>
+          {/* #431: this line sits at its own height on the video. The marker is
+              how a moved line is found again without scrubbing to it, and the
+              way back that doesn't need the preview. */}
+          {Number.isFinite(seg.yPercent) && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); useSubtitleStore.getState().setSegmentYPercent(seg.id, null); }}
+                    className="h-5 px-1 rounded flex items-center justify-center bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors cursor-pointer"
+                  >
+                    <MoveVertical className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">Moved on its own — click to put it back with the others</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {/* ALL CAPS toggle */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>

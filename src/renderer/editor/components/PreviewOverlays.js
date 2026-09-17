@@ -64,6 +64,20 @@ function buildCharChunks(words) {
 //   scaleFactor    — containerWidth / 1080
 //   karaokeActive  — enable word highlighting (default: auto from segmentMode)
 
+// The subtitle line on screen at `currentTime` — the same lookup SubtitleOverlay
+// does internally, for the parent that POSITIONS the overlay: a line may carry
+// its own vertical position (#431), and the box has to be placed for the line
+// being shown. Both previews use this so they cannot disagree with each other
+// or with the export overlay, which reads the same field off the same lookup.
+export function useActiveSubtitleLine(segments, currentTime, syncOffset = 0) {
+  const index = useMemo(() => buildGlobalWordIndex(segments || []), [segments]);
+  const adjustedTime = currentTime - (syncOffset || 0);
+  return useMemo(
+    () => findActiveWord(segments || [], index, adjustedTime).seg || null,
+    [segments, index, adjustedTime]
+  );
+}
+
 export function SubtitleOverlay({
   segments = [],
   currentTime = 0,

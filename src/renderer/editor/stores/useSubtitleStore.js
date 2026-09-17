@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
-import { resolveClipSubtitles, lineExtras } from "../utils/resolveSubtitles";
+import { resolveClipSubtitles, lineExtras, carryLineExtras } from "../utils/resolveSubtitles";
 import { visibleSubtitleSegments } from "../models/timeMapping";
 // Cross-store imports — accessed only inside function bodies (after init),
 // so ESM live bindings resolve the cycle correctly. Do NOT destructure or
@@ -1157,6 +1157,26 @@ const useSubtitleStore = create((set, get) => ({
     });
   },
 
+  // #431: one subtitle line's own vertical position (percent of the frame, same
+  // scale as the clip-wide subYPercent). null REMOVES the key — the line goes
+  // back to following the clip-wide position. `silent` is for the ticks of a
+  // drag: the preview pushes ONE undo entry when the drag starts (beginLineMove)
+  // and the moves in between take no snapshot.
+  beginLineMove: () => get()._pushUndo(),
+  setSegmentYPercent: (segId, yPercent, { silent = false } = {}) => {
+    const seg = get().editSegments.find((s) => s.id === segId);
+    if (!seg) return;
+    if (!silent) get()._pushUndo();
+    set((s) => ({
+      editSegments: s.editSegments.map((sg) => {
+        if (sg.id !== segId) return sg;
+        if (Number.isFinite(yPercent)) return { ...sg, yPercent };
+        const { yPercent: _drop, ...rest } = sg;
+        return rest;
+      }),
+    }));
+  },
+
   // #426: one subtitle line's own casing — true = ALL CAPS, false = as typed
   // even when every subtitle is set to caps, null = follow the Subtitles panel.
   // Drawn, never typed: the text keeps its spelling, so off brings back
@@ -1323,18 +1343,25 @@ const useSubtitleStore = create((set, get) => ({
     // _chunkPending separates that deferred-init state from "user deleted every segment" — deleted stays deleted.
     const wordSourceSegs = editSegments.length > 0 ? editSegments : (_chunkPending ? originalSegments : []);
     const manualIds = new Set(manualSegs.map((s) => s.id));
+    // Per-line settings (switched off #296, casing #426, own position #431) live
+    // on the line, and every line below is rebuilt with a fresh id — so without
+    // help a mode switch silently switched disabled lines back on. Each word is
+    // tagged with its old line's settings for the trip through the chunker
+    // (`_line`, stripped again below), and each new line reads them back off
+    // its words.
     const allWords = [];
     wordSourceSegs.forEach((seg) => {
       if (manualIds.has(seg.id)) return;
       const textWords = seg.text.split(/\s+/).filter(Boolean);
       if (textWords.length === 0) return; // blank segment — nothing to re-chunk
+      const _line = lineExtras(seg);
       if (seg.words && seg.words.length === textWords.length) {
         seg.words.forEach((w, i) =>
-          allWords.push({ ...w, word: textWords[i], track: w.track || seg.track })
+          allWords.push({ ...w, word: textWords[i], track: w.track || seg.track, _line })
         );
       } else {
         _wordsFromText(seg.startSec, seg.endSec, seg.text).forEach((w) =>
-          allWords.push({ ...w, track: seg.track })
+          allWords.push({ ...w, track: seg.track, _line })
         );
       }
     });
@@ -1377,7 +1404,8 @@ const useSubtitleStore = create((set, get) => ({
       startSec: seg.startSec,
       endSec: seg.endSec,
       warning: seg.warning || null,
-      words: seg.words,
+      words: seg.words.map(({ _line, ...w }) => w),
+      ...carryLineExtras(seg.words),
     }));
 
     // Merge manually-created segments back in, sorted by time

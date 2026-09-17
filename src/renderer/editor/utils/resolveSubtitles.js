@@ -26,8 +26,9 @@ const { fixWordCasing } = require("./subtitleCasing");
 
 /**
  * The per-line settings a subtitle segment carries besides its text and words:
- * `enabled: false` (#296, the line is switched off) and `caps` (#426, this
- * line's own ALL CAPS on/off). Every hop between the project file and a
+ * `enabled: false` (#296, the line is switched off), `caps` (#426, this line's
+ * own ALL CAPS on/off) and `yPercent` (#431, this line's own vertical position;
+ * absent = the clip-wide subtitle position). Every hop between the project file and a
  * renderer rebuilds segments from NAMED fields, so anything not spread here is
  * silently dropped on the way — that is how a disabled line got burned back
  * into exports (#374). One helper, used at every hop: the resolver below,
@@ -38,6 +39,27 @@ function lineExtras(s) {
   return {
     ...(s.enabled === false ? { enabled: false } : {}),
     ...(s.caps === true || s.caps === false ? { caps: s.caps } : {}),
+    ...(Number.isFinite(s.yPercent) ? { yPercent: s.yPercent } : {}),
+  };
+}
+
+/**
+ * The settings a REBUILT line inherits when the subtitle grouping changes
+ * (3 words ↔ 1 word): every line gets a fresh id, so the settings travel on the
+ * words instead — each tagged `_line` with its old line's lineExtras — and are
+ * read back here for the words that ended up together.
+ *   - casing and position follow the line's FIRST word: a new line that starts
+ *     where a moved line started is, to the eye, that line.
+ *   - switched off only when EVERY word came from a switched-off line. Merging
+ *     an off line into an on one must never hide words the user could see.
+ */
+function carryLineExtras(words) {
+  const tags = (words || []).map((w) => w._line || {});
+  if (tags.length === 0) return {};
+  const { enabled: _off, ...fromFirst } = lineExtras(tags[0]);
+  return {
+    ...(tags.every((t) => t.enabled === false) ? { enabled: false } : {}),
+    ...fromFirst,
   };
 }
 
@@ -349,4 +371,4 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
 // CJS export — required directly by the main-process render path (render.js, #8)
 // so batch/queue renders run the SAME resolver as the editor + preview, and
 // imported as a named ESM binding by renderer code (Vite handles CJS interop).
-module.exports = { resolveClipSubtitles, lineExtras };
+module.exports = { resolveClipSubtitles, lineExtras, carryLineExtras };

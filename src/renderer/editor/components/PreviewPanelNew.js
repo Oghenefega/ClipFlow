@@ -4,7 +4,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
-import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays";
+import { SubtitleOverlay, CaptionOverlay, CaptionText, useActiveSubtitleLine } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
 import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import useSourceStems from "./preview/useSourceStems"; // #272
@@ -396,6 +396,7 @@ function DraggableOverlay({
   overlayId,
   canvasRef,
   overlayRef,
+  onDragStart,
 }) {
   const [dragging, setDragging] = useState(false);
   const [resizeSide, setResizeSide] = useState(null); // "left" | "right" | null
@@ -413,11 +414,12 @@ function DraggableOverlay({
     if (resizeSide) return; // Don't drag while resizing
     e.stopPropagation();
     onSelect(overlayId);
+    onDragStart?.();
     setDragging(true);
     startY.current = e.clientY;
     startPct.current = yPercent;
     e.target.setPointerCapture(e.pointerId);
-  }, [yPercent, onSelect, overlayId, resizeSide]);
+  }, [yPercent, onSelect, overlayId, resizeSide, onDragStart]);
 
   const onPointerMove = useCallback((e) => {
     if (!dragging || !canvasRef.current) return;
@@ -1181,6 +1183,14 @@ export default function PreviewPanelNew() {
   const captionInputRef = useRef(null);
   const capOverlayRef = useRef(null);
   const subOverlayRef = useRef(null);
+  // #431: move every subtitle (the clip-wide position, as always) or only the
+  // line on screen. Per editor session; "all" on open so nothing about the old
+  // gesture changes until the user asks for the other one.
+  const [subMoveMode, setSubMoveMode] = useState("all"); // "all" | "line"
+  // The line a "This subtitle" drag is moving, fixed when the drag starts so
+  // playback rolling onto the next line mid-drag can't retarget it. `pushed`:
+  // the undo entry is taken on the first MOVE, so a plain click leaves none.
+  const lineDragRef = useRef({ id: null, pushed: false });
   const zoomBtnRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const compositeCanvasRef = useRef(null); // #164 reframe compositor surface
@@ -1693,6 +1703,35 @@ export default function PreviewPanelNew() {
       .filter((seg) => seg.enabled !== false),
     [rawEditSegments, nleSegments] // re-derive when either store changes
   );
+
+  // #431: the line on screen, and its own position if it has one (else null —
+  // it follows the clip-wide subYPercent).
+  const activeSubLine = useActiveSubtitleLine(editSegments, currentTime, syncOffset);
+  const activeSubLineY = Number.isFinite(activeSubLine?.yPercent) ? activeSubLine.yPercent : null;
+  // A line that already has its own position is moved on its own whatever the
+  // switch says: it no longer follows the shared position, so an "all" drag
+  // would change that and leave the box under the pointer standing still.
+  // "All subtitles" on such a line puts it back on the shared position first.
+  const subMoveTarget = subMoveMode === "line" || activeSubLineY !== null ? "line" : "all";
+  const onSubtitleDragStart = useCallback(() => {
+    lineDragRef.current = { id: subMoveTarget === "line" ? activeSubLine?.id ?? null : null, pushed: false };
+  }, [subMoveTarget, activeSubLine]);
+  const onSubtitleYChange = useCallback((y) => {
+    const drag = lineDragRef.current;
+    if (drag.id) {
+      const sub = useSubtitleStore.getState();
+      if (!drag.pushed) { sub.beginLineMove(); drag.pushed = true; }
+      sub.setSegmentYPercent(drag.id, y, { silent: true });
+    } else if (subMoveTarget === "all") {
+      setSubYPercent(y);
+    }
+    // "This subtitle" with no line on screen has nothing to move — it must not
+    // fall through and move them all.
+  }, [subMoveTarget, setSubYPercent]);
+  const onSubMoveMode = useCallback((mode) => {
+    if (mode === "all" && activeSubLineY !== null) useSubtitleStore.getState().setSegmentYPercent(activeSubLine.id, null);
+    setSubMoveMode(mode);
+  }, [activeSubLineY, activeSubLine]);
 
   // ── #202: preview playback for SFX/music placements ──
   // One <audio> element per placement, driven off the same timeline clock as
@@ -2648,8 +2687,9 @@ export default function PreviewPanelNew() {
               Hidden while calibrating (#164). */}
           {!calibrating && showSubs && editSegments.length > 0 && (
             <DraggableOverlay
-              yPercent={subYPercent}
-              onYChange={setSubYPercent}
+              yPercent={activeSubLineY ?? subYPercent}
+              onYChange={onSubtitleYChange}
+              onDragStart={onSubtitleDragStart}
               selected={selectedOverlay === "sub"}
               onSelect={setSelectedOverlay}
               overlayId="sub"
@@ -2680,6 +2720,21 @@ export default function PreviewPanelNew() {
                     color={subColor}
                     onColor={setSubColor}
                   />
+                  {/* #431: which subtitles a drag moves. onPointerDown is stopped so
+                      pressing a button here never starts a drag of the box. */}
+                  <div className="mt-1 flex items-center justify-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+                    <div className="flex items-center p-0.5 rounded-lg border bg-card shadow-lg">
+                      {[
+                        ["all", "All subtitles", activeSubLineY !== null ? "Put this subtitle back with the others — dragging then moves every subtitle" : "Dragging moves every subtitle"],
+                        ["line", "This subtitle", "Dragging moves only the subtitle on screen"],
+                      ].map(([mode, label, tip]) => (
+                        <button key={mode} title={tip} onClick={() => onSubMoveMode(mode)}
+                          className={`px-2 py-0.5 rounded-md text-[12px] whitespace-nowrap transition-colors cursor-pointer ${subMoveTarget === mode ? "bg-secondary text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </DraggableOverlay>

@@ -6,7 +6,7 @@ import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePi
 import TestChip from "../components/TestChip";
 import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { fixTextCasing } from "../editor/utils/subtitleCasing";
-import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
+import { SubtitleOverlay, CaptionOverlay, useActiveSubtitleLine } from "../editor/components/PreviewOverlays";
 import { sourceToTimeline, timelineToSource, getTimelineDuration } from "../editor/models/timeMapping";
 import { getReasonChips } from "../../shared/rejectReasons";
 
@@ -303,6 +303,7 @@ function ClipVideoPlayer({ clip, project, template }) {
   // fall back to template defaults for clips that haven't been edited yet
   const subYPct = subTpl.yPercent ?? 80;
   const capYPct = capTplObj.yPercent ?? 15;
+  const activeSubLine = useActiveSubtitleLine(microSegments, currentTime, syncOffset);
 
   const scaleFactor = CONTAINER_W / 1080;
 
@@ -478,7 +479,8 @@ function ClipVideoPlayer({ clip, project, template }) {
         {isPlaying && (
           <div style={{
             position: "absolute", left: 4, right: 4,
-            top: `${subYPct}%`, transform: "translateY(-50%)",
+            // #431: the line on screen may carry its own position
+            top: `${Number.isFinite(activeSubLine?.yPercent) ? activeSubLine.yPercent : subYPct}%`, transform: "translateY(-50%)",
             display: "flex", justifyContent: "center", pointerEvents: "none",
           }}>
             <SubtitleOverlay

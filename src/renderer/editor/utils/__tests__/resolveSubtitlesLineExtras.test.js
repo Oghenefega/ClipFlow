@@ -3,7 +3,7 @@
 // is not carried at each one is silently dropped between the project file and
 // the preview/export. Driven with an editor-saved clip, unmocked, because a
 // fixture that hand-carries the field past the resolver assumes the answer (#374).
-const { resolveClipSubtitles, lineExtras } = require("../resolveSubtitles");
+const { resolveClipSubtitles, lineExtras, carryLineExtras } = require("../resolveSubtitles");
 
 const word = (w, start, end) => ({ word: w, start, end, probability: 1 });
 
@@ -24,6 +24,49 @@ describe("lineExtras", () => {
     expect(lineExtras({ caps: true })).toEqual({ caps: true });
     // false is a real setting: "as typed" inside an ALL CAPS subtitle style
     expect(lineExtras({ caps: false })).toEqual({ caps: false });
+  });
+
+  test("#431: a line's own position rides along; anything that isn't a number does not", () => {
+    expect(lineExtras({ yPercent: 42.5 })).toEqual({ yPercent: 42.5 });
+    expect(lineExtras({ yPercent: 0 })).toEqual({ yPercent: 0 });
+    expect(lineExtras({ yPercent: null })).toEqual({});
+    expect(lineExtras({ yPercent: "42" })).toEqual({});
+    expect(lineExtras({ yPercent: NaN })).toEqual({});
+  });
+});
+
+// A grouping change (3 words <-> 1 word) rebuilds every line with a fresh id.
+// The settings travel on the words (`_line`) and are read back per new line.
+describe("carryLineExtras — settings across a subtitle grouping change", () => {
+  const w = (word, _line) => ({ word, start: 0, end: 1, _line });
+
+  test("3 words -> 1 word: every new line keeps its old line's settings", () => {
+    const moved = { yPercent: 30, caps: true };
+    expect(carryLineExtras([w("what", moved)])).toEqual({ caps: true, yPercent: 30 });
+    expect(carryLineExtras([w("plain", {})])).toEqual({});
+  });
+
+  test("1 word -> 3 words: casing and position follow the first word", () => {
+    const out = carryLineExtras([w("a", { yPercent: 30 }), w("b", {}), w("c", { yPercent: 70, caps: true })]);
+    expect(out).toEqual({ yPercent: 30 });
+  });
+
+  test("a merged line is switched off only when EVERY word came from a switched-off line", () => {
+    const off = { enabled: false };
+    expect(carryLineExtras([w("a", off), w("b", off)])).toEqual({ enabled: false });
+    // merging an off word into a visible line must never hide the visible words
+    expect(carryLineExtras([w("a", off), w("b", {})])).toEqual({});
+    expect(carryLineExtras([w("a", {}), w("b", off)])).toEqual({});
+  });
+
+  test("the old bug: a switched-off line re-chunked on its own stays off", () => {
+    expect(carryLineExtras([w("hidden", { enabled: false, yPercent: 12 })])).toEqual({ enabled: false, yPercent: 12 });
+  });
+
+  test("words with no tag, and no words at all", () => {
+    expect(carryLineExtras([{ word: "x" }])).toEqual({});
+    expect(carryLineExtras([])).toEqual({});
+    expect(carryLineExtras(undefined)).toEqual({});
   });
 });
 
