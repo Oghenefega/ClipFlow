@@ -28,6 +28,9 @@ export const SHORTCUTS = [
   // canonicalises to plain "d" and could never match.
   { id: "toggleDisable", defaultKey: "d", group: "Editing", label: "Disable / enable selected", hint: "Stays on the timeline, leaves the viewer and the render" },
   { id: "toggleLaneDisable", defaultKey: "alt+d", group: "Editing", label: "Disable / enable the whole lane", hint: "The lane the selection sits on" },
+  // #430. Ctrl+click / Shift+click build the selection; those are mouse
+  // gestures, not keys, so they are described in this hint rather than listed.
+  { id: "duplicateSelected", defaultKey: "ctrl+d", group: "Editing", label: "Duplicate selected sounds or overlays", hint: "Ctrl + click adds to the selection, Shift + click selects a run. Alt + drag copies and places in one move" },
   // #369: Ctrl+Shift so plain Ctrl+C/V stay free for text; Shift is recorded
   // alongside Ctrl (see eventToKey), so these never collide.
   { id: "copyLayout", defaultKey: "ctrl+shift+c", group: "Editing", label: "Copy layout", hint: "The section under the playhead, or the clip" },

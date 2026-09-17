@@ -259,7 +259,7 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
           : "background 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out",
       }}
       onPointerDown={onBodyDown}
-      onClick={(e) => { e.stopPropagation(); if (!movedRef.current) onSelect(); }}
+      onClick={(e) => { e.stopPropagation(); if (!movedRef.current) onSelect(e); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e); }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

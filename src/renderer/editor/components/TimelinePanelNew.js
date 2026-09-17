@@ -192,6 +192,27 @@ export default function TimelinePanelNew() {
   const dragPhantomsRef = useRef([]); // phantom right portions during middle-case drag
   const [dragPhantoms, setDragPhantoms] = useState([]);
   const scrubRafRef = useRef(null);
+  // #430 multi-select. selRef mirrors the selection for handlers that must see
+  // it at EVENT time — a drag's pointermove, or a duplicate that reselects its
+  // copies and is moved in the same gesture, runs before React re-renders.
+  // anchorRef is the block a Shift+click range grows from. laneListsRef is
+  // filled further down (the resolved lists are declared after the handlers
+  // that need them).
+  const selRef = useRef({ track: null, ids: new Set() });
+  const anchorRef = useRef(null); // { track, id }
+  const laneListsRef = useRef({ sounds: [], media: [] });
+  const duplicateSelectedRef = useRef(null); // same reason: declared below its registration
+  // The ONLY writer of the selection. selRef is set here, eagerly, and never
+  // re-derived from state during render: a store change mid-gesture re-renders
+  // this panel synchronously, BEFORE React has applied a selection queued in
+  // the same handler, and a render-time resync would put the old selection
+  // back in the ref for the rest of that gesture (copies made by an Alt+drag
+  // trailed the dragged one for exactly that reason).
+  const applySelection = useCallback((track, ids) => {
+    selRef.current = { track, ids };
+    setSelectedTrack(track);
+    setSelectedSegIds(ids);
+  }, []);
 
   // Helper — first selected ID (for backwards compat with single-select APIs)
   const selectedSegId = useMemo(() => {
@@ -238,8 +259,7 @@ export default function TimelinePanelNew() {
     const sub = useSubtitleStore.getState();
     sub.setActiveSegId(keepId);
     sub.mergeSegment();
-    setSelectedTrack("sub");
-    setSelectedSegIds(new Set([keepId]));
+    applySelection("sub", new Set([keepId]));
     sub.setSelectedWordInfo({ segId: keepId, wordIdx: 0 });
   }, [subMergeTargets]);
 
@@ -365,8 +385,7 @@ export default function TimelinePanelNew() {
 
   // ── Deselect on empty area click ──
   const handleTrackBgClick = useCallback(() => {
-    setSelectedTrack(null);
-    setSelectedSegIds(new Set());
+    applySelection(null, new Set());
   }, []);
 
   // Clear snap guides on any pointer up (end of drag/resize)
@@ -797,38 +816,72 @@ export default function TimelinePanelNew() {
     }
   }, []);
 
-  // ── Segment selection (multi-select support) ──
+  // ── Selection (#430) ──
+  // One lane type at a time: `selectedTrack` says which, `selectedSegIds` holds
+  // the blocks. Every write goes through applySelection (declared with selRef).
+
+  // The blocks a Shift+click range runs over, in timeline order: the clicked
+  // block's own lane. Sounds and overlays sit on several lanes of one type, so
+  // theirs is narrowed to the anchor's lane — a range never reaches across.
+  const laneOrder = useCallback((track, anchorId) => {
+    if (track === "sub") return editSegments.map((s) => s.id);
+    if (track === "cap") return captionSegs.map((s) => s.id);
+    if (track === "audio") return nleSegments.map((s) => s.id);
+    const list = track === "sound" ? laneListsRef.current.sounds : laneListsRef.current.media;
+    const a = list.find((p) => p.id === anchorId);
+    if (!a) return [];
+    return list
+      .filter((p) => p.kind === a.kind && (p.trackIndex || 0) === (a.trackIndex || 0))
+      .sort((x, y) => x.tlStart - y.tlStart)
+      .map((p) => p.id);
+  }, [editSegments, captionSegs, nleSegments]);
+
+  // Plain click = select one. Ctrl/Cmd+click = add or remove one. Shift+click =
+  // everything between the last clicked block and this one. A modifier click on
+  // a DIFFERENT lane type starts over there — ids from two types in one set
+  // would make Delete/Duplicate act on whichever type was clicked last.
   const handleSegSelect = useCallback((track, segId, event) => {
-    if (event?.ctrlKey || event?.metaKey) {
-      // Toggle individual segment
-      setSelectedSegIds(prev => {
-        const next = new Set(prev);
-        if (next.has(segId)) next.delete(segId);
-        else next.add(segId);
-        return next;
-      });
-    } else {
-      // Single select
-      setSelectedSegIds(new Set([segId]));
+    const prev = selRef.current;
+    const sameTrack = prev.track === track && prev.ids.size > 0;
+    const ctrl = !!(event?.ctrlKey || event?.metaKey);
+    const anchor = anchorRef.current;
+    let ids = new Set([segId]);
+    let removed = false;
+    if (ctrl && sameTrack) {
+      ids = new Set(prev.ids);
+      if (ids.has(segId)) { ids.delete(segId); removed = true; } else ids.add(segId);
+    } else if (event?.shiftKey && sameTrack && anchor && anchor.track === track) {
+      const order = laneOrder(track, anchor.id);
+      const a = order.indexOf(anchor.id);
+      const b = order.indexOf(segId);
+      if (a !== -1 && b !== -1) ids = new Set(order.slice(Math.min(a, b), Math.max(a, b) + 1));
     }
-    setSelectedTrack(track);
+    // A range keeps growing from the same anchor; any other click moves it.
+    if (!(event?.shiftKey && sameTrack)) anchorRef.current = { track, id: segId };
+    applySelection(ids.size > 0 ? track : null, ids);
+    // The side panels follow the block just ADDED, never one just removed —
+    // making a removed subtitle the active one would re-select it (see below).
+    if (removed) return;
     if (track === "sub") {
       setActiveSegId(segId);
       // Highlight the first word of the clicked segment in the Edit Subtitles panel
       useSubtitleStore.getState().setSelectedWordInfo({ segId, wordIdx: 0 });
     }
     if (track === "cap") useCaptionStore.getState().setActiveCaptionId(segId);
-  }, [setActiveSegId]);
+  }, [setActiveSegId, applySelection, laneOrder]);
 
   // Mirror the left-panel's active subtitle onto the timeline selection so
   // clicking a timecode/word/row in Edit Subtitles highlights the same block
   // here. Paused only — `activeSegId` auto-follows the playhead during playback
   // (LeftPanelNew), and we don't want the selection outline chasing it.
+  // Skipped when that subtitle is already part of the selection: a Ctrl+click
+  // makes the clicked block active, and mirroring it back as a single selection
+  // is what collapsed every multi-select on this lane to one block (#430).
   useEffect(() => {
     if (playing || !activeSegId) return;
-    setSelectedSegIds(new Set([activeSegId]));
-    setSelectedTrack("sub");
-  }, [activeSegId, playing]);
+    if (selRef.current.track === "sub" && selRef.current.ids.has(activeSegId)) return;
+    applySelection("sub", new Set([activeSegId]));
+  }, [activeSegId, playing, applySelection]);
 
   // ── Unified split ──
   const handleSplit = useCallback(() => {
@@ -857,13 +910,13 @@ export default function TimelinePanelNew() {
 
     if (track === "cap") {
       const newId = splitCaptionAtPlayhead(time);
-      if (newId) { setSelectedTrack("cap"); setSelectedSegIds(new Set([newId])); }
+      if (newId) applySelection("cap", new Set([newId]));
     } else if (track === "audio") {
       splitAtTimeline(time);
     } else {
       splitSegment(srcTime);
       const newActiveId = useSubtitleStore.getState().activeSegId;
-      if (newActiveId) { setSelectedTrack("sub"); setSelectedSegIds(new Set([newActiveId])); }
+      if (newActiveId) applySelection("sub", new Set([newActiveId]));
     }
   }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAtTimeline, nleSegments, toSource]);
 
@@ -894,8 +947,7 @@ export default function TimelinePanelNew() {
       setRippleAnimating(true);
       setTimeout(() => setRippleAnimating(false), RIPPLE_ANIM_MS + 50);
     }
-    setSelectedTrack(null);
-    setSelectedSegIds(new Set());
+    applySelection(null, new Set());
   }, [
     rippleDeleteCaptionSegment, deleteCaptionSegment,
     rippleDeleteSegment, deleteSegment,
@@ -905,6 +957,14 @@ export default function TimelinePanelNew() {
   // ── Batch delete for multi-select ──
   const handleBatchDelete = useCallback((isRipple) => {
     if (selectedSegIds.size === 0 || !selectedTrack) return;
+    // Sounds and overlays never ripple and don't depend on order — and they are
+    // NOT in any of the lists below. They used to fall into the video-section
+    // branch, match nothing, and Delete silently did nothing (#430). The store
+    // folds the run of deletes into one undo step (pushes within 300ms merge).
+    if (selectedTrack === "sound" || selectedTrack === "media") {
+      Array.from(selectedSegIds).forEach((id) => handleDelete(false, selectedTrack, id));
+      return;
+    }
     // Sort by startSec descending to avoid cascading offset issues during ripple
     let segs;
     if (selectedTrack === "sub") segs = editSegments;
@@ -975,6 +1035,7 @@ export default function TimelinePanelNew() {
       deleteSelected: handleKeyboardDelete,
       toggleDisable: handleToggleDisable,
       toggleLaneDisable: handleToggleLaneDisable,
+      duplicateSelected: () => duplicateSelectedRef.current?.(),
     }),
     [handleSplit, handleKeyboardDelete, handleToggleDisable, handleToggleLaneDisable]
   );
@@ -1039,10 +1100,89 @@ export default function TimelinePanelNew() {
     useEditorStore.getState()._pushNleUndo();
   }, []);
 
-  const handleSoundMove = useCallback((id, tlStart) => {
-    const m = timelineToSource(tlStart, nleSegments);
-    if (m.found) useEditorStore.getState().setAudioPlacementProps(id, { sourceTime: m.sourceTime });
+  // #430: dragging one block of a multi-selection carries the rest along by the
+  // same amount, so a group keeps its spacing. `list` is the lane type's
+  // resolved placements, `setProps` its silent store setter. The shift is
+  // trimmed so no member is pushed past either end of the timeline — clamping
+  // them one by one would squash the group against the edge. The dragged block
+  // has already been clamped by its own component.
+  const moveWithSelection = useCallback((track, list, setProps, id, tlStart) => {
+    const sel = selRef.current;
+    const group = sel.track === track && sel.ids.size > 1 && sel.ids.has(id)
+      ? list.filter((p) => sel.ids.has(p.id))
+      : [];
+    const me = group.find((p) => p.id === id);
+    // Copies made a moment ago (Alt+drag) are selected but not in `list` until
+    // the next render. Moving only the dragged one now would leave the others a
+    // few pixels behind for good — skip this tick; the next one has them all.
+    if (!me && sel.track === track && sel.ids.size > 1 && sel.ids.has(id)) return;
+    let delta = me ? tlStart - me.tlStart : 0;
+    if (me) {
+      const maxTl = Math.max(0, getTimelineDuration(nleSegments) - 0.05);
+      const lo = Math.min(...group.map((p) => p.tlStart));
+      const hi = Math.max(...group.map((p) => p.tlStart));
+      delta = Math.max(-lo, Math.min(delta, maxTl - hi));
+    }
+    const targets = me ? group.map((p) => [p.id, p.tlStart + delta]) : [[id, tlStart]];
+    for (const [pid, tl] of targets) {
+      const m = timelineToSource(tl, nleSegments);
+      if (m.found) setProps(pid, { sourceTime: m.sourceTime });
+    }
   }, [nleSegments]);
+
+  // Duplicate `id` — or, when it is one of several selected blocks, all of them
+  // — and select the copies. `afterGroup` lands the copies just past the end of
+  // what was copied, spacing intact (the Duplicate key and menu); without it they
+  // sit on their originals, which is what an Alt+drag wants, since the drag
+  // places them. No room left on the timeline → they stay on the originals too.
+  // The store merges the run of duplicates into one undo step.
+  const duplicateWithSelection = useCallback((track, id, afterGroup = false) => {
+    const sel = selRef.current;
+    const ids = sel.track === track && sel.ids.size > 1 && sel.ids.has(id) ? Array.from(sel.ids) : [id];
+    const es = useEditorStore.getState();
+    const sound = track === "sound";
+    const originals = (sound ? laneListsRef.current.sounds : laneListsRef.current.media).filter((p) => ids.includes(p.id));
+    let shift = 0;
+    if (afterGroup && originals.length > 0) {
+      const span = Math.max(...originals.map((p) => p.tlEnd)) - Math.min(...originals.map((p) => p.tlStart));
+      const lastStart = Math.max(...originals.map((p) => p.tlStart));
+      if (lastStart + span <= getTimelineDuration(nleSegments) - 0.05) shift = span;
+    }
+    const cloneOf = {};
+    for (const p of originals) {
+      const cloneId = sound ? es.duplicateAudioPlacement(p.id) : es.duplicateMediaPlacement(p.id);
+      if (!cloneId) continue;
+      cloneOf[p.id] = cloneId;
+      const m = shift > 0 ? timelineToSource(p.tlStart + shift, nleSegments) : null;
+      if (m?.found) (sound ? es.setAudioPlacementProps : es.setMediaPlacementProps)(cloneId, { sourceTime: m.sourceTime });
+    }
+    const cloneIds = Object.values(cloneOf);
+    if (cloneIds.length === 0) return null;
+    applySelection(track, new Set(cloneIds));
+    anchorRef.current = { track, id: cloneOf[id] || cloneIds[0] };
+    return cloneOf[id] || cloneIds[0];
+  }, [nleSegments, applySelection]);
+
+  // Popover button text: names the count when the button will act on more than
+  // the block that was right-clicked.
+  const manyLabel = (track, id, word) =>
+    selectedTrack === track && selectedSegIds.size > 1 && selectedSegIds.has(id)
+      ? `${word} all ${selectedSegIds.size}`
+      : word;
+
+  // Ctrl+D (#430). Subtitles and captions are left out on purpose: a copy of
+  // one has nowhere to land that doesn't overlap its original, and Alt+drag
+  // already covers them by placing the copy as part of the gesture.
+  const handleDuplicateSelected = useCallback(() => {
+    const sel = selRef.current;
+    if ((sel.track !== "sound" && sel.track !== "media") || sel.ids.size === 0) return;
+    duplicateWithSelection(sel.track, Array.from(sel.ids)[0], true);
+  }, [duplicateWithSelection]);
+  duplicateSelectedRef.current = handleDuplicateSelected;
+
+  const handleSoundMove = useCallback((id, tlStart) => {
+    moveWithSelection("sound", laneListsRef.current.sounds, useEditorStore.getState().setAudioPlacementProps, id, tlStart);
+  }, [moveWithSelection]);
 
   // Left handle: the window start and the anchor advance together, so cutting
   // silence off the front leaves the audible part exactly where it was.
@@ -1065,19 +1205,25 @@ export default function TimelinePanelNew() {
     useEditorStore.getState().setAudioPlacementProps(id, { trackIndex });
   }, []);
 
-  const handleSoundSelect = useCallback((id) => {
-    setSelectedTrack("sound");
-    setSelectedSegIds(new Set([id]));
-  }, []);
+  const handleSoundSelect = useCallback(
+    (id, e) => handleSegSelect("sound", id, e),
+    [handleSegSelect]
+  );
 
+  // Alt+drag on one block of a multi-selection copies the WHOLE selection and
+  // hands back the copy of the block under the pointer; the copies become the
+  // selection, so the drag that follows moves them together (#430).
   const handleSoundDuplicate = useCallback(
-    (id) => useEditorStore.getState().duplicateAudioPlacement(id),
-    []
+    (id) => duplicateWithSelection("sound", id),
+    [duplicateWithSelection]
   );
 
   const openSoundPopover = useCallback((id, e) => {
-    setSelectedTrack("sound");
-    setSelectedSegIds(new Set([id]));
+    // Right-clicking a block that is part of the selection keeps the selection
+    // — its Duplicate / Remove then act on all of it.
+    if (!(selRef.current.track === "sound" && selRef.current.ids.has(id))) {
+      applySelection("sound", new Set([id]));
+    }
     setSoundPopover({
       id,
       x: Math.min(e.clientX, window.innerWidth - 280),
@@ -1223,10 +1369,12 @@ export default function TimelinePanelNew() {
     useEditorStore.getState()._pushNleUndo();
   }, []);
 
+  // #430: fill the ref the selection handlers above read at event time.
+  laneListsRef.current = { sounds: resolvedSounds, media: resolvedMedia };
+
   const handleMediaMove = useCallback((id, tlStart) => {
-    const m = timelineToSource(tlStart, nleSegments);
-    if (m.found) useEditorStore.getState().setMediaPlacementProps(id, { sourceTime: m.sourceTime });
-  }, [nleSegments]);
+    moveWithSelection("media", laneListsRef.current.media, useEditorStore.getState().setMediaPlacementProps, id, tlStart);
+  }, [moveWithSelection]);
 
   // The right edge stays where it is: the overlay comes in later and shows for
   // correspondingly less time. On a video the block also carries the new
@@ -1250,19 +1398,20 @@ export default function TimelinePanelNew() {
     useEditorStore.getState().setMediaPlacementProps(id, { trimEnd: trimStart + length });
   }, [resolvedMedia]);
 
-  const handleMediaSelect = useCallback((id) => {
-    setSelectedTrack("media");
-    setSelectedSegIds(new Set([id]));
-  }, []);
+  const handleMediaSelect = useCallback(
+    (id, e) => handleSegSelect("media", id, e),
+    [handleSegSelect]
+  );
 
   const handleMediaDuplicate = useCallback(
-    (id) => useEditorStore.getState().duplicateMediaPlacement(id),
-    []
+    (id) => duplicateWithSelection("media", id),
+    [duplicateWithSelection]
   );
 
   const openMediaPopover = useCallback((id, e) => {
-    setSelectedTrack("media");
-    setSelectedSegIds(new Set([id]));
+    if (!(selRef.current.track === "media" && selRef.current.ids.has(id))) {
+      applySelection("media", new Set([id]));
+    }
     setMediaPopover({
       id,
       x: Math.min(e.clientX, window.innerWidth - 280),
@@ -1736,7 +1885,7 @@ export default function TimelinePanelNew() {
                       sourceDuration={sourceDuration}
                       timelineWidth={widthPx}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
-                      onSelect={() => handleSegSelect("audio", seg.id)}
+                      onSelect={(e) => handleSegSelect("audio", seg.id, e)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
                       nleSegment={seg}
                       prevSegment={segIdx > 0 ? nleSegments[segIdx - 1] : null}
@@ -1957,19 +2106,27 @@ export default function TimelinePanelNew() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => {
-                    const newId = useEditorStore.getState().duplicateAudioPlacement(p.id);
+                    // #430: with several blocks selected this copies all of them,
+                    // landing the copies just past the group; one block keeps the
+                    // old behaviour (the copy sits on its original).
+                    const many = selRef.current.track === "sound" && selRef.current.ids.size > 1 && selRef.current.ids.has(p.id);
                     setSoundPopover(null);
-                    if (newId) handleSoundSelect(newId);
+                    duplicateWithSelection("sound", p.id, many);
                   }}
                   className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-foreground/80 border border-border/60 hover:bg-secondary/50 transition-colors"
                 >
-                  <Copy className="h-3 w-3" /> Duplicate
+                  <Copy className="h-3 w-3" /> {manyLabel("sound", p.id, "Duplicate")}
                 </button>
                 <button
-                  onClick={() => { useEditorStore.getState().deleteAudioPlacement(p.id); setSoundPopover(null); }}
+                  onClick={() => {
+                    const many = selRef.current.track === "sound" && selRef.current.ids.size > 1 && selRef.current.ids.has(p.id);
+                    setSoundPopover(null);
+                    if (many) handleBatchDelete(false);
+                    else useEditorStore.getState().deleteAudioPlacement(p.id);
+                  }}
                   className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
                 >
-                  <Trash2 className="h-3 w-3" /> Remove
+                  <Trash2 className="h-3 w-3" /> {manyLabel("sound", p.id, "Remove")}
                 </button>
               </div>
             </div>
@@ -2118,19 +2275,27 @@ export default function TimelinePanelNew() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => {
-                    const newId = useEditorStore.getState().duplicateMediaPlacement(p.id);
+                    // #430: with several blocks selected this copies all of them,
+                    // landing the copies just past the group; one block keeps the
+                    // old behaviour (the copy sits on its original).
+                    const many = selRef.current.track === "media" && selRef.current.ids.size > 1 && selRef.current.ids.has(p.id);
                     setMediaPopover(null);
-                    if (newId) handleMediaSelect(newId);
+                    duplicateWithSelection("media", p.id, many);
                   }}
                   className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-foreground/80 border border-border/60 hover:bg-secondary/50 transition-colors"
                 >
-                  <Copy className="h-3 w-3" /> Duplicate
+                  <Copy className="h-3 w-3" /> {manyLabel("media", p.id, "Duplicate")}
                 </button>
                 <button
-                  onClick={() => { useEditorStore.getState().deleteMediaPlacement(p.id); setMediaPopover(null); }}
+                  onClick={() => {
+                    const many = selRef.current.track === "media" && selRef.current.ids.size > 1 && selRef.current.ids.has(p.id);
+                    setMediaPopover(null);
+                    if (many) handleBatchDelete(false);
+                    else useEditorStore.getState().deleteMediaPlacement(p.id);
+                  }}
                   className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
                 >
-                  <Trash2 className="h-3 w-3" /> Remove
+                  <Trash2 className="h-3 w-3" /> {manyLabel("media", p.id, "Remove")}
                 </button>
               </div>
             </div>
@@ -2203,11 +2368,11 @@ export default function TimelinePanelNew() {
             const time = usePlaybackStore.getState().currentTime;
             if (contextMenu.track === "cap") {
               const newId = splitCaptionAtPlayhead(time);
-              if (newId) { setSelectedTrack("cap"); setSelectedSegIds(new Set([newId])); }
+              if (newId) applySelection("cap", new Set([newId]));
             } else if (contextMenu.track === "sub") {
               splitSegment(toSource(time));
               const newActiveId = useSubtitleStore.getState().activeSegId;
-              if (newActiveId) { setSelectedTrack("sub"); setSelectedSegIds(new Set([newActiveId])); }
+              if (newActiveId) applySelection("sub", new Set([newActiveId]));
             } else if (contextMenu.track === "audio") {
               splitAtTimeline(time);
             }
@@ -2234,8 +2399,7 @@ export default function TimelinePanelNew() {
             // NLE timeline. Shared store action (#109) so the timeline menu and
             // the Edit-subtitles row menu can't drift apart.
             useEditorStore.getState().deleteSpanWithClip(contextMenu.track, contextMenu.segId);
-            setSelectedTrack(null);
-            setSelectedSegIds(new Set());
+            applySelection(null, new Set());
           }}
         />
         );

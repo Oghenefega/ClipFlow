@@ -34,6 +34,7 @@ const ACTIONS = {
   // timeline is collapsed, for the same reason.
   toggleDisable: (e) => getTimelineHandlers()?.toggleDisable?.(e),
   toggleLaneDisable: (e) => getTimelineHandlers()?.toggleLaneDisable?.(e),
+  duplicateSelected: (e) => getTimelineHandlers()?.duplicateSelected?.(e), // #430
 
   // #369: store-based (no timeline selection needed), so they work with the
   // timeline collapsed. Outcome lands in layoutNotice for the Layout panel.
