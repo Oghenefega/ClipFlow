@@ -34,6 +34,12 @@ if (typeof window !== "undefined" && window.clipflow?.onTitlegenDone) {
   });
 }
 
+// #436: clips with a Generate still running. The panel's spinner is one flag
+// shared by whichever clip is open, so a clip switch reads it back from here —
+// coming back to a clip that is still generating shows the spinner (and keeps
+// the Generate button off, so the same clip is never paid for twice).
+const _generatingFor = new Set();
+
 const useAIStore = create((set, get) => ({
   aiContext: "",
   // #262: no personal default — seeded from the clip/project on load; "" until then.
@@ -105,6 +111,15 @@ const useAIStore = create((set, get) => ({
     const { clip, project } = useEditorStore.getState();
     if (!clip || !project || aiGenerating) return;
 
+    // #436: the call takes seconds and the user can open another clip while it
+    // runs. Everything after the await belongs to THIS clip: written to the
+    // panel only while it is still the open one, otherwise parked in its
+    // session cache (the main process has already saved the cards on the right
+    // clip) so they are there on return without a second paid call.
+    const startedFor = clip.id;
+    const stillOpen = () => useEditorStore.getState().clip?.id === startedFor;
+
+    _generatingFor.add(startedFor);
     set({ aiGenerating: true, aiError: "" });
     try {
       const result = await window.clipflow.anthropicGenerate({
@@ -113,28 +128,38 @@ const useAIStore = create((set, get) => ({
       });
 
       if (result.error) {
-        set({ aiError: result.error });
+        if (stillOpen()) set({ aiError: result.error });
       } else if (result.success && result.data) {
-        set({
+        const landed = {
           aiSuggestions: result.data,
           aiCallId: result.callId ?? null,
           aiFallback: result.fallback || null,
           acceptedTitleIdx: null,
           acceptedCaptionIdx: null,
-        });
+        };
+        if (stillOpen()) set(landed);
+        else set((s) => ({ _perClipCache: { ...s._perClipCache, [startedFor]: { ...(s._perClipCache[startedFor] || {}), ...landed } } }));
         trackCall("generate", result);
       }
     } catch (e) {
-      set({ aiError: e.message });
+      if (stillOpen()) set({ aiError: e.message });
     }
-    set({ aiGenerating: false });
+    _generatingFor.delete(startedFor);
+    // Not this call's spinner any more if another clip is open (it may be
+    // running its own Generate).
+    if (stillOpen()) set({ aiGenerating: false });
   },
 
   // Rephrase ("rephrase": same hook, reworded) or regenerate ("regenerate":
   // new angle) a SINGLE card, replacing just that slot (#85 Chunk A).
   _runSingleCard: async (mode, gamesDb, kind, idx) => {
-    const { clip } = useEditorStore.getState();
+    const { clip, project } = useEditorStore.getState();
     if (!clip) return;
+    // #436: same rule as generate — the result belongs to the clip it was
+    // asked for, wherever the user is by the time it lands.
+    const startedFor = clip.id;
+    const startedProject = project?.id;
+    const stillOpen = () => useEditorStore.getState().clip?.id === startedFor;
     const cardKey = `${kind}:${idx}`;
     const listKey = kind === "title" ? "titles" : "captions";
     const field = kind === "title" ? "title" : "caption";
@@ -159,32 +184,41 @@ const useAIStore = create((set, get) => ({
       const result = await fn(params);
 
       if (result.error) {
-        set({ aiError: result.error });
+        if (stillOpen()) set({ aiError: result.error });
       } else if (result.success && result.data && result.data[field]) {
-        const s = get();
-        const newList = [...(s.aiSuggestions?.[listKey] || [])];
-        // The card remembers which call wrote it, so applying it later stamps
-        // that call, not the batch (#424).
-        newList[idx] = { ...result.data, callId: result.callId ?? null };
-        const patch = {
-          aiSuggestions: { ...s.aiSuggestions, [listKey]: newList },
-        };
-        if (result.fallback) patch.aiFallback = result.fallback;
-        // The slot's text changed — drop a stale "Applied" mark on it.
-        if (kind === "title" && s.acceptedTitleIdx === idx) patch.acceptedTitleIdx = null;
-        if (kind === "caption" && s.acceptedCaptionIdx === idx) patch.acceptedCaptionIdx = null;
-        set(patch);
-        trackCall(mode, result);
-        get()._persistCards();
-      } else {
+        // The clip's AI state: the live panel while it is open, else its
+        // session cache entry (swapToClip parked it there on the way out).
+        const s = stillOpen() ? get() : get()._perClipCache[startedFor];
+        if (s?.aiSuggestions) {
+          const newList = [...(s.aiSuggestions[listKey] || [])];
+          // The card remembers which call wrote it, so applying it later stamps
+          // that call, not the batch (#424).
+          newList[idx] = { ...result.data, callId: result.callId ?? null };
+          const patch = {
+            aiSuggestions: { ...s.aiSuggestions, [listKey]: newList },
+          };
+          if (result.fallback) patch.aiFallback = result.fallback;
+          // The slot's text changed — drop a stale "Applied" mark on it.
+          if (kind === "title" && s.acceptedTitleIdx === idx) patch.acceptedTitleIdx = null;
+          if (kind === "caption" && s.acceptedCaptionIdx === idx) patch.acceptedCaptionIdx = null;
+          if (stillOpen()) set(patch);
+          else set((st) => ({ _perClipCache: { ...st._perClipCache, [startedFor]: { ...st._perClipCache[startedFor], ...patch } } }));
+          trackCall(mode, result);
+          // Saved under the clip the card was written FOR, never the open one.
+          get()._persistCards(startedProject, startedFor, patch.aiSuggestions);
+        }
+      } else if (stillOpen()) {
         set({ aiError: "AI returned no usable result." });
       }
     } catch (e) {
-      set({ aiError: e.message });
+      if (stillOpen()) set({ aiError: e.message });
     }
-    const after = get().busyCards;
-    const { [cardKey]: _drop, ...rest } = after;
-    set({ busyCards: rest });
+    // busyCards was reset by the clip switch; only clear this clip's own mark.
+    if (stillOpen()) {
+      const after = get().busyCards;
+      const { [cardKey]: _drop, ...rest } = after;
+      set({ busyCards: rest });
+    }
   },
 
   rephrase: (gamesDb, kind, idx) =>
@@ -285,11 +319,11 @@ const useAIStore = create((set, get) => ({
   },
 
   // #420: a Regenerate or Rephrase changed a card — keep the saved set current.
-  _persistCards: () => {
-    const { clip, project } = useEditorStore.getState();
-    const { aiSuggestions } = get();
-    if (!clip || !project || !aiSuggestions) return;
-    window.clipflow?.titlegenSaveCards?.(project.id, clip.id, {
+  // Takes the clip the card was written FOR — by the time a call lands the
+  // open clip may be a different one (#436).
+  _persistCards: (projectId, clipId, aiSuggestions) => {
+    if (!projectId || !clipId || !aiSuggestions) return;
+    window.clipflow?.titlegenSaveCards?.(projectId, clipId, {
       titles: aiSuggestions.titles || [],
       captions: aiSuggestions.captions || [],
     })?.catch?.(() => {});
@@ -322,7 +356,7 @@ const useAIStore = create((set, get) => ({
       aiRejections: cached?.aiRejections ?? [],
       acceptedTitleIdx: cached?.acceptedTitleIdx ?? null,
       acceptedCaptionIdx: cached?.acceptedCaptionIdx ?? null,
-      aiGenerating: false,
+      aiGenerating: _generatingFor.has(newClipId),
       aiError: "",
       busyCards: {},
     });

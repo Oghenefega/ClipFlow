@@ -24,6 +24,8 @@ module.exports = [
       "Capitals are no longer saved in templates. They are something you press per clip.",
     ],
     fixed: [
+      "If you pressed Generate in AI Tools and opened another clip before it finished, the new titles showed up on the wrong clip. They now stay with the clip you asked for and are waiting there when you go back.",
+      "Pressing Apply on an AI caption sometimes said Applied while the caption on the video did not change. This happened after clicking the second caption on a clip that has two. Apply and the caption text box now always change the caption you can see.",
       "Capitalising a caption word showed it in capitals on the video while the text box and the word chip still showed it in lowercase. The text box, the chips, the subtitle rows, the preview and the export now always read the same.",
       "Pressing the lowercase button on a word you had typed in capitals did nothing. The AA switch now lower-cases it.",
       "Clips you capitalised on the previous version look the same after this update, including ones you have not reopened.",

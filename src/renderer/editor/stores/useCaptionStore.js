@@ -349,8 +349,13 @@ const useCaptionStore = create((set, get) => ({
         }
         return { captionText: text };
       }
-      // Find the active segment (or fall back to first)
-      const targetId = s.activeCaptionId || s.captionSegments[0]?.id;
+      // The active caption when it EXISTS in this clip, else the first — the
+      // same fallback the Text panel uses to pick what its box shows. #437: an
+      // id left over from another clip (or from a caption since deleted) used
+      // to match nothing here, so typing and AI "Apply" silently did nothing.
+      const targetId = s.captionSegments.some((seg) => seg.id === s.activeCaptionId)
+        ? s.activeCaptionId
+        : s.captionSegments[0].id;
       const segs = s.captionSegments.map((seg) =>
         seg.id === targetId
           ? _retext(seg, text)
@@ -461,9 +466,11 @@ const useCaptionStore = create((set, get) => ({
         captionSegments: segs,
         captionText: segs[0]?.text || text,
         // #270: cap-N ids restart per clip — a stale word selection could match
-        // the next clip's ids, so clear it on every open.
+        // the next clip's ids, so clear it on every open. #437: same for the
+        // active caption, which the timeline sets and nothing else cleared.
         activeCaptionWords: null,
         activeCaptionLine: null,
+        activeCaptionId: null,
       });
     } else {
       // Legacy: create single segment from captionText
@@ -475,6 +482,7 @@ const useCaptionStore = create((set, get) => ({
         captionText: text,
         activeCaptionWords: null,
         activeCaptionLine: null,
+        activeCaptionId: null,
       });
     }
   },
