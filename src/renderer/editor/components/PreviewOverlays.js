@@ -17,6 +17,7 @@ import {
   buildSubtitleWordOverrideCss,
   buildCaptionWordOverrideCss,
   buildCaptionTokens,
+  capsTransform,
 } from "../utils/subtitleStyleEngine";
 import {
   findActiveWord,
@@ -153,6 +154,9 @@ export function SubtitleOverlay({
   if (!currentSeg) return null;
 
   const words = currentSeg.words || [];
+  // #426: this line's own casing, over the block style's
+  const lineCaps = capsTransform(currentSeg.caps);
+  const lineCapsStyle = lineCaps ? { textTransform: lineCaps } : null;
 
   // Derive animation key from segment identity (restarts CSS animation on segment change)
   const segKey = currentSeg.id || `${currentSeg.startSec}-${currentSeg.endSec}`;
@@ -190,7 +194,7 @@ export function SubtitleOverlay({
     return (
       <>
         {growKeyframes && <style>{growKeyframes}</style>}
-        <div style={{ ...textStyle, display: "block" }}>
+        <div style={{ ...textStyle, display: "block", ...lineCapsStyle }}>
           {visibleWords.map((w, i) => {
             const globalIdx = i + visibleOffset;
             const isActive = karaokeActive && globalIdx === currentWordIdx;
@@ -203,9 +207,11 @@ export function SubtitleOverlay({
             const ovCss = getOverrideCss(w);
 
             // Progressive mode: active word gets gradient sweep via clip-path overlay
+            // A casing-only override (#426) has no color of its own, so the word
+            // still sweeps.
             const useProgressiveFill = highlightMode === "progressive" &&
               isActive && karaokeActive && wordProgress > 0 && wordProgress < 1 &&
-              !ovCss;
+              !(ovCss && ovCss.color);
 
             // Instant mode (default): whole word gets highlight color immediately
             const wordStyle = {
@@ -225,6 +231,8 @@ export function SubtitleOverlay({
               wordStyle.transition = undefined;
             }
 
+            // A look override keeps its own color through the karaoke flip; a
+            // casing-only one carries no color, so the highlight above stands.
             if (ovCss) Object.assign(wordStyle, ovCss);
 
             if (animateOn) {
@@ -291,6 +299,7 @@ export function SubtitleOverlay({
         ...textStyle,
         display: "block",
         textShadow: wordShadows.normal || undefined,
+        ...lineCapsStyle,
       }}
     >
       {visibleText}

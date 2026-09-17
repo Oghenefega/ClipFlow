@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
-import { resolveClipSubtitles } from "../utils/resolveSubtitles";
+import { resolveClipSubtitles, lineExtras } from "../utils/resolveSubtitles";
 import { visibleSubtitleSegments } from "../models/timeMapping";
 // Cross-store imports — accessed only inside function bodies (after init),
 // so ESM live bindings resolve the cycle correctly. Do NOT destructure or
@@ -83,7 +83,7 @@ const SUB_STYLE_KEYS = [
   "glowOn", "glowColor", "glowOpacity", "glowIntensity", "glowBlur", "glowBlend", "glowOffsetX", "glowOffsetY",
   "bgOn", "bgOpacity", "bgColor", "bgPaddingX", "bgPaddingY", "bgRadius",
   "highlightColor", "subColor", "subPos", "punctOn", "showSubs", "emojiOn",
-  "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
+  "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline", "subCaps",
   "lineMode", "syncOffset", "punctuationRemove", "effectOrder",
   "animateOn", "animateScale", "animateGrowFrom", "animateSpeed",
 ];
@@ -119,7 +119,7 @@ function _snapshotStyling(subState) {
     const CAP_KEYS = [
       "captionText", "captionSegments",
       "captionFontFamily", "captionFontWeight", "captionFontSize",
-      "captionColor", "captionBold", "captionItalic", "captionUnderline",
+      "captionColor", "captionBold", "captionItalic", "captionUnderline", "captionCaps",
       "captionLineSpacing",
       "captionShadowOn", "captionShadowColor", "captionShadowBlur", "captionShadowOpacity",
       "captionShadowOffsetX", "captionShadowOffsetY",
@@ -267,6 +267,7 @@ const subtitleStyleDefaults = () => ({
   subItalic: true,
   subBold: true,
   subUnderline: false,
+  subCaps: false, // #426: draw every subtitle ALL CAPS (lines and words can opt in or out)
   lineMode: "1L",
   syncOffset: 0,
   punctuationRemove: { period: false, comma: false, question: false, exclamation: false, semicolon: false, colon: false, ellipsis: false },
@@ -316,7 +317,7 @@ const useSubtitleStore = create((set, get) => ({
     const mapping = {
       fontFamily: "subFontFamily", fontWeight: "subFontWeight",
       fontSize: "fontSize", bold: "subBold", italic: "subItalic",
-      underline: "subUnderline", subColor: "subColor",
+      underline: "subUnderline", caps: "subCaps", subColor: "subColor",
       strokeOn: "strokeOn", strokeWidth: "strokeWidth",
       strokeColor: "strokeColor", strokeOpacity: "strokeOpacity",
       strokeBlur: "strokeBlur", strokeOffsetX: "strokeOffsetX", strokeOffsetY: "strokeOffsetY",
@@ -433,7 +434,7 @@ const useSubtitleStore = create((set, get) => ({
       endSec: s.end,       // SOURCE-ABSOLUTE
       warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
       words: s.words,      // word.start/end are SOURCE-ABSOLUTE
-      ...(s.enabled === false ? { enabled: false } : {}), // #296: survives a reopen
+      ...lineExtras(s), // #296 / #426: per-line settings survive a reopen
     }));
 
     // Store original sentence-level segments for transcript tab and mode switching.
@@ -1156,6 +1157,24 @@ const useSubtitleStore = create((set, get) => ({
     });
   },
 
+  // #426: one subtitle line's own casing — true = ALL CAPS, false = as typed
+  // even when every subtitle is set to caps, null = follow the Subtitles panel.
+  // Drawn, never typed: the text keeps its spelling, so off brings back
+  // "Asuna" rather than "asuna". null REMOVES the key (same rule as `enabled`).
+  setSegmentCaps: (segId, caps) => {
+    const seg = get().editSegments.find((s) => s.id === segId);
+    if (!seg) return;
+    get()._pushUndo();
+    set((s) => ({
+      editSegments: s.editSegments.map((sg) => {
+        if (sg.id !== segId) return sg;
+        if (caps === true || caps === false) return { ...sg, caps };
+        const { caps: _drop, ...rest } = sg;
+        return rest;
+      }),
+    }));
+  },
+
   // Delete ONE word from a segment, keeping text and words[] in sync (#136).
   // wordIdx is a text-token index. Splicing only the text (the old path) left the
   // word alive in words[] — karaoke goes off-by-one after that position and the
@@ -1252,6 +1271,7 @@ const useSubtitleStore = create((set, get) => ({
   setSubItalic: (v) => { get()._pushStyleUndo(); set({ subItalic: v }); },
   setSubBold: (v) => { get()._pushStyleUndo(); set({ subBold: v }); },
   setSubUnderline: (v) => { get()._pushStyleUndo(); set({ subUnderline: v }); },
+  setSubCaps: (v) => { get()._pushStyleUndo(); set({ subCaps: !!v }); },
   toggleSubItalic: () => { get()._pushStyleUndo(); set((s) => ({ subItalic: !s.subItalic })); },
   toggleSubBold: () => { get()._pushStyleUndo(); set((s) => ({ subBold: !s.subBold })); },
   toggleSubUnderline: () => { get()._pushStyleUndo(); set((s) => ({ subUnderline: !s.subUnderline })); },

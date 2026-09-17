@@ -75,6 +75,7 @@ const captionStyleDefaults = () => ({
   captionBold: true,
   captionItalic: true,
   captionUnderline: false,
+  captionCaps: false, // #426: draw the caption ALL CAPS (lines and words can opt in or out)
   captionLineSpacing: 0.9,
   captionShadowOn: false,
   captionShadowColor: "#000000",
@@ -324,6 +325,7 @@ const useCaptionStore = create((set, get) => ({
   setCaptionBold: (b) => { _pushCrossUndo(); set({ captionBold: b }); },
   setCaptionItalic: (i) => { _pushCrossUndo(); set({ captionItalic: i }); },
   setCaptionUnderline: (u) => { _pushCrossUndo(); set({ captionUnderline: u }); },
+  setCaptionCaps: (v) => { _pushCrossUndo(); set({ captionCaps: !!v }); },
   toggleBold: () => { _pushCrossUndo(); set((s) => ({ captionBold: !s.captionBold })); },
   toggleItalic: () => { _pushCrossUndo(); set((s) => ({ captionItalic: !s.captionItalic })); },
   toggleUnderline: () => { _pushCrossUndo(); set((s) => ({ captionUnderline: !s.captionUnderline })); },
@@ -364,7 +366,7 @@ const useCaptionStore = create((set, get) => ({
     const mapping = {
       fontFamily: "captionFontFamily", fontWeight: "captionFontWeight",
       fontSize: "captionFontSize", bold: "captionBold", italic: "captionItalic",
-      underline: "captionUnderline", color: "captionColor",
+      underline: "captionUnderline", caps: "captionCaps", color: "captionColor",
       lineSpacing: "captionLineSpacing",
       strokeOn: "captionStrokeOn", strokeColor: "captionStrokeColor",
       strokeWidth: "captionStrokeWidth", strokeOpacity: "captionStrokeOpacity",

@@ -372,7 +372,20 @@ function ColorPickerPopover({ color, onChange, children }) {
 // ════════════════════════════════════════════════════════════════
 const FONT_OPTIONS = ["Latina Essential", "Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Inter", "Oswald", "Poppins"];
 
-function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, color, setColor, lineMode, setLineMode }) {
+// #426: the casing pair. "Aa" = as typed, "AB" = ALL CAPS. Caps are drawn, not
+// typed — the text keeps its spelling, so Aa always brings it back. Used for
+// the whole text (FontToolbar) and for one word or line (WordStyleCard).
+function CasingButtons({ caps, onChange, what, small = false }) {
+  const cls = (on) => `${small ? "h-6 px-2" : "h-8 px-2.5"} rounded-md text-xs transition-colors cursor-pointer ${on ? "bg-secondary text-foreground font-semibold" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`;
+  return (
+    <>
+      <button onClick={() => onChange(false)} title={`As typed — ${what}`} className={cls(!caps)}>Aa</button>
+      <button onClick={() => onChange(true)} title={`ALL CAPS — ${what}`} className={cls(!!caps)}>AB</button>
+    </>
+  );
+}
+
+function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, caps, setCaps, capsWhat, color, setColor, lineMode, setLineMode }) {
   // #106: scroll-to-change font size needs a non-passive wheel listener — React's
   // onWheel binds passively, so preventDefault() there warns and is silently ignored.
   const fontSizeInputRef = useRef(null);
@@ -456,8 +469,7 @@ function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fon
 
       {/* Casing + size + color */}
       <div className="flex items-center gap-1">
-        <button className="h-8 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors">Aa</button>
-        <button className="h-8 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors">AB</button>
+        <CasingButtons caps={caps} onChange={(v) => setCaps?.(v)} what={capsWhat} />
         <Separator orientation="vertical" className="h-5 mx-0.5" />
         <span className="text-xs text-muted-foreground px-1">{fontSize}</span>
         {color !== undefined && setColor && (
@@ -537,9 +549,13 @@ const STORE_KEY = "userEffectPresets";
 //  the inherited values the controls display before an override exists.
 // ════════════════════════════════════════════════════════════════
 // `label` is "Word" or "Line" (#366) — the card is otherwise identical.
-function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, label = "Word" }) {
+// `inheritedCaps` (#426) is the casing this word/line would get with no override
+// of its own; picking that same casing removes the override instead of storing
+// one, so the card only reads "styled" when the word really differs.
+function WordStyleCard({ word, style = {}, lineDefaults = {}, inheritedCaps = false, onPatch, onClear, label = "Word" }) {
   const merged = { ...lineDefaults, ...style };
   const hasStyle = Object.keys(style).length > 0;
+  const caps = style.caps === true || style.caps === false ? style.caps : !!inheritedCaps;
   return (
     <div className="rounded-md border border-primary/40 bg-primary/5 p-2 space-y-2">
       <div className="flex items-center gap-2 min-w-0">
@@ -587,6 +603,11 @@ function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, 
           <ColorPickerPopover color={merged.shadowColor || "#000000"} onChange={(c) => onPatch({ shadowOn: true, shadowColor: c })}>
             <button title="Shadow color" className="w-4 h-4 rounded-full border border-border/60 cursor-pointer" style={{ background: merged.shadowColor || "#000000" }} />
           </ColorPickerPopover>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-0.5 shrink-0">
+          <CasingButtons small caps={caps} what={`this ${label.toLowerCase()}`}
+            onChange={(v) => onPatch({ caps: v === !!inheritedCaps ? null : v })} />
         </div>
       </div>
     </div>
@@ -1269,6 +1290,8 @@ function SubtitlesPanel() {
   const toggleSubItalic = useSubtitleStore((s) => s.toggleSubItalic);
   const subUnderline = useSubtitleStore((s) => s.subUnderline);
   const toggleSubUnderline = useSubtitleStore((s) => s.toggleSubUnderline);
+  const subCaps = useSubtitleStore((s) => s.subCaps);
+  const setSubCaps = useSubtitleStore((s) => s.setSubCaps);
   const [align, setAlign] = useState("center");
   const { userPresets, persist } = useUserPresets();
   // #402: shared "glow follows text colour" preference (both panels).
@@ -1297,6 +1320,7 @@ function SubtitlesPanel() {
       wordIdx: selectedWordInfo.wordIdx,
       word,
       style: seg.words?.[selectedWordInfo.wordIdx]?.style || {},
+      lineCaps: seg.caps, // #426: the word's line may set its own casing
     };
   }, [selectedWordInfo, editSegments]);
 
@@ -1331,6 +1355,7 @@ function SubtitlesPanel() {
                 word={selWord.word}
                 style={selWord.style}
                 lineDefaults={{ color: subColor, fontSize, glowOn, glowColor, shadowOn, shadowColor }}
+                inheritedCaps={selWord.lineCaps ?? subCaps}
                 onPatch={(p) => setWordStyle(selWord.segId, selWord.wordIdx, p)}
                 onClear={() => clearWordStyle(selWord.segId, selWord.wordIdx)}
               />
@@ -1345,6 +1370,7 @@ function SubtitlesPanel() {
               bold={subBold} setBold={toggleSubBold}
               italic={subItalic} setItalic={toggleSubItalic}
               underline={subUnderline} setUnderline={toggleSubUnderline}
+              caps={subCaps} setCaps={setSubCaps} capsWhat="every subtitle"
               color={subColor} setColor={setSubColor}
               lineMode={lineMode} setLineMode={setLineMode}
             />
@@ -1553,6 +1579,8 @@ function TextPanel() {
   const toggleBold = useCaptionStore((s) => s.toggleBold);
   const toggleItalic = useCaptionStore((s) => s.toggleItalic);
   const toggleUnderline = useCaptionStore((s) => s.toggleUnderline);
+  const captionCaps = useCaptionStore((s) => s.captionCaps);
+  const setCaptionCaps = useCaptionStore((s) => s.setCaptionCaps);
   const captionLineSpacing = useCaptionStore((s) => s.captionLineSpacing);
   const setCaptionLineSpacing = useCaptionStore((s) => s.setCaptionLineSpacing);
   const captionShadowOn = useCaptionStore((s) => s.captionShadowOn);
@@ -1694,6 +1722,7 @@ function TextPanel() {
                 word={capLines[activeCaptionLine.lineIdx].text}
                 style={targetCapSeg.lineStyles?.[activeCaptionLine.lineIdx] || {}}
                 lineDefaults={blockDefaults}
+                inheritedCaps={captionCaps}
                 onPatch={(p) => { setCaptionLineStyle(targetCapSeg.id, activeCaptionLine.lineIdx, p); markDirty(); }}
                 onClear={() => { clearCaptionLineStyle(targetCapSeg.id, activeCaptionLine.lineIdx); markDirty(); }}
               />
@@ -1705,6 +1734,7 @@ function TextPanel() {
                 style={targetCapSeg.wordStyles?.[activeCaptionWord.wordIdx] || {}}
                 // A word inherits its line's override before the block (#366)
                 lineDefaults={{ ...blockDefaults, ...(wordLineIdx !== undefined ? targetCapSeg.lineStyles?.[wordLineIdx] || {} : {}) }}
+                inheritedCaps={(wordLineIdx !== undefined ? targetCapSeg.lineStyles?.[wordLineIdx]?.caps : undefined) ?? captionCaps}
                 onPatch={(p) => { setCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx, p); markDirty(); }}
                 onClear={() => { clearCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx); markDirty(); }}
               />
@@ -1719,6 +1749,7 @@ function TextPanel() {
               bold={captionBold} setBold={() => { toggleBold(); markDirty(); }}
               italic={captionItalic} setItalic={() => { toggleItalic(); markDirty(); }}
               underline={captionUnderline} setUnderline={() => { toggleUnderline(); markDirty(); }}
+              caps={captionCaps} setCaps={(v) => { setCaptionCaps(v); markDirty(); }} capsWhat="the whole caption"
               color={captionColor} setColor={(c) => { setCaptionColor(c); markDirty(); }}
             />
 

@@ -1840,7 +1840,7 @@ const useEditorStore = create((set, get) => ({
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
         fontSize: subState.fontSize, bold: subState.subBold, italic: subState.subItalic,
-        underline: subState.subUnderline, subColor: subState.subColor,
+        underline: subState.subUnderline, caps: subState.subCaps, subColor: subState.subColor,
         strokeOn: subState.strokeOn, strokeWidth: subState.strokeWidth,
         strokeColor: subState.strokeColor, strokeOpacity: subState.strokeOpacity,
         strokeBlur: subState.strokeBlur, strokeOffsetX: subState.strokeOffsetX, strokeOffsetY: subState.strokeOffsetY,
@@ -1868,7 +1868,7 @@ const useEditorStore = create((set, get) => ({
       const captionStyle = {
         fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
         fontSize: capState.captionFontSize, bold: capState.captionBold, italic: capState.captionItalic,
-        underline: capState.captionUnderline, color: capState.captionColor,
+        underline: capState.captionUnderline, caps: capState.captionCaps, color: capState.captionColor,
         lineSpacing: capState.captionLineSpacing,
         strokeOn: capState.captionStrokeOn, strokeColor: capState.captionStrokeColor,
         strokeWidth: capState.captionStrokeWidth, strokeOpacity: capState.captionStrokeOpacity,

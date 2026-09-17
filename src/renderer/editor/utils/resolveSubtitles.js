@@ -25,6 +25,23 @@ const { mergeWordTokens, validateWords } = require("./wordRepair");
 const { fixWordCasing } = require("./subtitleCasing");
 
 /**
+ * The per-line settings a subtitle segment carries besides its text and words:
+ * `enabled: false` (#296, the line is switched off) and `caps` (#426, this
+ * line's own ALL CAPS on/off). Every hop between the project file and a
+ * renderer rebuilds segments from NAMED fields, so anything not spread here is
+ * silently dropped on the way — that is how a disabled line got burned back
+ * into exports (#374). One helper, used at every hop: the resolver below,
+ * useSubtitleStore.initSegments and render.js. Conditional, so a segment that
+ * never carried a setting comes out byte-identical to before.
+ */
+function lineExtras(s) {
+  return {
+    ...(s.enabled === false ? { enabled: false } : {}),
+    ...(s.caps === true || s.caps === false ? { caps: s.caps } : {}),
+  };
+}
+
+/**
  * @param {Object} clip - clip object (subtitles, transcription, startTime, endTime, duration)
  * @param {Object} project - parent project (project.transcription fallback / extras)
  * @param {Object} [opts]
@@ -94,10 +111,9 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       end: s.endSec,
       text: s.text,
       words: s.words,
-      // #296: a switched-off line stays switched off across a reopen. Written
-      // as a conditional spread at every hop below, so a segment that never
-      // carried the flag comes out byte-identical to before.
-      ...(s.enabled === false ? { enabled: false } : {}),
+      // #296: a switched-off line stays switched off across a reopen — see
+      // lineExtras; the same spread sits at every hop below.
+      ...lineExtras(s),
     }));
     sourceOffset = 0;
     rawIsSourceAbsolute = true;
@@ -158,7 +174,7 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       // downstream spreads words, so this is the only place they'd be lost.
       ...(w.style ? { style: w.style } : {}),
     })),
-    ...(s.enabled === false ? { enabled: false } : {}), // #296
+    ...lineExtras(s),
   }));
 
   // ─── Pull source-wide extras when primary is clip-bounded ─────────────
@@ -314,7 +330,7 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
         end: segEndSec,       // SOURCE-ABSOLUTE
         text: segText || s.text,
         words: repairedWords, // word.start/end are SOURCE-ABSOLUTE
-        ...(s.enabled === false ? { enabled: false } : {}), // #296
+        ...lineExtras(s),
       };
     })
     // #115: keep blank segments for editor-saved data — a newly-created (still-empty)
@@ -333,4 +349,4 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
 // CJS export — required directly by the main-process render path (render.js, #8)
 // so batch/queue renders run the SAME resolver as the editor + preview, and
 // imported as a named ESM binding by renderer code (Vite handles CJS interop).
-module.exports = { resolveClipSubtitles };
+module.exports = { resolveClipSubtitles, lineExtras };

@@ -9,7 +9,7 @@ const { resolvePlacements } = require("../renderer/editor/models/audioPlacements
 const { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } = require("../renderer/editor/models/mediaPlacements");
 const { resolveClipAudioMix, isFlat, buildSourceMix } = require("../renderer/editor/models/audioMix");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
-const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
+const { resolveClipSubtitles, lineExtras } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe } = require("../renderer/editor/utils/reframeStyle");
 
 // Hang watchdog for the main render: ffmpeg prints a stats line every ~half
@@ -616,6 +616,7 @@ function resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments) {
         endSec: s.end,
         text: s.text,
         words: s.words,
+        ...lineExtras(s), // #426: a line's own casing must reach the overlay on batch renders too
       }));
       subsAreSourceAbsolute = true;
       console.log(`[Render] Subtitle source: resolveClipSubtitles (${resolved.source}),`, subtitleSegments.length, "segments");

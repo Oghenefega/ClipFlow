@@ -11,6 +11,8 @@ jest.mock("../subtitle-overlay-renderer", () => ({}));
 
 const mockResolveClipSubtitles = jest.fn();
 jest.mock("../../renderer/editor/utils/resolveSubtitles", () => ({
+  // lineExtras stays REAL — it is the hop under test for per-line settings.
+  ...jest.requireActual("../../renderer/editor/utils/resolveSubtitles"),
   resolveClipSubtitles: (...args) => mockResolveClipSubtitles(...args),
 }));
 
@@ -81,6 +83,23 @@ describe("resolveTimelineSubtitles — #374 disabled lines", () => {
       expect(texts(out)).toEqual(["keep me"]);
       // and the legacy path still shifts to clip-relative time
       expect(out[0].startSec).toBe(0);
+    });
+
+    // #426: this branch rebuilds segments from named fields, so a per-line
+    // setting that isn't carried explicitly never reaches the overlay — Render
+    // All would export a line in the wrong casing while the editor shows it right.
+    test("a line's own casing survives to the overlay, on both time paths", () => {
+      const segments = [
+        { start: 0, end: 1, text: "shout", caps: true, words: [{ word: "shout", start: 0, end: 1 }] },
+        { start: 1, end: 2, text: "as typed", caps: false, words: [{ word: "as", start: 1, end: 2 }] },
+        { start: 2, end: 3, text: "inherits", words: [{ word: "inherits", start: 2, end: 3 }] },
+      ];
+      mockResolveClipSubtitles.mockReturnValue({ source: "test", segments });
+      const nle = resolveTimelineSubtitles({ startTime: 0 }, {}, true, NLE);
+      expect(nle.map((s) => s.caps)).toEqual([true, false, undefined]);
+      expect("caps" in nle[2]).toBe(false);
+      const legacy = resolveTimelineSubtitles({ startTime: 0 }, {}, false, null);
+      expect(legacy.map((s) => s.caps)).toEqual([true, false, undefined]);
     });
   });
 });

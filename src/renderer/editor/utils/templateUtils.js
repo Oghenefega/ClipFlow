@@ -94,6 +94,9 @@ export function applyTemplate(tpl) {
   _safeSet(cs, "setCaptionBold", c.bold);
   _safeSet(cs, "setCaptionItalic", c.italic);
   _safeSet(cs, "setCaptionUnderline", c.underline);
+  // Always a boolean: a template saved before #426 has no `caps`, and skipping it
+  // would leave the previous clip's ALL CAPS switched on.
+  _safeSet(cs, "setCaptionCaps", c.caps === true);
   _safeSet(cs, "setCaptionLineSpacing", c.lineSpacing);
   // Caption stroke
   _safeSet(cs, "setCaptionStrokeOn", c.strokeOn);
@@ -135,6 +138,7 @@ export function applyTemplate(tpl) {
   _safeSet(ss, "setSubItalic", s.italic);
   _safeSet(ss, "setSubBold", s.bold);
   _safeSet(ss, "setSubUnderline", s.underline);
+  _safeSet(ss, "setSubCaps", s.caps === true);
   _safeSet(ss, "setSubColor", s.subColor);
   // Subtitle stroke
   _safeSet(ss, "setStrokeOn", s.strokeOn);
@@ -295,7 +299,7 @@ export function snapshotTemplate(name) {
     id: `tpl-${Date.now()}`, name, builtIn: false, createdAt: new Date().toISOString(),
     caption: {
       fontFamily: cap.captionFontFamily, fontWeight: cap.captionFontWeight, fontSize: cap.captionFontSize,
-      color: cap.captionColor, bold: cap.captionBold, italic: cap.captionItalic, underline: cap.captionUnderline,
+      color: cap.captionColor, bold: cap.captionBold, italic: cap.captionItalic, underline: cap.captionUnderline, caps: cap.captionCaps,
       lineSpacing: cap.captionLineSpacing,
       strokeOn: cap.captionStrokeOn, strokeColor: cap.captionStrokeColor, strokeWidth: cap.captionStrokeWidth,
       strokeOpacity: cap.captionStrokeOpacity, strokeBlur: cap.captionStrokeBlur,
@@ -312,7 +316,7 @@ export function snapshotTemplate(name) {
     },
     subtitle: {
       fontFamily: sub.subFontFamily, fontWeight: sub.subFontWeight, fontSize: sub.fontSize,
-      italic: sub.subItalic, bold: sub.subBold, underline: sub.subUnderline, subColor: sub.subColor,
+      italic: sub.subItalic, bold: sub.subBold, underline: sub.subUnderline, caps: sub.subCaps, subColor: sub.subColor,
       strokeOn: sub.strokeOn, strokeWidth: sub.strokeWidth, strokeColor: sub.strokeColor,
       strokeOpacity: sub.strokeOpacity, strokeBlur: sub.strokeBlur,
       strokeOffsetX: sub.strokeOffsetX, strokeOffsetY: sub.strokeOffsetY,
