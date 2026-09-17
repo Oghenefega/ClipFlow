@@ -1,77 +1,85 @@
-# HANDOFF — Session 260 (2026-09-16)
+# HANDOFF — Session 261 (2026-09-17)
 
 ## Current State
 
-Master is clean at this wrap's commit. **0.5.0-alpha.5 is on the feed** (`aec7632`), pruning
-alpha.4; Fega's daily driver picks it up on next launch. It promotes everything since alpha.4:
-s257 (#417), s258 (render hardening), s259 (Layout drawer), and this session's six
-title/caption issues.
+Master is clean at this wrap's commit. Eight requests from Fega, all built, verified in the dev
+profile on a scratch fixture and (where it renders) on frames of a real `renderClip` export, all
+pushed. **Nothing is on the update feed yet** — alpha.5 is still the installed build, so Fega has
+not seen any of this. Five code commits:
 
-The session was the title/caption bottleneck: #419 (rules contradicted Fega's voice), #420
-(generate on approve), #421 (thinking cap), plus three filed and fixed along the way — #422
-(context box ignored), #423 (Regenerate/Rephrase blind on Claude), #424 (nothing was logged).
-Verified with 23 real Gemini calls on five of Fega's clips (tables on #419/#421/#422/#423) and
-a CDP drive of the dev profile: approve → cards, Regenerate, Apply, restart, switch off, and the
-Gemini-unavailable fallback.
+- `1d53262` #427 #428 #429 #432 — header pins (project + Queue), tab memory, TikTok privacy
+  "flash", caption line spacing 0.9.
+- `68c8f9f` #425 — wrong-layout frame at a cut + playhead parking on the wrong side of it.
+- `b15c6b4` #426 — the dead Aa / AB buttons wired; reversible ALL CAPS at word / line / block.
+- `b687469` #430 — timeline multi-select on every lane, Ctrl+D, group drag, Alt+drag group copy.
+- `dc7b898` #431 — per-subtitle position, preview + export; per-line settings survive a grouping change.
+
+507 tests (26 new). All eight issues closed `status: untested`.
 
 ## Key Decisions
 
-- **One path for titles, no "use Claude" switch.** Fega asked for one, then saw the data (title
-  take-rate 10% → 39% since Gemini) and chose Gemini only. Claude stills is the fallback and it
-  is *named* on screen — "silent fallback" was the phrase that triggered the #424 correction.
-- **`runTitleCaptionCall` is the only way to call the model for titles.** Generate, the
-  approve path, Regenerate and Rephrase all go through it. `ai_calls` (migration v12) is the
-  operational record; `title_caption_rounds` stays the training record.
-- **Thinking level `low`, not `minimal`.** Minimal was cheaper ($0.011 vs $0.015) but dropped
-  half the context cards in the #422 run. Gemini 3.6 Flash takes a level, not a token budget.
-- **The rules defer to the examples on casing, emphasis and vocabulary.** Only Title Case is
-  still banned. Cold-start examples rewritten to the same shape.
-- **Cards persist on `clip.suggestions`**; session cache wins when it has something, disk
-  otherwise, spinner while the approve-time batch is in flight (`titlegen:pending`).
-- **The approve switch: Fega will turn it on now, not after 30 rows.** I had recommended
-  waiting on cost; priced at wrap it is under a dollar a month. Lesson filed.
+- **Caps are drawn, never typed.** `text-transform` at three levels (block `caps` < line `seg.caps`
+  / caption `lineStyles[i].caps` < word `style.caps`), innermost wins, `false` is a real value
+  (opt OUT of an all-caps block). The old row AA rewrote text; lines it already upper-cased still
+  read as on and switch off by lower-casing (nothing else is recoverable). A casing-only word
+  override returns NO color/shadow so the karaoke highlight and progressive sweep still apply —
+  callers tell the two kinds apart by `css.color`.
+- **Per-line fields ride ONE helper, `lineExtras` (resolveSubtitles.js), at every hop** that rebuilds
+  segments from named fields: resolver ×3, `initSegments`, render.js's resolver branch. `enabled`,
+  `caps`, `yPercent` today; a fourth per-line field goes there and nowhere else. `carryLineExtras`
+  is its twin for the grouping re-chunk (settings travel on words as a transient `_line` tag).
+- **Layout section is chosen from the presented frame's `mediaTime`** (`sectionIndexForFrame`,
+  timeMapping.js), not `video.currentTime`. `seekTo` resolves a cut to the head of the section that
+  starts there (`timelineToSourceForSeek`); `timelineToSource` itself is unchanged because trims
+  and placement anchors rely on its end-of-earlier-section answer.
+- **Timeline selection has one writer, `applySelection`,** which sets `selRef` eagerly. Do not
+  re-derive that ref from state during render (see lessons — it breaks mid-gesture).
+- **Group drag and Ctrl+D are sounds + overlays only.** Subtitles/captions multi-select supports
+  Delete and disable; a copy of one has nowhere to land without overlapping, and Alt+drag covers it.
+- **Tab memory:** remembered tab wins while it still has clips (so approving a clip in the editor
+  returns to Pending, not to where the clip went); otherwise follow the edited clip, then
+  Pending → Approved. Differs slightly from the plan wording Fega approved — told him why.
+- **Line spacing:** Fega chose "new clips only". His new clips take their look from his own default
+  template ("3 word n Glowy Cap"), which held 1.3 — hence the store migration
+  `_migrated_captionLineSpacing_v1` (templates at exactly 1.3 → 0.9). It will run on his prod
+  profile on first boot of the next build.
+- **TikTok privacy stays with no default** (Direct Post approval). The fix was the layout jump.
 
 ## Next Steps
 
-1. **Read the scoreboard, not Fega's memory.** #419 is open for the measurement:
-   `title_source` over the next 30 published rows (targets `ai`+`ai_edited` > 60% titles,
-   > 40% captions, from 38% / 21%). `ai_calls` shows the per-kind spend and the
-   `auto_generate` rows once he flips the switch.
-2. **Watch for over-shouting.** New rules produced a shouted word in 15/15 titles; Fega does it
-   in 67%. If the first rows read as too loud, soften "usually one" to "often one" in
-   `hardRules` (`title-caption-prompt.js`).
-3. **Clear `status: untested`** on #420–#424 once Fega has used them on alpha.5.
-4. Carry-overs: #418 pre-flight compliance, #416 Captions panel, #265 first-run checklist,
-   s255's Google OAuth consent-screen question.
+1. **Cut an installer when Fega asks** (or when the batch reaches ~10) — nothing here reaches him
+   until then. Then clear `status: untested` on #425–#432 as he confirms each.
+2. Ask him specifically about #425 on "Asuna ALMOST CLUTCHED THIS!" — that clip has the repeated-
+   footage shape the flash was reproduced on.
+3. Carry-overs unchanged: #419 scoreboard (30 published rows), #418, #416, #265.
 
 ## Watch Out For
 
-- **The dev profile was repointed at a scratch fixture twice this session and restored both
-  times** (`dev-repoint.js --restore`); the backup was the pre-session file. `projectsRoot`,
-  Gemini key and gateway URL are back. `autoTitlegenOnApprove` is unset in both profiles.
-- **`ai_calls` rows and `titlegen_*` logs in `%APPDATA%\clipflow-dev`** (5 rows, 5 logs) are
-  from this session's fixture runs, not real use. Prod has none yet.
-- **The fixture** was a scratch COPY of `2026-09-02 Val Day3 Pt1` (test-mode, 0 approved,
-  0 published) under the scratchpad; the real project was not touched.
-- **The probe harness** (`scratchpad/titlegen-probe.js`) is not in the repo. It reproduces
-  `callGemini` outside Electron's main: OLD prompt from `git show`, NEW from src, DB copy,
-  stub store over prod settings. Rebuild it from `project_title_caption_paths` memory if
-  the prompt changes again; do not commit it.
-- **Line endings are mixed across the tree** (database.js, preload.js, SettingsView,
-  RightPanelNew, release-notes.js are CRLF; main.js became LF via `sed -i` this session —
-  the repo normalises, so no diff noise; gemini.js, useAIStore, the prompt files are LF).
-  Patch scripts must detect and preserve.
-- **Gateway calls to Gemini stalled to 114–146 s twice during the probe** (Cloudflare BYOK
-  route); the 180 s provider timeout held. If title generation feels slow in daily use, check
-  `duration_ms` in `ai_calls` before blaming the model.
+- **Fega's disable key is `.`, not `D`** — his rebinds are in `editorShortcuts` and `dev:seed`
+  copied them into the dev profile. A probe pressing `d` "fails" silently. Ctrl+D (new) is free in
+  his bindings.
+- **Dev profile:** `projectsRoot`, `localProjects` and tokens restored to pre-session values
+  (surgically — the app's own writes stayed: `lastSeenVersion` alpha.5, the #427 migration flag and
+  the three migrated templates). Tokens are `{"accounts":{}}`.
+- **Line endings:** `sed -i` flattened three CRLF files in Batch 1; restored in bytes mode.
+  `ProjectsView.js` is LF in the working copy and its original state is unknown — harmless (repo
+  normalises), but don't "fix" it.
+- **The fixture** is a scratch copy (under this session's scratchpad) of s260's scratch copy of
+  `2026-09-02 Val Day3 Pt1`. Clips 8/9/10 (rejected) carry the cut/layout, caps, position and SFX
+  test data. The real project was never touched; the SFX file is linked from `V:\AutoSync`, not copied.
+- **`render-e2e-probe.js` prints "MISSING"** for any clip but the one it was written for — its
+  white-pixel heuristic is for a title card. Use `RENDER_PROBE_PROJECT` / `RENDER_PROBE_OUT` + mode
+  `full`, then pull frames with ffmpeg and LOOK at them.
 
 ## Logs / Debugging
 
-- Per-call record: `SELECT kind, path, fallback_reason, cost_usd, applied_at FROM ai_calls
-  ORDER BY id DESC` in `%APPDATA%\Corva\data\clipflow.db` (prod) — the monthly query is in
-  the header of `src/main/ai/ai-call-log.js`.
-- Cost logs: `processing/logs/titlegen_*` now carry `<kind> via <path>`, a `Fallback —` line
-  when Gemini did not run, and `of which thinking: N tokens (x% of output)`.
-- Approve-time path: `app.log` lines `#420 generating on approve` / `#420 skipped: …` /
-  `#420 generation failed` under module `title-generation`.
-- Probe results and the posted tables: scratchpad `probe-results.json`, `report.md`.
+- Migration line on boot: `Caption line spacing default 1.3 → 0.9 (#427): N saved template(s) moved`
+  (module `system`, app.log).
+- #425 probe (not in the repo; rebuild from the issue if needed): a temporary push to
+  `window.__paintLog` inside `paintActive` of `{via, t: video.currentTime, mt: mediaTime, st: store
+  time, hint, idx}`. The bug signature is a `frame` event whose `mt` is in one section while `t`
+  already reads the next section's start.
+- Scratchpad drivers worth reusing (`…/2d9c1ea5…/scratchpad`): `d.js` (eval / main-process eval /
+  trusted click, drag, key with modifiers / screenshot), `open-clip.js` (polling navigation to a
+  fixture clip), `fx-setup.js` + `fx-restore.js` (fixture + surgical dev-profile restore),
+  `patch-tt.js` (fake a slow `tiktok:queryCreatorInfo` from the main inspector on 9229).

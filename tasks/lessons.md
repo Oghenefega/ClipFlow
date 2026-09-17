@@ -2036,3 +2036,25 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I carried a reason from an issue written at a 3-cent price into a plan where the price had halved and the volume was known, without re-running the arithmetic. "Wait for data" sounds careful, so it went unchallenged.
 
 **Rule:** any recommendation to wait, gate or defer on cost states the marginal dollar figure per month next to it. If that figure is trivial against the value asked for, there is no gate — say so and ship it on. A caution inherited from an issue or a note is re-priced at the moment it is repeated.
+
+## Session 261 (2026-09-17) — a confident subagent trace named the wrong root cause; the per-frame probe found the real one (self-caught)
+
+**What happened:** #425 (one frame in the wrong layout at a cut). A code-explorer agent returned a fully cited "confirmed race": the layout lookup has no tolerance, so widen it. Read against the code, its failure case painted the RIGHT layout (part 1's frame in part 1's layout) — it could not produce what Fega described. A scan of his real project files killed my own first guess too (no sliver sections). Only a temporary per-frame recorder in the running editor (mediaTime, currentTime, playhead section, section painted) showed it: during an in-place seek across a cut, `video.currentTime` already reads the destination while the old frame is still presented. 1 in 8 crossings, and only on the clip SHAPE it was reported on (repeated footage, short opener, standby buffer not yet parked).
+
+**Why:** a trace that cites file:line for every step reads as verified, and "add the same epsilon every other lookup has" is a plausible small fix. Neither the agent nor I had asked the one question that mattered: does this mechanism produce the symptom in the user's words?
+
+**Rule:** for a visual/timing bug, a static trace is a hypothesis until (1) the proposed failure, walked forward, yields the user's symptom and not merely "a mismatch", and (2) it has been seen happening — record the frames, don't reason about them. Build the fixture in the SHAPE of the clip it was reported on (read his data for that shape) before concluding "cannot reproduce". Applying the agent's fix would have shipped a change that did nothing.
+
+## Session 261 (2026-09-17) — `sed -i` flattened three CRLF files to LF; the s215 rule already forbade it (self-caught)
+
+**What happened:** Batch 1's four one-number edits (1.3 → 0.9) went in with `sed -i`. Two batches later `file` showed useCaptionStore.js, templateUtils.js and subtitleStyleEngine.js as LF; they had been CRLF. `git diff --stat` was clean the whole time (the repo normalises). Restored in bytes mode; ProjectsView.js's original endings could not be established, so it was left alone.
+
+**Why:** "too small to open the Edit tool" — the exact reasoning the s215 lesson names.
+
+**Rule:** already written (clipflow-code-review, s215): source files are edited with Edit/Write, or a bytes-mode script with asserted anchors. MSYS `sed -i` is a text-mode rewrite. The check that catches it is `file <path>` before and after, not `git diff`.
+
+## Session 261 (2026-09-17) — a render-time "resync the ref from state" undid an eager ref write mid-gesture (self-caught in verification)
+
+**What happened:** multi-select (#430) keeps the selection in a ref for handlers that run before React re-renders. As a safety net I also re-assigned that ref from state on every render. Alt+drag of a 3-block selection then left two copies ~38px behind the dragged one: the store write inside the gesture re-renders the panel synchronously, BEFORE React applies the selection queued in the same handler, so the render-time line put the OLD selection back in the ref for the rest of the drag.
+
+**Rule:** a ref that exists because state lags must have ONE writer, and it is never re-derived from that state during render. If other call sites still set the state directly, route them through the writer — don't paper over them with a resync. And verify gestures at several distances with a spacing assertion: a single drag "worked".
