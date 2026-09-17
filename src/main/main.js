@@ -919,6 +919,26 @@ function runStoreMigrations(store) {
     store.set("_migrated_weekStartSunday_v1", true);
     logger.info(logger.MODULES.system, `Tracker week moved to Sunday-start (#379): ${Object.keys(movedMeta || {}).length} week snapshot(s), ${Object.keys(movedOverrides || {}).length} template override(s), ${movedRows} goal-bonus row(s) re-keyed`);
   }
+
+  // #427: caption line spacing defaults to 0.9, down from 1.3. A new clip takes
+  // its caption look from the user's default TEMPLATE, not from the code
+  // default, and every saved template carries the old 1.3 — so the new default
+  // would never reach anyone who has saved a template. Move templates still on
+  // the old default; a spacing the user chose (anything but 1.3) is left alone,
+  // and so is every clip already saved — those keep their own value. A fresh
+  // install has no templates and just gets the flag.
+  if (!store.get("_migrated_captionLineSpacing_v1")) {
+    const templates = store.get("layoutTemplates");
+    let moved = 0;
+    if (Array.isArray(templates)) {
+      for (const t of templates) {
+        if (t && t.caption && t.caption.lineSpacing === 1.3) { t.caption.lineSpacing = 0.9; moved++; }
+      }
+      if (moved > 0) store.set("layoutTemplates", templates);
+    }
+    store.set("_migrated_captionLineSpacing_v1", true);
+    logger.info(logger.MODULES.system, `Caption line spacing default 1.3 → 0.9 (#427): ${moved} saved template(s) moved`);
+  }
 }
 
 let mainWindow;

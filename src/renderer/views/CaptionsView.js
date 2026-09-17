@@ -141,7 +141,8 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   const yt = PLATFORM_BRAND.youtube;
 
   return (
-    <div style={{ position: "sticky", top: 12, border: `1px solid ${T.border}`, borderRadius: 14, background: T.surface, overflow: "hidden", maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}>
+    // top clears the Queue's pinned header (#432) — 16 + ~58 header + 12, plus a gap.
+    <div style={{ position: "sticky", top: 96, border: `1px solid ${T.border}`, borderRadius: 14, background: T.surface, overflow: "hidden", maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}>
       {/* Panel header */}
       <div style={{ padding: "13px 15px 12px", borderBottom: `1px solid ${T.border}` }}>
         <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.2, color: T.text }}>Captions &amp; Descriptions</div>

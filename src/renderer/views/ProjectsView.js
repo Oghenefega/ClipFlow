@@ -199,7 +199,7 @@ const FALLBACK_TEMPLATE = {
   },
   caption: {
     fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff",
-    bold: true, italic: true, lineSpacing: 1.3,
+    bold: true, italic: true, lineSpacing: 0.9,
     strokeOn: false, glowOn: false, shadowOn: false, bgOn: false, yPercent: 15, widthPercent: 90,
   },
 };
@@ -2071,9 +2071,32 @@ export function ProjectsListView({
 // ============ (GenerationPanel + GameDropdown removed — AI generation now lives in EditorView) ============
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId, trackerData = [] }) {
+// #428: which tab a project opens on. This view remounts on every entry (and on
+// every return from the editor), so the tab is chosen here rather than reset to
+// All: the tab the user was last on in this project while it still has clips
+// (so approving the last-but-one Pending clip in the editor comes back to
+// Pending, not to wherever that clip went). Once that tab is empty, or on a
+// first visit, follow the clip just edited, then the work itself — Pending
+// while anything is undecided, then Approved. A rejected clip lives only under
+// All, which is never picked for it.
+function pickClipTab(clips, remembered, returnClipId) {
+  const isApproved = (c) => c.status === "approved" || c.status === "ready";
+  const count = { all: clips.length, pending: clips.filter(isClipUndecided).length, approved: clips.filter(isApproved).length };
+  if (remembered && count[remembered] > 0) return remembered;
+  const edited = returnClipId ? clips.find((c) => c.id === returnClipId) : null;
+  if (edited && isClipUndecided(edited)) return "pending";
+  if (edited && isApproved(edited)) return "approved";
+  return count.pending > 0 ? "pending" : count.approved > 0 ? "approved" : "all";
+}
+
+export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId, initialFilter, onFilterChange, trackerData = [] }) {
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(() => pickClipTab(project.clips || [], initialFilter, scrollToClipId));
+  // Report the auto-picked tab too, not just clicks — it is the working tab.
+  useEffect(() => {
+    onFilterChange?.(filter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   // #381: the creator's ranked moment priorities decide which taste chips a
   // rejection offers. Read once here rather than per row.
@@ -2089,7 +2112,10 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
   useEffect(() => {
     if (!scrollToClipId) return;
     const id = requestAnimationFrame(() => {
-      document.querySelector(`[data-clip-id="${scrollToClipId}"]`)?.scrollIntoView({ block: "center" });
+      // "start", not "center": a card is taller than the space under the pinned
+      // header (#432), and centring tucked its title beneath it. The card's
+      // scrollMarginTop is what keeps it clear of that header.
+      document.querySelector(`[data-clip-id="${scrollToClipId}"]`)?.scrollIntoView({ block: "start" });
     });
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2178,7 +2204,16 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
 
   return (
     <div>
-      <PageHeader title={project.name} subtitle={`${approved} approved · ${pending} pending${rendered > 0 ? ` · ${rendered} rendered` : ""}${scheduledCount > 0 ? ` · ${scheduledCount} scheduled` : ""}${publishedCount > 0 ? ` · ${publishedCount} published` : ""}${toSchedule > 0 ? ` · ${toSchedule} to schedule` : ""}`} backAction={onBack}>
+      {/* #432: the #275 pin, for the inside of a project — name, back button and
+          the tabs stay reachable while the clip cards scroll. Same flush trick
+          (negative margin swallows the pane's 32px padding, opaque bg hides the
+          cards passing under). The cards here are tall, so the pinned block is
+          kept short: top is negative, which lets the first 16px of its own top
+          padding scroll away before it sticks, and the header's gap to the tabs
+          is tightened by the 12px it now pads below them — the cards start
+          where they always did. */}
+      <div style={{ position: "sticky", top: -16, zIndex: 30, background: T.bg, margin: "-32px 0 0", padding: "32px 0 12px" }}>
+      <PageHeader style={{ marginBottom: 16 }} title={project.name} subtitle={`${approved} approved · ${pending} pending${rendered > 0 ? ` · ${rendered} rendered` : ""}${scheduledCount > 0 ? ` · ${scheduledCount} scheduled` : ""}${publishedCount > 0 ? ` · ${publishedCount} published` : ""}${toSchedule > 0 ? ` · ${toSchedule} to schedule` : ""}`} backAction={onBack}>
         {renderableApproved > 0 && (
           <button
             onClick={handleBatchRender}
@@ -2198,6 +2233,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
       </PageHeader>
 
       <TabBar tabs={[{ id: "all", label: "All", count: clips.length }, { id: "pending", label: "Pending", count: pending }, { id: "approved", label: "Approved", count: approved }]} active={filter} onChange={setFilter} />
+      </div>
 
       {renderError && (
         <div style={{ margin: "12px 0 0", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: `1px solid ${T.red}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -2208,7 +2244,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
         {filtered.map((clip) => (
-          <div key={clip.id} data-clip-id={clip.id}>
+          <div key={clip.id} data-clip-id={clip.id} style={{ scrollMarginTop: 170 }}>
             <ClipRow
               clip={clip}
               project={project}

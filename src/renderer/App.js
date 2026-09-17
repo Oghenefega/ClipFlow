@@ -146,6 +146,10 @@ export default function App() {
   // Editor context — which project/clip to open
   const [editorContext, setEditorContext] = useState(null); // { projectId, clipId }
   const [returnClipId, setReturnClipId] = useState(null); // clip to scroll to when returning from the editor
+  // #428: the All/Pending/Approved tab last shown per project. ClipBrowser
+  // remounts on every entry, so it can't hold this itself. A ref — the live tab
+  // is ClipBrowser's state; this only seeds its next mount.
+  const clipTabByProject = useRef({});
 
   // Add Game modal — null or "game" or "content"
   const [showAddGame, setShowAddGame] = useState(null);
@@ -1036,6 +1040,8 @@ export default function App() {
         }}
         gamesDb={gamesDb}
         scrollToClipId={returnClipId}
+        initialFilter={clipTabByProject.current[proj.id]}
+        onFilterChange={(tab) => { clipTabByProject.current[proj.id] = tab; }}
       />
     );
   };

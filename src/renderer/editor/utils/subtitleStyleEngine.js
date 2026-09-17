@@ -165,7 +165,7 @@ function buildCaptionStyle(config, scaleFactor) {
     fontStyle: c.italic ? "italic" : "normal",
     color: c.color || "#ffffff",
     textAlign: "center",
-    lineHeight: c.lineSpacing || 1.3,
+    lineHeight: c.lineSpacing || 0.9,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     width: "100%",

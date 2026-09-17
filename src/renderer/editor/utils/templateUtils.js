@@ -11,7 +11,7 @@ export const BUILTIN_TEMPLATE = {
   caption: {
     fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff",
     bold: true, italic: true, underline: false, yPercent: 15, widthPercent: 90,
-    lineSpacing: 1.3,
+    lineSpacing: 0.9,
     strokeOn: false, strokeColor: "#000000", strokeWidth: 2, strokeOpacity: 80, strokeBlur: 0, strokeOffsetX: 0, strokeOffsetY: 0,
     glowOn: false, glowColor: "#ffffff", glowOpacity: 25, glowIntensity: 80, glowBlur: 15, glowBlend: 20, glowOffsetX: 0, glowOffsetY: 0,
     shadowOn: false, shadowColor: "#000000", shadowBlur: 8, shadowOpacity: 60, shadowOffsetX: 4, shadowOffsetY: 4,

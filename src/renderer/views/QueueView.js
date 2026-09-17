@@ -311,9 +311,15 @@ function charCountColor(len, max) {
 //   A2 — privacy dropdown sourced from creator_info, no default value
 //
 // Later waves will add interaction toggles, commercial disclosure, etc.
-function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
-  const [creatorInfo, setCreatorInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
+function TiktokOptionsPanel({ clip, account, cachedInfo, onSave, onCreatorInfoLoaded }) {
+  // #429: start from the parent's cached creator_info when it has one. The
+  // panel used to open as a one-line "Loading…" and grow by several rows half a
+  // second later, shoving the YouTube card down — so the spot that showed
+  // YouTube's "Privacy: Public" flipped to this panel's "— Select privacy —"
+  // and read as the choice being wiped. The fetch below still runs on every
+  // open (TikTok wants fresh creator_info); it just no longer blanks the panel.
+  const [creatorInfo, setCreatorInfo] = useState(cachedInfo || null);
+  const [loading, setLoading] = useState(!cachedInfo);
   const [error, setError] = useState(null);
 
   // Fetch creator info on mount (and whenever the account changes).
@@ -323,7 +329,10 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
   useEffect(() => {
     if (!account?.key) return;
     let cancelled = false;
-    setLoading(true);
+    // Re-seed for an account switch; cachedInfo is read, not watched — our own
+    // success below updates it, and that must not re-run the fetch.
+    setCreatorInfo(cachedInfo || null);
+    setLoading(!cachedInfo);
     setError(null);
     window.clipflow?.tiktokQueryCreatorInfo({ accountId: account.key })
       .then((r) => {
@@ -345,11 +354,14 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
         setLoading(false);
       });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account?.key, onCreatorInfoLoaded]);
 
   if (loading) {
+    // Cold cache only (#429). minHeight = the loaded panel with the disclosure
+    // collapsed, so the cards below hold still when the options arrive.
     return (
-      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 11, color: T.textTertiary }}>
+      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 11, color: T.textTertiary, boxSizing: "border-box", minHeight: 231 }}>
         Loading TikTok options…
       </div>
     );
@@ -711,6 +723,16 @@ export default function QueueView({
     if (!accountId || !info) return;
     setTiktokCreatorInfo((prev) => ({ ...prev, [accountId]: info }));
   }, []);
+  // #429: fetch it once up front so even the first card opened has it cached
+  // and its TikTok panel never opens as "Loading…". Failures stay silent here —
+  // the panel's own fetch reports them where the user is looking.
+  const tiktokAccountKey = platforms.find((p) => p.connected && accountToPlatformKey(p) === "tiktok")?.key;
+  useEffect(() => {
+    if (!tiktokAccountKey) return;
+    window.clipflow?.tiktokQueryCreatorInfo?.({ accountId: tiktokAccountKey })
+      .then((r) => { if (r?.creatorInfo) onTiktokCreatorInfoLoaded(tiktokAccountKey, r.creatorInfo); })
+      .catch(() => {});
+  }, [tiktokAccountKey, onTiktokCreatorInfoLoaded]);
   // Hydrate publishStatus from clip.publishState (persisted to disk) on mount and as new
   // clips appear, so failed-publish clips remain retryable across app restarts. We track
   // hydrated clipIds in a ref to avoid clobbering live in-memory state once a publish run
@@ -1414,6 +1436,7 @@ export default function QueueView({
                   <TiktokOptionsPanel
                     clip={clip}
                     account={tiktokAccount}
+                    cachedInfo={tiktokCreatorInfo[tiktokAccount.key]}
                     onSave={(partial) => saveTiktokFields(clip, partial)}
                     onCreatorInfoLoaded={onTiktokCreatorInfoLoaded}
                   />
@@ -2229,7 +2252,13 @@ export default function QueueView({
 
   return (
     <div onDragEnter={handleImportDragEnter} onDragOver={handleImportDragOver} onDragLeave={handleImportDragLeave} onDrop={handleImportDrop}>
-      <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} style={{ marginBottom: 18 }}>
+      {/* #432: the Projects pin (#275), here too. Negative margin swallows the
+          pane's 32px padding so the block sits flush; negative top lets half of
+          that padding scroll away before it sticks, keeping the pinned bar
+          short. 12 + 6 below = the 18px gap the header had. CaptionsView's own
+          sticky `top` clears this bar — change them together. */}
+      <div style={{ position: "sticky", top: -16, zIndex: 30, background: T.bg, margin: "-32px 0 6px", padding: "32px 0 12px" }}>
+      <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} style={{ marginBottom: 0 }}>
         {/* #329: "I am about to stream" - drop the UI now rather than hunting for the
             window close. Only offered when the setting is on, because with it off this
             would just quit the app. */}
@@ -2247,6 +2276,7 @@ export default function QueueView({
           </button>
         )}
       </PageHeader>
+      </div>
 
       {/* #240: drop-anywhere import target. pointerEvents:none keeps the
           overlay from stealing the drop — the root div handles it. */}

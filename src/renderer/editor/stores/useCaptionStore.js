@@ -75,7 +75,7 @@ const captionStyleDefaults = () => ({
   captionBold: true,
   captionItalic: true,
   captionUnderline: false,
-  captionLineSpacing: 1.3,
+  captionLineSpacing: 0.9,
   captionShadowOn: false,
   captionShadowColor: "#000000",
   captionShadowBlur: 8,
