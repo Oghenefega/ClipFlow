@@ -150,6 +150,15 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 
 - **Casing is TEXT, never `text-transform` (s262, #433).** One `AA` switch everywhere (toolbars, word/line card, subtitle row); its state is never stored — it lights when `isAllCaps(text)`. On rewrites the words and remembers each word's previous spelling (`words[i].orig` for subtitles, `wordOrig` on the caption segment, trusted only while `orig.toUpperCase()` equals the word); off restores it, or lower-cases a word typed in capitals (standalone I kept). Not part of templates. Everything lives in `utils/casing.js` — extend it there, and keep `orig` in the resolver's word whitelist.
 
+## Subtitle position (three levels, s263 #435)
+
+- **line `yPercent` → section `nleSegments[i].subYPercent` → clip `subYPercent`.** The section level is NOT a per-line field: `visibleSubtitleSegments` stamps `sectionId` / `sectionYPercent` on each mapped line, chosen from the line's TIMELINE start (`segmentIndexAtTimeline`), never `startMap.segmentIndex` (a line starting on a cut source-matches the section that ends there). A new reader of subtitle position must resolve all three — today: PreviewPanelNew, ProjectsView, `public/subtitle-overlay/overlay-renderer.js`. Writer: `useEditorStore.setSegmentSubY` (same shape as `setSegmentReframe`; rides split/trim/autosave/undo for free).
+
+## Caption selection state (s263 #434, #437)
+
+- **`activeCaptionWords { segId, wordIdxs }`** (click order, last = Shift pivot); word style / clear / caps actions take one index or a list as ONE undo step. Dropped when the caption's word count changes. Subtitle words are single-select on purpose.
+- **Anything keyed by a `cap-N` id is reset in `initFromClip`** — ids restart per clip, so a leftover id silently matches nothing (or the wrong caption) in the next clip. `setCaptionText` falls back to the first caption when `activeCaptionId` is not in the clip; a new id-keyed action needs the same fallback or an explicit no-match error, never a silent no-op.
+
 ## Zoom
 
 - Preview wheel zoom needs **no Ctrl modifier** (matches CapCut/Vizard); ±2% per notch (keyboard `Ctrl±` / menu keep ±25%).
@@ -169,7 +178,7 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 - **A ref that mirrors state for mid-gesture handlers has ONE writer and is never re-derived from that state during render (s261, #430).** A Zustand write inside a pointer gesture re-renders the panel synchronously, BEFORE React applies `setState` calls queued in the same handler — so a render-time `ref.current = state` put the OLD timeline selection back mid-drag and Alt+drag copies trailed the dragged block by ~38px. Route every state write through the one function that also sets the ref (`applySelection`). Verify drags at several distances with a spacing assertion — one drag "worked".
 - **Effect presets are panel-scoped** — `applyEffectPreset` must take a target/scope (subtitle vs caption); never apply to both by default.
 - **Segment mode switch preserves user-created/edited segments** — merge manual segments into the set rebuilt from `originalSegments`.
-- **Async store actions that await FFmpeg then `set()` derived state** must re-check `get().clip?.id === capturedClip.id` after the await and abort the in-memory write if the clip changed (prevents cross-clip corruption — the #97 family).
+- **Async store actions that await FFmpeg then `set()` derived state** must re-check `get().clip?.id === capturedClip.id` after the await and abort the in-memory write if the clip changed (prevents cross-clip corruption — the #97 family). **Same for any awaited IPC, not just FFmpeg (s263, #436):** `useAIStore.generate` / `_runSingleCard` landed one clip's cards on the clip opened meanwhile. Capture the clip id before the await; afterwards write live only if it is still open, else into that clip's `_perClipCache` entry, and persist under the CAPTURED ids.
 
 ## Misc Editor Rules
 
