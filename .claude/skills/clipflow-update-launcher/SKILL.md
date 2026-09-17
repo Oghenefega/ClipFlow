@@ -62,7 +62,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
    install that has not yet migrated (#288) still has them in `%APPDATA%\clipflow`).
    - **Also cut the What's New entry (#330):** in `src/main/release-notes.js`, rename the
      `"unreleased"` entry to the exact new version string and stamp its `date`. If the batch has
-     no `"unreleased"` entry, write one now covering what's shipping. These lines are shown to
+     no `"unreleased"` entry, write one now covering what's shipping. Session-end writes these lines per session (its step 3), so an entry should normally be waiting — check it against the `git log` range above and fill any session it missed. These lines are shown to
      USERS on their first launch after the update — plain product language ("The Tracker now
      shows the exact time you posted"), never commit-speak. An entry left as `"unreleased"` is
      never shown, so forgetting this step means a silent update. This file ships inside the build

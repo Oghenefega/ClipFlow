@@ -1,5 +1,5 @@
 ---
-description: End session — distill lessons, write HANDOFF.md, commit, set the session name
+description: End session — distill lessons, write the What's New lines, write HANDOFF.md, commit, set the session name
 ---
 
 ## 1. What changed this session
@@ -25,7 +25,17 @@ Identify which commits belong to THIS session (usually everything since the prev
 4. Update the `<!-- DISTILLED-THROUGH: -->` marker date in `tasks/lessons.md` to today.
 5. Report what was promoted and where (one line each), so the user can veto any routing before commit.
 
-## 3. Write HANDOFF.md
+## 3. Write the What's New lines (unless an installer was cut this session)
+
+`src/main/release-notes.js` is what USERS read on their first launch after an update. It is written here, by the session that built and tested the work — not reconstructed from the changelog at cut time by a session that never saw it (s262: ten cuts in a row were written that way because no routine but the release skill named the file).
+
+1. **Skip this step only if** this session cut an installer AND every user-visible change of the session went out in it (the release skill already wrote the entry). Work done after the cut still gets lines.
+2. If the session changed anything a user can see or feel, open `src/main/release-notes.js`. If the first entry's `version` is not `"unreleased"`, add one at the top: `{ version: "unreleased", date: "", added: [], changed: [], fixed: [] }` (omit empty sections). If one exists, append to it — several sessions share one batch.
+3. Write one line per user-visible change, detailed, in plain product language: what the user can now do, where it lives on screen, the keys or clicks, and for a fix what they used to see and what they see now. No issue numbers, no file or function names, no commit-speak. Match the voice of the entries already in the file.
+4. Nothing user-visible (refactor, tooling, docs, internal logging)? Write nothing and say so in the wrap report.
+5. Sanity-check it loads: `node -e "console.log(require('./src/main/release-notes.js')[0].version)"`.
+
+## 4. Write HANDOFF.md
 
 Keep it lean — commits and CHANGELOG.md already record what was built; don't restate it. Sections:
 - **Current State** — one or two sentences on the app's condition and where the work stands
@@ -34,11 +44,11 @@ Keep it lean — commits and CHANGELOG.md already record what was built; don't r
 - **Watch Out For** — gotchas, fragile areas, known issues
 - **Logs/Debugging** — any relevant error patterns or debug findings
 
-## 4. Commit and push
+## 5. Commit and push
 
-Stage HANDOFF.md, the distilled skill changes, and any uncommitted work, commit with a descriptive message, and push to master.
+Stage HANDOFF.md, `src/main/release-notes.js` if step 3 touched it, the distilled skill changes, and any uncommitted work, commit with a descriptive message, and push to master.
 
-## 5. Set the session name (template-locked, self-healing)
+## 6. Set the session name (template-locked, self-healing)
 
 Set the title directly with the session-title tool — don't just suggest it. A title that does not START with `S<number> ·` is INVALID — check before setting (3 violations: s143, s145, s146). Template: `S<N> · alpha.<X> — <plain summary>` when an installer was cut this session; `S<N> · <plain summary>` when not. Copy the anchor from HANDOFF's header. State what you set; Fega can rename if he prefers a different headline.
 
