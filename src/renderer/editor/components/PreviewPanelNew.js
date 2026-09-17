@@ -8,7 +8,7 @@ import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays"
 import { resolvePlacements } from "../models/audioPlacements";
 import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import useSourceStems from "./preview/useSourceStems"; // #272
-import { sourceToTimelineNear, segmentIndexAtTimeline } from "../models/timeMapping";
+import { sourceToTimelineNear, segmentIndexAtTimeline, sectionIndexForFrame } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe, resolveSegmentReframe, fitToScreenReframe } from "../utils/reframeStyle";
@@ -1300,7 +1300,9 @@ export default function PreviewPanelNew() {
   layoutSegsRef.current = layoutSegs;
   const segReframesRef = useRef(segReframes);
   segReframesRef.current = segReframes;
-  const lastLayoutIdxRef = useRef(0);
+  // The section last painted and the source time of the frame it was painted
+  // for — sectionIndexForFrame uses the pair to tell footage running on from a cut.
+  const lastLayoutRef = useRef({ index: 0, frameTime: -1 });
 
   // Imperative src management — replaces the `src={videoSrc}` JSX prop.
   // Why: with `src` as a React prop, swapping the URL leaves the previous
@@ -2184,31 +2186,35 @@ export default function PreviewPanelNew() {
 
   // One painter, two targets: the full-size composite in normal mode, the
   // vertical PiP (painted from the live draft) while calibrating.
-  const paintActive = useCallback(() => {
+  // `frameMeta` is the frame callback's metadata when the call comes from one.
+  const paintActive = useCallback((frameMeta) => {
     const calibrating = calibratingRef.current;
     const draft = draftRef.current;
-    // #349: paint the layout of the section under the playhead. The <video>
-    // clock is SOURCE time, so the section is found by source range —
-    // half-open, so a join belongs to the section that starts there, with an
-    // inclusive fallback for the very last frame. Mid-seek across a cut the
-    // clock can sit in removed footage: keep painting the last section then
-    // rather than flashing. A raw section inside a laid-out clip letterboxes
-    // the whole frame — same rule and same helper as render.js.
+    // #349: paint the layout of the section the frame ON SCREEN belongs to —
+    // sectionIndexForFrame has the rules. #425: that frame's own time, not
+    // video.currentTime, which during a seek across a cut already reads the
+    // destination while the old frame is still up; choosing by it drew the last
+    // frame of one part in the next part's layout. A call that isn't from a
+    // frame callback has no frame time, so mid-seek it keeps the last section;
+    // so does a frame sitting in removed footage. A raw section inside a
+    // laid-out clip letterboxes the whole frame — same rule and same helper as
+    // render.js.
     const video = videoRef.current;
     const segs = layoutSegsRef.current;
     const rfs = segReframesRef.current;
     let rf = calibrating ? draft : reframeRef.current;
     if (video && segs.length > 0) {
-      const t = video.currentTime;
-      // The playhead's timeline section first (#351) — repeated footage puts
-      // the same source moment in two sections, and only the timeline says
-      // which copy is playing. Source-range scan is the fallback.
-      const hint = segmentIndexAtTimeline(usePlaybackStore.getState().currentTime || 0, segs);
-      let idx = hint >= 0 && t >= segs[hint].sourceStart && t <= segs[hint].sourceEnd ? hint : -1;
-      if (idx === -1) idx = segs.findIndex((s) => t >= s.sourceStart && t < s.sourceEnd);
-      if (idx === -1) idx = segs.findIndex((s) => t >= s.sourceStart && t <= s.sourceEnd);
-      if (idx === -1) idx = Math.min(lastLayoutIdxRef.current, segs.length - 1);
-      lastLayoutIdxRef.current = idx;
+      const last = lastLayoutRef.current;
+      const hasFrameTime = !!frameMeta && typeof frameMeta.mediaTime === "number";
+      let idx = Math.min(last.index, segs.length - 1);
+      if (hasFrameTime || !video.seeking) {
+        const pb = usePlaybackStore.getState();
+        const frameTime = (hasFrameTime ? frameMeta.mediaTime : video.currentTime) + pb.clipFileOffset;
+        const hint = segmentIndexAtTimeline(pb.currentTime || 0, segs);
+        const found = sectionIndexForFrame(frameTime, segs, hint, last);
+        if (found !== -1) idx = found;
+        lastLayoutRef.current = { index: idx, frameTime };
+      }
       // #414: while editing, the Result shows the draft ONLY where the draft
       // will land — the target section, or (clip scope) every section that
       // inherits the clip layout. Every other section paints its own saved
@@ -2241,8 +2247,8 @@ export default function PreviewPanelNew() {
     let disposed = false;
     let handle = null;
     const hasRVFC = typeof video.requestVideoFrameCallback === "function";
-    const loop = () => {
-      paintActive();
+    const loop = (_now, frameMeta) => {
+      paintActive(frameMeta);
       if (disposed) return;
       handle = hasRVFC ? video.requestVideoFrameCallback(loop) : requestAnimationFrame(loop);
     };

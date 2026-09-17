@@ -3,6 +3,7 @@ import {
   sourceToTimelineNear,
   segmentIndexAtTimeline,
   timelineToSource,
+  timelineToSourceForSeek,
   getTimelineDuration,
   getSegmentTimelineRange,
 } from "../models/timeMapping";
@@ -130,7 +131,8 @@ const usePlaybackStore = create((set, get) => ({
 
     if (nleSegments.length > 0) {
       const clamped = Math.max(0, Math.min(timelineSec, getTimelineDuration(nleSegments)));
-      const mapped = timelineToSource(clamped, nleSegments);
+      // A cut resolves to the head of the section that starts there (#425).
+      const mapped = timelineToSourceForSeek(clamped, nleSegments);
       if (mapped.found) {
         targetSourceAbs = mapped.sourceTime;
       } else {

@@ -11,6 +11,8 @@ const {
   sourceToTimelineNear,
   sourceToTimelineClamped,
   timelineToSource,
+  timelineToSourceForSeek,
+  sectionIndexForFrame,
   getTimelineDuration,
   segmentIndexAtTimeline,
   getSegmentTimelineRange,
@@ -1007,5 +1009,87 @@ describe("sourceToTimelineNear seek-landing tolerance (#351)", () => {
     const list = segs([[0, 10], [20, 30]]);
     expect(sourceToTimelineNear(19.98, list, -1).found).toBe(false);
     expect(sourceToTimelineNear(19.98, list, 1).segmentIndex).toBe(1);
+  });
+});
+
+describe("timelineToSourceForSeek — a cut shows the part that starts there (#425)", () => {
+  test("mid-section positions are untouched", () => {
+    const list = segs([[0, 10], [20, 30]]);
+    expect(timelineToSourceForSeek(4, list)).toEqual(timelineToSource(4, list));
+    expect(timelineToSourceForSeek(14, list)).toEqual(timelineToSource(14, list));
+  });
+
+  test("footage removed: the cut seeks to the next part's first frame, not the previous part's last", () => {
+    const list = segs([[324, 328.4123], [333.7351, 342]]);
+    const join = getSegmentTimelineRange(1, list).start;
+    expect(timelineToSource(join, list).segmentIndex).toBe(0); // the trim-friendly answer
+    expect(timelineToSourceForSeek(join, list)).toEqual({ sourceTime: 333.7351, found: true, segmentIndex: 1 });
+  });
+
+  test("repeated footage: the cut does not seek into a moment the later section also contains", () => {
+    // The shape of the clip the bug was reported on: a short opener whose footage
+    // also sits inside the long section after it.
+    const list = segs([[230.0128, 231.4546], [212.3212, 231.5623]]);
+    const join = getSegmentTimelineRange(1, list).start;
+    expect(timelineToSourceForSeek(join, list).sourceTime).toBe(212.3212);
+  });
+
+  test("the end of the timeline stays on the last frame of the last section", () => {
+    const list = segs([[0, 10], [20, 30]]);
+    expect(timelineToSourceForSeek(20, list)).toEqual({ sourceTime: 30, found: true, segmentIndex: 1 });
+  });
+});
+
+describe("sectionIndexForFrame — which part's layout a frame on screen gets (#425)", () => {
+  const repeat = segs([[230.0128, 231.4546], [212.3212, 231.5623]]);
+
+  test("the recorded flash: the opener's last frame, playhead already stamped onto the next part", () => {
+    // Measured in the running editor: frame 231.4333 on screen, playhead on
+    // section 1, video.currentTime already reading the seek target 212.3212.
+    const last = { index: 0, frameTime: 231.4167 };
+    expect(sectionIndexForFrame(231.4333, repeat, 1, last)).toBe(0);
+  });
+
+  test("after the jump the first frame of the next part takes the playhead's section", () => {
+    const last = { index: 0, frameTime: 231.4333 };
+    // The seek lands on the frame that straddles the target, a few ms early.
+    expect(sectionIndexForFrame(212.3167, repeat, 1, last)).toBe(1);
+  });
+
+  test("plain cut: frames before the cut keep the first part even once the playhead is stamped early", () => {
+    const plain = segs([[61, 65.3377], [65.3377, 70]]);
+    expect(sectionIndexForFrame(65.3333, plain, 1, { index: 0, frameTime: 65.3167 })).toBe(0);
+    expect(sectionIndexForFrame(65.35, plain, 1, { index: 0, frameTime: 65.3333 })).toBe(1);
+  });
+
+  test("plain cut: a frame past the cut is never held by a playhead that is a tick behind", () => {
+    const plain = segs([[61, 65.3377], [65.3377, 70]]);
+    expect(sectionIndexForFrame(65.35, plain, 0, { index: 0, frameTime: 65.3333 })).toBe(1);
+  });
+
+  test("parked on a plain cut: the straddling frame shows the part the playhead is at the head of", () => {
+    const plain = segs([[61, 65.3377], [65.3377, 70]]);
+    expect(sectionIndexForFrame(65.3333, plain, 1, { index: 0, frameTime: 62 })).toBe(1);
+  });
+
+  test("a second copy of the same footage is told apart by the playhead, not by the first match", () => {
+    const twice = segs([[10, 20], [10, 20]]);
+    expect(sectionIndexForFrame(10.01, twice, 1, { index: 0, frameTime: 19.99 })).toBe(1);
+    expect(sectionIndexForFrame(10.03, twice, 1, { index: 1, frameTime: 10.01 })).toBe(1);
+  });
+
+  test("a frame in removed footage reports -1 so the caller keeps its last section", () => {
+    const list = segs([[0, 10], [20, 30]]);
+    expect(sectionIndexForFrame(15, list, 1, { index: 0, frameTime: 9.99 })).toBe(-1);
+  });
+
+  test("the very last frame of the timeline belongs to the last section", () => {
+    const list = segs([[0, 10], [20, 30]]);
+    expect(sectionIndexForFrame(30, list, 1, { index: 1, frameTime: 29.98 })).toBe(1);
+  });
+
+  test("no previous answer and no hint falls back to the source-range scan", () => {
+    const list = segs([[0, 10], [20, 30]]);
+    expect(sectionIndexForFrame(25, list, -1, null)).toBe(1);
   });
 });

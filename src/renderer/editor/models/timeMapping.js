@@ -194,6 +194,72 @@ function segmentIndexAtTimeline(timelineTime, segments) {
 }
 
 /**
+ * Where the <video> should be put to SHOW a timeline position (#425).
+ * timelineToSource answers a join with the END of the earlier section — right
+ * for trims, wrong for a seek: parking the playhead on a cut showed the last
+ * frame of the part before it while the playhead, the Layout panel and this
+ * file's own tie-break all said "the part after". With footage removed the
+ * picture then hopped a second time to the right place; with repeated footage
+ * (#351) that end-of-section moment also lives inside the later section, and
+ * the playhead itself jumped there. A seek resolves a join the same way
+ * everything else does: the head of the section that starts there.
+ *
+ * @returns {{ sourceTime: number, found: boolean, segmentIndex: number }}
+ */
+function timelineToSourceForSeek(timelineTime, segments) {
+  const mapped = timelineToSource(timelineTime, segments);
+  if (!mapped.found) return mapped;
+  const idx = segmentIndexAtTimeline(timelineTime, segments);
+  if (idx === mapped.segmentIndex) return mapped;
+  return { sourceTime: segments[idx].sourceStart, found: true, segmentIndex: idx };
+}
+
+/**
+ * Which section's layout a presented video frame belongs to (#349, #425).
+ *
+ * `frameTime` is the SOURCE time of the frame actually on screen — the frame
+ * callback's mediaTime, not video.currentTime: during a seek across a cut
+ * currentTime already reads the destination while the old frame is still up,
+ * and choosing by it drew the last frame of one part in the next part's layout
+ * (the one-frame flash at a cut).
+ *
+ * Footage that runs on from the last painted frame stays with that frame's
+ * section until it leaves it. That matters because the playhead is stamped onto
+ * the next section up to 20ms before the cut (mapSourceTime), and with repeated
+ * footage the closing frames of one section can also lie inside the next one's
+ * range — the hint alone would hand them over early. A jump in frame time is a
+ * cut or a scrub: then the playhead's section (`hintIndex`, from the TIMELINE,
+ * the only thing that tells two copies of a moment apart) wins when the frame
+ * is in or within a frame of it — a seek lands on the frame that STRADDLES the
+ * target, a few ms before it. The source-range scan is the last resort; -1
+ * means the frame is in removed footage (caller keeps its last section).
+ *
+ * @param {number} frameTime - source-absolute seconds
+ * @param {Array} segments - ordered NLE segment list
+ * @param {number} hintIndex - section under the playhead (-1 = none)
+ * @param {{ index: number, frameTime: number } | null} last - previous answer
+ */
+function sectionIndexForFrame(frameTime, segments, hintIndex, last) {
+  // Early tolerance only: a frame at or past a section's end belongs to
+  // whatever follows it, never to that section (the last one keeps its final
+  // frame). The playhead can trail the picture by a tick, so a stale hint must
+  // not hold a frame that has already crossed the cut.
+  const inside = (i) => {
+    if (i < 0 || i >= segments.length) return false;
+    const seg = segments[i];
+    if (frameTime < seg.sourceStart - HINT_EPS) return false;
+    return i === segments.length - 1 ? frameTime <= seg.sourceEnd + HINT_EPS : frameTime < seg.sourceEnd;
+  };
+  if (last && frameTime >= last.frameTime && frameTime - last.frameTime < 0.25 && inside(last.index)) {
+    return last.index;
+  }
+  if (inside(hintIndex)) return hintIndex;
+  let idx = segments.findIndex((s) => frameTime >= s.sourceStart && frameTime < s.sourceEnd);
+  if (idx === -1) idx = segments.findIndex((s) => frameTime >= s.sourceStart && frameTime <= s.sourceEnd);
+  return idx;
+}
+
+/**
  * Get timeline start/end for a specific segment by ID or index.
  *
  * @param {string|number} idOrIndex - segment ID string or numeric index
@@ -428,6 +494,8 @@ module.exports = {
   sourceToTimelineNear,
   sourceToTimelineClamped,
   timelineToSource,
+  timelineToSourceForSeek,
+  sectionIndexForFrame,
   getTimelineDuration,
   segmentIdAtTimeline,
   segmentIndexAtTimeline,
