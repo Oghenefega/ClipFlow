@@ -12,6 +12,28 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.5",
+    date: "2026-09-16",
+    added: [
+      "A new switch under Settings → AI & Style: \"Generate titles and captions when I approve a clip\". Turn it on and the six cards are waiting in the editor by the time you open an approved clip. One generation per clip, and the title stays as it is until you pick a card. It is off until you choose it.",
+      "Titles and captions are remembered. The cards you generated for a clip are saved with it, so closing Corva and coming back tomorrow shows the same cards instead of charging you again.",
+      "A scheduled clip in the Queue now shows the captions it will post with, the same block an unscheduled clip shows, and you can fix a caption there without losing the slot.",
+    ],
+    changed: [
+      "Titles and captions write the way you write. The suggestions used to be told to stay in sentence case no matter what your own published titles looked like; now they follow your examples on which word to shout and how many, and \"insane\" is no longer off limits. Captions can carry caps across a line the way yours do.",
+      "What you type in the Context box now drives all six cards, not one of them.",
+      "The two small buttons on each card, Rephrase and Regenerate, now use the same clip-watching model as Generate, so a regenerated card is grounded in what is on screen.",
+      "Title and caption generation is quicker and cheaper: about six seconds and a cent and a half per Generate, down from forty seconds and over two cents.",
+      "If Corva ever has to write titles from four still frames instead of watching the clip, a line under the cards says so.",
+      "The Layout panel's edit preview grows with the drawer instead of staying a thumbnail, with the controls beside it when there is room.",
+    ],
+    fixed: [
+      "A render is only marked done when the finished file checks out: it has picture and sound and runs the length of your timeline. A file that comes out short or empty fails the render instead of waiting in the queue to be posted.",
+      "A render that stops making progress for five minutes is stopped and reported instead of holding every render behind it.",
+      "Recordings captured in 10-bit HDR now render without an encoder error.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.4",
     date: "2026-09-13",
     added: [

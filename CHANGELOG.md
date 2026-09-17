@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-16 (session 260) — 0.5.0-alpha.5 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.5 and an installer cut to the update feed.** Promotes everything since alpha.4: the scheduled-clip captions in the Queue (#417, s257), render output verification with the hang watchdog, the 8-bit output pin and typed transcription arguments (s258), the Layout drawer's full-size Result preview (s259), and this session's title/caption work — rules realigned to the creator's voice (#419), the Context box as the clip truth (#422), the Gemini thinking cap (#421), Regenerate and Rephrase on Gemini (#423), every call logged with fallbacks named on screen (#424), and cards saved on the clip with the optional generate-on-approve switch (#420). The #419 measurement clock starts when the daily driver picks this up.
+
 ## [Unreleased] — 2026-09-16 (session 260) — Titles and captions: the rules stopped fighting Fega's voice, every call is logged, and cards can be written on approve
 
 ### Added
