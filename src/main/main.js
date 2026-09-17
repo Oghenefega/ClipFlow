@@ -171,6 +171,8 @@ require("./ai/providers/openai-compat");
 // Gemini is bound (not just registered): the title/caption handler calls it
 // directly for video input (#193) — it never replaces the active llmProvider.
 const geminiProvider = require("./ai/providers/gemini");
+const aiCallLog = require("./ai/ai-call-log");
+const costTracker = require("./ai/cost-tracker");
 require("./ai/transcription/stable-ts");
 const { uuid } = require("./uuid");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
@@ -3173,6 +3175,13 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
         // Non-critical: never block the clip update on a feedback write.
         console.error("[feedback] status transition failed:", e.message);
       }
+      // #420: an approval is the moment the cards should start being written.
+      // Fire-and-forget — the approve never waits on a model call.
+      if (result.clip.status === "approved" && prevStatus !== "approved" && prevStatus !== "ready") {
+        try { maybeAutoGenerateOnApprove(before, result.clip); } catch (e) {
+          logger.warn(logger.MODULES.titleGeneration, "#420 auto-generate could not start", { clipId, error: e.message });
+        }
+      }
     }
     if (isTagChange && before && result?.clip) {
       // Same effective tag entryFromClip stamps: the clip's own, else the session's.
@@ -4130,163 +4139,241 @@ async function collectClipFrames({ projectId, clipId }) {
   }
 }
 
-// #193: give the title/caption model the actual clip — a temp 720p cut of the
-// clip range (audio included) sent to Gemini with the SAME voice prompt the
-// frames path uses. The input was the gap, not the prompt. Throws on any
-// failure; the caller falls back to the frames path, so generation never
-// blocks on Gemini being down. The temp cut is deleted success or failure.
-async function generateTitlesWithGeminiVideo({ params, systemPrompt }) {
-  const { projectId, clipId } = params;
-  if (!projectId || !clipId) throw new Error("Missing projectId/clipId");
-  const project = projects.loadProject(libraryRoot(), projectId);
-  if (!project?.sourceFile || !fs.existsSync(project.sourceFile)) throw new Error("Source video not found");
-  const clip = (project.clips || []).find((c) => c.id === clipId);
-  if (!clip) throw new Error("Clip not found");
+// ─── Title & caption calls: one function for every kind (#424, #423) ────
+//
+// Generate, the approve-time auto path (#420), Regenerate and Rephrase all go
+// through runTitleCaptionCall. A call that doesn't pass through here can't
+// exist, so every one lands in ai_calls (src/main/ai/ai-call-log.js) with the
+// path that ran, its cost and — when Gemini couldn't run — the reason.
+//
+// Paths, in order of preference:
+//   gemini-video  the clip (720p cut, with sound) attached — Generate, the
+//                 auto path and Regenerate, when Gemini can authenticate (#193, #423)
+//   gemini-text   transcript only — Rephrase; footage adds nothing to a rewording
+//   frames        4 stills on the text provider (Claude) — fallback for the
+//                 batch kinds when Gemini is not set up or the call failed
+//   text          transcript only on the text provider — fallback for a single card
+//
+// A fallback is never quiet (#424): the reason goes on the ai_calls row and
+// into the cost log, comes back to the renderer, and is named under the cards.
 
-  // Cut window: the union range of the edited segments (nleSegments), else the
-  // detected start/end — same source-range logic collectClipFrames samples.
+const BATCH_KINDS = new Set(["generate", "auto_generate"]);
+// #421: how hard Gemini thinks on title/caption calls. null = model default.
+// gemini-3.6-flash accepts minimal | low | medium | high. Measured on 23 real
+// calls (s260): default thinks ~1,650 tokens per batch (88% of output, $0.023,
+// 39 s); low ~500 ($0.015, 6 s); minimal 0 ($0.011, 3 s). Low keeps every card
+// on the creator's context where minimal dropped half. The #235 watch path
+// is untouched — it never passes a level.
+const TITLE_THINKING_LEVEL = "low";
+
+const GEMINI_VIDEO_NOTE = "\n## The clip itself is attached as video, with sound.\nWatch it to see what the transcript can't say — what is on screen, what the moment looks and sounds like. Do not describe the video; use it to know what happened.\nPerspective check: the gameplay is recorded from the creator's own point of view (the camera follows THEIR player), and the facecam is their reaction. Before writing, decide WHO made the play — the creator, a teammate, or an opponent (on-screen banners name the scorer; a goal against the creator's own net happened TO them). Never credit the creator with someone else's play; when it happened to them, the hook is the reaction.\nPayoff check: you can SEE how the clip ends — before keeping any line, confirm the footage actually delivers what the line promises. A promise the footage doesn't cash is banned; pick a line the clip can keep.";
+
+// The clip's cut window: the union range of the edited segments (nleSegments),
+// else the detected start/end — the same source range collectClipFrames samples.
+function clipCutRange(clip) {
   const segs = Array.isArray(clip.nleSegments) && clip.nleSegments.length > 0
     ? clip.nleSegments.map((s) => ({ start: Number(s.sourceStart), end: Number(s.sourceEnd) }))
     : [{ start: Number(clip.startTime), end: Number(clip.endTime) }];
   const valid = segs.filter((s) => Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start);
   if (valid.length === 0) throw new Error("Clip has no valid cut range");
-  const start = Math.min(...valid.map((s) => s.start));
-  const end = Math.max(...valid.map((s) => s.end));
+  return { start: Math.min(...valid.map((s) => s.start)), end: Math.max(...valid.map((s) => s.end)) };
+}
 
+// #193: a temp 720p cut of the clip range (audio included) for Gemini to
+// watch. Throws on any failure so the caller falls back. The caller deletes it.
+async function cutClipPreview(projectId, clipId) {
+  if (!projectId || !clipId) throw new Error("Missing projectId/clipId");
+  const project = projects.loadProject(libraryRoot(), projectId);
+  if (!project?.sourceFile || !fs.existsSync(project.sourceFile)) throw new Error("Source video not found");
+  const clip = (project.clips || []).find((c) => c.id === clipId);
+  if (!clip) throw new Error("Clip not found");
+  const { start, end } = clipCutRange(clip);
   const previewDir = path.join(app.getPath("userData"), "processing", "titlecaption-preview");
   fs.mkdirSync(previewDir, { recursive: true });
   const previewPath = path.join(previewDir, `${clipId}.mp4`);
+  await ffmpeg.cutTitlePreview(project.sourceFile, previewPath, { start, duration: end - start });
+  return { previewPath, seconds: end - start };
+}
 
+// One Gemini call. With video: the clip is cut, attached after the text, and
+// deleted success or failure. Throws on any failure; the caller falls back.
+async function callGemini({ systemPrompt, userText, params, withVideo, maxTokens }) {
+  const model = geminiProvider.defaultModel;
+  const content = [{ type: "text", text: userText }];
+  let previewPath = null;
+  let seconds = 0;
   try {
-    await ffmpeg.cutTitlePreview(project.sourceFile, previewPath, { start, duration: end - start });
-
-    // Same user message as the frames path, minus frames — the video replaces them.
-    const baseText = titleCaptionPrompt.buildUserContent({
-      transcript: params.transcript,
-      gameName: params.gameName,
-      projectName: params.projectName,
-      userContext: params.userContext,
-      energyLevel: params.energyLevel,
-      confidence: params.confidence,
-      rejectedSuggestions: params.rejectedSuggestions,
-    });
-    const content = [
-      { type: "text", text: baseText },
-      {
-        type: "text",
-        text: "\n## The clip itself is attached as video, with sound.\nWatch it to see what the transcript can't say — what is on screen, what the moment looks and sounds like. Do not describe the video; use it to know what happened.\nPerspective check: the gameplay is recorded from the creator's own point of view (the camera follows THEIR player), and the facecam is their reaction. Before writing, decide WHO made the play — the creator, a teammate, or an opponent (on-screen banners name the scorer; a goal against the creator's own net happened TO them). Never credit the creator with someone else's play; when it happened to them, the hook is the reaction.\nPayoff check: you can SEE how the clip ends — before keeping any line, confirm the footage actually delivers what the line promises. A promise the footage doesn't cash is banned; pick a line the clip can keep.",
-      },
-      { type: "video", path: previewPath, mimeType: "video/mp4" },
-    ];
-
-    const model = geminiProvider.defaultModel;
-    // 8000, not the Claude path's 2000: Gemini 3.x thinks by default and the
-    // thoughts spend from the same output budget — 2000 can truncate to empty.
+    if (withVideo) {
+      ({ previewPath, seconds } = await cutClipPreview(params.projectId, params.clipId));
+      content.push({ type: "text", text: GEMINI_VIDEO_NOTE });
+      content.push({ type: "video", path: previewPath, mimeType: "video/mp4" });
+    }
+    // 8000 for a batch, not the Claude path's 2000: Gemini 3.x thinks by
+    // default and the thoughts spend from the same output budget — 2000 could
+    // truncate to empty.
     const { text, usage } = await geminiProvider.chat({
       model,
       system: systemPrompt,
       messages: [{ role: "user", content }],
-      maxTokens: 8000,
+      maxTokens,
+      thinkingLevel: TITLE_THINKING_LEVEL,
     });
     if (!text) throw new Error("Empty response from Gemini");
-
-    // The Gemini spend is new money — write a cost log entry so the monthly
-    // total in Settings stays honest. Best-effort, never fails the generate.
-    try {
-      const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
-      const costLogger = new pipelineLogger.PipelineLogger(processingDir, `titlegen ${params.projectName || projectId}`);
-      costLogger.info(`Gemini video title generation (#193) — clip ${clipId}, ${(end - start).toFixed(1)}s preview`);
-      costLogger.logApiUsage(usage.inputTokens, usage.outputTokens, model);
-      costLogger.finalize();
-    } catch (e) {
-      logger.warn(logger.MODULES.titleGeneration, "Could not write Gemini cost log", { error: e.message });
-    }
-
-    return text;
+    return { text, usage, model, seconds };
   } finally {
-    try { if (fs.existsSync(previewPath)) fs.unlinkSync(previewPath); } catch (e) { /* non-critical */ }
+    try { if (previewPath && fs.existsSync(previewPath)) fs.unlinkSync(previewPath); } catch (e) { /* non-critical */ }
   }
 }
 
-// Generate titles & captions for a clip
-ipcMain.handle("anthropic:generate", async (_, params) => {
+// One cost-log entry per call, every path (#424). Before this only the Gemini
+// batch wrote one, so the stills fallback and both single-card buttons were
+// free on paper and the monthly total in Settings under-read. Best-effort —
+// never fails the call. Returns the dollar cost for the ai_calls row.
+function writeTitleCostLog({ kind, params, model, usage, pathUsed, fallbackReason, seconds }) {
+  const cost = costTracker.getCost(model, usage.inputTokens, usage.outputTokens).totalCost;
   try {
-    const { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag } = buildTitleCaptionStoreContext(params);
+    const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+    const costLogger = new pipelineLogger.PipelineLogger(processingDir, `titlegen ${params.projectName || params.projectId || "clip"}`);
+    costLogger.info(`${kind} via ${pathUsed} — clip ${params.clipId}${seconds ? `, ${seconds.toFixed(1)}s preview` : ""}`);
+    if (fallbackReason) costLogger.info(`Fallback — Gemini did not run: ${fallbackReason}`);
+    costLogger.logApiUsage(usage.inputTokens, usage.outputTokens, model, usage.thoughtTokens || 0);
+    costLogger.finalize();
+  } catch (e) {
+    logger.warn(logger.MODULES.titleGeneration, "Could not write title/caption cost log", { error: e.message });
+  }
+  return cost;
+}
 
+// The one line the panel shows when the lesser path ran. Says what the cards
+// were written from and why, nothing about the machinery.
+function plainFallback(kind, reason) {
+  const why = /not set up|not configured/i.test(reason) ? "Gemini isn't set up in Settings" : "Gemini was unavailable";
+  const what = BATCH_KINDS.has(kind) ? "Written from four stills, not the clip" : "Written from the transcript only";
+  return `${what} — ${why}.`;
+}
+
+/**
+ * Run one title/caption call of any kind and log it.
+ *
+ * @param {object} opts
+ * @param {"generate"|"auto_generate"|"regenerate"|"rephrase"} opts.kind
+ * @param {object} opts.params  The renderer's per-clip params (useAIStore._collectClipParams)
+ *                              plus, for single-card kinds: kind, cardIdx, currentText, otherOptions.
+ * @returns {Promise<{success: true, data: object, callId: number|null, path: string, fallback: string|null} | {error: string}>}
+ */
+async function runTitleCaptionCall({ kind, params = {} }) {
+  const t0 = Date.now();
+  const single = !BATCH_KINDS.has(kind);
+  const cardKind = params.kind === "caption" ? "caption" : "title";
+  const row = {
+    kind,
+    cardKind: single ? cardKind : null,
+    cardIdx: single ? params.cardIdx : null,
+    clipId: params.clipId || null,
+    projectId: params.projectId || null,
+  };
+  let model = null;
+  let provider = null;
+  let pathUsed = null;
+  let fallbackReason = null;
+  let usage = null;
+  let costUsd = null;
+  try {
+    const ctx = buildTitleCaptionStoreContext(params);
     // Voice-led prompt (#183 — replaces the #85 pillars/drivers framework).
     // Reasoning in src/main/data/caption-frameworks.md; rules and cold-start
     // examples in src/main/data/caption-hook-examples.json. The examples that
     // matter come from the title_caption_rounds table, not this file.
-    const systemPrompt = titleCaptionPrompt.buildSystemPrompt({
-      styleGuide,
-      gameContext,
-      styleHistory,
-      voiceExamples,
-      gameHashtag,
-    });
+    const systemPrompt = single
+      ? titleCaptionPrompt.buildSingleSystemPrompt({ mode: kind, kind: cardKind, ...ctx })
+      : titleCaptionPrompt.buildSystemPrompt(ctx);
+    const clipFields = {
+      transcript: params.transcript,
+      gameName: params.gameName,
+      projectName: params.projectName,
+      userContext: params.userContext,
+    };
+    const batchFields = {
+      ...clipFields,
+      energyLevel: params.energyLevel,
+      confidence: params.confidence,
+      rejectedSuggestions: params.rejectedSuggestions,
+    };
+    const userText = single
+      ? titleCaptionPrompt.buildSingleUserContent({ ...clipFields, kind: cardKind, currentText: params.currentText, otherOptions: params.otherOptions })
+      : titleCaptionPrompt.buildUserContent(batchFields);
 
-    // #193: Gemini sees the clip video when it can authenticate (raw key, or
-    // gateway BYOK per #249); the frames path is the fallback for
-    // no-credentials, cut failure, or API failure.
     let text = null;
-    let genSource = "frames";
+    let seconds = 0;
     if (geminiProvider.isConfigured()) {
+      const withVideo = kind !== "rephrase";
       try {
-        text = await generateTitlesWithGeminiVideo({ params, systemPrompt });
-        genSource = "gemini-video";
+        ({ text, usage, model, seconds } = await callGemini({ systemPrompt, userText, params, withVideo, maxTokens: single ? 4000 : 8000 }));
+        pathUsed = withVideo ? "gemini-video" : "gemini-text";
+        provider = "gemini";
       } catch (err) {
-        logger.warn(logger.MODULES.titleGeneration, "Gemini video generation failed — falling back to frames", {
-          clipId: params.clipId, error: err.message,
-        });
+        fallbackReason = err.message;
+        logger.warn(logger.MODULES.titleGeneration, `Gemini ${kind} failed — falling back`, { clipId: params.clipId, error: err.message });
       }
+    } else {
+      fallbackReason = "Gemini is not set up";
     }
 
     if (!text) {
-      const frames = await collectClipFrames({ projectId: params.projectId, clipId: params.clipId });
-
-      const userMessage = titleCaptionPrompt.buildUserContent({
-        transcript: params.transcript,
-        gameName: params.gameName,
-        projectName: params.projectName,
-        userContext: params.userContext,
-        energyLevel: params.energyLevel,
-        confidence: params.confidence,
-        rejectedSuggestions: params.rejectedSuggestions,
-        frames,
-      });
-
-      const provider = llmProvider.getProvider();
-      ({ text } = await provider.chat({
-        model: provider.defaultModel,
+      const textProvider = llmProvider.getProvider();
+      provider = textProvider.name;
+      model = textProvider.defaultModel;
+      let content = userText;
+      if (single) {
+        pathUsed = "text";
+      } else {
+        const frames = await collectClipFrames({ projectId: params.projectId, clipId: params.clipId });
+        content = titleCaptionPrompt.buildUserContent({ ...batchFields, frames });
+        pathUsed = "frames";
+      }
+      ({ text, usage } = await textProvider.chat({
+        model,
         system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-        maxTokens: 2000,
+        messages: [{ role: "user", content }],
+        maxTokens: single ? 500 : 2000,
       }));
+      if (!text) throw new Error("Empty response from LLM provider");
     }
 
-    if (!text) return { error: "Empty response from LLM provider" };
-
-    // Robust JSON extraction — handles fences, preamble, etc.
-    try {
-      const parsed = aiPrompt.extractJSON(text, "object");
+    costUsd = writeTitleCostLog({ kind, params, model, usage, pathUsed, fallbackReason, seconds });
+    const parsed = aiPrompt.extractJSON(text, "object");
+    const callId = aiCallLog.record({ ...row, provider, model, path: pathUsed, fallbackReason, usage, costUsd, durationMs: Date.now() - t0, ok: true });
+    if (!single) {
       // #183: persist what was offered so publish time can compare it against
-      // what actually shipped. Best-effort — never fail a generate over it.
+      // what actually shipped. Best-effort — never fails a generate.
       titleCaptionLog.recordGeneration({
         clipId: params.clipId,
         projectId: params.projectId,
         game: params.gameName,
         transcript: params.transcript,
         suggestions: parsed,
-        genSource,
+        genSource: pathUsed,
       });
-      return { success: true, data: parsed };
-    } catch (e) {
-      return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: text };
+      // #420: the cards live on the clip, so they survive an app restart and
+      // a clip is never generated twice by accident. Manual and auto alike.
+      persistSuggestions(params.projectId, params.clipId, {
+        titles: parsed.titles || [],
+        captions: parsed.captions || [],
+        callId,
+        path: pathUsed,
+        fallback: fallbackReason ? plainFallback(kind, fallbackReason) : null,
+        kind,
+        generatedAt: new Date().toISOString(),
+      });
     }
+    return { success: true, data: parsed, callId, path: pathUsed, fallback: fallbackReason ? plainFallback(kind, fallbackReason) : null };
   } catch (err) {
+    aiCallLog.record({ ...row, provider, model, path: pathUsed, fallbackReason, usage, costUsd, durationMs: Date.now() - t0, ok: false, error: err.message });
     return { error: err.message };
   }
-});
+}
+
+ipcMain.handle("anthropic:generate", async (_, params) => runTitleCaptionCall({ kind: "generate", params }));
 
 // #183: record what actually shipped for a clip. Fired once per clip from the
 // Queue when every enabled platform has published — including when the creator
@@ -4347,49 +4434,118 @@ ipcMain.handle("titleCaptionLog:getExamples", async (_, limit) => {
   }
 });
 
-// Rephrase or regenerate a SINGLE title/caption card (#85 Chunk A).
-// mode: "rephrase" (same hook/meaning, reworded) | "regenerate" (new angle).
-// Returns one card object: { title|caption, chip }.
-async function handleSingleCard(mode, params) {
+// Rephrase or regenerate a SINGLE title/caption card (#85 Chunk A). Same
+// function as Generate (#423): Regenerate watches the clip, Rephrase reads
+// the transcript. Returns one card object: { title|caption, chip }.
+ipcMain.handle("anthropic:rephraseOption", async (_, params) => runTitleCaptionCall({ kind: "rephrase", params }));
+ipcMain.handle("anthropic:regenerateOption", async (_, params) => runTitleCaptionCall({ kind: "regenerate", params }));
+
+// #424: the creator applied a card — stamp the call that produced it.
+ipcMain.handle("aiCalls:markApplied", async (_, callId) => {
   try {
-    const kind = params.kind === "caption" ? "caption" : "title";
-    const { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag } = buildTitleCaptionStoreContext(params);
-
-    const systemPrompt = titleCaptionPrompt.buildSingleSystemPrompt({
-      mode, kind, styleGuide, gameContext, styleHistory, voiceExamples, gameHashtag,
-    });
-    const userMessage = titleCaptionPrompt.buildSingleUserContent({
-      kind,
-      currentText: params.currentText,
-      otherOptions: params.otherOptions,
-      transcript: params.transcript,
-      gameName: params.gameName,
-      projectName: params.projectName,
-      userContext: params.userContext,
-    });
-
-    const provider = llmProvider.getProvider();
-    const { text } = await provider.chat({
-      model: provider.defaultModel,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-      maxTokens: 500,
-    });
-
-    if (!text) return { error: "Empty response from LLM provider" };
-    try {
-      const parsed = aiPrompt.extractJSON(text, "object");
-      return { success: true, data: parsed };
-    } catch (e) {
-      return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: text };
-    }
+    aiCallLog.markApplied(callId);
+    return { success: true };
   } catch (err) {
     return { error: err.message };
   }
+});
+
+// ─── #420: cards on the clip, and generation on approve ──────────────
+//
+// Suggestions used to live only in the renderer's per-clip cache, which died
+// with the window — a clip generated tonight and edited tomorrow was paid for
+// twice. Now the batch is written onto the clip in the project file (the
+// editor's own saves send explicit fields, so they never clobber it) and the
+// editor reads it back on open.
+
+function persistSuggestions(projectId, clipId, suggestions) {
+  if (!projectId || !clipId) return;
+  try {
+    const r = projects.updateClip(libraryRoot(), projectId, clipId, { suggestions });
+    if (r?.error) throw new Error(r.error);
+  } catch (e) {
+    logger.warn(logger.MODULES.titleGeneration, "Could not save the cards on the clip", { clipId, error: e.message });
+  }
 }
 
-ipcMain.handle("anthropic:rephraseOption", async (_, params) => handleSingleCard("rephrase", params));
-ipcMain.handle("anthropic:regenerateOption", async (_, params) => handleSingleCard("regenerate", params));
+// A Regenerate or Rephrase changed one card — keep the saved set current.
+ipcMain.handle("titlegen:saveCards", async (_, projectId, clipId, cards) => {
+  try {
+    const project = projects.loadProject(libraryRoot(), projectId);
+    const clip = (project?.clips || []).find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+    persistSuggestions(projectId, clipId, {
+      ...(clip.suggestions || {}),
+      titles: cards?.titles || [],
+      captions: cards?.captions || [],
+      editedAt: new Date().toISOString(),
+    });
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// Clips whose approve-time batch is still being written. The editor asks on
+// open so it can show the spinner instead of an empty panel.
+const autoTitlegenInFlight = new Set();
+ipcMain.handle("titlegen:pending", async (_, clipId) => autoTitlegenInFlight.has(clipId));
+
+// The approve-time path. Same call as the Generate button, so it is logged
+// the same way (ai_calls kind = auto_generate) and costs the same. Rules:
+// one generation per clip, ever (Regenerate stays manual); never touches the
+// title — the cards wait in the panel until the creator picks one.
+function maybeAutoGenerateOnApprove(project, clip) {
+  if (!store.get("autoTitlegenOnApprove")) return;
+  if (!project || !clip) return;
+  // Imports have their own titling pass (#240) and no transcript.
+  if (project.kind === "import") return;
+  if (clip.suggestions?.titles?.length) return;
+  if (autoTitlegenInFlight.has(clip.id)) return;
+
+  const transcript = (clip.transcription?.segments || []).map((s) => s.text).join(" ").trim();
+  // No transcript and no Gemini means the stills path on the text provider —
+  // the dearest way to write blind. Not worth doing unasked.
+  if (!transcript && !geminiProvider.isConfigured()) {
+    logger.info(logger.MODULES.titleGeneration, "#420 skipped: no transcript and Gemini not set up", { clipId: clip.id });
+    return;
+  }
+
+  // The same per-clip params the editor sends (useAIStore._collectClipParams),
+  // resolved from the clip on disk: the game entry by the clip's effective tag.
+  const gamesDb = store.get("gamesDb") || [];
+  const tag = String(clip.gameTag || project.gameTag || "").toLowerCase();
+  const game = gamesDb.find((g) => (g.tag || "").toLowerCase() === tag) || null;
+  const params = {
+    clipId: clip.id,
+    projectId: project.id,
+    projectName: project.name || "",
+    transcript,
+    userContext: "",
+    gameName: game?.name || "",
+    gameContextAuto: game?.aiContextAuto || "",
+    gameContextUser: game?.aiContextUser || "",
+    energyLevel: clip.energyLevel || "",
+    confidence: clip.confidence || 0,
+    rejectedSuggestions: [],
+  };
+
+  autoTitlegenInFlight.add(clip.id);
+  logger.info(logger.MODULES.titleGeneration, "#420 generating on approve", { clipId: clip.id, projectId: project.id });
+  runTitleCaptionCall({ kind: "auto_generate", params })
+    .then((res) => {
+      if (res.error) logger.warn(logger.MODULES.titleGeneration, "#420 generation failed", { clipId: clip.id, error: res.error });
+      // The editor may already be on this clip, showing the spinner.
+      mainWindow?.webContents.send("titlegen:done", {
+        clipId: clip.id,
+        projectId: project.id,
+        suggestions: res.success ? { titles: res.data.titles || [], captions: res.data.captions || [], callId: res.callId, fallback: res.fallback } : null,
+        error: res.error || null,
+      });
+    })
+    .catch((e) => logger.warn(logger.MODULES.titleGeneration, "#420 could not deliver the cards", { clipId: clip.id, error: e.message }))
+    .finally(() => autoTitlegenInFlight.delete(clip.id));
+}
 
 // Research a game using Opus with web search (one-time per game)
 ipcMain.handle("anthropic:researchGame", async (_, gameName) => {

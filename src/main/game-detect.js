@@ -194,7 +194,7 @@ async function identifyGameFromFrames({ filePath, games, onUsage }) {
     }));
     content.push({ type: "text", text: "Which game is shown in these frames?" });
     // 2000 not 500: Gemini 3.x thinks by default and thoughts spend the same
-    // output budget (see generateTitlesWithGeminiVideo in main.js).
+    // output budget (see callGemini in main.js).
     const { text, usage } = await geminiProvider.chat({
       model: geminiProvider.defaultModel,
       system: buildSniffSystem(games),

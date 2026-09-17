@@ -288,6 +288,42 @@ const MIGRATIONS = [
       database.run(`ALTER TABLE clip_metrics ADD COLUMN url TEXT`);
     },
   },
+  {
+    version: 12,
+    description: "Create ai_calls: one row per title/caption model call — path, cost, fallback reason, applied (#424)",
+    up(database) {
+      // Every Generate / auto-generate / Regenerate / Rephrase call, whichever
+      // path served it. Distinct from title_caption_rounds (one row per CLIP,
+      // the training record): this is the operational record — what each
+      // press cost, whether Gemini ran, and why not when it didn't. Written
+      // by src/main/ai/ai-call-log.js from the one shared call function.
+      database.run(`
+        CREATE TABLE ai_calls (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          ts              TEXT NOT NULL DEFAULT (datetime('now')),
+          kind            TEXT NOT NULL,
+          card_kind       TEXT,
+          card_idx        INTEGER,
+          clip_id         TEXT,
+          project_id      TEXT,
+          provider        TEXT,
+          model           TEXT,
+          path            TEXT,
+          fallback_reason TEXT,
+          tokens_in       INTEGER,
+          tokens_out      INTEGER,
+          tokens_thinking INTEGER,
+          cost_usd        REAL,
+          duration_ms     INTEGER,
+          ok              INTEGER NOT NULL,
+          error           TEXT,
+          applied_at      TEXT
+        )
+      `);
+      database.run(`CREATE INDEX idx_ai_calls_ts ON ai_calls(ts)`);
+      database.run(`CREATE INDEX idx_ai_calls_clip ON ai_calls(clip_id)`);
+    },
+  },
 ];
 
 /**

@@ -43,7 +43,7 @@ const renderGameScopeOption = (o) => (o.isHeader ? (
 
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamingMode, setStreamingMode, streamSchedule, setStreamSchedule, activeSection, setActiveSection, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, mediaFolders, setMediaFolders, requireHashtagInTitle, setRequireHashtagInTitle, autoTitlegenOnApprove, setAutoTitlegenOnApprove, streamingMode, setStreamingMode, streamSchedule, setStreamSchedule, activeSection, setActiveSection, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -426,6 +426,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "set-naming",    section: "games",       title: "Default Naming Preset",       kw: "rename pattern filename date day part" },
     { id: "set-theme",     section: "appearance",  title: "Theme",                       kw: "colour color dark light mode pink appearance skin look" },
     { id: "set-guide",     section: "ai",          title: "Title & Caption Style Guide", kw: "voice rules titling prompt context" },
+    { id: "set-autogen",   section: "ai",          title: "Generate on approve",         kw: "auto titles captions approve automatic cards cost" },
     { id: "set-aiprefs",   section: "ai",          title: "AI Preferences",              kw: "creator profile content vibe moment priorities style description" },
     { id: "set-platforms", section: "publishing",  title: "Connected Platforms",         kw: "accounts youtube tiktok instagram facebook x kick oauth connect reconnect token" },
     { id: "set-schedule",  section: "publishing",  title: "Stream Schedule",             kw: "live days template variable" },
@@ -1220,6 +1221,32 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
+      {/* #420: generate on approve */}
+      <Card {...cardProps("set-autogen")} style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ paddingRight: 16 }}>
+            <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Generate titles and captions when I approve a clip</div>
+            <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 2 }}>Six cards are waiting in the editor by the time you open an approved clip. One generation per clip, a couple of cents each. The title stays as it is until you pick a card.</div>
+          </div>
+          <button
+            onClick={() => setAutoTitlegenOnApprove(!autoTitlegenOnApprove)}
+            style={{
+              width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer",
+              background: autoTitlegenOnApprove ? T.green : "rgba(var(--lift),0.12)",
+              position: "relative", transition: "background 0.2s", flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: 8, background: "#fff",
+              position: "absolute", top: 3,
+              left: autoTitlegenOnApprove ? 21 : 3,
+              transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(var(--shade),calc(0.3 * var(--shadeK)))",
+            }} />
+          </button>
+        </div>
+      </Card>
+
       {/* AI Preferences (Creator Profile) */}
       <div id="set-aiprefs"><AIPreferencesSection /></div>
 
@@ -1647,7 +1674,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <input value={anthropicVal} onChange={(e) => setAnthropicVal(e.target.value)} type={showAnthropicKeyEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="sk-ant-..." />
                   <button onClick={() => setShowAnthropicKeyEdit(!showAnthropicKeyEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showAnthropicKeyEdit ? "Hide" : "Show"}>{showAnthropicKeyEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
                 </div>
-                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Used for AI title/caption generation (Sonnet) and game research (Opus).</p>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Used for clip detection and game research, and as the fallback for titles and captions when Gemini can't watch the clip.</p>
                 <SectionLabel style={{ marginTop: 16 }}>Gateway URL</SectionLabel>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
                   <input value={gatewayUrlVal} onChange={(e) => setGatewayUrlVal(e.target.value)} type="text" style={{ ...inputStyle, flex: 1 }} placeholder="https://gateway.ai.cloudflare.com/v1/.../clipflow-prod" />

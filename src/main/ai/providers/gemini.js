@@ -267,7 +267,7 @@ const provider = {
    * Same contract as the other providers:
    * @returns {Promise<{ text: string, toolCalls: null, usage: { inputTokens: number, outputTokens: number } }>}
    */
-  async chat({ model, system, messages, maxTokens, timeout }) {
+  async chat({ model, system, messages, maxTokens, timeout, thinkingLevel }) {
     const store = getStore();
     const apiKey = store ? String(store.get("geminiApiKey") || "").trim() : "";
     const routing = resolveRouting(apiKey);
@@ -288,6 +288,10 @@ const provider = {
       // shared prompt asks for — no fences, no preamble.
       generationConfig: { maxOutputTokens: maxTokens || 2048, responseMimeType: "application/json" },
     };
+    // #421: cap thinking where the caller asks (minimal | low | medium | high
+    // on gemini-3.6-flash). Only the title/caption calls do; the #235
+    // full-recording watch passes nothing and keeps the model default.
+    if (thinkingLevel) body.generationConfig.thinkingConfig = { thinkingLevel };
     if (system) body.systemInstruction = { parts: [{ text: system }] };
 
     const useModel = model || DEFAULT_MODEL;
@@ -333,6 +337,8 @@ const provider = {
           inputTokens: usage.promptTokenCount || 0,
           // Thinking tokens bill as output — count them or the cost log lies.
           outputTokens: (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0),
+          // ...and reported on their own so the cost log can show the share (#421, #424).
+          thoughtTokens: usage.thoughtsTokenCount || 0,
         },
       };
     } finally {

@@ -343,6 +343,9 @@ const useEditorStore = create((set, get) => ({
     // A newer load started while we awaited — abandon this stale run.
     if (myGen !== _loadGen) return;
 
+    // #420: cards saved on the clip, when the session cache has none.
+    try { useAIStore.getState().seedFromClip(clip); } catch (e) {}
+
     // Compute source boundaries for clip extension
     const sourceStart = clip?.startTime || 0;
     const sourceEnd = clip?.endTime || 0;

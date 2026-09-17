@@ -67,7 +67,7 @@ class PipelineLogger {
   /** Log LLM API usage (provider-aware pricing via cost-tracker).
    *  Accumulates across calls — a pipeline run can bill more than one model
    *  (#235: Gemini watch + Claude detection land in one cost line). */
-  logApiUsage(inputTokens, outputTokens, model) {
+  logApiUsage(inputTokens, outputTokens, model, thinkingTokens = 0) {
     this.apiTokens.input += inputTokens;
     this.apiTokens.output += outputTokens;
     const { inputCost, outputCost, totalCost, known } = getCost(model, inputTokens, outputTokens);
@@ -75,6 +75,12 @@ class PipelineLogger {
     this._append(`[API]   Model: ${model}${known ? "" : " (pricing unknown)"}`);
     this._append(`        Input: ${inputTokens} tokens ($${inputCost.toFixed(4)})`);
     this._append(`        Output: ${outputTokens} tokens ($${outputCost.toFixed(4)})`);
+    // #421: Gemini's thoughts bill as output. Shown as a share of it so the
+    // monthly total can be read as "answer" vs "thinking".
+    if (thinkingTokens > 0 && outputTokens > 0) {
+      const share = Math.round((thinkingTokens / outputTokens) * 100);
+      this._append(`          of which thinking: ${thinkingTokens} tokens (${share}% of output)`);
+    }
     this._append(`        Total: $${totalCost.toFixed(4)}`);
   }
 

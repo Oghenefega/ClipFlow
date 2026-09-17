@@ -237,6 +237,18 @@ contextBridge.exposeInMainWorld("clipflow", {
   anthropicRegenerateOption: (params) => ipcRenderer.invoke("anthropic:regenerateOption", params),
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),
   anthropicLogHistory: (entry) => ipcRenderer.invoke("anthropic:logHistory", entry),
+  // #424: the creator applied a card — stamp the call that produced it.
+  aiCallApplied: (callId) => ipcRenderer.invoke("aiCalls:markApplied", callId),
+  // #420: cards saved on the clip. pending = the approve-time batch is still
+  // being written; done fires when it lands; saveCards keeps a Regenerate/
+  // Rephrase edit on disk with the rest of the set.
+  titlegenPending: (clipId) => ipcRenderer.invoke("titlegen:pending", clipId),
+  titlegenSaveCards: (projectId, clipId, cards) => ipcRenderer.invoke("titlegen:saveCards", projectId, clipId, cards),
+  onTitlegenDone: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("titlegen:done", handler);
+    return () => ipcRenderer.removeListener("titlegen:done", handler);
+  },
 
   // Title/caption training data (#183)
   titleCaptionRecordPublish: (params) => ipcRenderer.invoke("titleCaptionLog:recordPublish", params),

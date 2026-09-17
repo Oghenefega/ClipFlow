@@ -347,6 +347,9 @@ export default function App() {
 
   // Queue settings
   const [requireHashtagInTitle, setRequireHashtagInTitle] = useState(true);
+  // #420: generate titles/captions when a clip is approved. Off by default —
+  // nobody's bill changes without them choosing it.
+  const [autoTitlegenOnApprove, setAutoTitlegenOnApprove] = useState(false);
   // #329: "Keep publishing while I stream". Off by default - Key Design Decision #2
   // ("Close = quit") still holds unless the user opts in.
   const [streamingMode, setStreamingMode] = useState(false);
@@ -478,6 +481,7 @@ export default function App() {
         if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
         if (all.requireHashtagInTitle !== undefined) setRequireHashtagInTitle(all.requireHashtagInTitle);
+        if (all.autoTitlegenOnApprove !== undefined) setAutoTitlegenOnApprove(all.autoTitlegenOnApprove);
         if (all.streamingMode !== undefined) setStreamingMode(all.streamingMode);
         if (typeof all.streamSchedule === "string") setStreamSchedule(all.streamSchedule);
         // Onboarding flag
@@ -641,6 +645,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
   useEffect(() => { if (!hasLoaded.current) return; persist("requireHashtagInTitle", requireHashtagInTitle); }, [requireHashtagInTitle]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("autoTitlegenOnApprove", autoTitlegenOnApprove); }, [autoTitlegenOnApprove]);
   useEffect(() => { if (!hasLoaded.current) return; persist("streamingMode", streamingMode); }, [streamingMode]);
   useEffect(() => { if (!hasLoaded.current) return; persist("streamSchedule", streamSchedule); }, [streamSchedule]);
 
@@ -1244,6 +1249,8 @@ export default function App() {
               streamingMode={streamingMode}
               setStreamingMode={setStreamingMode}
               setRequireHashtagInTitle={setRequireHashtagInTitle}
+              autoTitlegenOnApprove={autoTitlegenOnApprove}
+              setAutoTitlegenOnApprove={setAutoTitlegenOnApprove}
               streamSchedule={streamSchedule}
               setStreamSchedule={setStreamSchedule}
               activeSection={settingsSection}

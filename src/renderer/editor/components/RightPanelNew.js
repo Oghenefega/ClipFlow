@@ -799,6 +799,7 @@ function AIToolsPanel({ gamesDb }) {
   const setAiGame = useAIStore((s) => s.setAiGame);
   const aiGenerating = useAIStore((s) => s.aiGenerating);
   const aiError = useAIStore((s) => s.aiError);
+  const aiFallback = useAIStore((s) => s.aiFallback);
   const aiSuggestions = useAIStore((s) => s.aiSuggestions);
   const aiRejections = useAIStore((s) => s.aiRejections);
   const acceptedTitleIdx = useAIStore((s) => s.acceptedTitleIdx);
@@ -838,6 +839,8 @@ function AIToolsPanel({ gamesDb }) {
 
       {/* Error */}
       {aiError && <div className="text-[11px] text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{aiError}</div>}
+      {/* #424: the lesser path ran — say so in one line, never quietly */}
+      {aiFallback && <div className="text-[11px] text-amber-400 bg-amber-500/10 rounded-md px-2.5 py-2">{aiFallback}</div>}
 
       {/* Results */}
       {aiSuggestions && (

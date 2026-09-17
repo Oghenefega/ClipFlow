@@ -225,7 +225,7 @@ async function generate({ store, rows, voiceContext, sendProgress, getProcessing
         { type: "video", path: row.path, mimeType: MIME_BY_EXT[path.extname(row.path).toLowerCase()] || "video/mp4" },
       ];
       // 4000 not 2000: Gemini 3.x thinks by default and thoughts spend the
-      // same output budget (see generateTitlesWithGeminiVideo in main.js).
+      // same output budget (see callGemini in main.js).
       const { text, usage } = await geminiProvider.chat({
         model,
         system,

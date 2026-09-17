@@ -1,7 +1,38 @@
 import { create } from "zustand";
+import posthog from "posthog-js";
 import useEditorStore from "./useEditorStore";
 import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
+
+// #424: every call and every apply is counted, here for PostHog (cross-install
+// usage) and in the main process for the ai_calls table (cost, path, reason).
+function trackCall(kind, result) {
+  try { posthog.capture("clipflow_titlegen_call", { kind, path: result.path || "", fallback: Boolean(result.fallback) }); } catch (_) {}
+}
+function trackApplied(cardKind, callId) {
+  try { posthog.capture("clipflow_titlegen_applied", { card_kind: cardKind }); } catch (_) {}
+  if (Number.isInteger(callId)) window.clipflow?.aiCallApplied?.(callId);
+}
+
+// #420: the approve-time batch landed. Only the open clip needs telling — any
+// other clip reads the saved cards off its clip when it is opened.
+if (typeof window !== "undefined" && window.clipflow?.onTitlegenDone) {
+  window.clipflow.onTitlegenDone(({ clipId, suggestions, error }) => {
+    const openId = useEditorStore.getState().clip?.id;
+    if (!openId || openId !== clipId) return;
+    if (suggestions) {
+      useAIStore.setState({
+        aiSuggestions: { titles: suggestions.titles || [], captions: suggestions.captions || [] },
+        aiCallId: suggestions.callId ?? null,
+        aiFallback: suggestions.fallback || null,
+        aiGenerating: false,
+        aiError: "",
+      });
+    } else {
+      useAIStore.setState({ aiGenerating: false, aiError: error || "Couldn't write titles for this clip." });
+    }
+  });
+}
 
 const useAIStore = create((set, get) => ({
   aiContext: "",
@@ -10,6 +41,11 @@ const useAIStore = create((set, get) => ({
   aiGenerating: false,
   aiError: "",
   aiSuggestions: null, // { titles: [], captions: [] }
+  // #424: the ai_calls row id of the batch that produced aiSuggestions, and
+  // the one-line note shown when the lesser path wrote the cards (null when
+  // Gemini watched the clip). Single-card results carry their own callId.
+  aiCallId: null,
+  aiFallback: null,
   aiRejections: [],
   acceptedTitleIdx: null,
   acceptedCaptionIdx: null,
@@ -79,7 +115,14 @@ const useAIStore = create((set, get) => ({
       if (result.error) {
         set({ aiError: result.error });
       } else if (result.success && result.data) {
-        set({ aiSuggestions: result.data, acceptedTitleIdx: null, acceptedCaptionIdx: null });
+        set({
+          aiSuggestions: result.data,
+          aiCallId: result.callId ?? null,
+          aiFallback: result.fallback || null,
+          acceptedTitleIdx: null,
+          acceptedCaptionIdx: null,
+        });
+        trackCall("generate", result);
       }
     } catch (e) {
       set({ aiError: e.message });
@@ -106,6 +149,7 @@ const useAIStore = create((set, get) => ({
       const params = {
         ...get()._collectClipParams(gamesDb),
         kind,
+        cardIdx: idx,
         currentText: card[field] || "",
         otherOptions: list.filter((_, i) => i !== idx).map((c) => c?.[field]).filter(Boolean),
       };
@@ -119,14 +163,19 @@ const useAIStore = create((set, get) => ({
       } else if (result.success && result.data && result.data[field]) {
         const s = get();
         const newList = [...(s.aiSuggestions?.[listKey] || [])];
-        newList[idx] = result.data;
+        // The card remembers which call wrote it, so applying it later stamps
+        // that call, not the batch (#424).
+        newList[idx] = { ...result.data, callId: result.callId ?? null };
         const patch = {
           aiSuggestions: { ...s.aiSuggestions, [listKey]: newList },
         };
+        if (result.fallback) patch.aiFallback = result.fallback;
         // The slot's text changed — drop a stale "Applied" mark on it.
         if (kind === "title" && s.acceptedTitleIdx === idx) patch.acceptedTitleIdx = null;
         if (kind === "caption" && s.acceptedCaptionIdx === idx) patch.acceptedCaptionIdx = null;
         set(patch);
+        trackCall(mode, result);
+        get()._persistCards();
       } else {
         set({ aiError: "AI returned no usable result." });
       }
@@ -161,6 +210,7 @@ const useAIStore = create((set, get) => ({
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", titleChosen: newTitle, game: aiGame, timestamp: Date.now(),
     });
+    trackApplied("title", titleObj.callId ?? get().aiCallId);
   },
 
   acceptCaption: async (captionObj, idx) => {
@@ -180,6 +230,7 @@ const useAIStore = create((set, get) => ({
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", captionChosen: text, game: aiGame, timestamp: Date.now(),
     });
+    trackApplied("caption", captionObj.callId ?? get().aiCallId);
   },
 
   reject: (text, kind = "title") => {
@@ -201,11 +252,48 @@ const useAIStore = create((set, get) => ({
     aiGenerating: false,
     aiError: "",
     aiSuggestions: null,
+    aiCallId: null,
+    aiFallback: null,
     aiRejections: [],
     acceptedTitleIdx: null,
     acceptedCaptionIdx: null,
     busyCards: {},
   }),
+
+  // #420: cards saved on the clip (by Generate or by the approve-time auto
+  // path) outlive the session cache. Called by useEditorStore.openClip once
+  // the clip is loaded. The session cache wins when it has something; else
+  // the disk copy is shown; else, if the approve-time batch is still being
+  // written, the spinner shows until titlegen:done lands.
+  seedFromClip: async (clip) => {
+    if (!clip) return;
+    if (get().aiSuggestions) return;
+    const saved = clip.suggestions;
+    if (saved?.titles?.length) {
+      set({
+        aiSuggestions: { titles: saved.titles, captions: saved.captions || [] },
+        aiCallId: saved.callId ?? null,
+        aiFallback: saved.fallback || null,
+      });
+      return;
+    }
+    if (!window.clipflow?.titlegenPending) return;
+    const pending = await window.clipflow.titlegenPending(clip.id).catch(() => false);
+    if (pending && useEditorStore.getState().clip?.id === clip.id && !get().aiSuggestions) {
+      set({ aiGenerating: true, aiError: "" });
+    }
+  },
+
+  // #420: a Regenerate or Rephrase changed a card — keep the saved set current.
+  _persistCards: () => {
+    const { clip, project } = useEditorStore.getState();
+    const { aiSuggestions } = get();
+    if (!clip || !project || !aiSuggestions) return;
+    window.clipflow?.titlegenSaveCards?.(project.id, clip.id, {
+      titles: aiSuggestions.titles || [],
+      captions: aiSuggestions.captions || [],
+    })?.catch?.(() => {});
+  },
 
   // Save current clip's AI state to cache, restore new clip's cached state (#8).
   // Called from useEditorStore.openClip in place of reset() so users see their
@@ -217,6 +305,8 @@ const useAIStore = create((set, get) => ({
       cache[oldClipId] = {
         aiContext: state.aiContext,
         aiSuggestions: state.aiSuggestions,
+        aiCallId: state.aiCallId,
+        aiFallback: state.aiFallback,
         aiRejections: state.aiRejections,
         acceptedTitleIdx: state.acceptedTitleIdx,
         acceptedCaptionIdx: state.acceptedCaptionIdx,
@@ -227,6 +317,8 @@ const useAIStore = create((set, get) => ({
       _perClipCache: cache,
       aiContext: cached?.aiContext ?? "",
       aiSuggestions: cached?.aiSuggestions ?? null,
+      aiCallId: cached?.aiCallId ?? null,
+      aiFallback: cached?.aiFallback ?? null,
       aiRejections: cached?.aiRejections ?? [],
       acceptedTitleIdx: cached?.acceptedTitleIdx ?? null,
       acceptedCaptionIdx: cached?.acceptedCaptionIdx ?? null,
