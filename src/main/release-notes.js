@@ -12,6 +12,26 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.6",
+    date: "2026-09-17",
+    added: [
+      "Select several things on the timeline. Ctrl+click adds or removes a block and Shift+click selects a run, on every lane: subtitles, captions, video sections, sounds and overlays. With sounds or overlays selected, Ctrl+D or Alt+drag copies the whole group, dragging one moves the rest with it, and Delete removes them all. Each is one undo step.",
+      "Move one subtitle without moving them all. Select the subtitle box in the preview and switch from \"All subtitles\" to \"This subtitle\" to drag only the line on screen, for the moments your webcam sits where the subtitle would go. A moved line gets a marker in Edit Subtitles; click it to put the line back. The export places it exactly where you did.",
+      "The Aa and AB buttons work. AB shows the text in capitals and Aa brings it back exactly as you typed it, so names and acronyms survive. Use the pair in the toolbar for the whole caption or every subtitle, or the pair on a word's card to make just that word or line shout.",
+    ],
+    changed: [
+      "Inside a project, Corva opens the tab you were working in. Coming back from the editor no longer resets the clip list to All, and the clip you just edited is scrolled into view.",
+      "Captions start with tighter line spacing (0.9 instead of 1.3), including saved templates that were still on the old default. A spacing you chose yourself is left alone.",
+      "The small AA button on a subtitle row no longer rewrites your text, so switching it off no longer lower-cases everything.",
+    ],
+    fixed: [
+      "With a different layout on each side of a cut, playback could flash one frame in the wrong layout. It no longer does, and parking the playhead exactly on a cut now shows the first frame of the part that starts there. Exports were never affected.",
+      "The project name, back button and All / Pending / Approved tabs stay pinned while you scroll inside a project, and so does the Queue's header.",
+      "TikTok privacy no longer appears to reset from \"Public\" to \"Select privacy\" just after you open an unscheduled clip. Nothing was being reset; the card was growing and pushing a different row into view. It now opens fully formed.",
+      "A switched-off subtitle line stays off when you change the subtitle grouping.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.5",
     date: "2026-09-16",
     added: [

@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-17 (session 262) — 0.5.0-alpha.6 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.6 and an installer cut to the update feed.** Promotes session 261's eight editor, Projects and Queue requests: timeline multi-select on every lane (#430), per-subtitle position in preview and export (#431), the reversible Aa / AB casing buttons (#426), the wrong-layout frame and playhead side at a cut (#425), pinned headers inside a project and on the Queue (#432), the remembered project tab (#428), the TikTok privacy flash (#429) and the 0.9 caption line spacing default (#427). The What's New entry for this version was written at cut time.
+
 ## [Unreleased] — 2026-09-17 (session 261) — Eight editor, Projects and Queue requests: multi-select, per-subtitle position, reversible caps, and the wrong-layout frame at a cut
 
 ### Added
