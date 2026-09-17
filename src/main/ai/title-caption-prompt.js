@@ -1,5 +1,5 @@
 /**
- * Title & caption prompt builder (#85, rewritten in #183).
+ * Title & caption prompt builder (#85, rewritten in #183, rules realigned in #419).
  *
  * What changed and why — the previous build injected a 3-pillar / 4-driver /
  * payoff-integrity / worked-example framework that ran ~14,000 characters
@@ -13,6 +13,18 @@
  * what the creator actually publishes, read live from the title_caption_rounds
  * table (src/main/title-caption-log.js). Rules are the short list that survives
  * contact with real output; everything else is delegated to the examples.
+ *
+ * #419 (2026-09-16): the rules used to override the examples. "Sentence case,
+ * never Title Case" plus "the casing RULE wins over anything you see here" told
+ * the model to ignore the shouted words in the creator's own published titles;
+ * "ONE word in caps, at most once" capped captions that are mostly caps across
+ * two or three lines; and "insane" was banned as a crutch while being the
+ * creator's most-used title word. Measured on published rows: 67% of his own
+ * titles carry a shouted word, and he used the AI's cards 38% of the time for
+ * titles and 21% for captions. The rules now defer to the examples on casing,
+ * emphasis and vocabulary; Title Case (Every Word Capitalised) stays banned
+ * because that is the actual AI tell. #422 in the same pass: the creator's
+ * typed context is the clip truth for every card, not one angle among six.
  *
  * Note on "caption": it is the hook text burned ON SCREEN over the clip's
  * opening seconds, not the social post caption (that comes from the per-platform
@@ -65,7 +77,8 @@ function formatVoice(voiceExamples) {
     );
     return [
       "No published history for this creator yet, so these are reference examples.",
-      "Match their LENGTH and PLAINNESS, not their subject matter.",
+      "Match their length, their plainness, and where they SHOUT a word — not",
+      "their subject matter.",
       "The on-screen lines are shown flattened onto one line, where \" / \" is a",
       "line break. That mark is notation — never write one into a caption.",
       "",
@@ -79,10 +92,10 @@ function formatVoice(voiceExamples) {
 
   const out = [
     "These are titles this creator has ACTUALLY PUBLISHED. This is the target.",
-    "Study the length, the plainness, the rhythm, where emphasis lands.",
+    "Study the length, the rhythm, which words they SHOUT and how often.",
+    "Casing, emphasis and vocabulary come from here: match what you see, not",
+    "a house style.",
     "Do NOT reuse their subject matter — only their voice.",
-    "Older entries may use inconsistent casing; the casing RULE below wins over",
-    "anything you see here.",
     "",
     titleRows.join("\n"),
   ];
@@ -91,7 +104,8 @@ function formatVoice(voiceExamples) {
     out.push(
       "",
       "On-screen captions they've actually used. Most stack over two or three",
-      "lines; some are a single line. Shown here flattened onto one line, where",
+      "lines; some are a single line. Match how much of each line they put in",
+      "caps. Shown here flattened onto one line, where",
       "\" / \" is a line break and \" // \" is a blank line between beats. Those",
       "marks are notation for you to read — never write one into a caption.",
       "",
@@ -124,6 +138,11 @@ happened — the wow, the irony, the specific moment. Everything you write comes
 from that.
 
 - Never invent a detail, game term, player name, or event the clip doesn't support.
+- **When the creator tells you what the clip is about, that IS the clip truth.**
+  They were there; the transcript and footage only confirm it. Every card is
+  built on what they said — the angles are different angles on THEIR framing,
+  never one card that honours it and the rest that ignore it. The shared card 1
+  comes from it.
 - If the transcript doesn't tell you what happened, write about the REACTION, not the event.
 - **A hook is a promise; the clip is the payoff.** Title and caption must OPEN a
   loop the footage has to close — a claim, stakes, or a tease that demands
@@ -142,7 +161,9 @@ function hashtagText(gameHashtag) {
 
 const hardRules = (tag) => `**Titles**
 - 3-7 words, then ${tag} at the end.
-- Sentence case. Never Title Case.
+- Sentence case as the base. Put the word you'd SHOUT in all caps — usually
+  one, sometimes two, exactly as often as the examples do it. Never Title Case
+  (Every Word Capitalised): that is the AI tell.
 - **A fragment beats a sentence.** Stop at the interesting part. Do not add a
   second clause that explains or twists it. "NO ONE gets past me" lands — the
   footage supplies the twist. "NO ONE gets past me and then he did" is the
@@ -161,11 +182,24 @@ The viewer reads it while the footage plays, in one to three short lines.
   genuinely lands on its own.
 - First person, spoken register — how you'd say it out loud, not how you'd write it.
 - No hashtags, no emoji.
-- You may put ONE word or short phrase in ALL CAPS for emphasis. At most once.
+- Caps carry the beat. A whole line in caps is normal on screen ("he ACTUALLY /
+  HIT THAT"); match the density in the examples, not a quota. Never every word
+  of every line.
 
 **Both**
 - Plain words. If a word would make someone ask "who talks like that", cut it.
-- Never repeat a crutch word across the batch.`;
+- Never lean on the same hook word twice in a batch. One card can shout
+  INSANE; three cannot.`;
+
+// #422: what the creator typed into the Context box. Leads the message and is
+// named for what it is — the clip truth — so the rule in CLIP_TRUTH has
+// something to point at. "" when empty. Shared by the batch and single-card
+// builders so the wording can't drift.
+function creatorContextSection(userContext) {
+  const text = String(userContext || "").trim();
+  if (!text) return "";
+  return `## What the creator says this clip is about (this is the clip truth — every card builds on it):\n${text}\n\n`;
+}
 
 // The intent-anchor block (#240 imports). Shared by buildUserContent and
 // buildImportUserContent so the wording can't drift between the two paths.
@@ -238,10 +272,12 @@ not reword title 2 into caption 2, or title 3 into caption 3, and do not reuse
 their chips.
 
 The remaining cards are genuinely different angles, not three phrasings of one.
-Angles that work on gaming clips: stakes declared before an attempt · an
-arguable claim · opening mid-emotion · a comeback · an anomaly the viewer has to
-explain. Use only what THIS clip supports. If two cards could swap their chips
-without anyone noticing, one of them is wasted.
+Angles that work on gaming clips, first one first: **the spectacle, declared —
+who did it, what the play was, one superlative** ("the goalie's MOST INSANE
+save") · stakes declared before an attempt · an arguable claim · the reaction,
+confessed · a comeback · an anomaly the viewer has to explain. Use only what
+THIS clip supports. If two cards could swap their chips without anyone
+noticing, one of them is wasted.
 
 Each card carries a **chip**: a 2-6 word plain-language label for its angle
 ("leads with the fail", "asks a question"). Vary the grammatical shape of the
@@ -256,7 +292,7 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
 \`\`\`json
 {
   "titles": [
-    { "title": "<the strongest line — 3-7 words, sentence case, ends with ${tag}>", "chip": "<2-6 words>" },
+    { "title": "<the strongest line — 3-7 words, the key word SHOUTED, ends with ${tag}>", "chip": "<2-6 words>" },
     { "title": "...", "chip": "..." },
     { "title": "...", "chip": "..." }
   ],
@@ -296,12 +332,14 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
  * @returns {string|Array}
  */
 function buildUserContent({ transcript, gameName, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames, titleAnchor } = {}) {
-  let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
+  // #422: the creator's own words go FIRST. Appended after the transcript
+  // under "Additional Context", they were read as one angle among six.
+  let out = creatorContextSection(userContext);
+  out += `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
   out += formatClipSignals(energyLevel, confidence);
   if (gameName) out += `\n\n## Game: ${gameName}`;
   if (projectName) out += `\n\n## ${gameName ? "Project" : "Project/Game"}: ${projectName}`;
   out += titleAnchorSection(titleAnchor);
-  if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   if (Array.isArray(rejectedSuggestions) && rejectedSuggestions.length > 0) {
     out += `\n\n## Previously Rejected Suggestions (avoid similar patterns):\n`;
     rejectedSuggestions.forEach((r) => {
@@ -384,7 +422,9 @@ ${formatVoice(voiceExamples)}
 - 3-7 words, then the game's hashtag at the end. Use the hashtag from the
   candidates list below; for a game not in the list, use its natural #hashtag;
   if the game is unknown, end with no hashtag at all.
-- Sentence case. Never Title Case.
+- Sentence case as the base. Put the word you'd SHOUT in all caps — usually
+  one, sometimes two, exactly as often as the examples do it. Never Title Case
+  (Every Word Capitalised): that is the AI tell.
 - **A fragment beats a sentence.** Stop at the interesting part. Do not add a
   second clause that explains or twists it.
 - One idea. If it needs a comma, it's probably two ideas.
@@ -419,7 +459,7 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
 
 \`\`\`json
 {
-  "title": "<3-7 words, sentence case, game hashtag at the end>",
+  "title": "<3-7 words, the key word SHOUTED, game hashtag at the end>",
   "game": "<exact candidate name, or the game's common name, or unknown>",
   "confidence": "high | low"
 }
@@ -493,7 +533,7 @@ function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = ""
   const outputField = isTitle ? "title" : "caption";
   const tag = hashtagText(gameHashtag);
   const outputDesc = isTitle
-    ? `3-7 words, sentence case, ends with ${tag}`
+    ? `3-7 words, the key word SHOUTED, ends with ${tag}`
     : "4-9 words, first person, no hashtags, real \\n line breaks";
 
   return `# ROLE
@@ -560,10 +600,10 @@ Return ONLY valid JSON parseable by \`JSON.parse()\` with zero modifications:
  * @returns {string}
  */
 function buildSingleUserContent({ kind, currentText, otherOptions, transcript, gameName, projectName, userContext } = {}) {
-  let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
+  let out = creatorContextSection(userContext);
+  out += `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
   if (gameName) out += `\n\n## Game: ${gameName}`;
   if (projectName) out += `\n\n## ${gameName ? "Project" : "Project/Game"}: ${projectName}`;
-  if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   out += `\n\n## The current ${kind} to act on:\n"${currentText || ""}"`;
   if (Array.isArray(otherOptions) && otherOptions.length > 0) {
     out += `\n\n## The other current ${kind} options (use a different angle from these):\n`;

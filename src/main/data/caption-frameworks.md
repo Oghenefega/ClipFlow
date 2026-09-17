@@ -96,12 +96,13 @@ If they return, they belong in this document, not in the model's context.
 Kept in `caption-hook-examples.json` because each one was observed in real output,
 not derived from theory:
 
-- Title Case — the clearest single tell of AI short-form copy.
+- Title Case (Every Word Capitalised) — the clearest single tell of AI short-form copy.
 - The second clause — writing the hook, then explaining or twisting it.
 - Spoiling the payoff in the title or caption (generalized 2026-08-05 — a
   summary line closes the loop the hook exists to open).
 - Hallucinated detail the clip doesn't support.
-- Crutch words ("crazy", "insane", "yikes") carrying the hook or repeating.
+- Leaning on the same hook word across the batch (was a ban on "crazy"/"insane"
+  until #419 — see section 7).
 - Filler openers ("hey guys", "ok so").
 - Vague stakes ("this changes everything").
 - Over-cleverness — if it needs a second sentence to land, cut it.
@@ -116,3 +117,27 @@ performance over time without anyone editing a prompt.
 
 The signal to protect is the **`ai_edited`** bucket: those rows are a direct record
 of what the creator consistently changes about the model's output.
+
+## 7. 2026-09-16 — the rules stopped contradicting the examples (#419, #422)
+
+Six weeks of `title_caption_rounds` said the structure was right and the hard
+rules were wrong. Titles were taken or edited 38% of the time, captions 21%.
+Three rules fought the voice section:
+
+- "Sentence case. Never Title Case." plus "the casing RULE wins over anything you
+  see here" — while 67% of the creator's own titles carry a shouted word.
+- "ONE word in ALL CAPS, at most once" on captions — while his are mostly caps
+  across two or three lines.
+- "insane"/"crazy" as banned crutch words — while INSANE is his most-used title word.
+
+What changed: casing, emphasis and vocabulary now come from the examples. The
+only casing ban left is Title Case, because that is the actual AI tell. Captions
+match the caps density of the examples instead of a quota. The crutch rule
+became "never lean on the same hook word twice in a batch". The angle list leads
+with the spectacle, declared (who, what play, one superlative); the reaction
+stays as one angle, not the default. The cold-start set was rewritten to the
+same shape so a fresh install is not shipped the old voice.
+
+#422 rode along: the creator's typed context used to be appended last under
+"Additional Context" and got one card out of six. It now leads the message,
+named as the clip truth, with a rule that every card builds on it.
