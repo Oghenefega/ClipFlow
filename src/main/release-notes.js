@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.7",
+    date: "2026-09-17",
     added: [
       "Move the subtitles of one section. Click the subtitle in the preview and pick \"This section\" under it, then drag. Only the subtitles in that part of the timeline move, in the preview and in the export. Handy when you zoom into your camera and the subtitles would cover your face. \"All subtitles\" puts the section back with the rest.",
       "Style several caption words at once. On the word chips under the caption text, Ctrl+click picks extra words and Shift+click picks a run. Colour, font, size, glow, shadow, AA and Reset then apply to all of them, and one Ctrl+Z takes the change back.",

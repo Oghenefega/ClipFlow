@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-17 (session 263) — 0.5.0-alpha.7 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.7 and an installer cut to the update feed.** Promotes everything since alpha.6: ALL CAPS rebuilt as real text with one AA switch that restores the spelling (#433), the "This section" subtitle move (#435), multi-word caption styling (#434), AI Tools results staying on the clip they were asked for (#436) and caption Apply no longer reporting Applied without changing the caption (#437). The What's New entry for this version was waiting from the sessions' own wraps and was checked against the commit range.
+
 ## [Unreleased] — 2026-09-17 (session 263) — Move one section's subtitles, and style several caption words at once
 
 ### Added
