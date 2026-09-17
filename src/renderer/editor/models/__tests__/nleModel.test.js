@@ -1093,3 +1093,49 @@ describe("sectionIndexForFrame — which part's layout a frame on screen gets (#
     expect(sectionIndexForFrame(25, list, -1, null)).toBe(1);
   });
 });
+
+describe("a section's own subtitle position (#435)", () => {
+  const line = (text, start, end, extra = {}) => ({
+    id: text, text, startSec: start, endSec: end, words: [{ word: text, start, end }], ...extra,
+  });
+
+  test("lines are stamped with the section they show in, and its position when it has one", () => {
+    const list = segs([[0, 10], [10, 20]]);
+    list[1].subYPercent = 35;
+    const out = visibleSubtitleSegments([line("a", 2, 3), line("b", 12, 13)], list);
+    expect(out.map((s) => s.sectionId)).toEqual([list[0].id, list[1].id]);
+    expect(out[1].sectionYPercent).toBe(35);
+    expect("sectionYPercent" in out[0]).toBe(false);
+  });
+
+  test("a line starting exactly on a cut belongs to the section that STARTS there", () => {
+    const list = segs([[0, 10], [10, 20]]);
+    list[0].subYPercent = 20;
+    list[1].subYPercent = 35;
+    const [out] = visibleSubtitleSegments([line("edge", 10, 11)], list);
+    expect(out.sectionId).toBe(list[1].id);
+    expect(out.sectionYPercent).toBe(35);
+  });
+
+  test("the line's own position is left alone — readers resolve line → section → clip", () => {
+    const list = segs([[0, 10]]);
+    list[0].subYPercent = 35;
+    const [out] = visibleSubtitleSegments([line("own", 2, 3, { yPercent: 60 })], list);
+    expect(out.yPercent).toBe(60);
+    expect(out.sectionYPercent).toBe(35);
+  });
+
+  test("a split carries the position onto both halves", () => {
+    const list = segs([[0, 10]]);
+    list[0].subYPercent = 35;
+    expect(splitAtSource(list, 4).map((s) => s.subYPercent)).toEqual([35, 35]);
+  });
+
+  test("reordered sections: the position follows the section, not the slot", () => {
+    const list = segs([[0, 10], [10, 20]]);
+    list[1].subYPercent = 35;
+    const moved = moveSegment(list, list[1].id, 0);
+    const out = visibleSubtitleSegments([line("a", 2, 3), line("b", 12, 13)], moved);
+    expect(out.map((s) => [s.text, s.sectionYPercent])).toEqual([["b", 35], ["a", undefined]]);
+  });
+});

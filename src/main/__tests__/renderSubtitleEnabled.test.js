@@ -101,5 +101,21 @@ describe("resolveTimelineSubtitles — #374 disabled lines", () => {
       const legacy = resolveTimelineSubtitles({ startTime: 0 }, {}, false, null);
       expect(legacy.map((s) => s.yPercent)).toEqual([30, undefined]);
     });
+
+    // #435: a section's own subtitle position lives on the section, so on a
+    // batch render it only reaches the overlay through the NLE mapping.
+    test("a section's subtitle position reaches the lines that show in it", () => {
+      const segments = [
+        { start: 0, end: 1, text: "first", words: [{ word: "first", start: 0, end: 1 }] },
+        { start: 16, end: 17, text: "second", words: [{ word: "second", start: 16, end: 17 }] },
+      ];
+      mockResolveClipSubtitles.mockReturnValue({ source: "test", segments });
+      const twoSections = [
+        { id: "s1", sourceStart: 0, sourceEnd: 15 },
+        { id: "s2", sourceStart: 15, sourceEnd: 30, subYPercent: 35 },
+      ];
+      const out = resolveTimelineSubtitles({ startTime: 0 }, {}, true, twoSections);
+      expect(out.map((s) => s.sectionYPercent)).toEqual([undefined, 35]);
+    });
   });
 });

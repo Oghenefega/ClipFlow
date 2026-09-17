@@ -1184,11 +1184,13 @@ export default function PreviewPanelNew() {
   // #431: move every subtitle (the clip-wide position, as always) or only the
   // line on screen. Per editor session; "all" on open so nothing about the old
   // gesture changes until the user asks for the other one.
-  const [subMoveMode, setSubMoveMode] = useState("all"); // "all" | "line"
-  // The line a "This subtitle" drag is moving, fixed when the drag starts so
-  // playback rolling onto the next line mid-drag can't retarget it. `pushed`:
-  // the undo entry is taken on the first MOVE, so a plain click leaves none.
-  const lineDragRef = useRef({ id: null, pushed: false });
+  // #435: "section" = every subtitle in the section the line on screen shows in.
+  const [subMoveMode, setSubMoveMode] = useState("all"); // "all" | "section" | "line"
+  // The line (or, #435, the section) a drag is moving, fixed when the drag
+  // starts so playback rolling onto the next line mid-drag can't retarget it.
+  // `pushed`: the undo entry is taken on the first MOVE, so a plain click
+  // leaves none.
+  const lineDragRef = useRef({ id: null, sectionId: null, pushed: false });
   const zoomBtnRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const compositeCanvasRef = useRef(null); // #164 reframe compositor surface
@@ -1710,9 +1712,20 @@ export default function PreviewPanelNew() {
   // switch says: it no longer follows the shared position, so an "all" drag
   // would change that and leave the box under the pointer standing still.
   // "All subtitles" on such a line puts it back on the shared position first.
-  const subMoveTarget = subMoveMode === "line" || activeSubLineY !== null ? "line" : "all";
+  // #435: the same one level up — a section with its own position is moved as
+  // a section. Three levels, line → section → clip; the target is the narrowest
+  // one the line on screen already follows, else what the switch says.
+  const activeSubSectionY = Number.isFinite(activeSubLine?.sectionYPercent) ? activeSubLine.sectionYPercent : null;
+  const canMoveSection = nleSegments.length > 1 || activeSubSectionY !== null;
+  const subMoveTarget = subMoveMode === "line" || activeSubLineY !== null ? "line"
+    : activeSubSectionY !== null || (subMoveMode === "section" && canMoveSection) ? "section"
+    : "all";
   const onSubtitleDragStart = useCallback(() => {
-    lineDragRef.current = { id: subMoveTarget === "line" ? activeSubLine?.id ?? null : null, pushed: false };
+    lineDragRef.current = {
+      id: subMoveTarget === "line" ? activeSubLine?.id ?? null : null,
+      sectionId: subMoveTarget === "section" ? activeSubLine?.sectionId ?? null : null,
+      pushed: false,
+    };
   }, [subMoveTarget, activeSubLine]);
   const onSubtitleYChange = useCallback((y) => {
     const drag = lineDragRef.current;
@@ -1720,16 +1733,26 @@ export default function PreviewPanelNew() {
       const sub = useSubtitleStore.getState();
       if (!drag.pushed) { sub.beginLineMove(); drag.pushed = true; }
       sub.setSegmentYPercent(drag.id, y, { silent: true });
+    } else if (drag.sectionId) {
+      useEditorStore.getState().setSegmentSubY(drag.sectionId, y, { silent: drag.pushed });
+      drag.pushed = true;
     } else if (subMoveTarget === "all") {
       setSubYPercent(y);
     }
-    // "This subtitle" with no line on screen has nothing to move — it must not
-    // fall through and move them all.
+    // "This subtitle" / "This section" with no line on screen has nothing to
+    // move — it must not fall through and move them all.
   }, [subMoveTarget, setSubYPercent]);
+  // Picking a broader level puts the narrower ones back for the line on screen
+  // (one undo step): "This section" drops the line's own position, "All
+  // subtitles" drops the section's too.
   const onSubMoveMode = useCallback((mode) => {
-    if (mode === "all" && activeSubLineY !== null) useSubtitleStore.getState().setSegmentYPercent(activeSubLine.id, null);
+    const lineMoved = mode !== "line" && activeSubLineY !== null;
+    if (lineMoved) useSubtitleStore.getState().setSegmentYPercent(activeSubLine.id, null);
+    if (mode === "all" && activeSubSectionY !== null) {
+      useEditorStore.getState().setSegmentSubY(activeSubLine.sectionId, null, { silent: lineMoved });
+    }
     setSubMoveMode(mode);
-  }, [activeSubLineY, activeSubLine]);
+  }, [activeSubLineY, activeSubSectionY, activeSubLine]);
 
   // ── #202: preview playback for SFX/music placements ──
   // One <audio> element per placement, driven off the same timeline clock as
@@ -2685,7 +2708,7 @@ export default function PreviewPanelNew() {
               Hidden while calibrating (#164). */}
           {!calibrating && showSubs && editSegments.length > 0 && (
             <DraggableOverlay
-              yPercent={activeSubLineY ?? subYPercent}
+              yPercent={activeSubLineY ?? activeSubSectionY ?? subYPercent}
               onYChange={onSubtitleYChange}
               onDragStart={onSubtitleDragStart}
               selected={selectedOverlay === "sub"}
@@ -2723,7 +2746,12 @@ export default function PreviewPanelNew() {
                   <div className="mt-1 flex items-center justify-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
                     <div className="flex items-center p-0.5 rounded-lg border bg-card shadow-lg">
                       {[
-                        ["all", "All subtitles", activeSubLineY !== null ? "Put this subtitle back with the others — dragging then moves every subtitle" : "Dragging moves every subtitle"],
+                        ["all", "All subtitles", activeSubLineY !== null ? "Put this subtitle back with the others — dragging then moves every subtitle"
+                          : activeSubSectionY !== null ? "Put this section's subtitles back with the others — dragging then moves every subtitle"
+                          : "Dragging moves every subtitle"],
+                        // #435: only offered once the clip has been cut into sections
+                        ...(canMoveSection ? [["section", "This section", activeSubLineY !== null ? "Put this subtitle back with its section — dragging then moves every subtitle in this section"
+                          : "Dragging moves every subtitle in this section of the timeline"]] : []),
                         ["line", "This subtitle", "Dragging moves only the subtitle on screen"],
                       ].map(([mode, label, tip]) => (
                         <button key={mode} title={tip} onClick={() => onSubMoveMode(mode)}

@@ -558,9 +558,12 @@ const STORE_KEY = "userEffectPresets";
 // `label` is "Word" or "Line" (#366) — the card is otherwise identical.
 // `onCaps` (#433) is the AA switch for this word/line — text, not style, so it
 // goes to its own action and is not part of `style` / Reset.
-function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, onCaps, label = "Word" }) {
+// #434: the card also serves several selected words — `style` is then only what
+// they all share, so `hasOverride` says whether ANY of them has something to
+// reset, and `capsWhat` names the selection in the AA tooltip.
+function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, onCaps, label = "Word", hasOverride, capsWhat }) {
   const merged = { ...lineDefaults, ...style };
-  const hasStyle = Object.keys(style).length > 0;
+  const hasStyle = hasOverride ?? Object.keys(style).length > 0;
   return (
     <div className="rounded-md border border-primary/40 bg-primary/5 p-2 space-y-2">
       <div className="flex items-center gap-2 min-w-0">
@@ -611,7 +614,7 @@ function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear, 
         </div>
         <div className="flex-1" />
         <div className="flex items-center shrink-0">
-          <CapsToggle small on={isAllCaps(word)} what={`this ${label.toLowerCase()}`} onToggle={onCaps} />
+          <CapsToggle small on={isAllCaps(word)} what={capsWhat || `this ${label.toLowerCase()}`} onToggle={onCaps} />
         </div>
       </div>
     </div>
@@ -1549,8 +1552,8 @@ function TextPanel() {
   }, [captionSegments, activeCaptionId]);
 
   // ── Per-word style override (#270) — word chips under the caption text ──
-  const activeCaptionWord = useCaptionStore((s) => s.activeCaptionWord);
-  const setActiveCaptionWord = useCaptionStore((s) => s.setActiveCaptionWord);
+  const activeCaptionWords = useCaptionStore((s) => s.activeCaptionWords);
+  const setActiveCaptionWords = useCaptionStore((s) => s.setActiveCaptionWords);
   const setCaptionWordStyle = useCaptionStore((s) => s.setCaptionWordStyle);
   const clearCaptionWordStyle = useCaptionStore((s) => s.clearCaptionWordStyle);
   // Same target-segment logic as setCaptionText: active segment, else first
@@ -1659,9 +1662,38 @@ function TextPanel() {
 
   // What a word/line inherits when it has no override of its own.
   const blockDefaults = { color: captionColor, fontSize: captionFontSize, glowOn: captionGlowOn, glowColor: captionGlowColor, shadowOn: captionShadowOn, shadowColor: captionShadowColor };
-  const wordLineIdx = activeCaptionWord
-    ? capLines.find((l) => l.words.some((x) => x.wordIdx === activeCaptionWord.wordIdx))?.lineIdx
-    : undefined;
+  // #434: the selected word chips of THIS caption, in click order (positions
+  // past the end of the text are ignored). Plain click = that word alone (again
+  // to clear), Ctrl+click adds/removes, Shift+click takes the run from the last
+  // clicked word — the same three gestures as the timeline.
+  const selWordIdxs = targetCapSeg && activeCaptionWords?.segId === targetCapSeg.id
+    ? activeCaptionWords.wordIdxs.filter((i) => capWords[i] !== undefined)
+    : [];
+  const onCapWordClick = (i, e) => {
+    let next;
+    if (e.shiftKey && selWordIdxs.length > 0) {
+      const pivot = selWordIdxs[selWordIdxs.length - 1];
+      next = [];
+      for (let k = Math.min(pivot, i); k <= Math.max(pivot, i); k++) if (k !== pivot) next.push(k);
+      next.push(pivot); // stays last, so the next Shift+click ranges from the same word
+    } else if (e.ctrlKey || e.metaKey) {
+      next = selWordIdxs.includes(i) ? selWordIdxs.filter((x) => x !== i) : [...selWordIdxs, i];
+    } else {
+      next = selWordIdxs.length === 1 && selWordIdxs[0] === i ? [] : [i];
+    }
+    setActiveCaptionWords({ segId: targetCapSeg.id, wordIdxs: next });
+  };
+  // What the card shows for the selection: only the overrides every selected
+  // word shares (a control the words disagree on reads as "not set").
+  const selWordStyles = selWordIdxs.map((i) => targetCapSeg.wordStyles?.[i] || {});
+  const selSharedStyle = selWordStyles.length === 0 ? {} : Object.fromEntries(
+    Object.entries(selWordStyles[0]).filter(([k, v]) => selWordStyles.every((st) => st[k] === v))
+  );
+  // A word inherits its line's override before the block (#366) — shown only
+  // when every selected word sits on the same line.
+  const selLineIdxs = [...new Set(selWordIdxs.map((i) => capLines.find((l) => l.words.some((x) => x.wordIdx === i))?.lineIdx))];
+  const wordLineIdx = selLineIdxs.length === 1 ? selLineIdxs[0] : undefined;
+  const selInOrder = [...selWordIdxs].sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col h-full">
@@ -1708,11 +1740,12 @@ function TextPanel() {
                       )}
                       {line.words.map(({ w, wordIdx: i }) => {
                         const styled = !!targetCapSeg.wordStyles?.[i];
-                        const selected = activeCaptionWord?.segId === targetCapSeg.id && activeCaptionWord?.wordIdx === i;
+                        const selected = selWordIdxs.includes(i);
                         return (
                           <button
                             key={i}
-                            onClick={() => setActiveCaptionWord(selected ? null : { segId: targetCapSeg.id, wordIdx: i })}
+                            onClick={(e) => onCapWordClick(i, e)}
+                            title="Click to style this word — Ctrl+click to pick several, Shift+click for a run"
                             className={`px-1.5 py-0.5 text-xs rounded border transition-colors cursor-pointer ${selected ? "border-primary bg-primary/15 text-primary" : styled ? "border-primary/50 text-foreground hover:bg-secondary/60" : "border-border/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
                             style={styled ? { boxShadow: `inset 0 -2px 0 ${targetCapSeg.wordStyles[i].color || "hsl(var(--primary))"}` } : undefined}
                           >
@@ -1737,16 +1770,17 @@ function TextPanel() {
                 onClear={() => { clearCaptionLineStyle(targetCapSeg.id, activeCaptionLine.lineIdx); markDirty(); }}
               />
             )}
-            {activeCaptionWord && targetCapSeg && activeCaptionWord.segId === targetCapSeg.id &&
-              capWords[activeCaptionWord.wordIdx] !== undefined && (
+            {selWordIdxs.length > 0 && (
               <WordStyleCard
-                word={capWords[activeCaptionWord.wordIdx]}
-                style={targetCapSeg.wordStyles?.[activeCaptionWord.wordIdx] || {}}
-                // A word inherits its line's override before the block (#366)
+                label={selWordIdxs.length > 1 ? `${selWordIdxs.length} words` : "Word"}
+                word={selInOrder.map((i) => capWords[i]).join(" ")}
+                style={selSharedStyle}
+                hasOverride={selWordStyles.some((st) => Object.keys(st).length > 0)}
+                capsWhat={selWordIdxs.length > 1 ? "these words" : undefined}
                 lineDefaults={{ ...blockDefaults, ...(wordLineIdx !== undefined ? targetCapSeg.lineStyles?.[wordLineIdx] || {} : {}) }}
-                onCaps={(v) => { setCaptionCaps(targetCapSeg.id, v, { wordIdx: activeCaptionWord.wordIdx }); markDirty(); }}
-                onPatch={(p) => { setCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx, p); markDirty(); }}
-                onClear={() => { clearCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx); markDirty(); }}
+                onCaps={(v) => { setCaptionCaps(targetCapSeg.id, v, { wordIdx: selInOrder }); markDirty(); }}
+                onPatch={(p) => { setCaptionWordStyle(targetCapSeg.id, selInOrder, p); markDirty(); }}
+                onClear={() => { clearCaptionWordStyle(targetCapSeg.id, selInOrder); markDirty(); }}
               />
             )}
 

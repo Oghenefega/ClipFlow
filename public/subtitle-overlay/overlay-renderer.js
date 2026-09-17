@@ -163,8 +163,12 @@ function renderSubtitle(timestamp) {
   // once, when the overlay was built; it is now placed per line, falling back
   // to the clip-wide position. Position is a function of WHICH line is showing,
   // and subtitleSignature already keys on that, so frame-skipping stays exact.
-  subOverlay.overlay.style.top =
-    `${Number.isFinite(currentSeg.yPercent) ? currentSeg.yPercent : (s.yPercent ?? 80)}%`;
+  // #435: line → its section's position (sectionYPercent, stamped by
+  // visibleSubtitleSegments) → clip-wide.
+  const lineY = Number.isFinite(currentSeg.yPercent) ? currentSeg.yPercent
+    : Number.isFinite(currentSeg.sectionYPercent) ? currentSeg.sectionYPercent
+    : (s.yPercent ?? 80);
+  subOverlay.overlay.style.top = `${lineY}%`;
 
   const words = currentSeg.words || [];
   const segmentMode = s.segmentMode || "3word";

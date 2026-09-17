@@ -1369,6 +1369,27 @@ const useEditorStore = create((set, get) => ({
     return { success: true };
   },
 
+  // #435: ONE section's own subtitle position (percent of the frame, same scale
+  // as the clip-wide subYPercent). A line resolves line → section → clip. null
+  // REMOVES the key — the section goes back to the clip-wide position. Rides
+  // on the section like `reframe`, so split/trim carry it, autosave persists it
+  // and the undo stack snapshots it. `silent` is for the ticks of a drag (one
+  // undo entry per drag, taken by the first tick).
+  setSegmentSubY: (segmentId, yPercent, { silent = false } = {}) => {
+    const segs = get().nleSegments;
+    if (!segs.some((s) => s.id === segmentId)) return;
+    if (!silent) get()._pushNleUndo();
+    const next = segs.map((s) => {
+      if (s.id !== segmentId) return s;
+      if (Number.isFinite(yPercent)) return { ...s, subYPercent: yPercent };
+      const { subYPercent: _drop, ...rest } = s;
+      return rest;
+    });
+    set({ nleSegments: next });
+    usePlaybackStore.getState().setNleSegments(next);
+    get().markDirty();
+  },
+
   setLayoutScope: (scope) => set({ layoutScope: scope === "section" ? "section" : "clip" }),
 
   // ── #369: copy / paste a layout between sections and clips ──

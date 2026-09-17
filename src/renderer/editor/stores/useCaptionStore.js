@@ -241,19 +241,25 @@ const useCaptionStore = create((set, get) => ({
   setActiveCaptionId: (id) => set({ activeCaptionId: id }),
 
   // ── Per-word (#270) and per-line (#366) style overrides ──
-  // Which chip is selected in the Captions panel — a word { segId, wordIdx } or
-  // a line { segId, lineIdx }; picking one clears the other.
-  activeCaptionWord: null,
+  // Which chips are selected in the Captions panel — words { segId, wordIdxs }
+  // or a line { segId, lineIdx }; picking one kind clears the other.
+  // #434: several words at once (Ctrl/Shift+click). wordIdxs is in click
+  // order — the LAST entry is the pivot a Shift+click ranges from. An empty
+  // list is stored as null.
+  activeCaptionWords: null,
   activeCaptionLine: null,
-  setActiveCaptionWord: (info) => set({ activeCaptionWord: info, activeCaptionLine: null }),
-  setActiveCaptionLine: (info) => set({ activeCaptionLine: info, activeCaptionWord: null }),
+  setActiveCaptionWords: (info) => set({ activeCaptionWords: info && info.wordIdxs.length > 0 ? info : null, activeCaptionLine: null }),
+  setActiveCaptionLine: (info) => set({ activeCaptionLine: info, activeCaptionWords: null }),
 
+  // wordIdx: one index or (#434) a list — the whole list is ONE undo step.
   setCaptionWordStyle: (segId, wordIdx, rawPatch) => {
     const patch = _linkGlow(rawPatch);
     _pushCrossUndo();
     set((s) => ({
       captionSegments: s.captionSegments.map((seg) =>
-        seg.id === segId ? { ...seg, wordStyles: _patchStyleMap(seg.wordStyles, wordIdx, patch) } : seg
+        seg.id === segId
+          ? { ...seg, wordStyles: [].concat(wordIdx).reduce((map, i) => _patchStyleMap(map, i, patch), seg.wordStyles) }
+          : seg
       ),
     }));
   },
@@ -270,12 +276,12 @@ const useCaptionStore = create((set, get) => ({
 
   // #433: the AA switch. Casing is TEXT — this rewrites the words in the
   // caption and remembers each one's previous spelling so off brings it back
-  // (casing.js). scope: { wordIdx } = one word, { lineIdx } = one typed line,
-  // neither = the whole caption. One undo step.
+  // (casing.js). scope: { wordIdx } = one word (or, #434, a list of them),
+  // { lineIdx } = one typed line, neither = the whole caption. One undo step.
   setCaptionCaps: (segId, on, { wordIdx, lineIdx } = {}) => {
     const seg = get().captionSegments.find((s) => s.id === segId);
     if (!seg) return;
-    const indexes = Number.isInteger(wordIdx) ? new Set([wordIdx])
+    const indexes = Number.isInteger(wordIdx) || Array.isArray(wordIdx) ? new Set([].concat(wordIdx))
       : Number.isInteger(lineIdx) ? captionLineIndexes(seg.text, lineIdx)
       : null;
     const r = capsCaptionText(seg.text, seg.wordOrig, !!on, indexes);
@@ -305,15 +311,17 @@ const useCaptionStore = create((set, get) => ({
     }));
   },
 
+  // wordIdx: one index or (#434) a list — one undo step for the lot.
   clearCaptionWordStyle: (segId, wordIdx) => {
+    const idxs = [].concat(wordIdx);
     const seg = get().captionSegments.find((s) => s.id === segId);
-    if (!seg || !seg.wordStyles || !seg.wordStyles[wordIdx]) return;
+    if (!seg || !seg.wordStyles || !idxs.some((i) => seg.wordStyles[i])) return;
     _pushCrossUndo();
     set((s) => ({
       captionSegments: s.captionSegments.map((sg) => {
         if (sg.id !== segId) return sg;
         const wordStyles = { ...sg.wordStyles };
-        delete wordStyles[wordIdx];
+        for (const i of idxs) delete wordStyles[i];
         return { ...sg, wordStyles };
       }),
     }));
@@ -349,7 +357,12 @@ const useCaptionStore = create((set, get) => ({
           : seg
       );
       const firstText = segs.length > 0 ? segs[0].text : "";
-      return { captionSegments: segs, captionText: firstText };
+      // #434: the word selection is a list of positions. Typing inside a word
+      // keeps them; adding or removing a word shifts what they point at, so
+      // the selection is dropped rather than left on the wrong words.
+      const old = s.captionSegments.find((seg) => seg.id === targetId);
+      const countChanged = !!old && _words(old.text).length !== _words(text).length;
+      return { captionSegments: segs, captionText: firstText, ...(countChanged ? { activeCaptionWords: null } : {}) };
     });
   },
 
@@ -449,7 +462,7 @@ const useCaptionStore = create((set, get) => ({
         captionText: segs[0]?.text || text,
         // #270: cap-N ids restart per clip — a stale word selection could match
         // the next clip's ids, so clear it on every open.
-        activeCaptionWord: null,
+        activeCaptionWords: null,
         activeCaptionLine: null,
       });
     } else {
@@ -460,7 +473,7 @@ const useCaptionStore = create((set, get) => ({
         ...captionStyleDefaults(),
         captionSegments: text ? [{ id, text, startSec: 0, endSec: null }] : [],
         captionText: text,
-        activeCaptionWord: null,
+        activeCaptionWords: null,
         activeCaptionLine: null,
       });
     }

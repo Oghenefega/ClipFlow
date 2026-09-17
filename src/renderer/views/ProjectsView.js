@@ -485,7 +485,8 @@ function ClipVideoPlayer({ clip, project, template }) {
           <div style={{
             position: "absolute", left: 4, right: 4,
             // #431: the line on screen may carry its own position
-            top: `${Number.isFinite(activeSubLine?.yPercent) ? activeSubLine.yPercent : subYPct}%`, transform: "translateY(-50%)",
+            // #435: line → its section's position → clip-wide
+            top: `${Number.isFinite(activeSubLine?.yPercent) ? activeSubLine.yPercent : Number.isFinite(activeSubLine?.sectionYPercent) ? activeSubLine.sectionYPercent : subYPct}%`, transform: "translateY(-50%)",
             display: "flex", justifyContent: "center", pointerEvents: "none",
           }}>
             <SubtitleOverlay

@@ -468,11 +468,21 @@ function visibleSubtitleSegments(subtitleSegs, nleSegments) {
       }
     }
 
+    // #435: the section this line shows in, and that section's own subtitle
+    // position if it has one. Chosen from the line's TIMELINE start, not
+    // startMap.segmentIndex: a line starting exactly on a cut source-matches the
+    // section that ENDS there, but it plays in the one that starts there (the
+    // same join tie-break as everything else). Stamped here, the one mapping
+    // the preview, the editor's render payload and batch renders all share.
+    const section = nleSegments[segmentIndexAtTimeline(startMap.timelineTime, nleSegments)];
+
     // Include if any words remain, or if the sub has no word-level data
     if (mappedWords.length > 0 || !sub.words || sub.words.length === 0) {
       result.push({
         ...sub,
         ...(clippedText !== null ? { text: clippedText } : {}),
+        ...(section ? { sectionId: section.id } : {}),
+        ...(section && Number.isFinite(section.subYPercent) ? { sectionYPercent: section.subYPercent } : {}),
         timelineStartSec: startMap.timelineTime,
         timelineEndSec: timelineEnd,
         words: mappedWords,

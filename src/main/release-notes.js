@@ -14,6 +14,10 @@ module.exports = [
   {
     version: "unreleased",
     date: "",
+    added: [
+      "Move the subtitles of one section. Click the subtitle in the preview and pick \"This section\" under it, then drag. Only the subtitles in that part of the timeline move, in the preview and in the export. Handy when you zoom into your camera and the subtitles would cover your face. \"All subtitles\" puts the section back with the rest.",
+      "Style several caption words at once. On the word chips under the caption text, Ctrl+click picks extra words and Shift+click picks a run. Colour, font, size, glow, shadow, AA and Reset then apply to all of them, and one Ctrl+Z takes the change back.",
+    ],
     changed: [
       "ALL CAPS is now one AA switch, the same one as on each subtitle row. You will find it in the Subtitles toolbar (every subtitle), the Text toolbar (the whole caption) and on the card that opens when you click a word or a caption line. It lights up whenever the words are in capitals, so typing DUDE switches it on by itself.",
       "Switching AA off brings back the spelling you had. \"Cryo\" becomes \"CRYO\" and goes back to \"Cryo\", not \"cryo\". It remembers each word on its own, so you can capitalise a whole line and switch one word back. A word you typed in capitals goes to lowercase, and a lone \"I\" stays capital.",

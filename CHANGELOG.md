@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-17 (session 263) — Move one section's subtitles, and style several caption words at once
+
+### Added
+- **Move the subtitles of one section (#435).** The switch under the subtitle box in the preview now reads "All subtitles / This section / This subtitle" (the middle button appears once the clip has been cut into sections). "This section" drags every subtitle in the section the line on screen belongs to — for a section where the camera is zoomed in and the subtitles would cover the face. The position is kept on the section itself, the same way a section's layout is: a subtitle uses its own position first, then its section's, then the clip-wide one. So subtitles that enter the section later follow it, splitting the section keeps the position on both halves, and changing the subtitle grouping (3 words ↔ 1 word) changes nothing. Choosing a broader button puts the narrower level back for the line on screen ("This section" drops that subtitle's own position, "All subtitles" drops the section's too). One drag is one undo step. A subtitle belongs to the section it STARTS in, so a line that runs across a cut keeps its first section's position to the end. Checked in the running editor on a rejected fixture clip (drag, undo, redo, all three buttons, the saved project file) and on frames of a real export: the moved section's subtitles mid-frame, the next section's on the clip-wide position. The Projects-tab preview shows the same positions.
+- **Select several caption words and style them together (#434).** On the word chips under the caption text: a plain click picks one word as before, Ctrl+click adds or removes a word, Shift+click takes the run from the last clicked word. One card then covers the selection ("3 words") — colour, font, size, glow, shadow, the AA switch and Reset apply to every selected word, and each change is a single undo step however many words are selected. A control shows a value only when every selected word shares it. Adding or removing a word in the text drops the selection (it is a list of positions and would otherwise sit on the wrong words). Checked in the running editor: size on three scattered words, one Ctrl+Z reverting all three, a Shift+click run of five, AA on and off across the run, Reset leaving an unselected styled word alone. Subtitle words are deliberately not included.
+
+### Filed
+- **#434**, **#435** — the two requests above, each with its plan and the alternatives that were turned down (writing the position onto every line; dragging a timeline multi-selection in the viewer).
+
 ## [Unreleased] — 2026-09-17 (session 262) — ALL CAPS rebuilt as real text: one AA switch, and switching it off brings back the spelling you had
 
 ### Fixed
