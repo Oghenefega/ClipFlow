@@ -146,6 +146,10 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 - **A segment owns time as a half-open interval `[startSec, endSec)`.** Adjacent subtitles share a boundary (`A.endSec === B.startSec`); an inclusive `<= endSec` makes the active-segment `find()` AND `getActiveWordInSeg` claim that instant for the segment *ending* there (it sorts first), so clicking a row — which seeks to its `startSec` — lit up the previous row's bar + boundary word too. Active-segment tracking and word-active checks must use `>= startSec && < endSec` (and bail on `>= endSec`). Keyed off `adjustedTime`, in timeline coords. (#136 follow-up)
 - **`handleWordClick` records `clickTime` (the seek target) in `selectedWordInfo`**; a paired effect clears the selection once the *video* reaches it during playback (guarded by `vid.seeking`, since `seekTo` writes the store time synchronously). Without it a mid-playback word click freezes the highlight in every row until the next pause/play, because an explicit selection suppresses playback highlight globally (`anySelected`). (#132)
 
+## Casing (ALL CAPS)
+
+- **Casing is TEXT, never `text-transform` (s262, #433).** One `AA` switch everywhere (toolbars, word/line card, subtitle row); its state is never stored — it lights when `isAllCaps(text)`. On rewrites the words and remembers each word's previous spelling (`words[i].orig` for subtitles, `wordOrig` on the caption segment, trusted only while `orig.toUpperCase()` equals the word); off restores it, or lower-cases a word typed in capitals (standalone I kept). Not part of templates. Everything lives in `utils/casing.js` — extend it there, and keep `orig` in the resolver's word whitelist.
+
 ## Zoom
 
 - Preview wheel zoom needs **no Ctrl modifier** (matches CapCut/Vizard); ±2% per notch (keyboard `Ctrl±` / menu keep ±25%).

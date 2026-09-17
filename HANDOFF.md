@@ -1,85 +1,74 @@
-# HANDOFF — Session 261 (2026-09-17)
+# HANDOFF — Session 262 (2026-09-17)
 
 ## Current State
 
-Master is clean at this wrap's commit. Eight requests from Fega, all built, verified in the dev
-profile on a scratch fixture and (where it renders) on frames of a real `renderClip` export, all
-pushed. **Nothing is on the update feed yet** — alpha.5 is still the installed build, so Fega has
-not seen any of this. Five code commits:
-
-- `1d53262` #427 #428 #429 #432 — header pins (project + Queue), tab memory, TikTok privacy
-  "flash", caption line spacing 0.9.
-- `68c8f9f` #425 — wrong-layout frame at a cut + playhead parking on the wrong side of it.
-- `b15c6b4` #426 — the dead Aa / AB buttons wired; reversible ALL CAPS at word / line / block.
-- `b687469` #430 — timeline multi-select on every lane, Ctrl+D, group drag, Alt+drag group copy.
-- `dc7b898` #431 — per-subtitle position, preview + export; per-line settings survive a grouping change.
-
-507 tests (26 new). All eight issues closed `status: untested`.
+Master is clean at this wrap's commit. **0.5.0-alpha.6 is on the update feed** (`92703f9`) and
+carries all of session 261. Fega installed it, used ALL CAPS and rejected it ("badly written");
+it was rebuilt this session as real text (`0901872`, #433) — verified in the dev editor on a
+rejected fixture clip and on frames of two real exports, **but it is NOT in an installer**, so the
+build he is running still has the rejected version. 525 tests. #433 closed `status: untested`.
 
 ## Key Decisions
 
-- **Caps are drawn, never typed.** `text-transform` at three levels (block `caps` < line `seg.caps`
-  / caption `lineStyles[i].caps` < word `style.caps`), innermost wins, `false` is a real value
-  (opt OUT of an all-caps block). The old row AA rewrote text; lines it already upper-cased still
-  read as on and switch off by lower-casing (nothing else is recoverable). A casing-only word
-  override returns NO color/shadow so the karaoke highlight and progressive sweep still apply —
-  callers tell the two kinds apart by `css.color`.
-- **Per-line fields ride ONE helper, `lineExtras` (resolveSubtitles.js), at every hop** that rebuilds
-  segments from named fields: resolver ×3, `initSegments`, render.js's resolver branch. `enabled`,
-  `caps`, `yPercent` today; a fourth per-line field goes there and nowhere else. `carryLineExtras`
-  is its twin for the grouping re-chunk (settings travel on words as a transient `_line` tag).
-- **Layout section is chosen from the presented frame's `mediaTime`** (`sectionIndexForFrame`,
-  timeMapping.js), not `video.currentTime`. `seekTo` resolves a cut to the head of the section that
-  starts there (`timelineToSourceForSeek`); `timelineToSource` itself is unchanged because trims
-  and placement anchors rely on its end-of-earlier-section answer.
-- **Timeline selection has one writer, `applySelection`,** which sets `selRef` eagerly. Do not
-  re-derive that ref from state during render (see lessons — it breaks mid-gesture).
-- **Group drag and Ctrl+D are sounds + overlays only.** Subtitles/captions multi-select supports
-  Delete and disable; a copy of one has nowhere to land without overlapping, and Alt+drag covers it.
-- **Tab memory:** remembered tab wins while it still has clips (so approving a clip in the editor
-  returns to Pending, not to where the clip went); otherwise follow the edited clip, then
-  Pending → Approved. Differs slightly from the plan wording Fega approved — told him why.
-- **Line spacing:** Fega chose "new clips only". His new clips take their look from his own default
-  template ("3 word n Glowy Cap"), which held 1.3 — hence the store migration
-  `_migrated_captionLineSpacing_v1` (templates at exactly 1.3 → 0.9). It will run on his prod
-  profile on first boot of the next build.
-- **TikTok privacy stays with no default** (Direct Post approval). The fix was the layout jump.
+- **ALL CAPS is TEXT, never a drawn effect** — reverses s261's `text-transform` design, which had
+  gone against #426's own written plan without asking. One `AA` switch (Fega's preference over the
+  `Aa | AB` pair) in the Subtitles toolbar, the Text toolbar, the word/line card and the subtitle
+  row. Its state is never stored: it lights when `isAllCaps(text)`, so typed capitals light it.
+- **Off restores the spelling the word had** (Fega's requirement: "Cryo" → "CRYO" → "Cryo",
+  "oOoOOo" → "OOOOOO" → "oOoOOo"). Memory is per word: `words[i].orig` for subtitles (added to the
+  resolver's word whitelist — it is the one place words are rebuilt from named fields),
+  `wordOrig` map on the caption segment (remapped on text edits like `wordStyles`). Trusted only
+  while `orig.toUpperCase()` equals the word on screen. No memory (typed in capitals) → lower-case,
+  standalone I / I'm / I'll / I've / I'd kept.
+- **Caps are not in templates** — Fega: "something I press per clip."
+- **"Every subtitle" reads its state from the clip's own lines** (`getTimelineMappedSegments`), not
+  raw `editSegments` — those hold the whole recording, which comes back as transcribed on every
+  reopen and would switch it off again. The action still rewrites all of `editSegments`.
+- **alpha.6 data is converted where it is read, not migrated:** `bakeLegacy*Caps` in the shared
+  subtitle resolver, caption store init, ProjectsView and render.js. Returns the SAME array when
+  no flag is present. A never-reopened alpha.6 clip therefore still exports as it looked.
+- **Session-end now writes the What's New lines** (new step 3); the release skill checks the
+  waiting `"unreleased"` entry against the commit range. An `"unreleased"` entry for #433 is
+  already in `src/main/release-notes.js` — the next cut renames it, and appends anything newer.
 
 ## Next Steps
 
-1. **Cut an installer when Fega asks** (or when the batch reaches ~10) — nothing here reaches him
-   until then. Then clear `status: untested` on #425–#432 as he confirms each.
-2. Ask him specifically about #425 on "Asuna ALMOST CLUTCHED THIS!" — that clip has the repeated-
-   footage shape the flash was reproduced on.
+1. **Cut 0.5.0-alpha.7 when Fega asks** (offered; he chose to end the session instead). Until
+   then he is on the rejected ALL CAPS build. After the cut: clear `status: untested` on #433 and
+   on #425–#432 as he confirms each.
+2. Ask him about #425 on "Asuna ALMOST CLUTCHED THIS!" (the repeated-footage shape) — carried over.
 3. Carry-overs unchanged: #419 scoreboard (30 published rows), #418, #416, #265.
 
 ## Watch Out For
 
-- **Fega's disable key is `.`, not `D`** — his rebinds are in `editorShortcuts` and `dev:seed`
-  copied them into the dev profile. A probe pressing `d` "fails" silently. Ctrl+D (new) is free in
-  his bindings.
-- **Dev profile:** `projectsRoot`, `localProjects` and tokens restored to pre-session values
-  (surgically — the app's own writes stayed: `lastSeenVersion` alpha.5, the #427 migration flag and
-  the three migrated templates). Tokens are `{"accounts":{}}`.
-- **Line endings:** `sed -i` flattened three CRLF files in Batch 1; restored in bytes mode.
-  `ProjectsView.js` is LF in the working copy and its original state is unknown — harmless (repo
-  normalises), but don't "fix" it.
-- **The fixture** is a scratch copy (under this session's scratchpad) of s260's scratch copy of
-  `2026-09-02 Val Day3 Pt1`. Clips 8/9/10 (rejected) carry the cut/layout, caps, position and SFX
-  test data. The real project was never touched; the SFX file is linked from `V:\AutoSync`, not copied.
-- **`render-e2e-probe.js` prints "MISSING"** for any clip but the one it was written for — its
-  white-pixel heuristic is for a title card. Use `RENDER_PROBE_PROJECT` / `RENDER_PROBE_OUT` + mode
-  `full`, then pull frames with ffmpeg and LOOK at them.
+- **Known behaviour, told to Fega:** a mixed-case caption ("I was OUT OF LINE") reads as AA off;
+  first press capitalises everything, and switching back off lower-cases the words he had TYPED in
+  capitals (they have no other spelling to restore). If he dislikes that, the fix is in
+  `capsWord` (casing.js): skip memory-less all-caps words on a block/line "off".
+- **A lone "I" keeps the word switch lit** — off leaves it "I" by his own rule, so that one press
+  changes nothing visible. Deliberate.
+- **Count mismatch between a subtitle's `text` tokens and `words[]`:** both are re-cased but with
+  no memory, and a single-word toggle leaves `words[]` alone (so it would not reach the export).
+  Rare (the lists are kept parallel everywhere else); not seen on real data.
+- **Dev profile restored:** `projectsRoot` back on the real library, tokens `{"accounts":{}}`.
+  The dev electron was killed by command line match; Fega's `Corva.exe` was never touched.
+- **`render-e2e-probe.js` prints "MISSING"** for any clip but its own — ignore it, pull frames with
+  ffmpeg and LOOK. (`FFMPEG_BIN` for ad-hoc frame grabs: plain `ffmpeg` is on PATH via chocolatey.)
+- **The Bash tool eats one backslash level even inside a quoted heredoc** — a `"\\n"` in a
+  heredoc-written patch script arrived as a real newline and the anchor missed (nothing was
+  written; the patch helper asserts every anchor first). Patch scripts containing backslashes go
+  through the Write tool.
 
 ## Logs / Debugging
 
-- Migration line on boot: `Caption line spacing default 1.3 → 0.9 (#427): N saved template(s) moved`
-  (module `system`, app.log).
-- #425 probe (not in the repo; rebuild from the issue if needed): a temporary push to
-  `window.__paintLog` inside `paintActive` of `{via, t: video.currentTime, mt: mediaTime, st: store
-  time, hint, idx}`. The bug signature is a `frame` event whose `mt` is in one section while `t`
-  already reads the next section's start.
-- Scratchpad drivers worth reusing (`…/2d9c1ea5…/scratchpad`): `d.js` (eval / main-process eval /
-  trusted click, drag, key with modifiers / screenshot), `open-clip.js` (polling navigation to a
-  fixture clip), `fx-setup.js` + `fx-restore.js` (fixture + surgical dev-profile restore),
-  `patch-tt.js` (fake a slow `tiktok:queryCreatorInfo` from the main inspector on 9229).
+- No new log lines. The legacy conversion is silent by design (identity when no flag is present);
+  to see whether a clip still carries alpha.6 flags, look in its project JSON for
+  `subtitleStyle.caps`, `captionStyle.caps`, `sub1[i].caps`, `words[j].style.caps`,
+  `captionSegments[k].wordStyles/lineStyles[*].caps`. Converted data has `words[j].orig` /
+  `captionSegments[k].wordOrig` instead.
+- Scratchpad drivers (`…/f73fa197…/scratchpad`): `d.js` + `open-clip.js` (from s261), `fx-setup.js`
+  (fixture with Fega's own examples on rejected Clip 8 and alpha.6-shaped flags on rejected Clip 9;
+  `--restore` puts the dev profile back), `aa.js` / `rowaa.js` (press an AA switch by its title /
+  row index, then print every surface), `state-cap.js` / `state-sub.js` (text box, chips, card,
+  switch states, preview text), `disk.js` (what autosave wrote), `patchlib.js` in `%TEMP%`
+  (CRLF-safe multi-anchor patcher that asserts every anchor before writing).
