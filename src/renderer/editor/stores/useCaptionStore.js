@@ -3,6 +3,7 @@ import { create } from "zustand";
 // ESM live bindings resolve the cycle.
 import useSubtitleStore from "./useSubtitleStore";
 import useEditorStore from "./useEditorStore";
+import { capsCaptionText, captionLineIndexes, bakeLegacyCaptionCaps } from "../utils/casing";
 
 // #402: a word/line colour patch also carries the glow colour while "Match
 // text color" is on. Glow is never switched on by it.
@@ -50,6 +51,19 @@ function _remapWordStyles(oldText, newText, wordStyles) {
 function _remapLineStyles(oldText, newText, lineStyles) {
   return _remapIndexedStyles((oldText || "").split("\n"), (newText || "").split("\n"), lineStyles);
 }
+// A caption segment with new text: per-word styles, per-line styles and the
+// ALL CAPS spelling memory (#433, wordOrig — same word-index keys as wordStyles)
+// all follow their words.
+function _retext(seg, text) {
+  const { wordOrig, ...rest } = seg;
+  const orig = _remapWordStyles(seg.text, text, wordOrig);
+  return {
+    ...rest, text,
+    wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles),
+    lineStyles: _remapLineStyles(seg.text, text, seg.lineStyles),
+    ...(orig && Object.keys(orig).length > 0 ? { wordOrig: orig } : {}),
+  };
+}
 
 // Lay `patch` over styles[idx]; null/undefined values remove that key (back to
 // inherit); an emptied entry is dropped from the map.
@@ -75,7 +89,6 @@ const captionStyleDefaults = () => ({
   captionBold: true,
   captionItalic: true,
   captionUnderline: false,
-  captionCaps: false, // #426: draw the caption ALL CAPS (lines and words can opt in or out)
   captionLineSpacing: 0.9,
   captionShadowOn: false,
   captionShadowColor: "#000000",
@@ -134,7 +147,7 @@ const useCaptionStore = create((set, get) => ({
     set((s) => {
       const segs = s.captionSegments.map((seg) =>
         seg.id === segId
-          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles), lineStyles: _remapLineStyles(seg.text, text, seg.lineStyles) }
+          ? _retext(seg, text)
           : seg
       );
       // Keep captionText in sync with first segment
@@ -217,7 +230,8 @@ const useCaptionStore = create((set, get) => ({
           { ...s2, endSec: time },
           { id: newId, text: s2.text, startSec: time, endSec: s2.endSec,
             ...(s2.wordStyles ? { wordStyles: { ...s2.wordStyles } } : {}),
-            ...(s2.lineStyles ? { lineStyles: { ...s2.lineStyles } } : {}) },
+            ...(s2.lineStyles ? { lineStyles: { ...s2.lineStyles } } : {}),
+            ...(s2.wordOrig ? { wordOrig: { ...s2.wordOrig } } : {}) },
         ];
       }),
     }));
@@ -252,6 +266,29 @@ const useCaptionStore = create((set, get) => ({
         seg.id === segId ? { ...seg, lineStyles: _patchStyleMap(seg.lineStyles, lineIdx, patch) } : seg
       ),
     }));
+  },
+
+  // #433: the AA switch. Casing is TEXT — this rewrites the words in the
+  // caption and remembers each one's previous spelling so off brings it back
+  // (casing.js). scope: { wordIdx } = one word, { lineIdx } = one typed line,
+  // neither = the whole caption. One undo step.
+  setCaptionCaps: (segId, on, { wordIdx, lineIdx } = {}) => {
+    const seg = get().captionSegments.find((s) => s.id === segId);
+    if (!seg) return;
+    const indexes = Number.isInteger(wordIdx) ? new Set([wordIdx])
+      : Number.isInteger(lineIdx) ? captionLineIndexes(seg.text, lineIdx)
+      : null;
+    const r = capsCaptionText(seg.text, seg.wordOrig, !!on, indexes);
+    if (r.text === seg.text) return;
+    _pushCrossUndo();
+    set((s) => {
+      const segs = s.captionSegments.map((sg) => {
+        if (sg.id !== segId) return sg;
+        const { wordOrig: _old, ...rest } = sg;
+        return { ...rest, text: r.text, ...(r.wordOrig ? { wordOrig: r.wordOrig } : {}) };
+      });
+      return { captionSegments: segs, captionText: segs.length > 0 ? segs[0].text : "" };
+    });
   },
 
   clearCaptionLineStyle: (segId, lineIdx) => {
@@ -308,7 +345,7 @@ const useCaptionStore = create((set, get) => ({
       const targetId = s.activeCaptionId || s.captionSegments[0]?.id;
       const segs = s.captionSegments.map((seg) =>
         seg.id === targetId
-          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles), lineStyles: _remapLineStyles(seg.text, text, seg.lineStyles) }
+          ? _retext(seg, text)
           : seg
       );
       const firstText = segs.length > 0 ? segs[0].text : "";
@@ -325,7 +362,6 @@ const useCaptionStore = create((set, get) => ({
   setCaptionBold: (b) => { _pushCrossUndo(); set({ captionBold: b }); },
   setCaptionItalic: (i) => { _pushCrossUndo(); set({ captionItalic: i }); },
   setCaptionUnderline: (u) => { _pushCrossUndo(); set({ captionUnderline: u }); },
-  setCaptionCaps: (v) => { _pushCrossUndo(); set({ captionCaps: !!v }); },
   toggleBold: () => { _pushCrossUndo(); set((s) => ({ captionBold: !s.captionBold })); },
   toggleItalic: () => { _pushCrossUndo(); set((s) => ({ captionItalic: !s.captionItalic })); },
   toggleUnderline: () => { _pushCrossUndo(); set((s) => ({ captionUnderline: !s.captionUnderline })); },
@@ -366,7 +402,7 @@ const useCaptionStore = create((set, get) => ({
     const mapping = {
       fontFamily: "captionFontFamily", fontWeight: "captionFontWeight",
       fontSize: "captionFontSize", bold: "captionBold", italic: "captionItalic",
-      underline: "captionUnderline", caps: "captionCaps", color: "captionColor",
+      underline: "captionUnderline", color: "captionColor",
       lineSpacing: "captionLineSpacing",
       strokeOn: "captionStrokeOn", strokeColor: "captionStrokeColor",
       strokeWidth: "captionStrokeWidth", strokeOpacity: "captionStrokeOpacity",
@@ -397,7 +433,9 @@ const useCaptionStore = create((set, get) => ({
     const savedSegments = clip?.captionSegments;
 
     if (Array.isArray(savedSegments) && savedSegments.length > 0) {
-      // Restore saved caption segments
+      // Restore saved caption segments. #433: 0.5.0-alpha.6 saved casing as
+      // drawn flags — turn them into real text on the way in.
+      const segs = bakeLegacyCaptionCaps(savedSegments, clip?.captionStyle?.caps);
       _nextCapId = Math.max(...savedSegments.map((s) => {
         const n = parseInt((s.id || "").replace("cap-", ""), 10);
         return isNaN(n) ? 0 : n;
@@ -407,8 +445,8 @@ const useCaptionStore = create((set, get) => ({
         // re-apply after this (useEditorStore initFromContext), so nothing from
         // the previously open clip can bleed through undefined gaps.
         ...captionStyleDefaults(),
-        captionSegments: savedSegments,
-        captionText: savedSegments[0]?.text || text,
+        captionSegments: segs,
+        captionText: segs[0]?.text || text,
         // #270: cap-N ids restart per clip — a stale word selection could match
         // the next clip's ids, so clear it on every open.
         activeCaptionWord: null,

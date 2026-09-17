@@ -3,6 +3,7 @@ import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
 import { resolveClipSubtitles, lineExtras, carryLineExtras } from "../utils/resolveSubtitles";
+import { capsSegment } from "../utils/casing";
 import { visibleSubtitleSegments } from "../models/timeMapping";
 // Cross-store imports — accessed only inside function bodies (after init),
 // so ESM live bindings resolve the cycle correctly. Do NOT destructure or
@@ -83,7 +84,7 @@ const SUB_STYLE_KEYS = [
   "glowOn", "glowColor", "glowOpacity", "glowIntensity", "glowBlur", "glowBlend", "glowOffsetX", "glowOffsetY",
   "bgOn", "bgOpacity", "bgColor", "bgPaddingX", "bgPaddingY", "bgRadius",
   "highlightColor", "subColor", "subPos", "punctOn", "showSubs", "emojiOn",
-  "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline", "subCaps",
+  "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
   "lineMode", "syncOffset", "punctuationRemove", "effectOrder",
   "animateOn", "animateScale", "animateGrowFrom", "animateSpeed",
 ];
@@ -119,7 +120,7 @@ function _snapshotStyling(subState) {
     const CAP_KEYS = [
       "captionText", "captionSegments",
       "captionFontFamily", "captionFontWeight", "captionFontSize",
-      "captionColor", "captionBold", "captionItalic", "captionUnderline", "captionCaps",
+      "captionColor", "captionBold", "captionItalic", "captionUnderline",
       "captionLineSpacing",
       "captionShadowOn", "captionShadowColor", "captionShadowBlur", "captionShadowOpacity",
       "captionShadowOffsetX", "captionShadowOffsetY",
@@ -267,7 +268,6 @@ const subtitleStyleDefaults = () => ({
   subItalic: true,
   subBold: true,
   subUnderline: false,
-  subCaps: false, // #426: draw every subtitle ALL CAPS (lines and words can opt in or out)
   lineMode: "1L",
   syncOffset: 0,
   punctuationRemove: { period: false, comma: false, question: false, exclamation: false, semicolon: false, colon: false, ellipsis: false },
@@ -317,7 +317,7 @@ const useSubtitleStore = create((set, get) => ({
     const mapping = {
       fontFamily: "subFontFamily", fontWeight: "subFontWeight",
       fontSize: "fontSize", bold: "subBold", italic: "subItalic",
-      underline: "subUnderline", caps: "subCaps", subColor: "subColor",
+      underline: "subUnderline", subColor: "subColor",
       strokeOn: "strokeOn", strokeWidth: "strokeWidth",
       strokeColor: "strokeColor", strokeOpacity: "strokeOpacity",
       strokeBlur: "strokeBlur", strokeOffsetX: "strokeOffsetX", strokeOffsetY: "strokeOffsetY",
@@ -1177,21 +1177,19 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
-  // #426: one subtitle line's own casing — true = ALL CAPS, false = as typed
-  // even when every subtitle is set to caps, null = follow the Subtitles panel.
-  // Drawn, never typed: the text keeps its spelling, so off brings back
-  // "Asuna" rather than "asuna". null REMOVES the key (same rule as `enabled`).
-  setSegmentCaps: (segId, caps) => {
-    const seg = get().editSegments.find((s) => s.id === segId);
-    if (!seg) return;
+  // #433: the AA switch. Casing is TEXT — this rewrites the words (and keeps
+  // words[] in step, which is what the preview and the export draw from), and
+  // remembers each word's previous spelling so off brings back "Cryo", not
+  // "cryo" (casing.js). No segId = every subtitle; segId = that line; segId +
+  // wordIdx (a text-token index) = that word. One undo step.
+  setSubtitleCaps: (on, segId, wordIdx) => {
+    const all = segId === undefined || segId === null;
+    if (!all && !get().editSegments.some((s) => s.id === segId)) return;
     get()._pushUndo();
     set((s) => ({
-      editSegments: s.editSegments.map((sg) => {
-        if (sg.id !== segId) return sg;
-        if (caps === true || caps === false) return { ...sg, caps };
-        const { caps: _drop, ...rest } = sg;
-        return rest;
-      }),
+      editSegments: s.editSegments.map((sg) =>
+        all || sg.id === segId ? capsSegment(sg, !!on, wordIdx) : sg
+      ),
     }));
   },
 
@@ -1291,7 +1289,6 @@ const useSubtitleStore = create((set, get) => ({
   setSubItalic: (v) => { get()._pushStyleUndo(); set({ subItalic: v }); },
   setSubBold: (v) => { get()._pushStyleUndo(); set({ subBold: v }); },
   setSubUnderline: (v) => { get()._pushStyleUndo(); set({ subUnderline: v }); },
-  setSubCaps: (v) => { get()._pushStyleUndo(); set({ subCaps: !!v }); },
   toggleSubItalic: () => { get()._pushStyleUndo(); set((s) => ({ subItalic: !s.subItalic })); },
   toggleSubBold: () => { get()._pushStyleUndo(); set((s) => ({ subBold: !s.subBold })); },
   toggleSubUnderline: () => { get()._pushStyleUndo(); set((s) => ({ subUnderline: !s.subUnderline })); },
@@ -1343,7 +1340,7 @@ const useSubtitleStore = create((set, get) => ({
     // _chunkPending separates that deferred-init state from "user deleted every segment" — deleted stays deleted.
     const wordSourceSegs = editSegments.length > 0 ? editSegments : (_chunkPending ? originalSegments : []);
     const manualIds = new Set(manualSegs.map((s) => s.id));
-    // Per-line settings (switched off #296, casing #426, own position #431) live
+    // Per-line settings (switched off #296, own position #431) live
     // on the line, and every line below is rebuilt with a fresh id — so without
     // help a mode switch silently switched disabled lines back on. Each word is
     // tagged with its old line's settings for the trip through the chunker

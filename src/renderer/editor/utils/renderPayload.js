@@ -77,7 +77,6 @@ export function buildRenderPayload() {
     bold: subState.subBold, subBold: subState.subBold,
     italic: subState.subItalic, subItalic: subState.subItalic,
     underline: subState.subUnderline, subUnderline: subState.subUnderline,
-    caps: subState.subCaps,
     subColor: subState.subColor, subMode: subState.subMode,
     highlightMode: subState.highlightMode,
     highlightColor: subState.highlightColor, showSubs: subState.showSubs,
@@ -104,7 +103,7 @@ export function buildRenderPayload() {
   const fullCaptionStyle = {
     fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight,
     fontSize: capState.captionFontSize, bold: capState.captionBold,
-    italic: capState.captionItalic, underline: capState.captionUnderline, caps: capState.captionCaps,
+    italic: capState.captionItalic, underline: capState.captionUnderline,
     color: capState.captionColor, lineSpacing: capState.captionLineSpacing,
     strokeOn: capState.captionStrokeOn, strokeColor: capState.captionStrokeColor,
     strokeWidth: capState.captionStrokeWidth, strokeOpacity: capState.captionStrokeOpacity,

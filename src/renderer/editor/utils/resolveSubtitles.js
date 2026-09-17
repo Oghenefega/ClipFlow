@@ -23,12 +23,13 @@
 const { cleanWordTimestamps } = require("./cleanWordTimestamps");
 const { mergeWordTokens, validateWords } = require("./wordRepair");
 const { fixWordCasing } = require("./subtitleCasing");
+const { bakeLegacySubtitleCaps } = require("./casing");
 
 /**
  * The per-line settings a subtitle segment carries besides its text and words:
- * `enabled: false` (#296, the line is switched off), `caps` (#426, this line's
- * own ALL CAPS on/off) and `yPercent` (#431, this line's own vertical position;
- * absent = the clip-wide subtitle position). Every hop between the project file and a
+ * `enabled: false` (#296, the line is switched off) and `yPercent` (#431, this
+ * line's own vertical position; absent = the clip-wide subtitle position).
+ * Casing is NOT one of them — it is text (#433, casing.js). Every hop between the project file and a
  * renderer rebuilds segments from NAMED fields, so anything not spread here is
  * silently dropped on the way — that is how a disabled line got burned back
  * into exports (#374). One helper, used at every hop: the resolver below,
@@ -38,7 +39,6 @@ const { fixWordCasing } = require("./subtitleCasing");
 function lineExtras(s) {
   return {
     ...(s.enabled === false ? { enabled: false } : {}),
-    ...(s.caps === true || s.caps === false ? { caps: s.caps } : {}),
     ...(Number.isFinite(s.yPercent) ? { yPercent: s.yPercent } : {}),
   };
 }
@@ -48,8 +48,8 @@ function lineExtras(s) {
  * (3 words ↔ 1 word): every line gets a fresh id, so the settings travel on the
  * words instead — each tagged `_line` with its old line's lineExtras — and are
  * read back here for the words that ended up together.
- *   - casing and position follow the line's FIRST word: a new line that starts
- *     where a moved line started is, to the eye, that line.
+ *   - position follows the line's FIRST word: a new line that starts where a
+ *     moved line started is, to the eye, that line.
  *   - switched off only when EVERY word came from a switched-off line. Merging
  *     an off line into an on one must never hide words the user could see.
  */
@@ -128,7 +128,9 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
     // concatenation → NaN downstream → dropped segments → empty panel (#78/#84).
     // Normalize to the numeric {start,end} shape the pipeline expects (words are
     // already numeric, source-absolute).
-    segments = clip.subtitles.sub1.map((s) => ({
+    // #433: 0.5.0-alpha.6 saved casing as drawn flags; turn them into real text
+    // here, once, for the editor, the Projects preview and the render alike.
+    segments = bakeLegacySubtitleCaps(clip.subtitles.sub1, clip.subtitleStyle?.caps).map((s) => ({
       start: s.startSec,
       end: s.endSec,
       text: s.text,
@@ -195,6 +197,8 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       // #270: per-word style overrides ride the word object — the repair stack
       // downstream spreads words, so this is the only place they'd be lost.
       ...(w.style ? { style: w.style } : {}),
+      // #433: the spelling to restore when ALL CAPS is switched off
+      ...(w.orig ? { orig: w.orig } : {}),
     })),
     ...lineExtras(s),
   }));

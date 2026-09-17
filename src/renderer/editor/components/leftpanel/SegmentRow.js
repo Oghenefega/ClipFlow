@@ -18,6 +18,7 @@ import useEditorStore from "../../stores/useEditorStore";
 import usePlaybackStore from "../../stores/usePlaybackStore";
 import { timelineToSource, sourceToTimeline } from "../../models/timeMapping";
 import { fmtTime, parseTime } from "../../utils/timeUtils";
+import { isAllCaps } from "../../utils/casing";
 import { InlineWordEditor } from "./InlineWordEditor";
 
 // ════════════════════════════════════════════════════════════════
@@ -209,14 +210,9 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
   // timeline-mapped copy).
   const [wordMenu, setWordMenu] = useState(null);
 
-  // #426: casing is drawn, not typed — the row shows what the video will. This
-  // line's own setting beats the Subtitles panel's; a word's beats both.
-  const subCaps = useSubtitleStore((s) => s.subCaps);
-  const lineCaps = seg.caps === true || seg.caps === false ? seg.caps : subCaps;
-  // A line whose TEXT was upper-cased by the old AA button (it rewrote the
-  // words). Still honoured: AA reads as on, and switching it off lower-cases
-  // the text, which is all that can be done for spelling already overwritten.
-  const typedAllCaps = /[a-z]/i.test(seg.text) && seg.text === seg.text.toUpperCase();
+  // #433: casing is TEXT — AA reads on when this line's words are in capitals,
+  // however they got that way (the switch, or typed).
+  const lineAllCaps = isAllCaps(seg.text);
 
   useEffect(() => {
     if (!wordMenu) return;
@@ -331,7 +327,6 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
       // override's color. Same srcWordIdx mapping as handleWordClick — seg.words
       // is the trim-filtered list, token indexes are not positional there (#131).
       const ovStyle = seg.words?.find((w, j) => (w.srcWordIdx ?? j) === currentWordIdx)?.style;
-      const wordCaps = ovStyle?.caps === true || ovStyle?.caps === false ? ovStyle.caps : lineCaps;
       const isSelected = selectedWordIdx === currentWordIdx;
       // Prioritize explicit user selection over playback-derived highlight.
       // This prevents the "off-by-one" where clicking a word highlights the prior one
@@ -361,7 +356,6 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
             inline-block cursor-pointer rounded px-0.5 transition-colors
             ${isHighlighted ? "bg-primary/20 text-primary font-semibold" : ""}
             ${!isHighlighted ? "hover:bg-secondary/60" : ""}
-            ${wordCaps ? "uppercase" : ""}
           `}
           style={ovStyle ? { boxShadow: `inset 0 -2px 0 ${ovStyle.color || "hsl(var(--primary))"}` } : undefined}
           onClick={(e) => { e.stopPropagation(); handleWordClick(currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: false }); }}
@@ -428,18 +422,12 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const sub = useSubtitleStore.getState();
-                    // #426: reversible — sets this line's casing and leaves the
-                    // spelling alone. Matching the panel-wide setting removes the
-                    // line's own key instead of storing a redundant one.
-                    if (lineCaps) sub.setSegmentCaps(seg.id, subCaps ? false : null);
-                    else if (typedAllCaps) sub.updateSegmentText(seg.id, seg.text.toLowerCase());
-                    else sub.setSegmentCaps(seg.id, subCaps ? null : true);
+                    // #433: rewrites the line's words; off brings back the
+                    // spelling they had ("Cryo", not "cryo").
+                    useSubtitleStore.getState().setSubtitleCaps(!lineAllCaps, seg.id);
                   }}
                   className={`h-5 px-1.5 rounded text-[9px] font-bold transition-colors cursor-pointer ${
-                    // A cased letter is required for the typed form — "123" equals
-                    // its own toUpperCase() and would read as on forever (#129).
-                    lineCaps || typedAllCaps
+                    lineAllCaps
                       ? "bg-primary/20 text-primary border border-primary/30"
                       : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/40 border border-transparent"
                   }`}

@@ -10,6 +10,7 @@ const { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } = require("../renderer/ed
 const { resolveClipAudioMix, isFlat, buildSourceMix } = require("../renderer/editor/models/audioMix");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles, lineExtras } = require("../renderer/editor/utils/resolveSubtitles");
+const { bakeLegacyCaptionCaps } = require("../renderer/editor/utils/casing");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe } = require("../renderer/editor/utils/reframeStyle");
 
 // Hang watchdog for the main render: ffmpeg prints a stats line every ~half
@@ -587,6 +588,17 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
  *
  * @returns {Array} timeline-time subtitle segments
  */
+// #433: the caption blocks a render draws — the editor's (options) or the saved
+// clip's. 0.5.0-alpha.6 saved ALL CAPS as drawn flags; a clip saved that way and
+// never reopened still has them, so they are turned into real text here (the
+// subtitle side does the same inside resolveClipSubtitles). The block flag is
+// read from the same place the segments came from.
+function resolveCaptionSegments(clipData, options) {
+  return options.captionSegments
+    ? bakeLegacyCaptionCaps(options.captionSegments, options.captionStyle?.caps)
+    : bakeLegacyCaptionCaps(clipData.captionSegments || [], clipData.captionStyle?.caps);
+}
+
 function resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments) {
   let subtitleSegments = [];
   let subsAreSourceAbsolute = false;
@@ -616,7 +628,7 @@ function resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments) {
         endSec: s.end,
         text: s.text,
         words: s.words,
-        ...lineExtras(s), // #426: a line's own casing must reach the overlay on batch renders too
+        ...lineExtras(s), // #431: a line's own position must reach the overlay on batch renders too
       }));
       subsAreSourceAbsolute = true;
       console.log(`[Render] Subtitle source: resolveClipSubtitles (${resolved.source}),`, subtitleSegments.length, "segments");
@@ -782,7 +794,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const subtitleSegments = resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments);
 
       // Caption segments
-      const captionSegments = options.captionSegments || clipData.captionSegments || [];
+      const captionSegments = resolveCaptionSegments(clipData, options);
 
       // ── #202: sound/song placements ── resolve each to a timeline delay
       // through the SAME helper the editor and the preview use, so what he
@@ -1304,7 +1316,7 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
   const subtitleSegments = resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments);
-  const captionSegments = options.captionSegments || clipData.captionSegments || [];
+  const captionSegments = resolveCaptionSegments(clipData, options);
   const hasOverlay = subtitleSegments.length > 0 || captionSegments.length > 0;
 
   // One overlay frame at the playhead, written to a temp PNG beside the output

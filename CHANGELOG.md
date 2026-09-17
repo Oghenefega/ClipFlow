@@ -4,6 +4,24 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-17 (session 262) — ALL CAPS rebuilt as real text: one AA switch, and switching it off brings back the spelling you had
+
+### Fixed
+- **ALL CAPS showed one thing on the video and another in the text box, and could not lower-case a word typed in capitals (#433).** alpha.6 drew capitals as an effect and left the text alone, against #426's own written plan. So pressing AB on a caption word gave SAYING on the video while the text box and the word chip still read "saying", and pressing Aa on a word typed as "OUT" did nothing, because there was no effect to remove. Casing is now the text itself: the switch rewrites the words, so the text box, the word chips, the Edit Subtitles rows, the preview, the Projects preview and the export all print the same string. Checked in the running editor on a rejected fixture clip: after AA on "saying" the box, chip, card header, preview and timeline all read SAYING; six more presses alternated cleanly; AA on the typed "OUT" gave "out".
+
+### Changed
+- **One AA switch replaces the Aa | AB pair (#433).** The same switch as on each Edit Subtitles row now sits in the Subtitles toolbar (every subtitle), the Text toolbar (the whole caption) and on the card that opens for a word or a caption line. It is never stored as a setting — it lights when the words it covers are in capitals, however they got that way, so typing DUDE switches it on by itself.
+- **Switching AA off brings back the spelling the word had (#433).** "Cryo" → "CRYO" → "Cryo" and "oOoOOo" → "OOOOOO" → "oOoOOo": each word's previous spelling is remembered when it is capitalised and restored when it is switched back, per word — so a whole line can be capitalised and one word switched back on its own. A word that was typed in capitals has nothing to restore and lower-cases, with a standalone I / I'm / I'll / I've / I'd kept capital. A word retyped while in capitals drops its stale memory. The memory is saved with the clip and survives a reopen, a change of subtitle grouping (3 words ↔ 1 word, both directions) and undo/redo (one step per press), all checked in the editor.
+- **ALL CAPS is no longer part of a template (#433).** Capitals are something pressed per clip; applying a template never changes the words.
+- **Clips capitalised on alpha.6 are converted where they are read.** The drawn flags (whole text, a line, a word, including opt-outs) become real text with the spelling remembered, in the shared subtitle resolver, the caption store, the Projects preview and the export — so a clip capitalised on alpha.6 and never reopened still exports the way it looked. Proven on frames of a real export of such a clip ("NO", "not dying" left alone, "that IS", "WHAT A PLAY / by ASUNA"), and of the same clip after it was reopened and one word switched back ("by Asuna").
+- **Session wrap now writes the What's New lines.** alpha.6's What's New had to be written at cut time from the changelog, because no routine except the release skill named `src/main/release-notes.js` — ten cuts in a row went that way. The session-end routine has a new step: unless an installer carried the work, write plain-language lines for the session's user-visible changes into the `"unreleased"` entry. The release skill now checks the waiting entry against the commits going out.
+
+### Removed
+- The drawn-capitals code added in alpha.6: `text-transform` in the style engine, the preview and the export overlay, the `caps` flag on subtitle lines, word styles, caption line styles, both style blocks, the render payload and templates, and the `subCaps` / `captionCaps` store settings. Its 7 tests went with it; 25 new ones cover the new behaviour (525 total).
+
+### Filed
+- **#433** — the bug above, with the trace and both of Fega's follow-up requirements (the single switch, restoring the spelling).
+
 ## [Unreleased] — 2026-09-17 (session 262) — 0.5.0-alpha.6 on the feed
 
 ### Changed

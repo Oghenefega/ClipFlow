@@ -223,9 +223,6 @@ function renderSubtitle(timestamp) {
     const textDiv = document.createElement("div");
     applyStyles(textDiv, textStyle);
     textDiv.style.display = "block";
-    // #426: this subtitle line's own casing, over the block style's
-    const lineCaps = styleEngine.capsTransform(currentSeg.caps);
-    if (lineCaps) textDiv.style.textTransform = lineCaps;
 
     // Render each word
     visibleWords.forEach((w, i) => {
@@ -239,11 +236,10 @@ function renderSubtitle(timestamp) {
         ? styleEngine.buildSubtitleWordOverrideCss(s, w.style, getScaleFactor())
         : null;
 
-      // Progressive fill only when highlightMode is "progressive". A casing-only
-      // override (#426) has no color of its own, so the word still sweeps.
+      // Progressive fill only when highlightMode is "progressive"
       const useProgressiveFill = highlightMode === "progressive" &&
         isActive && karaokeActive && wordProgress > 0 && wordProgress < 1 &&
-        !(ovCss && ovCss.color);
+        !ovCss;
 
       const wordText = styleEngine.stripPunctuation(w.word || "", punctuationRemove);
       const suffix = i < visibleWords.length - 1 ? " " : "";
@@ -255,7 +251,6 @@ function renderSubtitle(timestamp) {
         wrapper.style.position = "relative";
         wrapper.style.transformOrigin = "center bottom";
         wrapper.style.verticalAlign = "baseline";
-        if (ovCss) applyStyles(wrapper, ovCss); // casing only here — base + sweep inherit it
 
         // Base text (normal color)
         const base = document.createElement("span");
@@ -311,8 +306,6 @@ function renderSubtitle(timestamp) {
     const textDiv = document.createElement("div");
     applyStyles(textDiv, textStyle);
     textDiv.style.display = "block";
-    const lineCaps = styleEngine.capsTransform(currentSeg.caps);
-    if (lineCaps) textDiv.style.textTransform = lineCaps;
     if (shadows.normal) textDiv.style.textShadow = shadows.normal;
     textDiv.textContent = currentSeg.text || "";
     inner.appendChild(textDiv);

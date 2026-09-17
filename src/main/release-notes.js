@@ -12,6 +12,20 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    changed: [
+      "ALL CAPS is now one AA switch, the same one as on each subtitle row. You will find it in the Subtitles toolbar (every subtitle), the Text toolbar (the whole caption) and on the card that opens when you click a word or a caption line. It lights up whenever the words are in capitals, so typing DUDE switches it on by itself.",
+      "Switching AA off brings back the spelling you had. \"Cryo\" becomes \"CRYO\" and goes back to \"Cryo\", not \"cryo\". It remembers each word on its own, so you can capitalise a whole line and switch one word back. A word you typed in capitals goes to lowercase, and a lone \"I\" stays capital.",
+      "Capitals are no longer saved in templates. They are something you press per clip.",
+    ],
+    fixed: [
+      "Capitalising a caption word showed it in capitals on the video while the text box and the word chip still showed it in lowercase. The text box, the chips, the subtitle rows, the preview and the export now always read the same.",
+      "Pressing the lowercase button on a word you had typed in capitals did nothing. The AA switch now lower-cases it.",
+      "Clips you capitalised on the previous version look the same after this update, including ones you have not reopened.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.6",
     date: "2026-09-17",
     added: [

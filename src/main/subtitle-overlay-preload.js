@@ -47,7 +47,6 @@ contextBridge.exposeInMainWorld("overlayAPI", {
       styleEngine.buildCaptionWordOverrideCss(style, override, scale),
     buildCaptionTokens: (text, wordStyles, lineStyles) =>
       styleEngine.buildCaptionTokens(text, wordStyles, lineStyles), // #366
-    capsTransform: (caps) => styleEngine.capsTransform(caps), // #426
   },
   wordFinder: {
     findActiveWord: (segments, index, time) =>

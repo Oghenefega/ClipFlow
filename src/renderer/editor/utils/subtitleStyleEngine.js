@@ -117,7 +117,6 @@ function buildSubtitleStyle(config, scaleFactor) {
     width: "100%",
     textDecoration: s.underline ? "underline" : "none",
   };
-  if (s.caps) style.textTransform = "uppercase";
   if (s.bgOn) {
     style.background = hexToRgba(s.bgColor || "#000", s.bgOpacity ?? 80);
     // No floors — padding and radius must scale purely with scaleFactor to keep the
@@ -172,7 +171,6 @@ function buildCaptionStyle(config, scaleFactor) {
     width: "100%",
     textDecoration: c.underline ? "underline" : "none",
   };
-  if (c.caps) style.textTransform = "uppercase";
   if (c.bgOn) {
     style.background = hexToRgba(c.bgColor || "#000", c.bgOpacity ?? 70);
     // No floors — padding and radius must scale purely with scaleFactor.
@@ -218,38 +216,12 @@ function hasOverride(ov) {
   return !!ov && Object.keys(ov).length > 0;
 }
 
-// ── Casing (#426) ──
-//
-// ALL CAPS is drawn, never typed: the text keeps the spelling the user gave it
-// ("Asuna", "I", "VCT"), so switching caps off brings it back exactly. `caps`
-// is true (ALL CAPS), false (as typed) or absent (inherit) at each level —
-// block style < subtitle line < caption line < word — and the innermost level
-// that says anything wins. Returns the CSS text-transform for one level, or
-// null when that level is silent; a span's "none" overrides a block's
-// "uppercase", which is what lets one word opt out of an ALL CAPS caption.
-function capsTransform(caps) {
-  return caps === true ? "uppercase" : caps === false ? "none" : null;
-}
-
-// An override that only sets casing leaves the word's look alone — it returns
-// no color/textShadow, so the word keeps the line's style and, for subtitles,
-// its karaoke highlight (callers tell the two kinds apart by `css.color`).
-function splitCasing(ov) {
-  const { caps, ...look } = ov;
-  const css = {};
-  const tt = capsTransform(caps);
-  if (tt) css.textTransform = tt;
-  return { css, look };
-}
-
 function buildSubtitleWordOverrideCss(lineConfig, ov, scaleFactor) {
   if (!hasOverride(ov)) return null;
-  const { css, look } = splitCasing(ov);
-  if (!hasOverride(look)) return css;
-  const merged = { ...(lineConfig || {}), ...look };
+  const merged = { ...(lineConfig || {}), ...ov };
   // Subtitle configs name the text color "subColor"; overrides use neutral "color"
   if (ov.color) merged.subColor = ov.color;
-  css.color = merged.subColor || "#ffffff";
+  const css = { color: merged.subColor || "#ffffff" };
   css.textShadow = buildSubtitleShadows(merged, scaleFactor).normal;
   if (ov.fontFamily) css.fontFamily = `'${ov.fontFamily}', sans-serif`;
   if (ov.fontSize) css.fontSize = `${ov.fontSize * scaleFactor}px`;
@@ -258,10 +230,8 @@ function buildSubtitleWordOverrideCss(lineConfig, ov, scaleFactor) {
 
 function buildCaptionWordOverrideCss(lineConfig, ov, scaleFactor) {
   if (!hasOverride(ov)) return null;
-  const { css, look } = splitCasing(ov);
-  if (!hasOverride(look)) return css;
-  const merged = { ...(lineConfig || {}), ...look };
-  css.color = merged.color || "#ffffff";
+  const merged = { ...(lineConfig || {}), ...ov };
+  const css = { color: merged.color || "#ffffff" };
   css.textShadow = buildCaptionShadowString(merged, scaleFactor);
   if (ov.fontFamily) css.fontFamily = `'${ov.fontFamily}', sans-serif`;
   // Same ×2.4 multiplier as the caption block font size
@@ -330,5 +300,4 @@ module.exports = {
   buildSubtitleWordOverrideCss,
   buildCaptionWordOverrideCss,
   buildCaptionTokens,
-  capsTransform,
 };

@@ -1,4 +1,4 @@
-// Per-line settings (#296 enabled, #426 caps) must survive the REAL resolver —
+// Per-line settings (#296 enabled, #431 yPercent) must survive the REAL resolver —
 // it rebuilds every segment from named fields at three hops, and a setting that
 // is not carried at each one is silently dropped between the project file and
 // the preview/export. Driven with an editor-saved clip, unmocked, because a
@@ -19,11 +19,10 @@ function savedClip(sub1) {
 describe("lineExtras", () => {
   test("carries only what the line actually set", () => {
     expect(lineExtras({ text: "x" })).toEqual({});
-    expect(lineExtras({ enabled: true, caps: undefined })).toEqual({});
+    expect(lineExtras({ enabled: true })).toEqual({});
     expect(lineExtras({ enabled: false })).toEqual({ enabled: false });
-    expect(lineExtras({ caps: true })).toEqual({ caps: true });
-    // false is a real setting: "as typed" inside an ALL CAPS subtitle style
-    expect(lineExtras({ caps: false })).toEqual({ caps: false });
+    // #433: casing is text now — a leftover 0.5.0-alpha.6 flag is not carried
+    expect(lineExtras({ caps: true })).toEqual({});
   });
 
   test("#431: a line's own position rides along; anything that isn't a number does not", () => {
@@ -41,13 +40,13 @@ describe("carryLineExtras — settings across a subtitle grouping change", () =>
   const w = (word, _line) => ({ word, start: 0, end: 1, _line });
 
   test("3 words -> 1 word: every new line keeps its old line's settings", () => {
-    const moved = { yPercent: 30, caps: true };
-    expect(carryLineExtras([w("what", moved)])).toEqual({ caps: true, yPercent: 30 });
+    const moved = { yPercent: 30 };
+    expect(carryLineExtras([w("what", moved)])).toEqual({ yPercent: 30 });
     expect(carryLineExtras([w("plain", {})])).toEqual({});
   });
 
-  test("1 word -> 3 words: casing and position follow the first word", () => {
-    const out = carryLineExtras([w("a", { yPercent: 30 }), w("b", {}), w("c", { yPercent: 70, caps: true })]);
+  test("1 word -> 3 words: position follows the first word", () => {
+    const out = carryLineExtras([w("a", { yPercent: 30 }), w("b", {}), w("c", { yPercent: 70 })]);
     expect(out).toEqual({ yPercent: 30 });
   });
 
@@ -72,13 +71,13 @@ describe("carryLineExtras — settings across a subtitle grouping change", () =>
 
 describe("resolveClipSubtitles keeps per-line settings from an editor-saved clip", () => {
   const clip = savedClip([
-    { id: 1, startSec: 100, endSec: 101, text: "what a play", caps: true,
+    { id: 1, startSec: 100, endSec: 101, text: "what a play", yPercent: 30,
       words: [word("what", 100, 100.3), word("a", 100.3, 100.5), word("play", 100.5, 101)] },
-    { id: 2, startSec: 101, endSec: 102, text: "by Asuna", caps: false,
-      words: [word("by", 101, 101.4), word("Asuna", 101.4, 102)] },
+    { id: 2, startSec: 101, endSec: 102, text: "by CRYO",
+      words: [word("by", 101, 101.4), { ...word("CRYO", 101.4, 102), orig: "Cryo" }] },
     { id: 3, startSec: 102, endSec: 103, text: "no setting",
       words: [word("no", 102, 102.5), word("setting", 102.5, 103)] },
-    { id: 4, startSec: 103, endSec: 104, text: "switched off", enabled: false, caps: true,
+    { id: 4, startSec: 103, endSec: 104, text: "switched off", enabled: false, yPercent: 12,
       words: [word("switched", 103, 103.5), word("off", 103.5, 104)] },
   ]);
 
@@ -86,21 +85,21 @@ describe("resolveClipSubtitles keeps per-line settings from an editor-saved clip
 
   test("the clip resolved from its saved subtitles", () => {
     expect(source).not.toBeNull();
-    expect(segments.map((s) => s.text)).toEqual(["what a play", "by Asuna", "no setting", "switched off"]);
+    expect(segments.map((s) => s.text)).toEqual(["what a play", "by CRYO", "no setting", "switched off"]);
   });
 
-  test("caps: true, false and absent all come through as written", () => {
-    expect(segments.map((s) => s.caps)).toEqual([true, false, undefined, true]);
-    expect("caps" in segments[2]).toBe(false);
+  test("a line's own position comes through as written, and only where it was set", () => {
+    expect(segments.map((s) => s.yPercent)).toEqual([30, undefined, undefined, 12]);
+    expect("yPercent" in segments[2]).toBe(false);
   });
 
-  test("the spelling is untouched — caps are drawn, not typed", () => {
-    expect(segments[0].words.map((w) => w.word)).toEqual(["what", "a", "play"]);
-    expect(segments[1].words.map((w) => w.word)).toEqual(["by", "Asuna"]);
+  test("#433: a word's remembered spelling survives the reopen — the words are rebuilt from named fields here", () => {
+    expect(segments[1].words.map((w) => [w.word, w.orig])).toEqual([["by", undefined], ["CRYO", "Cryo"]]);
+    expect("orig" in segments[1].words[0]).toBe(false);
   });
 
   test("a switched-off line keeps both of its settings", () => {
     expect(segments[3].enabled).toBe(false);
-    expect(segments[3].caps).toBe(true);
+    expect(segments[3].yPercent).toBe(12);
   });
 });

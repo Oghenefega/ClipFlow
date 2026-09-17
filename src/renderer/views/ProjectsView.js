@@ -6,6 +6,7 @@ import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePi
 import TestChip from "../components/TestChip";
 import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { fixTextCasing } from "../editor/utils/subtitleCasing";
+import { bakeLegacyCaptionCaps } from "../editor/utils/casing";
 import { SubtitleOverlay, CaptionOverlay, useActiveSubtitleLine } from "../editor/components/PreviewOverlays";
 import { sourceToTimeline, timelineToSource, getTimelineDuration } from "../editor/models/timeMapping";
 import { getReasonChips } from "../../shared/rejectReasons";
@@ -294,7 +295,11 @@ function ClipVideoPlayer({ clip, project, template }) {
   }, [clip, project, subTpl]);
 
   // Caption segments from saved clip data
-  const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
+  // (#433: a clip saved on 0.5.0-alpha.6 may still carry ALL CAPS as drawn flags)
+  const captions = useMemo(
+    () => bakeLegacyCaptionCaps(clip.captionSegments || [], clip.captionStyle?.caps),
+    [clip.captionSegments, clip.captionStyle?.caps]
+  );
 
   // Apply syncOffset if the clip was saved from the editor with a timing adjustment
   const syncOffset = clip.subtitleStyle?.syncOffset || 0;

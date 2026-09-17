@@ -1005,7 +1005,6 @@ export default function PreviewPanelNew() {
   const subItalic = useSubtitleStore((s) => s.subItalic);
   const subBold = useSubtitleStore((s) => s.subBold);
   const subUnderline = useSubtitleStore((s) => s.subUnderline);
-  const subCaps = useSubtitleStore((s) => s.subCaps);
   const fontSize = useSubtitleStore((s) => s.fontSize);
   const strokeWidth = useSubtitleStore((s) => s.strokeWidth);
   const strokeOn = useSubtitleStore((s) => s.strokeOn);
@@ -1058,7 +1057,6 @@ export default function PreviewPanelNew() {
   const captionBold = useCaptionStore((s) => s.captionBold);
   const captionItalic = useCaptionStore((s) => s.captionItalic);
   const captionUnderline = useCaptionStore((s) => s.captionUnderline);
-  const captionCaps = useCaptionStore((s) => s.captionCaps);
   const captionLineSpacing = useCaptionStore((s) => s.captionLineSpacing);
   const captionShadowOn = useCaptionStore((s) => s.captionShadowOn);
   const captionShadowColor = useCaptionStore((s) => s.captionShadowColor);
@@ -1108,7 +1106,7 @@ export default function PreviewPanelNew() {
   // Same shape as clip.subtitleStyle / clip.captionStyle (what handleSave persists)
   const subtitleStyleConfig = useMemo(() => ({
     fontFamily: subFontFamily, fontWeight: subFontWeight,
-    fontSize, bold: subBold, italic: subItalic, underline: subUnderline, caps: subCaps,
+    fontSize, bold: subBold, italic: subItalic, underline: subUnderline,
     subColor,
     strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
     shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
@@ -1117,7 +1115,7 @@ export default function PreviewPanelNew() {
     effectOrder, highlightColor,
     animateOn, animateScale, animateGrowFrom, animateSpeed,
     segmentMode, punctuationRemove,
-  }), [subFontFamily, subFontWeight, fontSize, subBold, subItalic, subUnderline, subCaps, subColor,
+  }), [subFontFamily, subFontWeight, fontSize, subBold, subItalic, subUnderline, subColor,
     strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
     shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
     glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
@@ -1128,7 +1126,7 @@ export default function PreviewPanelNew() {
   const captionStyleConfig = useMemo(() => ({
     fontFamily: captionFontFamily, fontWeight: captionFontWeight,
     fontSize: captionFontSize, bold: captionBold, italic: captionItalic,
-    underline: captionUnderline, caps: captionCaps, color: captionColor, lineSpacing: captionLineSpacing,
+    underline: captionUnderline, color: captionColor, lineSpacing: captionLineSpacing,
     strokeOn: captionStrokeOn, strokeColor: captionStrokeColor, strokeWidth: captionStrokeWidth,
     strokeOpacity: captionStrokeOpacity, strokeBlur: captionStrokeBlur,
     strokeOffsetX: captionStrokeOffsetX, strokeOffsetY: captionStrokeOffsetY,
@@ -1141,7 +1139,7 @@ export default function PreviewPanelNew() {
     bgPaddingX: captionBgPaddingX, bgPaddingY: captionBgPaddingY, bgRadius: captionBgRadius,
     effectOrder: captionEffectOrder,
   }), [captionFontFamily, captionFontWeight, captionFontSize, captionBold, captionItalic,
-    captionUnderline, captionCaps, captionColor, captionLineSpacing,
+    captionUnderline, captionColor, captionLineSpacing,
     captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, captionStrokeBlur,
     captionStrokeOffsetX, captionStrokeOffsetY,
     captionGlowOn, captionGlowColor, captionGlowOpacity, captionGlowIntensity, captionGlowBlur,

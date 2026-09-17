@@ -2058,3 +2058,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **What happened:** multi-select (#430) keeps the selection in a ref for handlers that run before React re-renders. As a safety net I also re-assigned that ref from state on every render. Alt+drag of a 3-block selection then left two copies ~38px behind the dragged one: the store write inside the gesture re-renders the panel synchronously, BEFORE React applies the selection queued in the same handler, so the render-time line put the OLD selection back in the ref for the rest of the drag.
 
 **Rule:** a ref that exists because state lags must have ONE writer, and it is never re-derived from that state during render. If other call sites still set the state directly, route them through the writer — don't paper over them with a resync. And verify gestures at several distances with a spacing assertion: a single drag "worked".
+
+## Session 262 (2026-09-17) — ALL CAPS (#426) shipped as a drawn effect when the issue said rewrite the text; Fega: "It's badly written"
+
+**What happened:** #426's written plan said "Casing is CONTENT, not style — rewrite the text (no textTransform flag)". Session 261 built the opposite — a `caps` flag drawn with `text-transform` — to keep "Asuna"/"I" restorable, and never asked. Result on Fega's first use: AB on a caption word showed SAYING on the video while the text box and the word chip still read "saying"; and a word he TYPED as "OUT" did nothing on Aa, because Aa meant "as typed", not lowercase. Two surfaces showing the same words disagreed, and a button was a silent no-op.
+
+**Why:** optimised for an edge case nobody raised (restoring proper-noun spelling) at the cost of the basic contract of a text editor: the box you type in IS the text. Verification checked the video frame and the export, never "does the text box say what the video says" or "press Aa on text typed in capitals".
+
+**Rule:** the text a user can edit and the text on the video must read the same, everywhere it appears (text box, chips, rows, preview, export) — a display-only transform on editable text is a bug by design. A control must never be a no-op on input the user can plainly see (typed caps + Aa). And departing from an issue's written plan is a decision for Fega, asked BEFORE building, not explained in a commit message after.
