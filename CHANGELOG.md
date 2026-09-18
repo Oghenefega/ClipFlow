@@ -4,6 +4,16 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-18 (session 265) — Layout panel: This section by default, Ctrl+Z for every layout change, the section's saved layout marked
+
+### Changed
+- **The Layout drawer opens on "This section" (#442).** It used to open on "This clip" every time, so clicking a saved layout after selecting a section changed the whole clip. Now every opening of the drawer starts on "This section". Clicking a section on the timeline also switches to it, even with the drawer already open on "This clip". A "This clip" choice lasts only while the drawer stays open. Clips without a cut are unaffected. The first-time "set up vertical layout" banner still sets up the whole clip.
+- **The saved layout a section uses is marked in the Layout drawer (#444).** The Saved layouts list tags the layout the section under the playhead started from ("This section") and the clip's layout ("This clip"), whichever view is showing. The row the current view is showing is highlighted. Once a layout no longer matches the saved one it came from, the tag says "· edited" and the sentence above the buttons adds "(edited)". That covers a later "Update" to the saved layout and a nudge on the section, which together apply to 95 of the 118 section layouts in the real library. This replaces the small grey "In use" pill, which only ever marked the view on screen. Checked in the running editor in the dark theme and both light themes.
+
+### Fixed
+- **Layout changes could not be undone (#443).** Section layouts were already undoable. Clip layouts were not: clicking a saved layout on the clip, Apply, Paste, "Use project layout" and "No layout for this clip" wrote to disk and skipped the undo history. The same went for the three buttons that change every clip in the recording. All of them are now one Ctrl+Z step, and Ctrl+Shift+Z brings them back. Undoing "Replace on every clip" puts back every other clip's own layout and its section layouts too. Only layout fields are written back, and only for clips that differ. While editing a layout, Ctrl+Z and the toolbar arrows step back through that edit on their own: one drag, slider move, Detect or preset at a time. They no longer undo an unrelated earlier edit, a subtitle change for example, and leave the boxes in place. Checked in the running editor on a scratch copy of a project with only rejected clips: section, clip and every-clip changes undone and redone, the saved file matched field for field after undoing "Replace on every clip", and edit steps undone one at a time without touching anything else.
+- **Layout drawer content ran past the drawer's right edge at the default width.** The drawer's scroll area sized itself to its widest row. The longest saved-layout name pushed the panel about 10px past the edge, cutting off "Paste layout" and the end of sentences, and the new tags made it worse. Rows now truncate the name instead, the fix #215 gave the Audio panel.
+
 ## [Unreleased] — 2026-09-17 (session 264) — A clip can no longer be posted twice at once
 
 ### Fixed

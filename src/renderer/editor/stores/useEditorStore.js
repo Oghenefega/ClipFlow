@@ -52,6 +52,32 @@ function projectWithClipReframe(project, clipId, reframe) {
   };
 }
 
+// #443: a layout as an undo snapshot records it. "inherit" stands in for an
+// absent key so the record survives JSON; null and objects keep their meaning.
+function layoutValue(r) {
+  if (r === undefined) return "inherit";
+  return r === null ? null : JSON.parse(JSON.stringify(r));
+}
+
+// Replace (or drop, for "inherit") the reframe key of a clip/section/project.
+function withLayoutValue(obj, value) {
+  const { reframe: _drop, ...rest } = obj;
+  return value === "inherit" ? rest : { ...rest, reframe: value };
+}
+
+// #443: the edit view's own undo steps — the boxes and background only.
+// A drag or slider move arrives as a stream of ticks; a new step starts only
+// after a pause longer than this, so one gesture undoes as one.
+const DRAFT_STEP_GAP_MS = 400;
+function draftLook(d) {
+  return { camRect: d.camRect ? { ...d.camRect } : null, gameRect: { ...d.gameRect }, style: { ...d.style } };
+}
+function draftHistoryPatch(state) {
+  const now = Date.now();
+  if (now - state._draftEditAt <= DRAFT_STEP_GAP_MS) return { _draftEditAt: now };
+  return { _draftPast: [...state._draftPast.slice(-49), draftLook(state.reframeDraft)], _draftFuture: [], _draftEditAt: now };
+}
+
 // #297: the writer hands back errno text ("EPERM: operation not permitted,
 // rename '...'"). A creator needs the cause, not the syscall — and needs enough
 // to report it. Say what happened, keep the code. Unrecognised errors pass
@@ -217,6 +243,11 @@ const useEditorStore = create((set, get) => ({
   // null = not calibrating. The preview renders boxes + a live vertical PiP
   // from this draft; commitReframeDraft persists it, cancelReframeDraft drops it.
   reframeDraft: null,
+  // #443: the draft's own undo history (see draftHistoryPatch). Reset when a
+  // draft begins; only read while one is open.
+  _draftPast: [],
+  _draftFuture: [],
+  _draftEditAt: 0,
 
   // The Layout panel owns the Result canvas element; the preview compositor paints it.
   reframePipCanvas: null,
@@ -238,7 +269,9 @@ const useEditorStore = create((set, get) => ({
 
   // #349: which target the Layout panel writes to — the open clip (Phase A
   // behaviour) or the section under the playhead. Reset on clip load.
-  layoutScope: "clip",
+  // #442: "section" by default — opening on "clip" meant a click meant for one
+  // section rewrote the whole clip. Clips without a cut ignore it.
+  layoutScope: "section",
   // #369: bumps on every Copy so Paste buttons re-render; the clipboard itself
   // is module-level. layoutNotice is the last copy/paste outcome for the
   // Layout panel to show (the timeline menu has no message surface of its own).
@@ -422,7 +455,7 @@ const useEditorStore = create((set, get) => ({
       previewWarning: null, // re-probed below for the newly opened source
       reframeDraft: null, // #164: a clip/project switch drops any in-flight calibration
       reframeAutoDetectPending: false,
-      layoutScope: "clip", // #349
+      layoutScope: "section", // #349, #442
     });
 
     if (!sourceOffline && project?.sourceFile) get().checkSourcePlayability(project.sourceFile);
@@ -1187,6 +1220,7 @@ const useEditorStore = create((set, get) => ({
           sourceH: h,
           targetSegmentId,
         },
+        _draftPast: [], _draftFuture: [], _draftEditAt: 0, // #443
       });
       return;
     }
@@ -1203,6 +1237,7 @@ const useEditorStore = create((set, get) => ({
         sourceH: h,
         targetSegmentId,
       },
+      _draftPast: [], _draftFuture: [], _draftEditAt: 0, // #443
     });
   },
 
@@ -1213,11 +1248,15 @@ const useEditorStore = create((set, get) => ({
     const next = key === "camRect" && rect === null
       ? null
       : { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h) };
+    // #443: an unchanged box must not become an undo step that does nothing.
+    const cur = reframeDraft[key];
+    if (next === null ? cur === null : cur && cur.x === next.x && cur.y === next.y && cur.w === next.w && cur.h === next.h) return;
     set({
       reframeDraft: {
         ...reframeDraft,
         [key]: next,
       },
+      ...draftHistoryPatch(get()),
     });
   },
 
@@ -1226,11 +1265,37 @@ const useEditorStore = create((set, get) => ({
   updateReframeStyle: (patch) => {
     const { reframeDraft } = get();
     if (!reframeDraft) return;
+    const style = resolveReframeStyle({ ...reframeDraft.style, ...patch });
+    if (Object.keys(style).every((k) => style[k] === reframeDraft.style[k])) return; // #443: no empty steps
     set({
       reframeDraft: {
         ...reframeDraft,
-        style: resolveReframeStyle({ ...reframeDraft.style, ...patch }),
+        style,
       },
+      ...draftHistoryPatch(get()),
+    });
+  },
+
+  // #443: Ctrl+Z / Ctrl+Shift+Z while the edit view is open. Steps through the
+  // boxes and background only — never the main undo stack.
+  undoReframeDraft: () => {
+    const { reframeDraft, _draftPast, _draftFuture } = get();
+    if (!reframeDraft || _draftPast.length === 0) return;
+    set({
+      reframeDraft: { ...reframeDraft, ..._draftPast[_draftPast.length - 1] },
+      _draftPast: _draftPast.slice(0, -1),
+      _draftFuture: [..._draftFuture, draftLook(reframeDraft)],
+      _draftEditAt: 0, // the next edit starts its own step
+    });
+  },
+  redoReframeDraft: () => {
+    const { reframeDraft, _draftPast, _draftFuture } = get();
+    if (!reframeDraft || _draftFuture.length === 0) return;
+    set({
+      reframeDraft: { ...reframeDraft, ..._draftFuture[_draftFuture.length - 1] },
+      _draftFuture: _draftFuture.slice(0, -1),
+      _draftPast: [..._draftPast, draftLook(reframeDraft)],
+      _draftEditAt: 0,
     });
   },
 
@@ -1278,6 +1343,7 @@ const useEditorStore = create((set, get) => ({
       set({ reframeDraft: null });
       return { success: true };
     }
+    get()._pushNleUndo(); // #443: before the write, so Ctrl+Z has the old layout
     const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
     if (result?.error) return result;
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
@@ -1457,6 +1523,7 @@ const useEditorStore = create((set, get) => ({
     }
     // Clip target — same path as applying a saved layout to the clip.
     const clipId = clip.id;
+    get()._pushNleUndo(); // #443
     const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
     if (result?.error) return fail(result.error);
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return fail("Clip changed during save");
@@ -1475,6 +1542,7 @@ const useEditorStore = create((set, get) => ({
     const { project, clip } = get();
     if (!project?.id || !clip?.id) return { error: "No clip open" };
     const clipId = clip.id;
+    get()._pushNleUndo(); // #443
     const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, "inherit");
     if (result?.error) return result;
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
@@ -1489,6 +1557,7 @@ const useEditorStore = create((set, get) => ({
     const { project, clip } = get();
     if (!project?.id || !clip?.id) return { error: "No clip open" };
     const clipId = clip.id;
+    get()._pushNleUndo(); // #443
     const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, null);
     if (result?.error) return result;
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
@@ -1511,6 +1580,7 @@ const useEditorStore = create((set, get) => ({
     if (!project?.id) return { error: "No project" };
     const keepOverrides = !!opts.keepOverrides;
     const eff = reframeArg !== undefined ? reframeArg : resolveClipReframe(clip, project);
+    get()._pushNleUndo(); // #443: the snapshot holds every clip's layouts, so this undoes too
     const result = await window.clipflow.projectApplyReframeAllClips(project.id, eff, { keepOverrides, dropClipId: clip?.id || null });
     if (result?.error) return result;
     if (get().project?.id !== project.id) return { error: "Project changed during save" };
@@ -1583,6 +1653,7 @@ const useEditorStore = create((set, get) => ({
       set({ reframeDraft: null });
       return { success: true };
     }
+    get()._pushNleUndo(); // #443
     const result = await window.clipflow.projectUpdateClipReframe(project.id, clipId, reframe);
     if (result?.error) return result;
     if (get().project?.id !== project.id || get().clip?.id !== clipId) return { error: "Clip changed during save" };
@@ -1592,6 +1663,61 @@ const useEditorStore = create((set, get) => ({
       reframeDraft: null,
     });
     return { success: true };
+  },
+
+  // #443: every layout the open editor can change, as one JSON-safe record for
+  // the undo stack — the project layout, this clip's own, and every OTHER
+  // clip's own layout plus its section layouts (the every-clip buttons reach
+  // those). This clip's section layouts are not here: they ride nleSegments in
+  // the same snapshot and are saved by autosave.
+  _snapshotLayouts: () => {
+    const { project, clip } = get();
+    if (!project?.id || !clip?.id) return null;
+    return {
+      projectId: project.id,
+      clipId: clip.id,
+      project: layoutValue(project.reframe),
+      clips: [
+        { id: clip.id, reframe: layoutValue(clip.reframe) },
+        ...(project.clips || []).filter((c) => c.id !== clip.id).map((c) => ({
+          id: c.id,
+          reframe: layoutValue(c.reframe),
+          sections: (c.nleSegments || []).map((s) => ({ id: s.id, reframe: layoutValue(s.reframe) })),
+        })),
+      ],
+    };
+  },
+
+  // #443: put a _snapshotLayouts record back — in the store at once (preview
+  // and panel follow the keypress), then on disk for whatever differs.
+  _restoreLayouts: (snap) => {
+    const { project, clip } = get();
+    if (!snap || !project?.id || snap.projectId !== project.id || snap.clipId !== clip?.id) return;
+    const now = get()._snapshotLayouts();
+    const nowClips = new Map(now.clips.map((c) => [c.id, JSON.stringify(c)]));
+    const changed = snap.clips.filter((c) => nowClips.get(c.id) !== JSON.stringify(c));
+    const projectChanged = JSON.stringify(now.project) !== JSON.stringify(snap.project);
+    if (!changed.length && !projectChanged) return;
+    const byId = new Map(changed.map((c) => [c.id, c]));
+    const own = byId.get(clip.id);
+    set({
+      project: {
+        ...(projectChanged ? withLayoutValue(project, snap.project) : project),
+        clips: (project.clips || []).map((c) => {
+          const e = byId.get(c.id);
+          if (!e) return c;
+          const next = withLayoutValue(c, e.reframe);
+          if (!e.sections || !c.nleSegments) return next;
+          const secs = new Map(e.sections.map((s) => [s.id, s.reframe]));
+          return { ...next, nleSegments: c.nleSegments.map((s) => (secs.has(s.id) ? withLayoutValue(s, secs.get(s.id)) : s)) };
+        }),
+      },
+      clip: own ? withLayoutValue(clip, own.reframe) : clip,
+    });
+    const patch = projectChanged ? { project: snap.project, clips: changed } : { clips: changed };
+    window.clipflow.projectRestoreLayouts(project.id, patch).then((r) => {
+      if (r?.error) set({ layoutNotice: { kind: "error", text: `Couldn't restore the layout on disk: ${r.error}` } });
+    });
   },
 
   // ── Legacy Audio segment actions (kept for gradual migration) ──

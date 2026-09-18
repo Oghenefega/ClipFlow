@@ -18,6 +18,27 @@ function isTypingTarget(el) {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable === true;
 }
 
+// Shared by Ctrl+Z / Ctrl+Shift+Z and the toolbar arrows. #443: while the
+// Layout edit view is open the boxes and background have their own steps, and
+// undo must never reach past them into an unrelated edit on the main stack.
+export function editorUndo() {
+  const es = useEditorStore.getState();
+  if (es.reframeDraft) { es.undoReframeDraft(); return; }
+  const store = useSubtitleStore.getState();
+  if (store._undoStack.length === 0) return;
+  store.undo();
+  es.markDirty();
+}
+
+export function editorRedo() {
+  const es = useEditorStore.getState();
+  if (es.reframeDraft) { es.redoReframeDraft(); return; }
+  const store = useSubtitleStore.getState();
+  if (store._redoStack.length === 0) return;
+  store.redo();
+  es.markDirty();
+}
+
 const ACTIONS = {
   playPause: () => usePlaybackStore.getState().togglePlay(),
   fastForward: () => usePlaybackStore.getState().cycleShuttle(1),
@@ -41,18 +62,8 @@ const ACTIONS = {
   copyLayout: () => useEditorStore.getState().copyLayout(),
   pasteLayout: () => useEditorStore.getState().pasteLayout(),
 
-  undo: () => {
-    const store = useSubtitleStore.getState();
-    if (store._undoStack.length === 0) return;
-    store.undo();
-    useEditorStore.getState().markDirty();
-  },
-  redo: () => {
-    const store = useSubtitleStore.getState();
-    if (store._redoStack.length === 0) return;
-    store.redo();
-    useEditorStore.getState().markDirty();
-  },
+  undo: editorUndo,
+  redo: editorRedo,
 
   toggleTimeline: () => useLayoutStore.getState().toggleTlCollapse(),
   showShortcuts: (e, ctx) => ctx.onShowShortcuts?.(),

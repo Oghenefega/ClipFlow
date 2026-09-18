@@ -1424,7 +1424,9 @@ export default function PreviewPanelNew() {
   const handleReframeSetUp = useCallback(() => {
     setReframeOffer(null);
     const s = useEditorStore.getState();
-    if (!s.reframeDraft) s.beginReframeDraft();
+    // #442: the panel now defaults to one section; first-time setup is still
+    // for the whole clip.
+    if (!s.reframeDraft) { s.setLayoutScope("clip"); s.beginReframeDraft(); }
     s.requestReframeAutoDetect();
     const ls = useLayoutStore.getState();
     ls.setActivePanel("layout");

@@ -868,6 +868,9 @@ export default function TimelinePanelNew() {
       useSubtitleStore.getState().setSelectedWordInfo({ segId, wordIdx: 0 });
     }
     if (track === "cap") useCaptionStore.getState().setActiveCaptionId(segId);
+    // #442: clicking a section means working on that section — the Layout
+    // panel follows it (the same click seeks, so it's under the playhead).
+    if (track === "audio") useEditorStore.getState().setLayoutScope("section");
   }, [setActiveSegId, applySelection, laneOrder]);
 
   // Mirror the left-panel's active subtitle onto the timeline selection so

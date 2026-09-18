@@ -32,7 +32,7 @@ import { segmentIdAtTimeline } from "../models/timeMapping";
 import AudioPanel from "./audio/AudioPanel";
 import MediaPanel from "./media/MediaPanel";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
-import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe, resolveSegmentReframe, scaleRectAboutCenter } from "../utils/reframeStyle";
+import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe, resolveSegmentReframe, sameReframeLook, scaleRectAboutCenter } from "../utils/reframeStyle";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 import { isAllCaps } from "../utils/casing";
 
@@ -1931,7 +1931,10 @@ function useElementSize(ref, mounted) {
 // applies the entry (only when its calibrated source dims match this
 // project's); the star sets the default and the pencil renames in place —
 // both independent of applying.
-function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight, linkedLayoutId, applying, applyTargetLabel, onApply, onSetDefault, onRename, onDelete, onDuplicate }) {
+// #444: `marks` tag the saved layouts the section under the playhead and the
+// clip started from — [{ id, label, edited, strong }]. The strong one is what
+// the panel's current view is showing; it lights the whole row.
+function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight, marks, applying, applyTargetLabel, onApply, onSetDefault, onRename, onDelete, onDuplicate }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   // #412: delete is two-step and inline — the trash swaps to a red "Delete"
@@ -1947,7 +1950,8 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
         {layouts.map((l) => {
           const isDefault = l.id === defaultLayoutId;
           const matches = l.sourceWidth === sourceWidth && l.sourceHeight === sourceHeight;
-          const inUse = l.id === linkedLayoutId;
+          const rowMarks = marks.filter((m) => m.id === l.id);
+          const inUse = rowMarks.some((m) => m.strong);
           const editing = editingId === l.id;
           const confirming = confirmDeleteId === l.id;
           return (
@@ -1956,8 +1960,10 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
               onClick={() => !editing && matches && onApply(l)}
               onMouseLeave={() => { if (confirming) setConfirmDeleteId(null); }}
               title={matches ? `Apply to ${applyTargetLabel}` : `Calibrated for ${l.sourceWidth}×${l.sourceHeight} — this clip is ${sourceWidth}×${sourceHeight}`}
-              className={`group flex items-center gap-2 rounded-md border border-border/40 px-2.5 py-2 ${
-                matches && !editing ? "cursor-pointer hover:border-border/70" : ""
+              className={`group flex items-center gap-2 rounded-md border px-2.5 py-2 ${
+                inUse ? "border-primary/60 bg-primary/10" : "border-border/40"
+              } ${
+                matches && !editing ? (inUse ? "cursor-pointer" : "cursor-pointer hover:border-border/70") : ""
               } ${matches ? "" : "opacity-50 cursor-default"}`}
             >
               <button
@@ -1993,7 +1999,15 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
                   <div className="text-xs text-muted-foreground">{l.sourceWidth}×{l.sourceHeight}</div>
                 </div>
               )}
-              {inUse && !editing && !confirming && <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full shrink-0">In use</span>}
+              {!editing && !confirming && rowMarks.map((m) => (
+                <span
+                  key={m.label}
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${m.strong ? "text-primary bg-primary/15 font-medium" : "text-muted-foreground bg-secondary/60"}`}
+                  title={m.edited ? `${m.label} started from this layout and has been changed since` : `${m.label} uses this layout`}
+                >
+                  {m.label}{m.edited ? " · edited" : ""}
+                </span>
+              ))}
               {matches && !editing && !confirming && !inUse && (
                 // #412: the row was always clickable; now it says so.
                 <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">Apply</span>
@@ -2414,6 +2428,27 @@ function LayoutPanel() {
   const sectionOverrideCount = nleSegments.filter((s) => s.reframe !== undefined).length;
   // What the panel is looking at: the section's effective layout, or the clip's.
   const shown = playheadSeg ? resolveSegmentReframe(playheadSeg, clip, project) : effective;
+  // #444: the saved layout a layout started from — null when it came from
+  // nowhere in the library (pasted, deleted entry). `edited` once it no longer
+  // matches that entry: most of Fega's did, after "Update" or a nudge.
+  const libraryMatch = (reframe) => {
+    const entry = reframe?.layoutId ? savedLayouts.find((l) => l.id === reframe.layoutId) : null;
+    return entry ? { entry, edited: !sameReframeLook(entry, reframe) } : null;
+  };
+  const layoutName = (reframe) => {
+    const m = libraryMatch(reframe);
+    return m ? (m.edited ? `${m.entry.name} (edited)` : m.entry.name) : undefined;
+  };
+  // Both marks show in either view; the one the view is showing is strong. A
+  // section that follows the clip is showing the clip's layout.
+  const sectionOwn = hasSections ? nleSegments.find((s) => s.id === playheadSegId)?.reframe : undefined;
+  const sectionMatch = libraryMatch(sectionOwn);
+  const clipMatch = libraryMatch(effective);
+  const strongKind = sectionScope && sectionOwn !== undefined ? "section" : "clip";
+  const layoutMarks = [
+    sectionMatch && { id: sectionMatch.entry.id, label: "This section", edited: sectionMatch.edited, strong: strongKind === "section" },
+    clipMatch && { id: clipMatch.entry.id, label: "This clip", edited: clipMatch.edited, strong: strongKind === "clip" },
+  ].filter(Boolean);
   const scopeControl = hasSections && (
     <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5">
       {[["section", "This section"], ["clip", "This clip"]].map(([k, label]) => (
@@ -2623,8 +2658,8 @@ function LayoutPanel() {
 
   // ── Layout active, not calibrating ──
   if (shown) {
-    const activeName = savedLayouts.find((l) => l.id === shown.layoutId)?.name;
-    const clipName = savedLayouts.find((l) => l.id === effective?.layoutId)?.name;
+    const activeName = layoutName(shown);
+    const clipName = layoutName(effective);
     return (
       <div className="p-3 space-y-3">
         {scopeControl}
@@ -2700,7 +2735,7 @@ function LayoutPanel() {
             defaultLayoutId={defaultLayoutId}
             sourceWidth={project.sourceWidth}
             sourceHeight={project.sourceHeight}
-            linkedLayoutId={shown.layoutId ?? null}
+            marks={layoutMarks}
             applying={applyingSavedLayout}
             applyTargetLabel={sectionScope ? "this section" : "this clip"}
             onApply={handleApplySavedLayout}
@@ -2850,7 +2885,7 @@ function LayoutPanel() {
           defaultLayoutId={defaultLayoutId}
           sourceWidth={project.sourceWidth}
           sourceHeight={project.sourceHeight}
-          linkedLayoutId={null}
+          marks={layoutMarks}
           applying={applyingSavedLayout}
           applyTargetLabel={sectionScope ? "this section" : "this clip"}
           onApply={handleApplySavedLayout}
@@ -2898,6 +2933,14 @@ export default function RightPanelNew({ gamesDb }) {
   // s259: the Layout drawer's edit view owns its height (the Result preview
   // fills what the controls leave), so it opts out of the scroll area.
   const layoutCalibrating = useEditorStore((s) => !!s.reframeDraft);
+
+  // #442: every opening of the Layout drawer starts on "This section" — a
+  // "This clip" choice lasts only while the drawer stays open.
+  const setLayoutScope = useEditorStore((s) => s.setLayoutScope);
+  const layoutOpen = drawerOpen && activePanel === "layout";
+  useEffect(() => {
+    if (layoutOpen) setLayoutScope("section");
+  }, [layoutOpen, setLayoutScope]);
 
   const renderDrawer = () => {
     switch (activePanel) {
@@ -2968,7 +3011,10 @@ export default function RightPanelNew({ gamesDb }) {
             {activePanel === "audio" || activePanel === "media" || activePanel === "subs" || activePanel === "text" || (activePanel === "layout" && layoutCalibrating) ? (
               renderDrawer()
             ) : (
-              <ScrollArea className="h-full">{renderDrawer()}</ScrollArea>
+              // #444: Layout's saved-layout rows (nowrap names + tags) must
+              // truncate, not widen the drawer past its edge — same Radix
+              // `display: table` clamp as the Audio panel (#215), scoped here.
+              <ScrollArea className={`h-full ${activePanel === "layout" ? "[&_[data-radix-scroll-area-viewport]>div]:!block" : ""}`}>{renderDrawer()}</ScrollArea>
             )}
           </div>
         </div>

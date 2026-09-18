@@ -3312,6 +3312,13 @@ ipcMain.handle("project:applyReframeAllClips", async (_, projectId, reframe, opt
   } catch (err) { return { error: err.message }; }
 });
 
+// #443: Ctrl+Z / Ctrl+Shift+Z for layouts — write back what an undo snapshot recorded.
+ipcMain.handle("project:restoreLayouts", async (_, projectId, snap) => {
+  try {
+    return projects.restoreLayouts(libraryRoot(), projectId, snap);
+  } catch (err) { return { error: err.message }; }
+});
+
 // #272: make one set of recording levels the project's default and drop every
 // clip's own — "Apply to every clip from this recording". Same opts as above.
 ipcMain.handle("project:applyAudioMixAllClips", async (_, projectId, mix, opts) => {

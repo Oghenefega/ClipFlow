@@ -10,7 +10,7 @@ import RightPanelNew from "./RightPanelNew";
 import PreviewPanelNew from "./PreviewPanelNew";
 import TimelinePanelNew from "./TimelinePanelNew";
 import ShortcutsDialog from "./ShortcutsDialog";
-import useEditorShortcuts from "../shortcuts/useEditorShortcuts";
+import useEditorShortcuts, { editorUndo, editorRedo } from "../shortcuts/useEditorShortcuts";
 import useEditorStore from "../stores/useEditorStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
@@ -256,10 +256,14 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
   const handleSave = useEditorStore((s) => s.handleSave);
   const markDirty = useEditorStore((s) => s.markDirty);
 
-  const undo = useSubtitleStore((s) => s.undo);
-  const redo = useSubtitleStore((s) => s.redo);
   const undoStack = useSubtitleStore((s) => s._undoStack);
   const redoStack = useSubtitleStore((s) => s._redoStack);
+  // #443: while the Layout edit view is open the arrows step its own history.
+  const draftOpen = useEditorStore((s) => !!s.reframeDraft);
+  const draftUndoCount = useEditorStore((s) => s._draftPast.length);
+  const draftRedoCount = useEditorStore((s) => s._draftFuture.length);
+  const canUndo = draftOpen ? draftUndoCount > 0 : undoStack.length > 0;
+  const canRedo = draftOpen ? draftRedoCount > 0 : redoStack.length > 0;
 
   const [navOpen, setNavOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
@@ -656,9 +660,9 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
             <TooltipTrigger asChild>
               <Button
                 variant="ghost" size="icon"
-                className={`h-8 w-8 ${undoStack.length > 0 ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"}`}
-                onClick={() => { undo(); markDirty(); }}
-                disabled={undoStack.length === 0}
+                className={`h-8 w-8 ${canUndo ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"}`}
+                onClick={editorUndo}
+                disabled={!canUndo}
               >
                 <Undo2 className="h-4 w-4" />
               </Button>
@@ -669,9 +673,9 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
             <TooltipTrigger asChild>
               <Button
                 variant="ghost" size="icon"
-                className={`h-8 w-8 ${redoStack.length > 0 ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"}`}
-                onClick={() => { redo(); markDirty(); }}
-                disabled={redoStack.length === 0}
+                className={`h-8 w-8 ${canRedo ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"}`}
+                onClick={editorRedo}
+                disabled={!canRedo}
               >
                 <Redo2 className="h-4 w-4" />
               </Button>

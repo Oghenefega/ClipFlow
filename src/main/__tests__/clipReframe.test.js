@@ -7,7 +7,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const projects = require("../projects");
-const { resolveClipReframe } = require("../../renderer/editor/utils/reframeStyle");
+const { resolveClipReframe, resolveReframeStyle } = require("../../renderer/editor/utils/reframeStyle");
 
 let WATCH;
 
@@ -95,6 +95,87 @@ describe("applyReframeToAllClips (#348)", () => {
     const proj = load(projectId);
     expect(proj.reframe).toBeNull();
     for (const c of proj.clips) expect("reframe" in c).toBe(false);
+  });
+});
+
+// #443: Ctrl+Z of a layout writes back what the editor's undo snapshot held.
+describe("restoreLayouts (#443)", () => {
+  // Stored layouts always carry a fully resolved style (the store writes them that way).
+  const OTHER = { ...LAYOUT, layoutId: "layout_other", gameRect: { x: 1, y: 2, w: 30, h: 40 }, style: resolveReframeStyle(null) };
+  const SECTIONS = [
+    { id: "seg-a", sourceStart: 0, sourceEnd: 4, reframe: OTHER },
+    { id: "seg-b", sourceStart: 4, sourceEnd: 8 },
+    { id: "seg-c", sourceStart: 8, sourceEnd: 9, reframe: null },
+  ];
+
+  test("undoes 'Replace on every clip': project, clip and section layouts all come back", () => {
+    const { projectId, clipIds } = seedProject();
+    projects.updateReframe(WATCH, projectId, LAYOUT);
+    projects.updateClipReframe(WATCH, projectId, clipIds[0], null);
+    projects.updateClipReframe(WATCH, projectId, clipIds[1], OTHER);
+    projects.updateClip(WATCH, projectId, clipIds[1], { nleSegments: SECTIONS });
+    const before = load(projectId);
+
+    projects.applyReframeToAllClips(WATCH, projectId, OTHER);
+    const res = projects.restoreLayouts(WATCH, projectId, {
+      project: LAYOUT,
+      clips: [
+        { id: clipIds[0], reframe: null },
+        { id: clipIds[1], reframe: OTHER, sections: SECTIONS.map((s) => ({ id: s.id, reframe: s.reframe === undefined ? "inherit" : s.reframe })) },
+      ],
+    });
+    expect(res.success).toBe(true);
+    const after = load(projectId);
+    expect(after.reframe).toEqual(before.reframe);
+    expect(after.clips[0].reframe).toBeNull();
+    expect(after.clips[1].reframe).toEqual(before.clips[1].reframe);
+    expect(after.clips[1].nleSegments).toEqual(before.clips[1].nleSegments);
+  });
+
+  test("'inherit' removes the key; only layout keys are written", () => {
+    const { projectId, clipIds } = seedProject();
+    projects.updateReframe(WATCH, projectId, LAYOUT);
+    projects.updateClipReframe(WATCH, projectId, clipIds[0], OTHER);
+    projects.updateClip(WATCH, projectId, clipIds[0], { title: "Kept", nleSegments: SECTIONS });
+    const before = load(projectId);
+
+    projects.restoreLayouts(WATCH, projectId, {
+      project: "inherit",
+      clips: [{ id: clipIds[0], reframe: "inherit", sections: [{ id: "seg-a", reframe: "inherit" }] }],
+    });
+    const after = load(projectId);
+    expect(after.reframe).toBeNull(); // a project with no layout always loads as null
+    expect("reframe" in after.clips[0]).toBe(false);
+    expect("reframe" in after.clips[0].nleSegments[0]).toBe(false);
+    // Unlisted sections and every non-layout field stay exactly as they were.
+    expect(after.clips[0].nleSegments.slice(1)).toEqual(before.clips[0].nleSegments.slice(1));
+    const strip = (c) => { const { reframe: _r, nleSegments: _n, ...rest } = c; return rest; };
+    expect(strip(after.clips[0])).toEqual(strip(before.clips[0]));
+    expect(after.clips[1]).toEqual(before.clips[1]);
+  });
+
+  test("a clip listed without sections keeps its sections; no project key leaves the project layout", () => {
+    const { projectId, clipIds } = seedProject();
+    projects.updateReframe(WATCH, projectId, LAYOUT);
+    projects.updateClip(WATCH, projectId, clipIds[0], { nleSegments: SECTIONS });
+    projects.restoreLayouts(WATCH, projectId, { clips: [{ id: clipIds[0], reframe: OTHER }] });
+    const after = load(projectId);
+    expect(after.reframe.gameRect).toEqual(RECT);
+    expect(after.clips[0].reframe.gameRect).toEqual(OTHER.gameRect);
+    expect(after.clips[0].nleSegments[0].reframe.layoutId).toBe("layout_other");
+    expect(after.clips[0].nleSegments[2].reframe).toBeNull();
+  });
+
+  test("an invalid layout saves nothing", () => {
+    const { projectId, clipIds } = seedProject();
+    projects.updateReframe(WATCH, projectId, LAYOUT);
+    const before = load(projectId);
+    const res = projects.restoreLayouts(WATCH, projectId, {
+      project: null,
+      clips: [{ id: clipIds[0], reframe: { camRect: null, gameRect: { x: 0, y: 0, w: -1, h: 5 } } }],
+    });
+    expect(res.error).toBeTruthy();
+    expect(load(projectId)).toEqual(before);
   });
 });
 

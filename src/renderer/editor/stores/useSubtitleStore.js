@@ -105,6 +105,18 @@ function _restoreNle(segs) {
   useEditorStore.getState().setNleSegments(segs);
 }
 
+// #443: whole-clip and every-clip layouts live on clip/project, not on the
+// sections above, and are written straight to disk — so they ride the stack as
+// their own record. Section layouts need nothing extra: they are nleSegments.
+function _snapshotLayouts() {
+  try { return useEditorStore.getState()._snapshotLayouts(); } catch (_) { return null; }
+}
+
+function _restoreLayouts(snap) {
+  if (!snap) return;
+  try { useEditorStore.getState()._restoreLayouts(snap); } catch (_) {}
+}
+
 // Snapshot/restore helpers for cross-store undo
 function _snapshotStyling(subState) {
   const sub = {};
@@ -480,6 +492,7 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
       nleSegments: _snapshotNle(),
+      layouts: _snapshotLayouts(),
       // #162: the mode dropdown is state too — undoing a mode switch used to put the
       // old chunking back under the NEW mode label.
       segmentMode: state.segmentMode,
@@ -494,6 +507,7 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
       nleSegments: _snapshotNle(),
+      layouts: _snapshotLayouts(),
       // #162: the mode dropdown is state too — undoing a mode switch used to put the
       // old chunking back under the NEW mode label.
       segmentMode: state.segmentMode,
@@ -506,6 +520,7 @@ const useSubtitleStore = create((set, get) => ({
     });
     _restoreStyling(prev.styling, set);
     _restoreNle(prev.nleSegments);
+    _restoreLayouts(prev.layouts);
   },
   redo: () => {
     const state = get();
@@ -515,6 +530,7 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
       nleSegments: _snapshotNle(),
+      layouts: _snapshotLayouts(),
       // #162: the mode dropdown is state too — undoing a mode switch used to put the
       // old chunking back under the NEW mode label.
       segmentMode: state.segmentMode,
@@ -527,6 +543,7 @@ const useSubtitleStore = create((set, get) => ({
     });
     _restoreStyling(next.styling, set);
     _restoreNle(next.nleSegments);
+    _restoreLayouts(next.layouts);
   },
   canUndo: () => get()._undoStack.length > 0,
   canRedo: () => get()._redoStack.length > 0,

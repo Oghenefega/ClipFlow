@@ -522,6 +522,46 @@ function applyReframeToAllClips(watchFolder, projectId, reframe, opts = {}) {
 }
 
 /**
+ * Put layouts back the way an editor undo snapshot recorded them (#443) — the
+ * inverse of the writes above, for Ctrl+Z. Only layout keys are written;
+ * every other field on disk stays as it is. Each value is "inherit" (key
+ * absent), null (explicitly no layout) or a layout object. Sections match by
+ * id; a clip listed without `sections` keeps its sections untouched (the open
+ * clip's ride its autosave). Nothing is saved if any value is invalid.
+ * @param {{ project?: object|null|"inherit", clips?: Array<{ id: string, reframe: object|null|"inherit", sections?: Array<{ id: string, reframe: object|null|"inherit" }> }> }} snap
+ * @returns {{ success: true }|{ error: string }}
+ */
+function restoreLayouts(watchFolder, projectId, snap) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+  if (!snap || typeof snap !== "object") return { error: "Nothing to restore" };
+  const put = (obj, value) => {
+    if (value === "inherit") { delete obj.reframe; return null; }
+    if (value === null) { obj.reframe = null; return null; }
+    const sanitized = sanitizeReframe(value);
+    if (sanitized.error) return sanitized.error;
+    obj.reframe = sanitized.value;
+    return null;
+  };
+  let error = "project" in snap ? put(project, snap.project) : null;
+  for (const entry of snap.clips || []) {
+    if (error) break;
+    const clip = (project.clips || []).find((c) => c.id === entry.id);
+    if (!clip) continue; // deleted since — nothing to put back
+    error = put(clip, entry.reframe);
+    for (const sec of entry.sections || []) {
+      if (error) break;
+      const seg = (clip.nleSegments || []).find((s) => s.id === sec.id);
+      if (seg) error = put(seg, sec.reframe);
+    }
+  }
+  if (error) return { error };
+
+  saveProject(watchFolder, project);
+  return { success: true };
+}
+
+/**
  * #272: make one set of recording levels the project's default and drop every
  * clip's own — "Apply to every clip from this recording". A flat/empty mix
  * clears the default. Same shape (and same `keepOverrides` / `dropClipId`
@@ -760,6 +800,7 @@ module.exports = {
   updateReframe,
   updateClipReframe,
   applyReframeToAllClips,
+  restoreLayouts,
   applyAudioMixToAllClips,
   addClip,
   duplicateClip,
