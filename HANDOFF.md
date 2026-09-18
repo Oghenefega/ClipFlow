@@ -33,8 +33,9 @@ of alpha.8. Master is clean at this wrap's commit.
 3. Carry-overs: alpha.7 items still `status: untested` (#433–#437); #439 (Post with no platforms is
    silent) is a good small pick; #440; ask about #425, #419, #418, #416, #265; the 2026-09-16
    duplicate posts are Fega's call.
-4. The recording-levels "Apply to every clip" (#272) is also permanent. I offered to file it as an
-   undo issue and Fega hasn't answered.
+4. **#445:** recording levels can't be undone. The sliders and Reset aren't in the undo snapshot
+   at all, and "Apply to unedited clips" / "Replace on every clip" write straight to disk. Filed at
+   Fega's request; the natural follow-on to #443, and it can reuse `_snapshotLayouts`/`restoreLayouts`.
 
 ## Watch Out For
 
