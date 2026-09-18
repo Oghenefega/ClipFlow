@@ -12,9 +12,15 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.8",
+    date: "2026-09-18",
+    changed: [
+      "The Layout panel opens on \"This section\" when your clip has cuts, and clicking a section on the timeline switches to it, so trying a layout on one section no longer changes the whole clip by accident. \"This clip\" is still one click away and stays picked until you close the panel.",
+      "The Layout panel marks which saved layout is in use. \"This section\" tags the one the section under the playhead uses, \"This clip\" the clip's, and the one you are looking at is highlighted. \"Edited\" means that layout has been changed since it was applied, or the saved layout was updated afterwards.",
+    ],
     fixed: [
+      "Layout changes can be undone. Ctrl+Z takes back applying a saved layout, Apply, Paste and the remove buttons, whether on one section, the whole clip or every clip at once, and Ctrl+Shift+Z brings them back. While you edit a layout, Ctrl+Z steps back one drag or slider move at a time.",
+      "Text and buttons in the Layout panel no longer run past its right edge when the panel is narrow.",
       "A scheduled clip could go out twice on every platform. When its time came, Corva posted it in the background while the Queue still showed it as idle, so pressing Post sent it again. A clip that is being posted now shows \"Publishing...\" on its Queue card, with Post and Schedule hidden until it is done. That includes opening Corva while a post is already under way, for example after a restart. And Corva will not send the same clip twice at once, even if Post is pressed.",
     ],
   },

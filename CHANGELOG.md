@@ -4,6 +4,18 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-18 (session 265) — 0.5.0-alpha.8 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.8 and an installer cut to the update feed, at Fega's request so he can test the Layout panel changes.** This build promotes everything since alpha.7:
+  - The Layout drawer opens on "This section" (#442).
+  - Every layout change can be undone with Ctrl+Z, including the every-clip buttons and steps while editing a layout (#443).
+  - The saved layout a section and the clip use is marked, with "edited" when it has drifted (#444).
+  - The drawer no longer overflows its right edge.
+  - A clip can no longer be posted twice when Post is pressed during a background post (#438).
+
+  The What's New entry now covers all five. It previously listed only #438, because this session has not wrapped yet.
+
 ## [Unreleased] — 2026-09-18 (session 265) — Layout panel: This section by default, Ctrl+Z for every layout change, the section's saved layout marked
 
 ### Changed
