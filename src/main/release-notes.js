@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    fixed: [
+      "A scheduled clip could go out twice on every platform. When its time came, Corva posted it in the background while the Queue still showed it as idle, so pressing Post sent it again. A clip that is being posted now shows \"Publishing...\" on its Queue card, with Post and Schedule hidden until it is done. That includes opening Corva while a post is already under way, for example after a restart. And Corva will not send the same clip twice at once, even if Post is pressed.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.7",
     date: "2026-09-17",
     added: [
