@@ -1258,6 +1258,18 @@ function createWindow({ holdUntilReady = false } = {}) {
     mainWindow = null;
   });
 
+  // #438: a renderer that reloads, crashes (the handler below reloads it) or closes
+  // mid-upload never sends its publish:end. Without this its clips would read as
+  // "already being posted" until the app restarted — for the whole of a stream in
+  // streaming mode. The id is read now because a destroyed webContents can't be asked.
+  const queueOwner = mainWindow.webContents.id;
+  const releaseQueueClaims = () => {
+    const freed = publishScheduler.releaseOwner(queueOwner);
+    if (freed.length) logger.warn(logger.MODULES.system, "Released publish claims held by a window that went away", { clipIds: freed });
+  };
+  mainWindow.webContents.on("did-start-loading", releaseQueueClaims);
+  mainWindow.webContents.on("destroyed", releaseQueueClaims);
+
   // Detect renderer process crash — log to main process and attempt reload
   mainWindow.webContents.on("render-process-gone", (event, details) => {
     logger.error(logger.MODULES.system, `Renderer process gone: ${details.reason} (exit code: ${details.exitCode})`);
@@ -1501,6 +1513,8 @@ app.whenReady().then(async () => {
       mainWindow?.webContents.send("publish:failed", alert);
     },
     onClipChanged: (projectId, clipId) => mainWindow?.webContents.send("publish:clipChanged", { projectId, clipId }),
+    // #438: lets an open Queue show "Publishing..." while the scheduler uploads.
+    onPublishingChanged: (clipId, publishing) => mainWindow?.webContents.send("publish:clipPublishing", { clipId, publishing }),
     onAccountsChanged: () => mainWindow?.webContents.send("oauth:accountsChanged"),
     onTick: () => { if (streamingMode) logFootprint("streaming mode tick"); },
   });
@@ -3906,6 +3920,22 @@ ipcMain.handle("publish:drainAlerts", () => {
   const out = pendingPublishAlerts.splice(0, pendingPublishAlerts.length);
   return { alerts: out };
 });
+
+// #438: the Queue's uploads claim through the SAME in-flight registry as the scheduler
+// (src/main/publish.js), keyed to the calling window so a renderer that dies mid-upload
+// can be released. A refusal means the scheduler is posting that clip right now.
+ipcMain.handle("publish:begin", (e, clipId) => {
+  const claimed = publishScheduler.beginPublish(clipId, e.sender.id);
+  if (!claimed) logger.info(logger.MODULES.system, "Queue publish refused — clip is already being posted", { clipId });
+  return { claimed };
+});
+ipcMain.handle("publish:end", (e, clipId) => {
+  publishScheduler.endPublish(clipId, e.sender.id);
+  return { success: true };
+});
+// A pull, not only an event: after a reboot the boot tick starts posting before the
+// window exists, so a window that relied on the live event would never hear about it.
+ipcMain.handle("publish:inFlight", () => ({ clipIds: publishScheduler.inFlightClipIds() }));
 ipcMain.handle("store:get", (_, key) => {
   return store.get(key);
 });

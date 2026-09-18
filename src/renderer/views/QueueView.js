@@ -786,6 +786,27 @@ export default function QueueView({
   // tracker:appended lands the row (App.js), publish:failed raises the banner.
   const [scheduled, setScheduled] = useState({});
   const publishingRef = useRef(false);
+  // #438: clips the SCHEDULER is uploading right now. Kept apart from publishStatus,
+  // which holds this window's own runs with per-platform detail — the scheduler only
+  // says start/stop, and folding that in would overwrite a card's real results.
+  const [bgPublishing, setBgPublishing] = useState(() => new Set());
+  useEffect(() => {
+    window.clipflow?.onPublishClipPublishing?.(({ clipId, publishing }) => {
+      setBgPublishing((prev) => {
+        if (prev.has(clipId) === publishing) return prev;
+        const next = new Set(prev);
+        if (publishing) next.add(clipId); else next.delete(clipId);
+        return next;
+      });
+    });
+    // Subscribe BEFORE pulling so a start/stop landing in between is never missed. The
+    // pull is the part that matters after a reboot: the boot tick starts uploading
+    // before this window exists, so the start event went to nobody.
+    window.clipflow?.publishInFlight?.().then((res) => {
+      if (res?.clipIds?.length) setBgPublishing((prev) => new Set([...prev, ...res.clipIds]));
+    }).catch(() => {});
+    return () => window.clipflow?.removePublishClipPublishingListener?.();
+  }, []);
   // Per-platform publish results captured during this session's publish runs, keyed by
   // clipId → platformKey → { platform, accountId, postId?, url? }. Read by logPost so
   // tracker entries record the platforms that actually succeeded (not all connected).
@@ -1625,7 +1646,27 @@ export default function QueueView({
     setRetryingAll(false);
   };
 
-  const retryFailed = async (clipId, opts = {}) => {
+  // #438: every upload from this window holds the clip in main's in-flight registry —
+  // the same one the scheduler holds — so the two can never post one clip at once.
+  // publishingRef is checked first so a refusal can only mean the scheduler has it,
+  // which is also why a refusal shows as "Publishing...": that is literally true, and
+  // the scheduler's own stop event clears it.
+  const withPublishClaim = async (clipId, run) => {
+    if (publishingRef.current) return { allSuccess: false, failures: [] };
+    const res = await window.clipflow?.publishBegin?.(clipId);
+    if (res && !res.claimed) {
+      setBgPublishing((prev) => new Set(prev).add(clipId));
+      return { allSuccess: false, failures: [] };
+    }
+    try {
+      return await run();
+    } finally {
+      if (res?.claimed) window.clipflow?.publishEnd?.(clipId);
+    }
+  };
+
+  const retryFailed = (clipId, opts = {}) => withPublishClaim(clipId, () => runRetry(clipId, opts));
+  const runRetry = async (clipId, opts = {}) => {
     const clip = approved.find((c) => c.id === clipId);
     const ps = publishStatus[clipId];
     if (!clip || !ps?.platforms) return { allSuccess: false };
@@ -1903,7 +1944,8 @@ export default function QueueView({
   // #244: returns { allSuccess, failures } — failures are THIS run's per-platform
   // errors only (publishState may hold older ones). The scheduler uses the return
   // to notify loudly; manual callers ignore it.
-  const publishClip = async (clipId, scheduleOpts, freshClip, opts = {}) => {
+  const publishClip = (clipId, ...rest) => withPublishClaim(clipId, () => runPublish(clipId, ...rest));
+  const runPublish = async (clipId, scheduleOpts, freshClip, opts = {}) => {
     if (publishingRef.current) return;
     const clip = freshClip || approved.find((c) => c.id === clipId);
     if (!clip || !clip.renderPath) {
@@ -2225,7 +2267,7 @@ export default function QueueView({
   const statusBadge = (clip) => {
     const ps = publishStatus[clip.id];
     const isPub = ps?.state === "done";
-    const isPublishing = ps?.state === "publishing";
+    const isPublishing = ps?.state === "publishing" || bgPublishing.has(clip.id);
     const isFailed = ps?.state === "failed";
     const hasVideo = !!clip.renderPath;
     if (isPub) return { label: "Published", bg: "rgba(52,211,153,0.1)", color: T.green };
@@ -2515,7 +2557,7 @@ export default function QueueView({
           const gameTag = clip.gameTag;
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
-          const isPublishing = ps?.state === "publishing";
+          const isPublishing = ps?.state === "publishing" || bgPublishing.has(clip.id);
           const isFailed = ps?.state === "failed";
           const isSel = selClip === clip.id;
           const hasVideoId = !!clip.renderPath;
@@ -2846,7 +2888,7 @@ export default function QueueView({
           const gameTag = clip.gameTag;
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
-          const isPublishing = ps?.state === "publishing";
+          const isPublishing = ps?.state === "publishing" || bgPublishing.has(clip.id);
           const isFailed = ps?.state === "failed";
           const isSel = selClip === clip.id;
           const hasVideoId = !!clip.renderPath;

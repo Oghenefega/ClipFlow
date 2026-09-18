@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-17 (session 264) — A clip can no longer be posted twice at once
+
+### Fixed
+- **A clip went out twice on every platform when Post was pressed while it was already posting (#438).** When a scheduled clip's time came, the background started posting it and cleared its schedule badge straight away, but told the Queue nothing until every platform had finished, about 75 seconds later. For that whole time the card looked unscheduled and idle, so pressing Post started a second post of the same clip. It happened on 2026-09-16 after a reboot: the missed slot fired two seconds after Corva opened, before the window was even on screen. It also happened on 2026-08-29 with no reboot. The background and the Queue now claim a clip in one shared place before posting it, and whichever comes second is refused. The card shows "Publishing..." for the whole background post, including when Corva is opened while one is already under way, and gets its buttons back when it finishes. A window that closes or reloads mid-post lets go of its clips, so none is left stuck. Checked with tests that post through fake platforms, each rule also broken on purpose to prove its test catches it. Also checked in the running app on a fixture with no accounts connected: Post pressed on a clip the background was holding showed Publishing... and posted nothing, and after a reload a clip the background had started before the window existed showed Publishing... from the start. Retry goes through the same check but was not clicked separately.
+
+### Filed
+- **#439** — pressing Post on a clip with no platform to post to does nothing visible: the Queue erases the "No platforms enabled" error before it can show. This predates #438. Measured on the old code, it was on screen for 4-5 ms, less than one frame. It hits every tester with no accounts connected.
+- **#440** — posting a clip is written three times (background, Post, Retry). #438 makes them share one claim, but the copies can still drift apart. It proposes a single publisher in the main process.
+
 ## [Unreleased] — 2026-09-17 (session 263) — 0.5.0-alpha.7 on the feed
 
 ### Changed

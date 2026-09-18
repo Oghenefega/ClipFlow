@@ -417,6 +417,16 @@ contextBridge.exposeInMainWorld("clipflow", {
   removePublishClipChangedListener: () => {
     ipcRenderer.removeAllListeners("publish:clipChanged");
   },
+  // #438: one in-flight registry for the scheduler AND the Queue's own uploads.
+  publishBegin: (clipId) => ipcRenderer.invoke("publish:begin", clipId),
+  publishEnd: (clipId) => ipcRenderer.invoke("publish:end", clipId),
+  publishInFlight: () => ipcRenderer.invoke("publish:inFlight"),
+  onPublishClipPublishing: (callback) => {
+    ipcRenderer.on("publish:clipPublishing", (_, data) => callback(data));
+  },
+  removePublishClipPublishingListener: () => {
+    ipcRenderer.removeAllListeners("publish:clipPublishing");
+  },
   onOauthAccountsChanged: (callback) => {
     ipcRenderer.on("oauth:accountsChanged", () => callback());
   },

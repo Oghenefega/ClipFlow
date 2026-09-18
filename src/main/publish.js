@@ -14,8 +14,12 @@
  *
  * 1. `projects.claimScheduledPublish` is the ONLY place a schedule is claimed. It
  *    re-reads the clip from disk and clears `scheduledAt` inside one synchronous
- *    read-modify-write, so this tick and a user's "Publish now" cannot both win (#156,
- *    #182). Never pre-empt it with an in-memory check.
+ *    read-modify-write, so a tick can't fire a slot that "Publish now" already took
+ *    (#156, #182). The reverse order is NOT covered by the claim — Publish now never
+ *    calls it — and that gap posted clips twice (#438). The in-flight registry below
+ *    closes it: every upload, from either side, holds the clip there first. The
+ *    registry says who is uploading right now; the claim says whether a schedule
+ *    fires. Don't let either stand in for the other.
  * 2. A completed publish MUST write its tracker row. A clip that is live on four
  *    platforms and visible nowhere is the #315 failure mode; s214 showed it happening
  *    for real. `onPublished` is not optional.
@@ -44,8 +48,41 @@ const PREFLIGHT_WINDOW_MS = 60 * 60_000;
 let deps = null;
 let timer = null;
 let running = false;
-/** clipIds mid-publish in THIS process — a cheap re-entrancy guard, never the dedup. */
-const autoFiring = new Set();
+/**
+ * #438: clipId → who is uploading it right now — SCHEDULER, or the Queue's webContents
+ * id. ONE registry for both, because the scheduler and the Queue's Post now/Retry are
+ * separate uploaders that each used to guard only against themselves: on 2026-09-16 a
+ * boot tick was 27s into posting a clip when Post now started a second run, and every
+ * platform got it twice. In-memory on purpose — "uploading right now" dies with the
+ * process. `publishedAt` is still the durable "already went out" marker.
+ */
+const SCHEDULER = "scheduler";
+const inFlight = new Map();
+
+/** Take the clip for one upload run. False when anyone (including `owner`) holds it. */
+function beginPublish(clipId, owner) {
+  if (!clipId || inFlight.has(clipId)) return false;
+  inFlight.set(clipId, owner);
+  return true;
+}
+
+/** Owner-checked, so one uploader can never release a clip the other holds. */
+function endPublish(clipId, owner) {
+  if (inFlight.get(clipId) === owner) inFlight.delete(clipId);
+}
+
+/** Drop everything `owner` holds — a renderer that reloaded or died can't send its end. */
+function releaseOwner(owner) {
+  const freed = [];
+  for (const [clipId, o] of inFlight) {
+    if (o === owner) { inFlight.delete(clipId); freed.push(clipId); }
+  }
+  return freed;
+}
+
+function inFlightClipIds() {
+  return [...inFlight.keys()];
+}
 /** #244 layer 1: `accountKey|scheduledAt` already pre-flighted — one warning per slot. */
 const preflighted = new Set();
 
@@ -85,7 +122,7 @@ function dueClips(now) {
       if (!clip.scheduledAt) continue;
       if (new Date(clip.scheduledAt).getTime() > now) continue;
       if (testMode) continue; // #60: test projects never publish
-      if (autoFiring.has(clip.id)) continue;
+      if (inFlight.has(clip.id)) continue;
       out.push({
         ...clip,
         _projectId: proj.id,
@@ -293,7 +330,13 @@ async function tickOnce() {
     // which would silently kill every future tick until the app restarts.
     deps.onTick?.();
     for (const clip of dueClips(now)) {
-      autoFiring.add(clip.id);
+      // #438: dueClips already skipped held clips, but this pass awaits every upload,
+      // so the Queue can take a later clip while an earlier one is still going out.
+      if (!beginPublish(clip.id, SCHEDULER)) {
+        log("info", `Scheduler: skipping "${clip.title}" — already being posted from the Queue`);
+        continue;
+      }
+      let announced = false;
       try {
         // #156/#182: the single arbitration point. Re-reads from disk and clears
         // scheduledAt in one write, so only one caller can ever fire a schedule.
@@ -303,6 +346,10 @@ async function tickOnce() {
           continue;
         }
         log("info", `Scheduler: firing scheduled publish for "${clip.title}" (slot ${clip.scheduledAt})`);
+        // #438: the claim just cleared scheduledAt, so without this the Queue shows an
+        // idle, unscheduled clip for the whole upload — which reads as "it won't send".
+        deps.onPublishingChanged?.(clip.id, true);
+        announced = true;
 
         // Publish the clip the claim just re-read from disk, not the pre-filter copy —
         // a stale renderPath (#188 renames the file) fails every platform at once.
@@ -326,7 +373,8 @@ async function tickOnce() {
       } catch (err) {
         log("error", `Scheduler: auto-fire threw for ${clip.id}: ${err.message}`);
       } finally {
-        autoFiring.delete(clip.id);
+        endPublish(clip.id, SCHEDULER);
+        if (announced) deps.onPublishingChanged?.(clip.id, false);
       }
     }
 
@@ -379,4 +427,7 @@ function stopScheduler() {
   if (timer) { clearInterval(timer); timer = null; }
 }
 
-module.exports = { startScheduler, stopScheduler, tickOnce };
+module.exports = {
+  startScheduler, stopScheduler, tickOnce,
+  beginPublish, endPublish, releaseOwner, inFlightClipIds,
+};
