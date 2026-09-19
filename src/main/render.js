@@ -11,7 +11,7 @@ const { resolveClipAudioMix, isFlat, buildSourceMix } = require("../renderer/edi
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles, lineExtras } = require("../renderer/editor/utils/resolveSubtitles");
 const { bakeLegacyCaptionCaps } = require("../renderer/editor/utils/casing");
-const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe } = require("../renderer/editor/utils/reframeStyle");
+const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow, resolveClipReframe, resolveSegmentReframe, sameReframeLook, fitToScreenReframe, captureRegionRect } = require("../renderer/editor/utils/reframeStyle");
 
 // Hang watchdog for the main render: ffmpeg prints a stats line every ~half
 // second while it encodes, so this much silence means a wedged process (a pipe
@@ -1256,6 +1256,66 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 // through one path instead of two competing loops.
 
 /**
+ * The one instant a still is taken from: which file, which source moment,
+ * and the layout of the section under the playhead (#448: shared by the
+ * finished-frame thumbnail and the clean gameplay/camera grabs, so both
+ * land on the same frame). `reframe` is the section's OWN layout — null
+ * on a raw section; the thumbnail swaps in its letterbox stand-in itself.
+ */
+function resolveCaptureInstant(clipData, projectData, timelineTime) {
+  const nleSegments = clipData.nleSegments || [];
+  const sourceFile = projectData.sourceFile;
+  const sourceOk = sourceFile && fs.existsSync(sourceFile);
+  const useNle = nleSegments.length > 0 && sourceOk;
+
+  let srcFile;
+  if (useNle) srcFile = sourceFile;
+  else if (clipData.filePath && fs.existsSync(clipData.filePath)) srcFile = clipData.filePath;
+  else throw new Error("Cannot capture: source recording not found");
+
+  const timelineDuration = useNle
+    ? getTimelineDuration(nleSegments)
+    : ((clipData.endTime || 0) - (clipData.startTime || 0));
+  // Clamp inside the clip so the seek always lands on a decodable frame
+  const t = Math.max(0, Math.min(timelineTime || 0, Math.max(0, timelineDuration - 0.05)));
+  if (!useNle) {
+    return {
+      useNle, nleSegments, srcFile, timelineDuration, t,
+      sourceTime: (clipData.startTime || 0) + t,
+      reframe: resolveClipReframe(clipData, projectData), // #348: clip override > project layout
+      segReframes: null,
+    };
+  }
+  const mapped = timelineToSource(t, nleSegments);
+  // #349: this instant belongs to ONE section — its layout is the one the
+  // export paints here.
+  const segIdx = mapped && mapped.found ? mapped.segmentIndex : 0;
+  const segReframes = nleSegments.map((s) => resolveSegmentReframe(s, clipData, projectData));
+  return {
+    useNle, nleSegments, srcFile, timelineDuration, t,
+    sourceTime: mapped && mapped.found ? mapped.sourceTime : (nleSegments[0].sourceStart + t),
+    reframe: segReframes[segIdx],
+    segReframes,
+  };
+}
+
+/** One-frame FFmpeg run with the thumbnail's 60 s kill. `what` names it in errors. */
+function runStillFfmpeg(args, what) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(FFMPEG_BIN, args);
+    let stderr = "";
+    const timer = setTimeout(() => { try { proc.kill("SIGTERM"); } catch (_) {} }, 60000);
+    proc.stderr.on("data", (d) => (stderr += d.toString()));
+    proc.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) return reject(new Error(`${what} ffmpeg failed (code ${code}): ${stderr.slice(-400)}`));
+      resolve();
+    });
+    proc.on("error", (err) => { clearTimeout(timer); reject(new Error(`ffmpeg spawn failed: ${err.message}`)); });
+  });
+}
+
+/**
  * Capture a single WYSIWYG frame of a clip as a PNG (session 124: Shorts
  * thumbnails). Runs the exact render pipeline for one moment in time — same
  * reframe composite, same overlay engine — so the PNG is pixel-identical to
@@ -1269,35 +1329,15 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
  * @returns {Promise<{success: true, path: string}>}
  */
 async function renderThumbnail(clipData, projectData, timelineTime, outputPath, options = {}) {
-  const nleSegments = clipData.nleSegments || [];
-  const sourceFile = projectData.sourceFile;
-  const sourceOk = sourceFile && fs.existsSync(sourceFile);
-  const useNle = nleSegments.length > 0 && sourceOk;
-  let reframe = resolveClipReframe(clipData, projectData); // #348: clip override > project layout
-
-  let srcFile;
-  if (useNle) srcFile = sourceFile;
-  else if (clipData.filePath && fs.existsSync(clipData.filePath)) srcFile = clipData.filePath;
-  else throw new Error("Cannot capture: source recording not found");
-
-  const timelineDuration = useNle
-    ? getTimelineDuration(nleSegments)
-    : ((clipData.endTime || 0) - (clipData.startTime || 0));
-  // Clamp inside the clip so the seek always lands on a decodable frame
-  const t = Math.max(0, Math.min(timelineTime || 0, Math.max(0, timelineDuration - 0.05)));
-  let sourceTime;
+  const at = resolveCaptureInstant(clipData, projectData, timelineTime);
+  const { useNle, nleSegments, srcFile, timelineDuration, t, sourceTime, segReframes } = at;
+  let reframe = at.reframe;
   let srcW = projectData.sourceWidth;
   let srcH = projectData.sourceHeight;
   let reframeActive;
   if (useNle) {
-    const mapped = timelineToSource(t, nleSegments);
-    sourceTime = mapped && mapped.found ? mapped.sourceTime : (nleSegments[0].sourceStart + t);
-    // #349: this instant belongs to ONE section — its layout is the one the
-    // export paints here, and the canvas rule follows the export too: a raw
-    // section of a clip that has a layout elsewhere is letterboxed, not raw.
-    const segIdx = mapped && mapped.found ? mapped.segmentIndex : 0;
-    const segReframes = nleSegments.map((s) => resolveSegmentReframe(s, clipData, projectData));
-    reframe = segReframes[segIdx];
+    // #349: a raw section of a clip that has a layout elsewhere is
+    // letterboxed, not raw — the canvas rule follows the export.
     reframeActive = segReframes.some((r) => isReframeActive(r));
     if (reframeActive && !isReframeActive(reframe)) {
       if (!(srcW > 0 && srcH > 0)) {
@@ -1308,7 +1348,6 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
       reframe = fitToScreenReframe(srcW, srcH, segReframes.find((r) => isReframeActive(r)).style);
     }
   } else {
-    sourceTime = (clipData.startTime || 0) + t;
     reframeActive = isReframeActive(reframe);
   }
 
@@ -1416,18 +1455,7 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
     args.push("-filter_complex", filterComplex, ...mapArgs, "-frames:v", "1", outputPath);
     console.log("[Thumbnail] FFmpeg args:", args.join(" "));
 
-    await new Promise((resolve, reject) => {
-      const proc = spawn(FFMPEG_BIN, args);
-      let stderr = "";
-      const timer = setTimeout(() => { try { proc.kill("SIGTERM"); } catch (_) {} }, 60000);
-      proc.stderr.on("data", (d) => (stderr += d.toString()));
-      proc.on("close", (code) => {
-        clearTimeout(timer);
-        if (code !== 0) return reject(new Error(`thumbnail ffmpeg failed (code ${code}): ${stderr.slice(-400)}`));
-        resolve();
-      });
-      proc.on("error", (err) => { clearTimeout(timer); reject(new Error(`ffmpeg spawn failed: ${err.message}`)); });
-    });
+    await runStillFfmpeg(args, "thumbnail");
 
     return { success: true, path: outputPath };
   } finally {
@@ -1436,10 +1464,57 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
   }
 }
 
+/**
+ * #448: a clean still of one layout box — "gameplay" or "camera" — straight
+ * from the recording at source resolution. Nothing is composited or burned in
+ * (no subtitles, captions or media overlays): just the pixels the box frames
+ * at the playhead, in the section the playhead is on.
+ *
+ * @returns {Promise<{success: true, path: string, width: number, height: number}>}
+ */
+async function captureSourceRegion(clipData, projectData, timelineTime, kind, outputPath) {
+  const at = resolveCaptureInstant(clipData, projectData, timelineTime);
+  const { rect, reason } = captureRegionRect(at.reframe, kind);
+  if (!rect) throw new Error(reason);
+
+  let srcW = projectData.sourceWidth;
+  let srcH = projectData.sourceHeight;
+  if (!(srcW > 0 && srcH > 0)) {
+    const dims = await probeDims(at.srcFile);
+    srcW = dims.w;
+    srcH = dims.h;
+  }
+  const c = clampReframeRect(rect, srcW > 0 ? srcW : Infinity, srcH > 0 ? srcH : Infinity);
+
+  const dir = path.dirname(outputPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  await runStillFfmpeg([
+    "-y", "-ss", String(at.sourceTime), "-i", at.srcFile,
+    "-vf", `crop=${c.w}:${c.h}:${c.x}:${c.y}`, "-frames:v", "1", outputPath,
+  ], `${kind} capture`);
+  return { success: true, path: outputPath, width: c.w, height: c.h };
+}
+
+/**
+ * #448: crop a still image into `outputPath` (a PNG). `rect` is in the image's
+ * own pixels and is clamped inside it. The source file is only read.
+ *
+ * @returns {Promise<{success: true, path: string, width: number, height: number}>}
+ */
+async function cropImage(srcPath, rect, outputPath) {
+  const dims = await probeDims(srcPath);
+  const c = clampReframeRect(rect, dims.w > 0 ? dims.w : Infinity, dims.h > 0 ? dims.h : Infinity);
+  await runStillFfmpeg(["-y", "-i", srcPath, "-vf", `crop=${c.w}:${c.h}:${c.x}:${c.y}`, "-frames:v", "1", outputPath], "crop");
+  return { success: true, path: outputPath, width: c.w, height: c.h };
+}
+
 module.exports = {
   renderClip,
   renderThumbnail,
+  captureSourceRegion,
+  cropImage,
   cancelActiveRender,
   buildNleFilterComplex, // #164: exported as a seam for the render-args verification harness
   resolveTimelineSubtitles, // #374: exported as a seam so the disable filter is testable
+  resolveCaptureInstant, // #448: exported as a seam so the section lookup is testable
 };

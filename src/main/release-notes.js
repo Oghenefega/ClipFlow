@@ -14,8 +14,14 @@ module.exports = [
   {
     version: "unreleased",
     date: "",
+    added: [
+      "Screenshot just the gameplay or just your camera. The small arrow next to the screenshot button in the viewer gives you \"Gameplay only\" and \"Camera only\": that part of your layout, at full sharpness, with no subtitles or captions on it. The camera button on its own still saves the whole frame.",
+      "After a screenshot, the message that pops up lets you crop it, add it to the Media tab (filed under the clip's game), or put it straight on your clip at the playhead.",
+      "Crop any picture in the Media tab: hover it and click the crop icon. Drag the box or pick a shape (square, 16:9, 9:16 or 4:5). The crop is saved as a new picture and the original stays as it was.",
+    ],
     changed: [
       "A rendered clip's thumbnail is now the very first frame of the finished video, exactly as it looks when posted.",
+      "Screenshots no longer replace each other. Every one you take is kept.",
     ],
     fixed: [
       "After you re-render a clip, its thumbnail updates straight away. It used to keep showing the previous render, old title card and all, until Corva was restarted, so it looked like the new render had not worked.",

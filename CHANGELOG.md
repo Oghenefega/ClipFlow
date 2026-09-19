@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-18 (session 267) — Screenshot just the gameplay or the camera, crop it, and put it in the Media tab or on the clip in one click
+
+### Added
+- **Gameplay-only and camera-only screenshots (#448).** The viewer's screenshot button is now a split button. The camera icon still saves the whole finished frame in one click, and a ▾ beside it offers "Gameplay only" and "Camera only". Those two cut the layout's game or camera box straight out of the recording, at the recording's full resolution, with no subtitles, captions or stickers on them. They use the layout of the section under the playhead, just like the export. Where there is no box to cut, the choice is greyed out and says why: "This part of the clip has no layout" for a section or clip without one, and "This part's layout has no camera box" for a game-only layout. Measured on a real 2560×2880 recording: gameplay came out at 2364×1438 and camera at 2200×1440, exactly the layout's boxes. The whole-frame shot still carried its subtitle and title card.
+- **The screenshot message now has Crop, Add to Media, Put on clip and Show in folder (#448).** "Add to Media" copies the picture into the Media library under the clip's game, and an open Media tab shows it straight away. "Put on clip" does the same, then places it on the clip at the playhead as an image overlay, and Ctrl+Z takes the placement back. The message stays open while the mouse is over it and closes 8 seconds after it leaves.
+- **A crop window, used from the screenshot message and from the Media tab (#448).** You drag the box or its handles. Shapes are Free, 1:1, 16:9, 9:16 and 4:5, the box's size shows in pixels, Enter saves and Esc cancels. Every crop is a new file, "… (cropped)", and the original is never written. From the message, the copy lands beside the screenshot and the message then points at it. From the Media tab, image cells get a crop icon on hover. The copy is added to the library under the same game as the original, and the grid scrolls to it and rings it in green. This includes pictures from a watched media folder: the crop is made in a temporary folder and imported, so nothing is ever written into the user's folder.
+- Usage events `clipflow_screenshot_taken {kind}`, `clipflow_screenshot_added {placed}` and `clipflow_image_cropped {from}`.
+
+### Changed
+- **Screenshots no longer overwrite each other.** A second screenshot of the same clip used to replace the first. Each one is now kept, with " (2)", " (3)" added to repeats. Files are `<title>_thumbnail_<id>.png`, `<title>_gameplay_<id>.png` and `<title>_camera_<id>.png` in the clip's render folder.
+
+Checked in the running app on a scratch copy of a project with only rejected clips, with the dev profile pointed at scratch folders. Checks: all three kinds; a repeat capture; crop from the message (16:9, saved with Enter, original byte-identical); Put on clip and its undo; crop from the Media tab on a library picture and on a watched-folder picture (the folder file's checksum was unchanged and the copy was filed under the folder's game); the greyed-out items on a game-only clip and on a clip with no layout. 10 new unit tests cover which box each kind cuts, the section lookup and the crop file names. The full suite passes: 553 tests.
+
 ## [Unreleased] — 2026-09-18 (session 266) — Re-rendered clips show their new thumbnail right away; clip lengths show what the video actually runs
 
 ### Fixed

@@ -48,6 +48,16 @@ function uniquePath(dir, base, ext, ownPath) {
 }
 
 /**
+ * #448: the name a crop of `srcPath` is saved under, without folder or
+ * extension: "<base> (cropped)". A copy that is already a crop keeps one
+ * " (cropped)" — uniquePath numbers the repeats instead of the suffix stacking.
+ */
+function croppedFileBase(srcPath) {
+  const base = path.basename(srcPath, path.extname(srcPath)).replace(/ \(cropped\)( \(\d+\))?$/, "");
+  return `${base} (cropped)`;
+}
+
+/**
  * Generate a unique clip ID.
  */
 function generateClipId() {
@@ -812,4 +822,5 @@ module.exports = {
   generateClipId,
   sanitizeFileBase,
   uniquePath,
+  croppedFileBase,
 };

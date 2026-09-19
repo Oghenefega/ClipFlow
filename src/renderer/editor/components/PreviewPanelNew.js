@@ -8,10 +8,10 @@ import { SubtitleOverlay, CaptionOverlay, CaptionText, useActiveSubtitleLine } f
 import { resolvePlacements } from "../models/audioPlacements";
 import { resolveMediaPlacements, DEFAULT_VIDEO_VOLUME } from "../models/mediaPlacements";
 import useSourceStems from "./preview/useSourceStems"; // #272
-import { sourceToTimelineNear, segmentIndexAtTimeline, sectionIndexForFrame } from "../models/timeMapping";
+import { sourceToTimelineNear, segmentIndexAtTimeline, sectionIndexForFrame, timelineToSource, getTimelineDuration } from "../models/timeMapping";
 import { toFileUrl } from "../../components/shared";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
-import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe, resolveSegmentReframe, fitToScreenReframe } from "../utils/reframeStyle";
+import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe, resolveClipReframe, resolveSegmentReframe, fitToScreenReframe, captureRegionRect } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 import {
@@ -24,7 +24,15 @@ import {
   Loader2,
   AlertTriangle,
   X,
+  RectangleVertical,
+  Gamepad2,
+  User,
+  FolderOpen,
+  Check,
 } from "lucide-react";
+import posthog from "posthog-js";
+import CropDialog from "./media/CropDialog";
+import { playheadSourceTime } from "./media/MediaPanel";
 import { Button } from "../../../components/ui/button";
 import {
   Tooltip,
@@ -114,6 +122,53 @@ function drawVideoHQ(ctx, source, sx, sy, sw, sh, dx, dy, dw, dh, scratch) {
     ch = nh;
   }
   ctx.drawImage(scratch, 0, 0, cw, ch, dx, dy, dw, dh);
+}
+
+// ── Capture Menu ──
+// #448: what the screenshot ▾ offers. `avail` holds the reason each layout
+// box can't be taken at the playhead (null = available) — the item greys out
+// and says why instead of failing after the click.
+const CAPTURE_KINDS = [
+  ["frame", "Whole frame", "As the export looks, subtitles included", RectangleVertical],
+  ["gameplay", "Gameplay only", "Clean, straight from the recording", Gamepad2],
+  ["camera", "Camera only", "Clean, straight from the recording", User],
+];
+function CaptureMenu({ avail, onPick, onClose, triggerRef }) {
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target) &&
+          triggerRef?.current && !triggerRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose, triggerRef]);
+
+  return (
+    <div ref={menuRef} className="absolute top-full left-0 mt-1 w-[248px] rounded-lg border bg-popover shadow-xl z-50 p-1">
+      <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">Screenshot</div>
+      {CAPTURE_KINDS.map(([kind, label, hint, Icon]) => {
+        const reason = avail[kind] || null;
+        return (
+          <button
+            key={kind}
+            disabled={!!reason}
+            onClick={() => onPick(kind)}
+            className="w-full flex items-start gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-secondary/60 disabled:opacity-45 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+          >
+            <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0">
+              <span className="block text-xs text-foreground">{label}</span>
+              <span className="block text-[11px] text-muted-foreground leading-snug">{reason || hint}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── Zoom Menu ──
@@ -925,26 +980,142 @@ export default function PreviewPanelNew() {
   // the same IPC payload as doRender (current unsaved edits included) and runs
   // a one-frame render at the playhead in the main process. Busy state guards
   // double-clicks while the capture (~1-2s) runs.
+  // #448: `kind` is "frame" (that finished frame), or "gameplay" / "camera"
+  // (that layout box, clean, at source size). Every capture is kept, and the
+  // message after it offers Crop / Add to Media / Put on clip.
   const [screenshotBusy, setScreenshotBusy] = useState(false);
-  const [screenshotToast, setScreenshotToast] = useState(null); // { path } | { error }
+  // { kind, path, cropped?, asset?, placed?, busy?, actionError? } | { error }
+  const [screenshotToast, setScreenshotToast] = useState(null);
+  const [captureMenu, setCaptureMenu] = useState(null); // null | { gameplay, camera } reasons
+  const [cropFor, setCropFor] = useState(null); // the toast whose picture is being cropped
   const screenshotToastTimer = useRef(null);
+  const toastHoverRef = useRef(false);
+  const cropForRef = useRef(null);
+  const captureChevRef = useRef(null);
   useEffect(() => () => clearTimeout(screenshotToastTimer.current), []);
-  const handleScreenshot = async () => {
+  // The message stays while the mouse is on it or its picture is being cropped.
+  const armToastHide = useCallback(() => {
+    clearTimeout(screenshotToastTimer.current);
+    screenshotToastTimer.current = setTimeout(() => {
+      if (!toastHoverRef.current && !cropForRef.current) setScreenshotToast(null);
+    }, 8000);
+  }, []);
+  const openCrop = useCallback((toast) => { cropForRef.current = toast; setCropFor(toast); }, []);
+  const closeCrop = useCallback(() => { cropForRef.current = null; setCropFor(null); armToastHide(); }, [armToastHide]);
+
+  const handleScreenshot = async (kind = "frame") => {
     if (screenshotBusy) return;
     const payload = buildRenderPayload();
     if (!payload) return; // no clip/project loaded
     setScreenshotBusy(true);
     try {
       const time = usePlaybackStore.getState().currentTime || 0;
-      const result = await window.clipflow?.thumbnailCapture?.(payload.safeClip, payload.safeProject, time, payload.safeOptions);
-      setScreenshotToast(result?.error ? { error: result.error } : { path: result?.path || null });
+      const result = await window.clipflow?.thumbnailCapture?.(payload.safeClip, payload.safeProject, time, { ...payload.safeOptions, kind });
+      setScreenshotToast(result?.error ? { error: result.error } : { kind, path: result?.path || null });
+      if (!result?.error) { try { posthog.capture("clipflow_screenshot_taken", { kind }); } catch (_) {} }
     } catch (e) {
       setScreenshotToast({ error: e.message || "Screenshot failed" });
     } finally {
       setScreenshotBusy(false);
-      clearTimeout(screenshotToastTimer.current);
-      screenshotToastTimer.current = setTimeout(() => setScreenshotToast(null), 8000);
+      armToastHide();
     }
+  };
+
+  // #448: which layout boxes exist at the playhead — the section under it
+  // decides, the same way the capture resolves it (render.js
+  // resolveCaptureInstant). Worked out when the menu opens.
+  const toggleCaptureMenu = () => {
+    if (captureMenu) { setCaptureMenu(null); return; }
+    // The last capture's message sits over where the menu opens, and the
+    // next capture replaces it anyway.
+    toastHoverRef.current = false;
+    setScreenshotToast(null);
+    const es = useEditorStore.getState();
+    const segs = es.nleSegments || [];
+    let layout;
+    if (segs.length > 0) {
+      const tl = usePlaybackStore.getState().currentTime || 0;
+      const m = timelineToSource(Math.max(0, Math.min(tl, getTimelineDuration(segs) - 0.05)), segs);
+      layout = resolveSegmentReframe(segs[m.found ? m.segmentIndex : 0], es.clip, es.project);
+    } else {
+      layout = resolveClipReframe(es.clip, es.project);
+    }
+    setCaptureMenu({
+      gameplay: captureRegionRect(layout, "gameplay").reason,
+      camera: captureRegionRect(layout, "camera").reason,
+    });
+  };
+
+  // Only this message's own picture is ever updated — a newer capture may
+  // have replaced it while an action was awaiting.
+  const patchToast = (path, patch) =>
+    setScreenshotToast((cur) => (cur && cur.path === path ? { ...cur, ...patch } : cur));
+
+  // #448: into the shared Media library under the clip's game — the same
+  // library and game scoping as an upload (#322). The library keeps its own
+  // copy, so the picture survives the render folder being cleaned out.
+  const addToastToMedia = async (toast) => {
+    if (toast.asset) return toast.asset;
+    const es = useEditorStore.getState();
+    const gameTag = es.clip?.gameTag || es.project?.gameTag || null;
+    const result = await window.clipflow.assetsImport([toast.path], "image", gameTag);
+    const asset = result?.success ? result.imported[0] : null;
+    if (!asset) throw new Error(result?.error || result?.skipped?.[0]?.reason || "Couldn't add it to the Media tab");
+    useEditorStore.getState().bumpAssetsRevision(); // an open Media tab re-lists
+    patchToast(toast.path, { asset });
+    return asset;
+  };
+
+  const onToastAdd = async () => {
+    const toast = screenshotToast;
+    if (!toast?.path || toast.busy || toast.asset) return;
+    patchToast(toast.path, { busy: "add", actionError: null });
+    try {
+      await addToastToMedia(toast);
+      try { posthog.capture("clipflow_screenshot_added", { placed: false }); } catch (_) {}
+    } catch (e) {
+      patchToast(toast.path, { actionError: e.message });
+    } finally {
+      patchToast(toast.path, { busy: null });
+    }
+  };
+
+  // Put on clip = add to the library (the clip needs a copy to point at),
+  // then the same placement a Media tab click makes, at the playhead as it
+  // was when the button was clicked.
+  const onToastPlace = async () => {
+    const toast = screenshotToast;
+    if (!toast?.path || toast.busy || toast.placed) return;
+    const clipId = useEditorStore.getState().clip?.id;
+    const sourceTime = playheadSourceTime();
+    patchToast(toast.path, { busy: "place", actionError: null });
+    try {
+      const asset = await addToastToMedia(toast);
+      const es = useEditorStore.getState();
+      // Never land it on a clip opened while the import was running.
+      if (!es.clip || es.clip.id !== clipId) throw new Error("Added to the Media tab, but the clip changed, so it wasn't placed");
+      es.addMediaPlacement(asset, sourceTime, null);
+      window.clipflow.assetsMarkUsed(asset.id, asset.path).catch(() => {});
+      patchToast(toast.path, { placed: true });
+      try { posthog.capture("clipflow_screenshot_added", { placed: true }); } catch (_) {}
+    } catch (e) {
+      patchToast(toast.path, { actionError: e.message });
+    } finally {
+      patchToast(toast.path, { busy: null });
+    }
+  };
+
+  // A crop is a new file beside the screenshot; the message then points at
+  // the cropped copy, ready to add or place.
+  const onToastCropSave = async (rect) => {
+    const toast = cropForRef.current;
+    if (!toast) return null;
+    const result = await window.clipflow.imageCrop(toast.path, rect);
+    if (!result?.success) return { error: result?.error || "Couldn't save the crop" };
+    try { posthog.capture("clipflow_image_cropped", { from: "screenshot" }); } catch (_) {}
+    setScreenshotToast({ kind: toast.kind, path: result.path, cropped: true });
+    closeCrop();
+    return null;
   };
   const clip = useEditorStore((s) => s.clip);
   const project = useEditorStore((s) => s.project);
@@ -2415,20 +2586,47 @@ export default function PreviewPanelNew() {
               </TooltipTrigger>
               <TooltipContent className="text-xs">Fullscreen</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 bg-black/40 hover:bg-black/60 text-white/80 hover:text-white backdrop-blur-sm pointer-events-auto"
-                  onClick={handleScreenshot}
-                  disabled={screenshotBusy}
-                >
-                  {screenshotBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Save this frame as a thumbnail PNG</TooltipContent>
-            </Tooltip>
+            {/* #448: split button — the camera is still one click for the
+                whole frame; the ▾ offers gameplay or camera only. */}
+            <div className="relative flex pointer-events-auto">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-r-none bg-black/40 hover:bg-black/60 text-white/80 hover:text-white backdrop-blur-sm"
+                    onClick={() => handleScreenshot("frame")}
+                    disabled={screenshotBusy}
+                  >
+                    {screenshotBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">Save this frame as a thumbnail PNG</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    ref={captureChevRef}
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-[18px] rounded-l-none border-l border-white/10 backdrop-blur-sm hover:text-white ${captureMenu ? "bg-black/70 hover:bg-black/70 text-white" : "bg-black/40 hover:bg-black/60 text-white/80"}`}
+                    onClick={toggleCaptureMenu}
+                    disabled={screenshotBusy}
+                  >
+                    <ChevronDown className={`h-3 w-3 transition-transform ${captureMenu ? "rotate-180" : ""}`} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">Screenshot just the gameplay or the camera</TooltipContent>
+              </Tooltip>
+              {captureMenu && (
+                <CaptureMenu
+                  avail={captureMenu}
+                  onPick={(kind) => { setCaptureMenu(null); handleScreenshot(kind); }}
+                  onClose={() => setCaptureMenu(null)}
+                  triggerRef={captureChevRef}
+                />
+              )}
+            </div>
           </TooltipProvider>
         </div>
 
@@ -2453,24 +2651,92 @@ export default function PreviewPanelNew() {
         </div>
       </div>
 
-      {/* Screenshot result toast — anchored under the top controls */}
+      {/* Screenshot result toast — anchored under the top controls. #448:
+          stays while hovered; offers Crop / Add to Media / Put on clip. */}
       {screenshotToast && (
-        <div className={`absolute top-11 left-2 z-40 max-w-[320px] rounded-lg border ${screenshotToast.error ? "border-red-500/40" : "border-emerald-500/40"} bg-popover/95 shadow-xl p-2.5`}>
-          <p className="text-xs font-medium text-foreground">
-            {screenshotToast.error ? "Screenshot failed" : "Thumbnail saved"}
-          </p>
+        <div
+          className={`absolute top-11 left-2 z-40 rounded-lg border ${screenshotToast.error ? "max-w-[320px] border-red-500/40" : "w-[300px] border-emerald-500/40"} bg-popover/95 shadow-xl p-2.5`}
+          onMouseEnter={() => { toastHoverRef.current = true; }}
+          onMouseLeave={() => { toastHoverRef.current = false; armToastHide(); }}
+        >
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium text-foreground">
+              {screenshotToast.error ? "Screenshot failed"
+                : screenshotToast.cropped ? "Cropped copy saved"
+                : screenshotToast.kind === "gameplay" ? "Gameplay screenshot saved"
+                : screenshotToast.kind === "camera" ? "Camera screenshot saved"
+                : "Thumbnail saved"}
+            </p>
+            <button
+              className="ml-auto text-muted-foreground hover:text-foreground"
+              title="Close"
+              onClick={() => { toastHoverRef.current = false; setScreenshotToast(null); }}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
           <p className="text-[10px] text-muted-foreground mt-0.5 font-mono truncate" title={screenshotToast.error || screenshotToast.path || ""}>
             {screenshotToast.error || screenshotToast.path}
           </p>
           {!screenshotToast.error && screenshotToast.path && (
-            <button
-              className="mt-1.5 text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-              onClick={() => window.clipflow?.revealInFolder?.(screenshotToast.path)}
-            >
-              Show in folder
-            </button>
+            <>
+              <div className="mt-2 flex items-center gap-1">
+                <button
+                  className="h-6 px-2 rounded-md border border-border bg-secondary/40 hover:bg-secondary text-[11px] font-medium text-foreground inline-flex items-center gap-1 transition-colors disabled:opacity-50"
+                  onClick={() => openCrop(screenshotToast)}
+                  disabled={!!screenshotToast.busy}
+                >
+                  <Crop className="h-3 w-3" /> Crop
+                </button>
+                <button
+                  className={`h-6 px-2 rounded-md border text-[11px] font-medium inline-flex items-center gap-1 transition-colors ${
+                    screenshotToast.asset
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 cursor-default"
+                      : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
+                  }`}
+                  onClick={onToastAdd}
+                  disabled={!!screenshotToast.busy || !!screenshotToast.asset}
+                >
+                  {screenshotToast.busy === "add" ? <Loader2 className="h-3 w-3 animate-spin" />
+                    : screenshotToast.asset ? <Check className="h-3 w-3" /> : null}
+                  {screenshotToast.asset ? "In Media tab" : "Add to Media"}
+                </button>
+                <button
+                  className={`h-6 px-2 rounded-md border text-[11px] font-medium inline-flex items-center gap-1 transition-colors ${
+                    screenshotToast.placed
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 cursor-default"
+                      : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
+                  }`}
+                  onClick={onToastPlace}
+                  disabled={!!screenshotToast.busy || !!screenshotToast.placed}
+                >
+                  {screenshotToast.busy === "place" ? <Loader2 className="h-3 w-3 animate-spin" />
+                    : screenshotToast.placed ? <Check className="h-3 w-3" /> : null}
+                  {screenshotToast.placed ? "On clip" : "Put on clip"}
+                </button>
+                <button
+                  className="ml-auto h-6 w-6 rounded-md border border-border bg-secondary/40 hover:bg-secondary text-muted-foreground hover:text-foreground inline-flex items-center justify-center transition-colors"
+                  title="Show in folder"
+                  onClick={() => window.clipflow?.revealInFolder?.(screenshotToast.path)}
+                >
+                  <FolderOpen className="h-3 w-3" />
+                </button>
+              </div>
+              {screenshotToast.actionError && (
+                <p className="mt-1.5 text-[10.5px] text-red-400 leading-snug">{screenshotToast.actionError}</p>
+              )}
+            </>
           )}
         </div>
+      )}
+
+      {cropFor && (
+        <CropDialog
+          path={cropFor.path}
+          title={cropFor.path.split(/[/\\]/).pop()}
+          onCancel={closeCrop}
+          onSave={onToastCropSave}
+        />
       )}
 
       {/* #178/#300: the preview can never fail silently. Either the source

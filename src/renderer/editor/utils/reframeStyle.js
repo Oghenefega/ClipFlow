@@ -165,6 +165,25 @@ function scaleRectAboutCenter(rect, factor, srcW, srcH) {
   return { x, y, w, h };
 }
 
+// ── #448: the box a clean screenshot cuts ──
+// Which source rect a "Gameplay only" / "Camera only" still takes from the
+// layout of the section under the playhead, or the reason there is none. The
+// "is there a layout" test mirrors render.js isReframeActive (a valid game box,
+// and a camera box that is valid or exactly null), so the viewer's menu greys
+// out exactly what the capture would refuse.
+const CAPTURE_NO_LAYOUT = "This part of the clip has no layout";
+const CAPTURE_NO_CAMERA = "This part's layout has no camera box";
+function captureRegionRect(reframe, kind) {
+  const valid = (r) => !!r && [r.x, r.y, r.w, r.h].every(Number.isFinite) && r.w > 0 && r.h > 0;
+  if (!reframe || !valid(reframe.gameRect) || !(reframe.camRect === null || valid(reframe.camRect))) {
+    return { rect: null, reason: CAPTURE_NO_LAYOUT };
+  }
+  if (kind === "camera") {
+    return reframe.camRect ? { rect: reframe.camRect, reason: null } : { rect: null, reason: CAPTURE_NO_CAMERA };
+  }
+  return { rect: reframe.gameRect, reason: null };
+}
+
 // ── #164 B4: first-recording auto-offer trigger ──
 // Pure decision for "offer a vertical-layout setup when this project opens?"
 // True only when the dims are decidable and non-9:16, the project has no
@@ -201,4 +220,5 @@ module.exports = {
   shouldOfferReframe,
   scaleRectAboutCenter,
   MIN_CROP_PX,
+  captureRegionRect,
 };

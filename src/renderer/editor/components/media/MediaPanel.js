@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Search, X, RefreshCw, Loader2, Upload, Star, Trash2, Image as ImageIcon, EyeOff, Gamepad2, ChevronDown, Check } from "lucide-react";
+import { Search, X, RefreshCw, Loader2, Upload, Star, Trash2, Image as ImageIcon, EyeOff, Gamepad2, ChevronDown, Check, Crop } from "lucide-react";
+import posthog from "posthog-js";
 import { Separator } from "../../../../components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../../components/ui/popover";
 import { ScrollArea } from "../../../../components/ui/scroll-area";
@@ -10,6 +11,7 @@ import usePlaybackStore from "../../stores/usePlaybackStore";
 import { getTimelineDuration, timelineToSource } from "../../models/timeMapping";
 import { fmtDur } from "../audio/TrackRow";
 import { toFileUrl } from "../../../components/shared";
+import CropDialog from "./CropDialog";
 
 export const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
 export const GIF_EXTENSIONS = ["gif"];
@@ -21,6 +23,20 @@ const SUB_TABS = [
   ["gif", "GIFs"],
   ["video", "Videos"],
 ];
+
+/**
+ * The SOURCE moment under the playhead — where a placed overlay is anchored
+ * (#310), so it follows that footage through later trims. Shared with the
+ * viewer's "Put on clip" screenshot button (#448). Event-time only.
+ */
+export function playheadSourceTime() {
+  const nle = useEditorStore.getState().nleSegments || [];
+  const tl = usePlaybackStore.getState().currentTime;
+  if (nle.length === 0) return tl;
+  const clamped = Math.max(0, Math.min(tl, getTimelineDuration(nle) - 0.05));
+  const m = timelineToSource(clamped, nle);
+  return m.found ? m.sourceTime : nle[0].sourceStart;
+}
 
 // #322: the scope showing everything, whatever game it belongs to. Not a tag —
 // no game can collide with it, and it never reaches the store.
@@ -127,6 +143,12 @@ export default function MediaPanel({ gamesDb }) {
   const [scope, setScope] = useState(ALL_GAMES);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [gameMenuId, setGameMenuId] = useState(null); // per-item game popover
+  // #448: the picture the crop window is open on, and the copy it just made —
+  // the library lists in the order things arrived, so the copy lands at the
+  // end of the grid; it's scrolled to and ringed so it doesn't read as lost.
+  const [cropItem, setCropItem] = useState(null);
+  const [freshId, setFreshId] = useState(null);
+  const freshTimer = useRef(null);
   const statusTimer = useRef(null);
   const searchRef = useRef(null);
 
@@ -165,7 +187,7 @@ export default function MediaPanel({ gamesDb }) {
     });
   }, []);
 
-  useEffect(() => () => clearTimeout(statusTimer.current), []);
+  useEffect(() => () => { clearTimeout(statusTimer.current); clearTimeout(freshTimer.current); }, []);
 
   const flashStatus = useCallback((text, error = false) => {
     setStatus({ text, error });
@@ -233,14 +255,8 @@ export default function MediaPanel({ gamesDb }) {
     const es = useEditorStore.getState();
     if (!es.clip) { flashStatus("Open a clip to add media", true); return; }
 
-    const nle = es.nleSegments || [];
     const tl = usePlaybackStore.getState().currentTime;
-    let sourceTime = tl;
-    if (nle.length > 0) {
-      const clamped = Math.max(0, Math.min(tl, getTimelineDuration(nle) - 0.05));
-      const m = timelineToSource(clamped, nle);
-      sourceTime = m.found ? m.sourceTime : nle[0].sourceStart;
-    }
+    const sourceTime = playheadSourceTime();
 
     // A video's runtime is already in the library index (#309 probes those for
     // the duration badge); a GIF's loop isn't, so it's read here. Either way an
@@ -289,6 +305,24 @@ export default function MediaPanel({ gamesDb }) {
     if (!result?.success) { flashStatus(result?.error || "Couldn't change that", true); return; }
     refresh();
   }, [flashStatus, refresh]);
+
+  // #448: crop into a NEW library item — the original, and every clip already
+  // using it, is left alone. The copy shows under the same game the original
+  // does (a universal original makes a universal copy).
+  const handleCropSave = useCallback(async (rect) => {
+    const item = cropItem;
+    if (!item) return null;
+    const result = await window.clipflow.assetsCropCopy(item.path, rect, gameOf(item)?.tag || null);
+    if (!result?.success) return { error: result?.error || "Couldn't save the crop" };
+    setCropItem(null);
+    try { posthog.capture("clipflow_image_cropped", { from: "media" }); } catch (_) {}
+    flashStatus("Cropped copy saved");
+    await refresh();
+    setFreshId(result.asset.id);
+    clearTimeout(freshTimer.current);
+    freshTimer.current = setTimeout(() => setFreshId(null), 2500);
+    return null;
+  }, [cropItem, gameOf, flashStatus, refresh]);
 
   // Two-click confirm, disarmed when the pointer leaves the cell. Only
   // uploaded one-offs are deletable — watched-folder files belong to the user
@@ -463,6 +497,7 @@ export default function MediaPanel({ gamesDb }) {
               {filtered.map((item) => (
                 <div
                   key={item.id}
+                  ref={item.id === freshId ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
                   onMouseLeave={() => setArmedDeleteId((cur) => (cur === item.id ? null : cur))}
                   onClick={() => handleAddToTimeline(item)}
                   title={
@@ -474,7 +509,7 @@ export default function MediaPanel({ gamesDb }) {
                     item.offline || item.missing
                       ? "opacity-50"
                       : "cursor-pointer hover:border-primary/50 transition-colors"
-                  }`}
+                  } ${item.id === freshId ? "ring-2 ring-emerald-400/80" : ""}`}
                 >
                   {item.missing || item.offline ? (
                     <div className="w-full h-16 flex items-center justify-center">
@@ -555,6 +590,17 @@ export default function MediaPanel({ gamesDb }) {
                       </PopoverContent>
                     </Popover>
                   )}
+                  {/* #448: crop — stills only. Sits left of delete, or in its
+                      spot on folder files, which have no delete. */}
+                  {item.type === "image" && !item.missing && !item.offline && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCropItem(item); }}
+                      title="Crop (saves a copy)"
+                      className={`absolute top-1 ${item.source !== "folder" ? "right-7" : "right-1"} h-5 w-5 rounded items-center justify-center bg-black/60 text-white/80 hover:text-foreground transition-colors hidden group-hover:flex`}
+                    >
+                      <Crop className="h-3 w-3" />
+                    </button>
+                  )}
                   {/* Uploaded one-offs can be deleted; watched-folder files can't */}
                   {item.source !== "folder" && (
                     <button
@@ -609,6 +655,15 @@ export default function MediaPanel({ gamesDb }) {
           </div>
         </div>
       </ScrollArea>
+
+      {cropItem && (
+        <CropDialog
+          path={cropItem.path}
+          title={cropItem.name}
+          onCancel={() => setCropItem(null)}
+          onSave={handleCropSave}
+        />
+      )}
     </div>
   );
 }

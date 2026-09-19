@@ -4982,23 +4982,73 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 // Session 124: WYSIWYG viewer screenshot → Shorts thumbnail PNG. Same payload
 // shape as render:clip plus the playhead time; runs a one-frame render through
 // the real pipeline (reframe + overlay) so the PNG matches the final video.
+// #448: options.kind picks what is taken — "frame" (that finished frame, the
+// default), or "gameplay" / "camera": that layout box, clean, at source size.
 ipcMain.handle("thumbnail:capture", async (event, clipData, projectData, timelineTime, options) => {
   try {
     const outputFolder = resolveTestAwareOutputFolder(projectData);
     if (!outputFolder) return { error: "Output folder not configured. Set one in Settings → Files & Folders." };
-    // #347: the id tail makes the name deterministic per CLIP, not per title —
-    // recapturing still overwrites the clip's own PNG, but two same-titled
-    // clips in one project can no longer clobber each other's screenshot. The
-    // path is never stored on the clip (the editor only toasts it), so nothing
-    // renames it on retitle — recapturing under the new title is the remedy.
+    const kind = options?.kind === "gameplay" || options?.kind === "camera" ? options.kind : "frame";
+    // #347: the id tail keeps two same-titled clips in one project apart.
+    // #448: every capture is kept — a repeat gets " (2)", " (3)" instead of
+    // overwriting. The path is never stored on the clip (the editor only
+    // toasts it), so nothing renames it on retitle.
     const idTail = String(clipData.id || "").split("_").pop();
-    const fileName = `${projects.sanitizeFileBase(clipData.title || `clip_${clipData.id}`)}_thumbnail${idTail ? `_${idTail}` : ""}.png`;
+    const base = `${projects.sanitizeFileBase(clipData.title || `clip_${clipData.id}`)}_${kind === "frame" ? "thumbnail" : kind}${idTail ? `_${idTail}` : ""}`;
     // #181: same per-project scoping as renders.
-    const outputPath = path.join(renderOutputDir(outputFolder, projectData), fileName);
-    return await render.renderThumbnail(clipData, projectData, timelineTime, outputPath, options || {});
+    const outputPath = projects.uniquePath(renderOutputDir(outputFolder, projectData), base, ".png");
+    const result = kind === "frame"
+      ? await render.renderThumbnail(clipData, projectData, timelineTime, outputPath, options || {})
+      : await render.captureSourceRegion(clipData, projectData, timelineTime, kind, outputPath);
+    logger.info(logger.MODULES.system, `Screenshot (${kind}) saved: ${outputPath}`);
+    return result;
   } catch (err) {
     console.error("[thumbnail:capture] failed:", err.message);
     return { error: err.message };
+  }
+});
+
+// #448: crop a still into a NEW file — the original is never written.
+function validCropRect(rect) {
+  return !!rect && [rect.x, rect.y, rect.w, rect.h].every(Number.isFinite) && rect.w > 0 && rect.h > 0;
+}
+
+// A fresh screenshot: the cropped copy sits beside it in the render folder.
+ipcMain.handle("image:crop", async (_, srcPath, rect) => {
+  try {
+    if (!srcPath || !fs.existsSync(srcPath)) return { error: "That picture isn't on disk any more" };
+    if (!validCropRect(rect)) return { error: "Nothing to crop" };
+    const outputPath = projects.uniquePath(path.dirname(srcPath), projects.croppedFileBase(srcPath), ".png");
+    const result = await render.cropImage(srcPath, rect, outputPath);
+    logger.info(logger.MODULES.system, `Screenshot cropped: ${outputPath}`);
+    return result;
+  } catch (err) {
+    console.error("[image:crop] failed:", err.message);
+    return { error: err.message };
+  }
+});
+
+// A Media tab picture: cropped in a scratch folder, then imported like an
+// upload (copied into the library). Never written beside the original — that
+// may be a watched folder, which is the user's, and it would then turn up as
+// a second item on the next scan.
+ipcMain.handle("assets:cropCopy", async (_, srcPath, rect, gameTag) => {
+  const scratch = path.join(os.tmpdir(), `corva-crop-${Date.now()}`);
+  try {
+    if (!srcPath || !fs.existsSync(srcPath)) return { success: false, error: "That picture isn't on disk any more" };
+    if (!validCropRect(rect)) return { success: false, error: "Nothing to crop" };
+    const root = assetsRootOrThrow();
+    fs.mkdirSync(scratch, { recursive: true });
+    const tmp = path.join(scratch, `${projects.croppedFileBase(srcPath)}.png`);
+    await render.cropImage(srcPath, rect, tmp);
+    const result = await assetLibrary.importAssets(root, [tmp], "image", gameTag);
+    if (!result.imported.length) return { success: false, error: result.skipped[0]?.reason || "Import failed" };
+    logger.info(logger.MODULES.system, `Media crop saved: ${result.imported[0].path}`);
+    return { success: true, asset: result.imported[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  } finally {
+    try { fs.rmSync(scratch, { recursive: true, force: true }); } catch (_) {}
   }
 });
 

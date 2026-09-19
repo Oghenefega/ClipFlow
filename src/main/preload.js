@@ -131,6 +131,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsMarkUsed: (assetId, filePath) => ipcRenderer.invoke("assets:markUsed", assetId, filePath),
   assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
   assetsPreviewPath: (filePath) => ipcRenderer.invoke("assets:previewPath", filePath),
+  // #448: crop a Media picture into a new library item (original untouched).
+  assetsCropCopy: (filePath, rect, gameTag) => ipcRenderer.invoke("assets:cropCopy", filePath, rect, gameTag),
   // Background duration scan of watched audio folders (#208)
   onAssetsScanProgress: (callback) => {
     ipcRenderer.on("assets:scanProgress", (_, data) => callback(data));
@@ -270,6 +272,8 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.invoke("render:clip", clipData, projectData, outputPath, options),
   thumbnailCapture: (clipData, projectData, timelineTime, options) =>
     ipcRenderer.invoke("thumbnail:capture", clipData, projectData, timelineTime, options),
+  // #448: crop a screenshot into a new "(cropped)" file beside it.
+  imageCrop: (filePath, rect) => ipcRenderer.invoke("image:crop", filePath, rect),
   batchRender: (clips, projectData, outputDir, options) =>
     ipcRenderer.invoke("render:batch", clips, projectData, outputDir, options),
   // clipId targets a specific job: the current render is aborted, a WAITING

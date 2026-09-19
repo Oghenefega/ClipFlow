@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en" data-theme="midnight">
+<head>
+<meta charset="utf-8">
+<title>Screenshot capture mockup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Midnight tokens, copied from src/renderer/styles/themes.css */
+  :root {
+    --bg: #0a0b10; --surface: #111218; --surfaceHover: #16171f;
+    --border: rgba(255,255,255,.06); --borderHover: rgba(255,255,255,.12);
+    --text: #edeef2; --textSecondary: rgba(255,255,255,.55); --textTertiary: rgba(255,255,255,.35);
+    --accent: #8b5cf6; --accentLight: #a78bfa; --accentDim: rgba(139,92,246,.12); --accentBorder: rgba(139,92,246,.25);
+    --green: #34d399; --greenDim: rgba(52,211,153,.10); --greenBorder: rgba(52,211,153,.22);
+    --red: #f87171; --rose: #fb7185;
+    --game: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 13px/1.35 "DM Sans", system-ui, sans-serif; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .app { display: flex; height: 100vh; min-height: 720px; }
+
+  /* ── Media tab ── */
+  .media { width: 272px; flex: none; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .media-head { padding: 10px 12px 8px; display: flex; align-items: center; gap: 6px; }
+  .media-head h2 { font-size: 13px; font-weight: 600; margin: 0; flex: 1; }
+  .scope { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.03); font-size: 11.5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--game); box-shadow: 0 0 6px var(--game); flex: none; }
+  .subtabs { display: flex; gap: 2px; padding: 0 12px 8px; }
+  .subtabs button { flex: 1; padding: 5px 0; border-radius: 6px; border: 0; background: transparent; color: var(--textSecondary); font-size: 11.5px; font-weight: 500; }
+  .subtabs button.on { background: rgba(255,255,255,.07); color: var(--text); }
+  .search { margin: 0 12px 8px; display: flex; gap: 6px; }
+  .search div { flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 7px; padding: 0 9px; display: flex; align-items: center; color: var(--textTertiary); font-size: 12px; }
+  .iconbtn { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 7px; background: transparent; display: grid; place-items: center; color: var(--textSecondary); }
+  .pills { display: flex; gap: 4px; padding: 0 12px 8px; }
+  .pills span { padding: 3px 9px; border-radius: 999px; font-size: 11px; color: var(--textSecondary); border: 1px solid var(--border); }
+  .pills span.on { color: var(--text); background: rgba(255,255,255,.07); }
+  .grid { padding: 8px 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; overflow: auto; border-top: 1px solid var(--border); }
+  .cell { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04); cursor: pointer; }
+  .cell:hover { border-color: rgba(139,92,246,.5); }
+  .cell img { width: 100%; height: 64px; object-fit: cover; display: block; }
+  .cell .name { font-size: 9.5px; color: var(--textSecondary); padding: 2px 5px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cell .ic { position: absolute; top: 4px; width: 20px; height: 20px; border-radius: 4px; background: rgba(0,0,0,.6); border: 0; display: grid; place-items: center; color: rgba(255,255,255,.85); opacity: 0; transition: opacity .12s; }
+  .cell:hover .ic { opacity: 1; }
+  .cell .ic.star { left: 4px; } .cell .ic.gamedot { left: 28px; opacity: 1; } .cell .ic.crop { right: 28px; } .cell .ic.trash { right: 4px; }
+  .cell .ic.crop.solo { right: 4px; }
+  .cell .ic.crop { background: rgba(139,92,246,.85); color: #fff; }
+  .cell.fresh { animation: pop .6s ease; border-color: var(--green); }
+  @keyframes pop { 0% { transform: scale(.85); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); } }
+  .media-status { margin: 0 12px 8px; font-size: 11px; color: var(--green); min-height: 15px; }
+
+  /* ── Viewer ── */
+  .center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .stage { flex: 1; display: grid; place-items: center; background: #07080b; position: relative; }
+  .viewer { position: relative; height: min(600px, calc(100vh - 150px)); aspect-ratio: 9 / 16; background: #000; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  .viewer > img.frame { width: 100%; height: 100%; display: block; }
+  .top-controls { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; z-index: 30; }
+  .vbtn { height: 28px; min-width: 28px; border: 0; border-radius: 6px; background: rgba(0,0,0,.45); color: rgba(255,255,255,.85); display: grid; place-items: center; backdrop-filter: blur(4px); }
+  .vbtn:hover { background: rgba(0,0,0,.65); color: #fff; }
+  .split { display: flex; border-radius: 6px; overflow: hidden; }
+  .split .vbtn { border-radius: 0; }
+  .split .chev { min-width: 18px; width: 18px; border-left: 1px solid rgba(255,255,255,.12); }
+  .split .chev.open { background: rgba(0,0,0,.75); color: #fff; }
+  .menu { position: absolute; top: 34px; left: 34px; width: 244px; background: rgba(17,18,24,.97); border: 1px solid var(--borderHover); border-radius: 9px; padding: 4px; box-shadow: 0 12px 30px rgba(0,0,0,.5); z-index: 40; display: none; }
+  .menu.open { display: block; }
+  .menu .lbl { padding: 5px 8px 3px; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--textTertiary); }
+  .mi { width: 100%; display: flex; gap: 9px; align-items: flex-start; text-align: left; padding: 7px 8px; border: 0; border-radius: 6px; background: transparent; }
+  .mi:hover:not(:disabled) { background: rgba(255,255,255,.06); }
+  .mi:disabled { cursor: not-allowed; opacity: .42; }
+  .mi .t { font-size: 12.5px; font-weight: 500; }
+  .mi .s { font-size: 11px; color: var(--textSecondary); margin-top: 1px; }
+  .mi svg { flex: none; margin-top: 2px; color: var(--textSecondary); }
+  .kbd { margin-left: auto; font-size: 10px; color: var(--textTertiary); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; align-self: center; }
+
+  .toast { position: absolute; top: 44px; left: 8px; width: 300px; z-index: 35; background: rgba(17,18,24,.96); border: 1px solid var(--greenBorder); border-radius: 9px; box-shadow: 0 12px 30px rgba(0,0,0,.5); padding: 9px 10px 10px; display: none; }
+  .toast.show { display: block; animation: pop .25s ease; }
+  .toast .row1 { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+  .toast .row1 .ok { color: var(--green); }
+  .toast .x { margin-left: auto; border: 0; background: transparent; color: var(--textTertiary); padding: 0 2px; }
+  .toast .file { font-size: 10.5px; color: var(--textSecondary); margin: 2px 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toast .acts { display: flex; gap: 4px; }
+  .tb { height: 25px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--borderHover); background: rgba(255,255,255,.04); font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .tb:hover:not(:disabled) { background: rgba(255,255,255,.09); }
+  .tb.primary { border-color: var(--accentBorder); background: var(--accentDim); color: var(--accentLight); }
+  .tb.done { border-color: var(--greenBorder); background: var(--greenDim); color: var(--green); cursor: default; }
+  .tb.sq { width: 25px; padding: 0; justify-content: center; }
+
+  .sticker { position: absolute; left: 30%; width: 40%; top: 50%; transform: translateY(-50%); outline: 1.5px solid var(--rose); outline-offset: 1px; z-index: 5; animation: pop .35s ease; }
+  .sticker img { width: 100%; display: block; }
+
+  /* Mini timeline — just the Media lane, to show "placed at the playhead" */
+  .tl { height: 92px; flex: none; background: var(--surface); border-top: 1px solid var(--border); padding: 8px 12px; position: relative; }
+  .tl .ruler { display: flex; justify-content: space-between; font-size: 10px; color: var(--textTertiary); margin-left: 70px; }
+  .lane { display: flex; align-items: center; height: 26px; margin-top: 6px; }
+  .lane .ln { width: 70px; font-size: 11px; color: var(--textSecondary); }
+  .lane .track { flex: 1; height: 100%; position: relative; background: rgba(255,255,255,.03); border-radius: 5px; }
+  .blk { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; background: rgba(251,113,133,.28); border: 1px solid rgba(251,113,133,.6); font-size: 10px; padding: 0 5px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; animation: pop .35s ease; }
+  .playhead { position: absolute; top: 20px; bottom: 6px; width: 2px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.6); }
+
+  /* ── Notes / mockup controls ── */
+  .notes { width: 264px; flex: none; background: var(--surface); border-left: 1px solid var(--border); padding: 14px; overflow: auto; }
+  .notes h3 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--textTertiary); margin: 0 0 8px; font-weight: 600; }
+  .notes ol { margin: 0 0 16px; padding-left: 17px; color: var(--textSecondary); font-size: 12px; }
+  .notes li { margin-bottom: 6px; } .notes b { color: var(--text); font-weight: 600; }
+  .notes label { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--textSecondary); margin-bottom: 8px; cursor: pointer; }
+  .notes .reset { margin-top: 4px; }
+
+  /* ── Crop window ── */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.62); display: none; place-items: center; z-index: 100; }
+  .scrim.open { display: grid; }
+  .cropwin { width: min(760px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--borderHover); border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .cw-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .cw-head .title { font-weight: 600; font-size: 13px; }
+  .cw-head .sub { color: var(--textTertiary); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cw-body { padding: 14px; display: grid; place-items: center; background: #07080b; }
+  .cstage { position: relative; overflow: hidden; user-select: none; touch-action: none; }
+  .cstage img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .cbox { position: absolute; box-shadow: 0 0 0 9999px rgba(0,0,0,.58); outline: 1.5px solid #fff; cursor: move; }
+  .cbox .g { position: absolute; background: rgba(255,255,255,.28); pointer-events: none; }
+  .h { position: absolute; width: 11px; height: 11px; background: #fff; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
+  .h[data-h="nw"] { left: -6px; top: -6px; cursor: nwse-resize; } .h[data-h="se"] { right: -6px; bottom: -6px; cursor: nwse-resize; }
+  .h[data-h="ne"] { right: -6px; top: -6px; cursor: nesw-resize; } .h[data-h="sw"] { left: -6px; bottom: -6px; cursor: nesw-resize; }
+  .h[data-h="n"] { left: calc(50% - 6px); top: -6px; cursor: ns-resize; } .h[data-h="s"] { left: calc(50% - 6px); bottom: -6px; cursor: ns-resize; }
+  .h[data-h="w"] { top: calc(50% - 6px); left: -6px; cursor: ew-resize; } .h[data-h="e"] { top: calc(50% - 6px); right: -6px; cursor: ew-resize; }
+  .locked .h[data-h="n"], .locked .h[data-h="s"], .locked .h[data-h="e"], .locked .h[data-h="w"] { display: none; }
+  .cw-foot { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border); }
+  .shape { height: 26px; padding: 0 9px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--textSecondary); font-size: 11.5px; }
+  .shape.on { border-color: var(--accentBorder); background: var(--accentDim); color: var(--accentLight); }
+  .size { margin-left: 8px; font-size: 11px; color: var(--textTertiary); font-variant-numeric: tabular-nums; }
+  .spacer { flex: 1; }
+  .btn { height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--borderHover); background: transparent; font-size: 12px; font-weight: 500; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .hint { font-size: 10.5px; color: var(--textTertiary); margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═════ Media tab ═════ -->
+  <aside class="media">
+    <div class="media-head">
+      <h2>Media</h2>
+      <span class="scope"><span class="dot"></span>Egging On ▾</span>
+    </div>
+    <div class="subtabs"><button class="on">Images</button><button>GIFs</button><button>Videos</button></div>
+    <div class="search"><div>Search images...</div><button class="iconbtn" title="Upload">⇪</button></div>
+    <div class="pills"><span class="on">All</span><span>Favorites</span><span>Recent</span></div>
+    <div class="media-status" id="mediaStatus"></div>
+    <div class="grid" id="grid"></div>
+  </aside>
+
+  <!-- ═════ Viewer ═════ -->
+  <main class="center">
+    <div class="stage">
+      <div class="viewer" id="viewer">
+        <img class="frame" id="frame" alt="">
+        <div class="top-controls">
+          <button class="vbtn" title="Fullscreen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+          <div class="split">
+            <button class="vbtn" id="camMain" title="Save this frame as it will export (subtitles included)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            </button>
+            <button class="vbtn chev" id="camChev" title="More screenshot options">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="menu" id="menu">
+          <div class="lbl">Screenshot</div>
+          <button class="mi" data-kind="frame">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/></svg>
+            <div><div class="t">Whole frame</div><div class="s">As the export looks, subtitles included</div></div>
+          </button>
+          <button class="mi" data-kind="gameplay" id="miGame">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4"/><circle cx="16" cy="11" r="1"/><circle cx="18" cy="13" r="1"/></svg>
+            <div><div class="t">Gameplay only</div><div class="s" id="miGameSub">Clean, straight from the recording</div></div>
+          </button>
+          <button class="mi" data-kind="camera" id="miCam">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
+            <div><div class="t">Camera only</div><div class="s" id="miCamSub">Clean, straight from the recording</div></div>
+          </button>
+        </div>
+
+        <div class="toast" id="toast">
+          <div class="row1"><span class="ok">✓</span><span id="toastTitle">Saved</span><button class="x" id="toastX" title="Close">✕</button></div>
+          <div class="file" id="toastFile"></div>
+          <div class="acts">
+            <button class="tb" id="tCrop">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>Crop</button>
+            <button class="tb primary" id="tAdd">Add to Media</button>
+            <button class="tb primary" id="tPlace">Put on clip</button>
+            <button class="tb sq" title="Show in folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl">
+      <div class="ruler"><span>0:00</span><span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span></div>
+      <div class="lane"><span class="ln">Media</span><div class="track" id="lane"></div></div>
+      <div class="lane"><span class="ln">Video</span><div class="track" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25)"></div></div>
+      <div class="playhead" id="playhead"></div>
+    </div>
+  </main>
+
+  <!-- ═════ Notes ═════ -->
+  <aside class="notes">
+    <h3>Try it</h3>
+    <ol>
+      <li>The <b>camera button</b> works like today: one click saves the whole frame.</li>
+      <li>The small <b>▾</b> next to it gives you <b>Gameplay only</b> and <b>Camera only</b>.</li>
+      <li>The saved message has <b>Crop</b>, <b>Add to Media</b>, <b>Put on clip</b> and Show in folder. It stays open while your mouse is on it.</li>
+      <li><b>Crop</b> saves a copy. The picture you took stays as it was.</li>
+      <li>In the Media tab, hover an image for the purple <b>crop</b> icon. That also saves a copy next to the original.</li>
+    </ol>
+    <h3>Mockup switches</h3>
+    <label><input type="checkbox" id="noCam"><span>This part of the clip has a <b>game-only layout</b> (no camera box)</span></label>
+    <label><input type="checkbox" id="noLayout"><span>This part of the clip has <b>no layout</b> at all</span></label>
+    <button class="btn reset" id="reset">Reset mockup</button>
+  </aside>
+</div>
+
+<!-- ═════ Crop window ═════ -->
+<div class="scrim" id="scrim">
+  <div class="cropwin">
+    <div class="cw-head"><span class="title">Crop</span><span class="sub" id="cwSub"></span><span class="spacer"></span><button class="x" id="cwX" style="border:0;background:transparent;color:var(--textTertiary)">✕</button></div>
+    <div class="cw-body"><div class="cstage" id="cstage"><img id="cimg" alt=""><div class="cbox" id="cbox">
+      <div class="g" style="left:33.33%;top:0;bottom:0;width:1px"></div><div class="g" style="left:66.66%;top:0;bottom:0;width:1px"></div>
+      <div class="g" style="top:33.33%;left:0;right:0;height:1px"></div><div class="g" style="top:66.66%;left:0;right:0;height:1px"></div>
+      <div class="h" data-h="nw"></div><div class="h" data-h="n"></div><div class="h" data-h="ne"></div><div class="h" data-h="e"></div>
+      <div class="h" data-h="se"></div><div class="h" data-h="s"></div><div class="h" data-h="sw"></div><div class="h" data-h="w"></div>
+    </div></div></div>
+    <div class="cw-foot">
+      <button class="shape on" data-a="free">Free</button>
+      <button class="shape" data-a="1">1:1</button>
+      <button class="shape" data-a="1.7778">16:9</button>
+      <button class="shape" data-a="0.5625">9:16</button>
+      <button class="shape" data-a="0.8">4:5</button>
+      <span class="size" id="csize"></span>
+      <span class="spacer"></span>
+      <span class="hint">Enter saves · Esc cancels</span>
+      <button class="btn" id="cCancel">Cancel</button>
+      <button class="btn primary" id="cSave">Save cropped copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Fake pictures (inline SVG, so the crop is a real viewBox crop) ──
+const GAME = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs>
+<rect width="1600" height="900" fill="url(#sky)"/><circle cx="1250" cy="180" r="90" fill="#fff7cc" opacity=".9"/>
+<path d="M0 560 Q 300 440 620 540 T 1600 500 V900 H0Z" fill="#4ade80"/><path d="M0 640 Q 400 560 800 650 T 1600 620 V900 H0Z" fill="#16a34a"/>
+<path d="M700 900 L 780 620 L 860 620 L 980 900 Z" fill="#a8a29e"/>
+<ellipse cx="820" cy="585" rx="46" ry="60" fill="#fffbeb" stroke="#78350f" stroke-width="6"/>
+<circle cx="560" cy="560" r="40" fill="#f97316"/><rect x="530" y="590" width="60" height="90" rx="20" fill="#ea580c"/>
+<rect x="40" y="36" width="300" height="70" rx="14" fill="rgba(0,0,0,.45)"/><text x="64" y="84" font-family="Arial" font-size="40" font-weight="700" fill="#fff">EGGS 12</text>
+<rect x="1260" y="40" width="300" height="26" rx="13" fill="rgba(0,0,0,.45)"/><rect x="1266" y="46" width="200" height="14" rx="7" fill="#f87171"/>`;
+const CAM = `<defs><linearGradient id="room" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#312e81"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs>
+<rect width="1280" height="720" fill="url(#room)"/><rect x="0" y="90" width="1280" height="10" fill="#a855f7" opacity=".8"/>
+<rect x="80" y="200" width="220" height="300" rx="10" fill="#1e1b4b" opacity=".8"/><rect x="980" y="240" width="180" height="120" rx="8" fill="#0ea5e9" opacity=".35"/>
+<path d="M440 720 Q 460 480 640 470 Q 820 480 840 720 Z" fill="#111827"/><circle cx="640" cy="330" r="120" fill="#c68642"/>
+<path d="M515 320 Q 520 170 640 170 Q 760 170 765 320" fill="none" stroke="#111" stroke-width="28"/>
+<rect x="490" y="300" width="50" height="90" rx="20" fill="#111"/><rect x="740" y="300" width="50" height="90" rx="20" fill="#111"/>
+<circle cx="600" cy="320" r="11" fill="#1f2937"/><circle cx="680" cy="320" r="11" fill="#1f2937"/><ellipse cx="640" cy="395" rx="26" ry="32" fill="#1f2937"/>`;
+const FRAME = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"><rect width="1080" height="1920" fill="#000"/>
+<svg x="0" y="0" width="1080" height="720" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">${CAM}</svg>
+<svg x="0" y="730" width="1080" height="1190" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">${GAME}</svg>
+<rect x="140" y="770" width="800" height="110" rx="22" fill="#fff"/><text x="540" y="842" text-anchor="middle" font-family="Arial" font-size="46" font-weight="700" fill="#111">When the egg finally lands</text>
+<text x="540" y="1520" text-anchor="middle" font-family="Arial" font-size="96" font-weight="900" fill="#facc15" stroke="#000" stroke-width="10" paint-order="stroke">NO WAY</text></svg>`;
+
+const svgUrl = (inner, vb) => "data:image/svg+xml;utf8," + encodeURIComponent(
+  inner.startsWith("<svg") ? inner.replace('viewBox="0 0 1080 1920"', `viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}"`)
+    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}">${inner}</svg>`);
+const label = (bg, fg, txt) => `<rect width="400" height="300" fill="${bg}"/><text x="200" y="175" text-anchor="middle" font-family="Arial" font-size="72" font-weight="800" fill="${fg}">${txt}</text>`;
+
+const PICS = {
+  frame:    { inner: FRAME, w: 1080, h: 1920, px: 1,   title: "Whole frame saved",    suffix: "thumbnail" },
+  gameplay: { inner: GAME,  w: 1600, h: 900,  px: 1.6, title: "Gameplay saved",       suffix: "gameplay" },
+  camera:   { inner: CAM,   w: 1280, h: 720,  px: 2,   title: "Camera saved",         suffix: "camera" },
+};
+const CLIP = "He really threw it";
+const START_MEDIA = [
+  { name: "gg sticker", inner: label("#7c3aed", "#fff", "GG"), w: 400, h: 300, px: 1 },
+  { name: "egg crack", inner: label("#fef3c7", "#92400e", "CRACK"), w: 400, h: 300, px: 1 },
+  { name: "rank up", inner: label("#f59e0b", "#1c1917", "RANK↑"), w: 400, h: 300, px: 1 },
+  { name: "bruh", inner: label("#0f172a", "#e2e8f0", "bruh"), w: 400, h: 300, px: 1 },
+  { name: "arrow red", inner: label("#dc2626", "#fff", "➜"), w: 400, h: 300, px: 1 },
+];
+
+let media, cur, placements, counters;
+function reset() {
+  media = START_MEDIA.map((m, i) => ({ ...m, id: "m" + i, vb: { x: 0, y: 0, w: m.w, h: m.h } }));
+  cur = null; placements = []; counters = {};
+  document.getElementById("toast").classList.remove("show");
+  document.querySelectorAll(".sticker").forEach((n) => n.remove());
+  renderGrid(); renderLane();
+}
+
+// ── Media grid ──
+const ICON = {
+  star: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>',
+  crop: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>',
+  trash: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+};
+function renderGrid(freshId) {
+  const g = document.getElementById("grid");
+  g.innerHTML = "";
+  for (const m of media) {
+    const c = document.createElement("div");
+    c.className = "cell" + (m.id === freshId ? " fresh" : "");
+    c.title = `${m.name} — click to add at the playhead`;
+    c.innerHTML = `<img src="${svgUrl(m.inner, m.vb)}"><div class="name">${m.name}</div>
+      <button class="ic star">${ICON.star}</button><span class="ic gamedot"><span class="dot"></span></span>
+      <button class="ic crop" title="Crop (saves a copy)">${ICON.crop}</button><button class="ic trash">${ICON.trash}</button>`;
+    c.querySelector(".crop").onclick = (e) => { e.stopPropagation(); openCrop({ ...m, from: "media" }); };
+    c.onclick = () => place(m);
+    g.appendChild(c);
+  }
+}
+function flashMedia(t) {
+  const s = document.getElementById("mediaStatus");
+  s.textContent = t; clearTimeout(flashMedia.t); flashMedia.t = setTimeout(() => (s.textContent = ""), 3500);
+}
+
+// ── Viewer + capture ──
+document.getElementById("frame").src = svgUrl(FRAME, { x: 0, y: 0, w: 1080, h: 1920 });
+const menu = document.getElementById("menu"), chev = document.getElementById("camChev");
+chev.onclick = (e) => { e.stopPropagation(); menu.classList.toggle("open"); chev.classList.toggle("open", menu.classList.contains("open")); };
+document.addEventListener("click", (e) => { if (!menu.contains(e.target)) { menu.classList.remove("open"); chev.classList.remove("open"); } });
+document.getElementById("camMain").onclick = () => capture("frame");
+menu.querySelectorAll(".mi").forEach((b) => (b.onclick = () => { menu.classList.remove("open"); chev.classList.remove("open"); capture(b.dataset.kind); }));
+
+function syncMenu() {
+  const noLayout = document.getElementById("noLayout").checked;
+  const noCam = noLayout || document.getElementById("noCam").checked;
+  const mg = document.getElementById("miGame"), mc = document.getElementById("miCam");
+  mg.disabled = noLayout; mc.disabled = noCam;
+  document.getElementById("miGameSub").textContent = noLayout ? "No layout on this part of the clip" : "Clean, straight from the recording";
+  document.getElementById("miCamSub").textContent = noLayout ? "No layout on this part of the clip"
+    : noCam ? "This part's layout has no camera box" : "Clean, straight from the recording";
+}
+document.getElementById("noCam").onchange = syncMenu;
+document.getElementById("noLayout").onchange = syncMenu;
+
+function capture(kind) {
+  const p = PICS[kind];
+  counters[kind] = (counters[kind] || 0) + 1;
+  const n = counters[kind] > 1 ? ` (${counters[kind]})` : "";
+  cur = { name: `${CLIP}_${p.suffix}_x7k2${n}`, inner: p.inner, w: p.w, h: p.h, px: p.px, vb: { x: 0, y: 0, w: p.w, h: p.h }, inMedia: null, placed: false, title: p.title };
+  showToast();
+}
+
+// ── Toast ──
+const toast = document.getElementById("toast");
+let hideT = null, hovering = false;
+toast.onmouseenter = () => { hovering = true; clearTimeout(hideT); };
+toast.onmouseleave = () => { hovering = false; armHide(); };
+function armHide() { clearTimeout(hideT); hideT = setTimeout(() => { if (!hovering) toast.classList.remove("show"); }, 8000); }
+document.getElementById("toastX").onclick = () => toast.classList.remove("show");
+function showToast() {
+  document.getElementById("toastTitle").textContent = cur.title;
+  document.getElementById("toastFile").textContent = cur.name + ".png";
+  const add = document.getElementById("tAdd"), pl = document.getElementById("tPlace");
+  add.className = "tb " + (cur.inMedia ? "done" : "primary"); add.textContent = cur.inMedia ? "✓ In Media tab" : "Add to Media"; add.disabled = !!cur.inMedia;
+  pl.className = "tb " + (cur.placed ? "done" : "primary"); pl.textContent = cur.placed ? "✓ On clip at 0:14" : "Put on clip"; pl.disabled = cur.placed;
+  toast.classList.remove("show"); void toast.offsetWidth; toast.classList.add("show");
+  armHide();
+}
+function addToMedia() {
+  if (cur.inMedia) return cur.inMedia;
+  const m = { id: "m" + Date.now(), name: cur.name, inner: cur.inner, vb: { ...cur.vb }, w: cur.w, h: cur.h, px: cur.px };
+  media.unshift(m); cur.inMedia = m;
+  renderGrid(m.id); flashMedia("Added under Egging On");
+  return m;
+}
+document.getElementById("tAdd").onclick = () => { addToMedia(); showToast(); };
+document.getElementById("tPlace").onclick = () => { const m = addToMedia(); place(m); cur.placed = true; showToast(); };
+document.getElementById("tCrop").onclick = () => openCrop({ ...cur, from: "capture" });
+
+function place(m) {
+  const v = document.getElementById("viewer");
+  const s = document.createElement("div");
+  s.className = "sticker"; s.innerHTML = `<img src="${svgUrl(m.inner, m.vb)}">`;
+  document.querySelectorAll(".sticker").forEach((n) => (n.style.outline = "none"));
+  v.appendChild(s);
+  placements.push({ name: m.name, at: 14 + placements.length * 0.4 });
+  renderLane(); flashMedia(`${m.name} added at 0:14`);
+}
+function renderLane() {
+  const lane = document.getElementById("lane");
+  lane.innerHTML = placements.map((p) => `<div class="blk" style="left:${(p.at / 30) * 100}%;width:${(5 / 30) * 100}%">${p.name}</div>`).join("");
+  const tl = document.querySelector(".tl").getBoundingClientRect(), tr = lane.getBoundingClientRect();
+  document.getElementById("playhead").style.left = (tr.left - tl.left + tr.width * 14 / 30) + "px";
+}
+
+// ── Crop window ──
+const scrim = document.getElementById("scrim"), cstage = document.getElementById("cstage"), cbox = document.getElementById("cbox");
+let C = null; // { src, W, H, px, scale, rect, aspect }
+function openCrop(src) {
+  const W = src.vb.w, H = src.vb.h;
+  const maxW = Math.min(700, window.innerWidth - 80), maxH = Math.min(440, window.innerHeight - 220);
+  const scale = Math.min(maxW / W, maxH / H);
+  C = { src, W, H, px: src.px, scale, rect: { x: 0, y: 0, w: W, h: H }, aspect: null };
+  cstage.style.width = W * scale + "px"; cstage.style.height = H * scale + "px";
+  document.getElementById("cimg").src = svgUrl(src.inner, src.vb);
+  document.getElementById("cwSub").textContent = src.name + ".png";
+  document.querySelectorAll(".shape").forEach((b) => b.classList.toggle("on", b.dataset.a === "free"));
+  cbox.classList.remove("locked");
+  drawBox(); scrim.classList.add("open");
+}
+function closeCrop() { scrim.classList.remove("open"); C = null; }
+function drawBox() {
+  const r = C.rect, s = C.scale;
+  Object.assign(cbox.style, { left: r.x * s + "px", top: r.y * s + "px", width: r.w * s + "px", height: r.h * s + "px" });
+  document.getElementById("csize").textContent = `${Math.round(r.w * C.px)} × ${Math.round(r.h * C.px)} px`;
+}
+document.querySelectorAll(".shape").forEach((b) => (b.onclick = () => {
+  document.querySelectorAll(".shape").forEach((x) => x.classList.toggle("on", x === b));
+  C.aspect = b.dataset.a === "free" ? null : Number(b.dataset.a);
+  cbox.classList.toggle("locked", !!C.aspect);
+  if (C.aspect) {
+    const w = Math.min(C.W, C.H * C.aspect), h = w / C.aspect;
+    C.rect = { x: (C.W - w) / 2, y: (C.H - h) / 2, w, h };
+  }
+  drawBox();
+}));
+const MIN = 40;
+let drag = null;
+cbox.addEventListener("pointerdown", (e) => {
+  drag = { h: e.target.dataset.h || "move", x0: e.clientX, y0: e.clientY, r0: { ...C.rect } };
+  cbox.setPointerCapture(e.pointerId); e.preventDefault();
+});
+cbox.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dx = (e.clientX - drag.x0) / C.scale, dy = (e.clientY - drag.y0) / C.scale, s = drag.r0, h = drag.h;
+  let { x, y, w, h: hh } = s;
+  if (h === "move") {
+    x = Math.max(0, Math.min(s.x + dx, C.W - s.w)); y = Math.max(0, Math.min(s.y + dy, C.H - s.h));
+  } else if (C.aspect) {
+    const a = C.aspect, east = h.includes("e"), south = h.includes("s");
+    const maxW = east ? C.W - s.x : s.x + s.w, maxH = south ? C.H - s.y : s.y + s.h;
+    w = Math.max(MIN, Math.min(s.w + (east ? dx : -dx), maxW, maxH * a)); hh = w / a;
+    x = east ? s.x : s.x + s.w - w; y = south ? s.y : s.y + s.h - hh;
+  } else {
+    if (h.includes("e")) w = Math.max(MIN, Math.min(s.w + dx, C.W - s.x));
+    if (h.includes("s")) hh = Math.max(MIN, Math.min(s.h + dy, C.H - s.y));
+    if (h.includes("w")) { const nx = Math.max(0, Math.min(s.x + dx, s.x + s.w - MIN)); w = s.x + s.w - nx; x = nx; }
+    if (h.includes("n")) { const ny = Math.max(0, Math.min(s.y + dy, s.y + s.h - MIN)); hh = s.y + s.h - ny; y = ny; }
+  }
+  C.rect = { x, y, w, h: hh }; drawBox();
+});
+cbox.addEventListener("pointerup", () => (drag = null));
+function saveCrop() {
+  const src = C.src, r = C.rect;
+  const vb = { x: src.vb.x + r.x, y: src.vb.y + r.y, w: r.w, h: r.h };
+  const name = src.name + " (cropped)";
+  if (src.from === "media") {
+    const i = media.findIndex((m) => m.id === src.id);
+    const m = { id: "m" + Date.now(), name, inner: src.inner, vb, w: src.w, h: src.h, px: src.px };
+    media.splice(i + 1, 0, m); renderGrid(m.id); flashMedia("Cropped copy saved next to the original");
+  } else {
+    cur = { ...cur, name, vb, inMedia: null, placed: false, title: "Cropped copy saved" };
+    showToast();
+  }
+  closeCrop();
+}
+document.getElementById("cSave").onclick = saveCrop;
+document.getElementById("cCancel").onclick = closeCrop;
+document.getElementById("cwX").onclick = closeCrop;
+scrim.onclick = (e) => { if (e.target === scrim) closeCrop(); };
+document.addEventListener("keydown", (e) => {
+  if (!C) return;
+  if (e.key === "Enter") saveCrop();
+  if (e.key === "Escape") closeCrop();
+});
+document.getElementById("reset").onclick = reset;
+window.addEventListener("resize", renderLane);
+reset(); syncMenu();
+</script>
+</body>
+</html>
