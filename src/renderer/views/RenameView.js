@@ -494,18 +494,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         if (row.gameManual) return prev;
         const g = gamesDb.find((x) => x.name === data.game);
         if (!g || row.game === g.name) return prev;
-        // Exclude the row itself from the accounting pool or its own current
-        // part slot would count against the recomputed one.
-        const det = detectForGame(g, row.fileName, prev.filter((p) => p.id !== row.id));
+        // #449: day/part come from the renumber pass; hand-typed ones belonged
+        // to the old game, so they're released.
         const next = [...prev];
-        next[idx] = { ...row, game: det.game, tag: det.tag, color: det.color, day: det.day, part: det.part };
+        next[idx] = { ...row, game: g.name, tag: g.tag, color: g.color, dayManual: false, partManual: false };
         return next;
       });
     });
     return unsub;
-    // detectForGame's accounting reads dbManagedFiles + renameHistory — rebind
-    // so a sniff landing after they load doesn't compute parts from empty state.
-  }, [isElectron, gamesDb, dbManagedFiles, renameHistory]);
+  }, [isElectron, gamesDb]);
 
   // Probe duration for new pending files (auto-split detection)
   useEffect(() => {
@@ -641,54 +638,17 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     } catch (e) { console.error("Failed to load managed files:", e); }
   };
 
-  // Recalculate pending PART numbers once dbManagedFiles loads from SQLite.
-  const managedLoaded = useRef(false);
+  // #449: ONE pass owns pending day/part numbers. Every path that adds or
+  // retags a row (watchers, boot rescan, import, AI retag, Set Game) just lands
+  // it; this re-derives the whole list in recording order against fresh
+  // library/history/day-counter state. A boot rescan announces every waiting
+  // file at once in no guaranteed order — numbering by arrival swapped Pt1/Pt2.
   useEffect(() => {
-    if (dbManagedFiles.length === 0 || managedLoaded.current) return;
-    managedLoaded.current = true;
-
     setPendingRenames((prev) => {
-      if (prev.length === 0) return prev;
-      const updated = [];
-      for (const r of prev) {
-        const fileDate = r.fileName.slice(0, 10);
-        const existingParts = [
-          ...dbManagedFiles.filter((f) => f.tag === r.tag && f.date === fileDate && f.day_number === r.day).map((f) => f.part_number).filter(Boolean),
-          ...renameHistory.filter((h) => !h.undone && h.tag === r.tag && h.newName?.startsWith(fileDate)).map((h) => h.part),
-          ...updated.filter((p) => p.tag === r.tag && p.fileName.slice(0, 10) === fileDate && p.day === r.day).map((p) => p.part),
-        ];
-        const part = existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1;
-        updated.push({ ...r, part });
-      }
-      return updated;
+      const next = renumberRows(prev);
+      return next.some((r, i) => r !== prev[i]) ? next : prev;
     });
-  }, [dbManagedFiles]);
-
-  // Recalculate pending DAY numbers when gamesDb changes
-  const prevGamesRef = useRef(null);
-  useEffect(() => {
-    const isFirstMount = !prevGamesRef.current;
-    if (!isFirstMount) {
-      const changed = gamesDb.some((g) => {
-        const prev = prevGamesRef.current.find((p) => p.tag === g.tag);
-        return prev && (prev.dayCount !== g.dayCount || prev.lastDayDate !== g.lastDayDate);
-      });
-      if (!changed) { prevGamesRef.current = gamesDb; return; }
-    }
-    prevGamesRef.current = gamesDb;
-
-    setPendingRenames((prev) => {
-      if (prev.length === 0) return prev;
-      const updated = [];
-      for (const r of prev) {
-        const game = gamesDb.find((g) => g.tag === r.tag);
-        if (!game) { updated.push(r); continue; }
-        const detected = detectForGame(game, r.fileName, updated.filter((p) => p.tag === r.tag));
-        updated.push({ ...r, day: detected.day, part: detected.part });
-      }
-      return updated;
-    });
-  }, [gamesDb]);
+  }, [pendingRenames, gamesDb, dbManagedFiles, renameHistory]);
 
   // ============ DAY DETECTION ============
   const detectGame = (fileName, games, currentPending) => {
@@ -740,6 +700,34 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const part = existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1;
 
     return { game: game.name, tag: game.tag, color: game.color, day, part };
+  };
+
+  // #449: re-derive day/part for every row in filename order (OBS names sort
+  // by recording time), so earlier recordings always take the lower numbers.
+  // Hand-typed values (dayManual/partManual) are kept, and a hand-typed part
+  // holds its slot — derived parts step around it. Unchanged rows keep their
+  // identity so the caller can tell nothing moved.
+  const renumberRows = (rows) => {
+    const sorted = [...rows].sort((a, b) => a.fileName.localeCompare(b.fileName));
+    const done = [];
+    const byId = {};
+    for (const r of sorted) {
+      const game = gamesDb.find((g) => g.tag === r.tag);
+      if (!game) { done.push(r); continue; }
+      const det = detectForGame(game, r.fileName, done);
+      let part = r.part;
+      if (!r.partManual) {
+        const date = r.fileName.slice(0, 10);
+        const held = new Set(rows.filter((p) => p.partManual && p.tag === r.tag && p.fileName.slice(0, 10) === date).map((p) => p.part));
+        part = det.part;
+        while (held.has(part)) part++;
+      }
+      const day = r.dayManual ? r.day : det.day;
+      const nr = day === r.day && part === r.part ? r : { ...r, day, part };
+      byId[r.id] = nr;
+      done.push(nr);
+    }
+    return rows.map((r) => byId[r.id] || r);
   };
 
   // ============ SPLIT HELPERS ============
@@ -805,43 +793,36 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return parts.join(" ") + ".mp4";
   };
 
-  // Per-row field update (game changes go through setGameForRows, which
-  // re-derives day/part for every affected game)
+  // Per-row field update (game changes go through setGameForRows; day/part
+  // numbers are re-derived by the #449 renumber pass)
   const updatePending = (id, field, value) => {
     setPendingRenames((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
 
   // #172: assign a game to a set of rows (session header picker or the batch
-  // bar's Set Game), then re-derive day/part chronologically for every row of
-  // the affected games — rows leaving a game free up parts, rows joining take
-  // the next ones. Untouched games keep any manual tweaks.
+  // bar's Set Game). The renumber pass then re-derives day/part in recording
+  // order — rows leaving a game free up parts, rows joining take the next ones.
   const setGameForRows = (ids, gameName) => {
     const g = gamesDb.find((x) => x.name === gameName);
     if (!g) return;
     const idSet = new Set(ids);
-    setPendingRenames((prev) => {
-      const affectedTags = new Set([g.tag]);
-      prev.forEach((r) => { if (idSet.has(r.id)) affectedTags.add(r.tag); });
-      // #263: a hand-picked game must never be overwritten by a late AI result.
-      const assigned = prev.map((r) => (idSet.has(r.id) ? { ...r, game: g.name, tag: g.tag, color: g.color, gameManual: true } : r));
-      const sorted = [...assigned].sort((a, b) => a.fileName.localeCompare(b.fileName));
-      const done = [];
-      const byId = {};
-      for (const r of sorted) {
-        const game = affectedTags.has(r.tag) ? gamesDb.find((x) => x.tag === r.tag) : null;
-        if (!game) { done.push(r); continue; }
-        const det = detectForGame(game, r.fileName, done);
-        const nr = { ...r, day: det.day, part: det.part };
-        byId[r.id] = nr;
-        done.push(nr);
-      }
-      return assigned.map((r) => byId[r.id] || r);
-    });
+    // #263: a hand-picked game must never be overwritten by a late AI result.
+    // #449: hand-typed day/part belonged to the old game — released on a switch.
+    setPendingRenames((prev) => prev.map((r) => {
+      if (!idSet.has(r.id)) return r;
+      const released = r.tag === g.tag ? {} : { dayManual: false, partManual: false };
+      return { ...r, game: g.name, tag: g.tag, color: g.color, gameManual: true, ...released };
+    }));
   };
 
+  // #449: a hand-typed Day/Pt pins that value through every renumber pass.
   const setDayForRows = (ids, day) => {
     const idSet = new Set(ids);
-    setPendingRenames((prev) => prev.map((r) => (idSet.has(r.id) ? { ...r, day } : r)));
+    setPendingRenames((prev) => prev.map((r) => (idSet.has(r.id) ? { ...r, day, dayManual: true } : r)));
+  };
+
+  const setPartForRow = (id, part) => {
+    setPendingRenames((prev) => prev.map((r) => (r.id === id ? { ...r, part, partManual: true } : r)));
   };
 
   const setPresetForRows = (ids, presetId) => {
@@ -1528,7 +1509,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       // Put the file straight back into Pending in its ORIGINAL slot (same
       // game/day/part) — deterministic, instead of waiting for the watcher,
       // whose re-detection would propose max+1 numbering. The watcher's own
-      // add event a few seconds later dedupes on filePath.
+      // add event a few seconds later dedupes on filePath. #449: pinned like a
+      // hand-typed value, or the renumber pass would re-derive it to max+1.
       if (result.restoredPath) {
         setPendingRenames((prev) => {
           if (prev.find((p) => p.filePath === result.restoredPath)) return prev;
@@ -1536,7 +1518,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             fileName: h.oldName, filePath: result.restoredPath,
             game: h.game, tag: h.tag, color: h.color,
-            day: h.day || 1, part: h.part || 1,
+            day: h.day || 1, part: h.part || 1, dayManual: true, partManual: true,
             preset: defaultPreset, customLabel: "",
             createdAt: new Date().toISOString(),
             isTest: !!h.isTest,
@@ -1991,7 +1973,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                                     )}
                                   </div>
                                 )}
-                                {showPart && <MiniSpinbox compact label="Pt" value={r.part} onChange={(v) => updatePending(r.id, "part", v)} />}
+                                {showPart && <MiniSpinbox compact label="Pt" value={r.part} onChange={(v) => setPartForRow(r.id, v)} />}
                                 <span style={{ fontSize: 11.5, color: T.textTertiary, width: 48, textAlign: "right", flexShrink: 0, fontFamily: T.mono }}>{info?.probing ? "…" : info?.durationSeconds ? fmtClock(info.durationSeconds) : "—"}</span>
                                 <span className="cfr-acts" style={{ display: "flex", gap: 2, flexShrink: 0, justifyContent: "flex-end" }}>
                                   {r.filePath && <button className="cfr-iconbt" title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder(r.filePath)}>{IcFolder}</button>}

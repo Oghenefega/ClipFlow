@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-19 (session 268) — Rename proposes part and day numbers in recording order
+
+### Fixed
+- **Rename no longer swaps part numbers after a restart (#449).** A file got the next free part in the order it appeared on the Rename tab, not the order it was recorded. Live that is the same thing. On launch, though, the app rescans the folder and every waiting recording turns up at once, in no fixed order. Fega's Sep 16 Valorant session came back after a restart with 14-41-45 as Pt1 and 14-11-40 as Pt2. Every path that adds or re-labels a waiting file now just drops it in, and one pass works out Day and Pt for the whole list by the time in the filename. The earliest recording always takes the lowest number, however the files arrive.
+- **Two different days of one game can no longer end up with the same Day number (#449).** Same cause. If a later day's recordings loaded before an earlier day's, both could be given the same Day. With a Nov 18 test file arriving before the Nov 16 ones, the old code put both dates at Day20. The new code gives Day20 and Day21.
+
+### Changed
+- **Hand-typed Day and Pt numbers on the Rename tab now stick (#449).** A number you set with the arrows or by typing stays put when other files arrive or get renumbered. Derived numbers step around a hand-typed part rather than land on it. Moving a file to a different game releases its hand-typed numbers, since they belonged to the old game. A file put back by Undo keeps the slot it had before the rename.
+
+Checked on a dev copy of the app pointed at a scratch folder of small test videos. The four Sep 16 parts were dropped in newest-first. The old code proposed Pt4, Pt3, Pt2, Pt1 and gave two dates the same Day. The new code proposed Pt1 to Pt4 in recording order, and gave the same result on three cold restarts. Also checked: a hand-typed Pt3 held when an earlier file arrived. A game switch from the session header released it and slotted the file into its recording-time place. The automatic AI game check re-labelling a file renumbered both groups correctly. The Undo path was not exercised live.
+
 ## [Unreleased] — 2026-09-18 (session 267) — 0.5.0-alpha.9 on the feed
 
 ### Changed
