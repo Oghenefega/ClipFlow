@@ -1,73 +1,70 @@
-# HANDOFF — Session 265 (2026-09-18)
+# HANDOFF — Session 266 (2026-09-18)
 
 ## Current State
 
-**0.5.0-alpha.8 is on the update feed** (`e53bbae`). It carries the three Layout panel changes (#442
-This section by default, #443 Ctrl+Z for every layout change, #444 saved-layout marks) and last
-session's double-post fix (#438). 543 tests. #442, #443 and #444 are **open**, waiting on Fega's test
-of alpha.8. Master is clean at this wrap's commit.
+Two fixes are on master and **not yet in an installer** (alpha.8 is still the latest on the feed):
+#446, stale thumbnails after a re-render (`e1006de`), and #447, the Queue and editor clip switcher
+showing the detected length instead of the edited one (`f765ca8`). Both are verified on a dev
+fixture and left **open** until Fega sees them on the installed app. Their What's New lines sit in
+the `unreleased` entry of `src/main/release-notes.js`.
 
 ## Key Decisions
 
-- **Layout undo rides the existing editor undo stack**, not a separate one, so Ctrl+Z order stays
-  one timeline across subtitles, sections and layouts. `_snapshotLayouts()` in `useEditorStore` is
-  added to every snapshot in `useSubtitleStore` `_pushUndo`/`undo`/`redo`.
-- **Clip and every-clip layouts restore through a new `project:restoreLayouts` IPC**, which writes
-  only `reframe` keys and only for clips whose record differs. The open clip's section layouts stay
-  on `nleSegments` and are saved by autosave.
-- **The edit view has its own step history** (`_draftPast`/`_draftFuture`, 400 ms gap = one gesture).
-  While a draft is open, Ctrl+Z and the toolbar arrows (`editorUndo`/`editorRedo` in
-  `useEditorShortcuts.js`) never fall through to the main stack.
-- **Marks match by `layoutId` (started from) and add "edited" via `sameReframeLook`.** This was
-  Fega's pick; 95 of 118 real section layouts come out "edited".
-- **Scope resets to "section"** on clip load, on every drawer open and on a timeline section click.
-  The first-time setup banner forces "clip".
+- **A new thumbnail file per render, not a `?v=` cache-buster.** Chromium serves the first image it
+  loaded for a file URL for the whole session; this was probed, including a fresh `<img>` 3 s later.
+  A new name fixes every display site (Queue ×6, Projects, Analytics ×3, Tracker, editor switcher)
+  with no renderer change. Name: `<clipId>_<Date.now()>_renderthumb.jpg`. The `_renderthumb` suffix
+  is kept so `projects.js` `renameThumbnailTo` still leaves it alone.
+- **The thumbnail is frame 0** (Fega's ask). On a real render that is the title card with no
+  subtitle word over it, unless the clip's first subtitle starts at 0.
+- **One length rule: `getClipLength(clip)` in `editor/models/timeMapping.js`.** It returns the
+  nleSegments sum, else `clip.duration` (imports), else endTime - startTime. The Queue row and
+  detail, the editor clip switcher and both TikTok A7 max-duration checks use it. AnalyticsView
+  keeps its own inline copy of the same rule; it was already correct and was left alone.
 
 ## Next Steps
 
-1. **Ask Fega how alpha.8 went.** The checks: drawer opens on This section after clicking a section;
-   Ctrl+Z after trying saved layouts (section and This clip); drag boxes in Edit layout, then Ctrl+Z.
-   Close #442/#443/#444 on confirmation.
-2. **#438 in alpha.8:** the first real end-to-end is the next scheduled post that fires while Corva
-   is open. Its card should read Publishing..., show no Post button, then leave the Queue.
-3. Carry-overs: alpha.7 items still `status: untested` (#433–#437); #439 (Post with no platforms is
-   silent) is a good small pick; #440; ask about #425, #419, #418, #416, #265; the 2026-09-16
-   duplicate posts are Fega's call.
-4. **#445:** recording levels can't be undone. The sliders and Reset aren't in the undo snapshot
-   at all, and "Apply to unedited clips" / "Replace on every clip" write straight to disk. Filed at
-   Fega's request; the natural follow-on to #443, and it can reuse `_snapshotLayouts`/`restoreLayouts`.
+1. **Cut alpha.9 when the batch is worth it, or when Fega asks.** It carries #446 and #447.
+   Then ask him to re-render a clip after changing its title card (the Queue picture should update
+   at once) and to check a trimmed clip's length in the Queue. Close #446/#447 on confirmation.
+2. **Ask Fega how alpha.8 went** (from s265): the drawer opens on This section, Ctrl+Z works after
+   trying saved layouts, and Edit layout steps back one drag at a time. Close #442/#443/#444 on
+   confirmation. #438's first real end-to-end is the next scheduled post that fires while Corva is
+   open.
+3. Carry-overs: #445 (recording levels undo; can reuse `_snapshotLayouts`/`restoreLayouts`); #439
+   (Post with no platforms is silent) is a good small pick; #440; alpha.7 items still
+   `status: untested` (#433–#437); ask about #425, #419, #418, #416, #265.
 
 ## Watch Out For
 
-- **`_snapshotLayouts` runs on every undo push**, subtitle keystrokes included. It walks
-  `project.clips` × sections. That's cheap at today's sizes but grows with project size.
-- **A clip-level write pushes its undo step before the IPC await.** If the write fails, that entry
-  restores identical state, so one Ctrl+Z appears to do nothing.
-- **`_pushUndo`'s 300 ms debounce** merges a layout click made within 300 ms of another undoable
-  edit into the same step.
-- **Restoring other clips writes from the editor's in-memory project** (loaded at clip open), layout
-  keys only. Safe while nothing else edits other clips' layouts during an editor session.
-- **A project with no layout always loads as `reframe: null`** (`loadProject` normalizes it).
-  "inherit" and null are the same at project level.
-- **The Layout drawer's ScrollArea now has the #215 `!block` clamp.** Anything added there truncates
-  instead of widening the drawer (see the editor-patterns line added this session).
-- `main.js`, `PreviewPanelNew.js` and `clipReframe.test.js` are LF in the working copy. That's
-  pre-existing and uniform, not mixed.
-- The dev profile was restored byte-identical from `dev-settings.backup.json`, tokens are
-  `{"accounts":{}}`, and `Corva.exe` was never touched. The fixture in the scratchpad is disposable.
+- **The TikTok A7 duration check is now live for pipeline clips.** Before this session it read
+  `clip.duration`, which only imports carry, so it never fired on them. A tester whose TikTok
+  account max is shorter than their clip now sees the in-panel error and a blocked TikTok publish.
+  That is the intended A7 behaviour, but it is new in practice.
+- **Existing clips keep their old fixed-name `<id>_renderthumb.jpg` until their next render.** A
+  re-render deletes the old file only when it ends in `_renderthumb.jpg` and sits in that project's
+  `clips/` folder. The path is read from disk, not from the editor's snapshot.
+- Any probe or script that looks for `<clipId>_renderthumb.jpg` by its exact name will miss renders
+  made after this change. Match `<clipId>_*_renderthumb.jpg`, or read `clip.thumbnailPath`.
+- The real render folder for `2026-01-23 AR Day16 Pt3` has no `Clip 2.mp4`, although that clip's
+  renderPath points there. The folder last changed on 2026-08-26, so this is not from this session.
+  That clip is rejected; not filed.
+- The dev profile was restored byte-identical and `Corva.exe` was never touched. The fixture
+  (`…/91748792…/scratchpad/fx`) is disposable.
 
 ## Logs / Debugging
 
-- New user-facing error: `layoutNotice` "Couldn't restore the layout on disk: <err>" when
-  `project:restoreLayouts` fails during undo or redo.
-- **Checking an undo on disk:** the project file's clip `reframe` and each `nleSegments[].reframe`.
-  The open clip's sections land about 800 ms after the keypress (autosave). Read too early and you
-  see the pre-undo state.
-- Scratchpad drivers (`…/3af53cfa…/scratchpad`):
-  - `mkfixture.js`: rejected-only project copy with seeded section layouts; repoints the dev profile.
-  - `restore.js`: puts the dev settings back.
-  - `cdp.js`: `eval`/`shot`/`key`/`click`/`drag` via trusted input.
-  - `lib.js`: installs `window.__t` (drawer state dump).
-  - `open.js`: opens the editor via the fiber prop.
-  - Actions: `scope.js`, `apply.js`, `replace.js`, `edit.js`, `steps.js`, `rects.js`.
-  - Disk checks: `disk.js` (layout names), `diff.js` (field diff vs a snapshot).
+- Scratchpad (`…/91748792…/scratchpad`):
+  - `fx-setup.js [--restore]`: rejected-only project copy; repoints and restores the dev profile.
+  - `repoint.js`: repoints dev at the existing fixture without rebuilding it.
+  - `fx-import.js`: adds an import-shaped clip.
+  - `drv.js`: CDP eval, and `--shot`.
+  - `click.js`: trusted click. Bottom nav at 1280×860: Queue (681,830), Editor (597,830).
+  - `p-caption.js`: sets the caption box and presses Queue.
+  - `state.js`: the fixture clip's thumbnail state on disk.
+  - `cacheprobe/`: the Chromium same-URL cache proof.
+- Library scans (read-only):
+  - `thumbage.js`: thumbnail mtime vs render mtime.
+  - `durscan.js` / `lencheck.js`: detected vs edited lengths.
+- **Killing the dev app cleanly:** find its main process with a CommandLine containing
+  `Desktop\ClipFlow` and no `--type=`, then `taskkill //F //T //PID <pid>` takes the whole tree.

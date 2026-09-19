@@ -12,6 +12,18 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    changed: [
+      "A rendered clip's thumbnail is now its very first frame, so the Queue shows your title card without a subtitle word on top of it.",
+    ],
+    fixed: [
+      "After you re-render a clip, its thumbnail updates straight away. It used to keep showing the previous render, old title card and all, until Corva was restarted, so it looked like the new render had not worked.",
+      "Clip lengths in the Queue and in the editor's clip switcher now match the video you made. They used to show the length of the moment Corva first picked, so a clip you cut down to 4 seconds could read 0:30 and one you extended could read shorter than it is. Imported clips showed no length at all.",
+      "The warning for a clip that is longer than your TikTok account allows now checks every clip. Before, it only ran on imported clips.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.8",
     date: "2026-09-18",
     changed: [
