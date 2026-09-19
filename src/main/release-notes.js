@@ -15,7 +15,7 @@ module.exports = [
     version: "unreleased",
     date: "",
     changed: [
-      "A rendered clip's thumbnail is now its very first frame, so the Queue shows your title card without a subtitle word on top of it.",
+      "A rendered clip's thumbnail is now the very first frame of the finished video, exactly as it looks when posted.",
     ],
     fixed: [
       "After you re-render a clip, its thumbnail updates straight away. It used to keep showing the previous render, old title card and all, until Corva was restarted, so it looked like the new render had not worked.",

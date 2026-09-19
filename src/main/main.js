@@ -4812,7 +4812,8 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
     // #446: a new name per render. Chromium keeps the first image it loaded for
     // a file URL for the whole session, so overwriting one fixed name left every
     // screen showing the previous render's title card until an app restart.
-    // The first frame is the thumbnail — the title card with no subtitle over it.
+    // The thumbnail is the first frame of the finished video, with whatever is
+    // burned in at that moment.
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     let thumbnailPath = null;
     let clipsDir = null;

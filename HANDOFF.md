@@ -15,8 +15,8 @@ the `unreleased` entry of `src/main/release-notes.js`.
   A new name fixes every display site (Queue ×6, Projects, Analytics ×3, Tracker, editor switcher)
   with no renderer change. Name: `<clipId>_<Date.now()>_renderthumb.jpg`. The `_renderthumb` suffix
   is kept so `projects.js` `renameThumbnailTo` still leaves it alone.
-- **The thumbnail is frame 0** (Fega's ask). On a real render that is the title card with no
-  subtitle word over it, unless the clip's first subtitle starts at 0.
+- **The thumbnail is frame 0 of the finished video**, with everything burned in at that moment.
+  This was Fega's first ask, and it is **being revisited** (see Next Steps 1).
 - **One length rule: `getClipLength(clip)` in `editor/models/timeMapping.js`.** It returns the
   nleSegments sum, else `clip.duration` (imports), else endTime - startTime. The Queue row and
   detail, the editor clip switcher and both TikTok A7 max-duration checks use it. AnalyticsView
@@ -24,14 +24,27 @@ the `unreleased` entry of `src/main/release-notes.js`.
 
 ## Next Steps
 
-1. **Cut alpha.9 when the batch is worth it, or when Fega asks.** It carries #446 and #447.
-   Then ask him to re-render a clip after changing its title card (the Queue picture should update
-   at once) and to check a trimmed clip's length in the Queue. Close #446/#447 on confirmation.
-2. **Ask Fega how alpha.8 went** (from s265): the drawer opens on This section, Ctrl+Z works after
+1. **FIRST: revisit which frame becomes the thumbnail (#446). Fega needs the burned-in captions
+   AND subtitles visible in it.** My What's New line said the first frame had "no subtitle word on
+   top of it", and he read it as subtitles being removed. Nothing is removed; the thumbnail is a
+   snapshot of the finished video. But frame 0 does miss the subtitle more often. Measured on the
+   library (line spans; approximate), a subtitle is on screen in 63 of 212 rendered clips at frame 0
+   and in 136 at 1 s. When frame 0 has none, the first one arrives after a median 0.4 s (p90 7.1 s).
+   Scan: `sub0.js` in the scratchpad. Options to put to him:
+   - the first moment a subtitle line is on screen, computed from the clip's timeline;
+   - back to 1 s;
+   - a fixed small offset.
+
+   Plan-mode it, get his pick, then update the What's New "changed" line to match. Don't cut alpha.9
+   before this is settled.
+2. **Then cut alpha.9** (carries #446 and #447). Ask him to re-render a clip after changing its title
+   card (the Queue picture should update at once) and to check a trimmed clip's length in the Queue.
+   Close #446/#447 on confirmation.
+3. **Ask Fega how alpha.8 went** (from s265): the drawer opens on This section, Ctrl+Z works after
    trying saved layouts, and Edit layout steps back one drag at a time. Close #442/#443/#444 on
    confirmation. #438's first real end-to-end is the next scheduled post that fires while Corva is
    open.
-3. Carry-overs: #445 (recording levels undo; can reuse `_snapshotLayouts`/`restoreLayouts`); #439
+4. Carry-overs: #445 (recording levels undo; can reuse `_snapshotLayouts`/`restoreLayouts`); #439
    (Post with no platforms is silent) is a good small pick; #440; alpha.7 items still
    `status: untested` (#433–#437); ask about #425, #419, #418, #416, #265.
 
