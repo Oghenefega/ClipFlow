@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-19 (session 268) — 0.5.0-alpha.10 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.10 and an installer cut to the update feed, at Fega's request.** He would rather wait for this build than fix his waiting Sep 16 Valorant session by hand. It promotes the Rename-tab numbering fix (#449): part and day numbers follow recording time rather than the order files load in, and hand-typed Day and Pt numbers stick. The What's New entry was written at cut time, since no "unreleased" entry was waiting.
+
 ## [Unreleased] — 2026-09-19 (session 268) — Rename proposes part and day numbers in recording order
 
 ### Fixed

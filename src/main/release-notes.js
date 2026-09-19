@@ -12,6 +12,17 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.10",
+    date: "2026-09-19",
+    changed: [
+      "A Day or Pt number you set by hand on the Rename tab now stays put when other recordings show up or the list renumbers itself. The rest number around it.",
+    ],
+    fixed: [
+      "The Rename tab could give your recordings part numbers out of order after you restarted Corva, for example proposing a later recording as Pt1 and the real first one as Pt2. Part numbers now always follow the time in the filename, so the earliest recording is Pt1.",
+      "Two different days of the same game could be proposed with the same Day number. Days now count up in date order.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.9",
     date: "2026-09-18",
     added: [
