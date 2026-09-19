@@ -13,6 +13,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - The Queue and the editor's clip switcher show a clip's edited length (#447).
 - **The render thumbnail stays on the first frame (#446).** Session 266 left this "to be revisited", because I had read Fega's ask as needing subtitle words in the thumbnail. He meant the burned-in captions, which the first frame already has, so no change was needed.
 
+Fega installed alpha.9 through the in-app update banner the same evening. His results on #446, #447 and #448 are pending, and all three stay open with `status: untested` until then.
+
 ## [Unreleased] — 2026-09-18 (session 267) — Screenshot just the gameplay or the camera, crop it, and put it in the Media tab or on the clip in one click
 
 ### Added
