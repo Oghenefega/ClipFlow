@@ -4,6 +4,16 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-18 (session 266) — Re-rendered clips show their new thumbnail right away
+
+### Fixed
+- **A re-rendered clip kept showing its old thumbnail, old title card included, until Corva was restarted (#446).** Every render already made a new thumbnail. On the last 10 renders the file was rewritten within a second of the video. But each render saved it under the same file name, and Corva's window keeps the first picture it loads for a file name for the whole session. A throwaway test confirmed it: after the file was overwritten, a brand-new picture element with the same name still showed the old image 3 seconds later. Each render's thumbnail now gets its own timestamped name, so the Queue, Projects, Analytics, Tracker and the editor's clip list all load the new one straight away. The previous render thumbnail is deleted once the clip points at the new one, so they don't pile up. Existing clips keep their current thumbnail until their next render.
+
+### Changed
+- **The render thumbnail is the video's first frame instead of the frame 1 second in (#446).** On a real render, the first frame shows the title card with no subtitle word on top of it yet.
+
+Checked in the running app on a scratch copy of a project with only rejected clips. The title card was set to "FIRST RENDER", then Queue pressed. It was changed to "SECOND RENDER", then Queue pressed again, all without restarting. After each render the clip had exactly one thumbnail file and the old one was gone. The Queue's picture showed "SECOND RENDER" as soon as the second render finished.
+
 ## [Unreleased] — 2026-09-18 (session 265) — 0.5.0-alpha.8 on the feed
 
 ### Changed

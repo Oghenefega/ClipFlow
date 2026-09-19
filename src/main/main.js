@@ -4809,14 +4809,19 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
     // browses, and a jpg per render buried it. Keyed by clip id (like the repair
     // thumbnails) so two same-titled clips can't collide and a retitle never has
     // to move it.
+    // #446: a new name per render. Chromium keeps the first image it loaded for
+    // a file URL for the whole session, so overwriting one fixed name left every
+    // screen showing the previous render's title card until an app restart.
+    // The first frame is the thumbnail — the title card with no subtitle over it.
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     let thumbnailPath = null;
+    let clipsDir = null;
     if (projectData?.id && clipData?.id) {
       try {
-        const clipsDir = projects.getClipsDir(watchFolder, projectData.id);
+        clipsDir = projects.getClipsDir(watchFolder, projectData.id);
         fs.mkdirSync(clipsDir, { recursive: true });
-        thumbnailPath = path.join(clipsDir, `${clipData.id}_renderthumb.jpg`);
-        await ffmpeg.generateThumbnail(result.path, thumbnailPath, 1);
+        thumbnailPath = path.join(clipsDir, `${clipData.id}_${Date.now()}_renderthumb.jpg`);
+        await ffmpeg.generateThumbnail(result.path, thumbnailPath, 0);
       } catch (e) {
         console.warn("[render] Thumbnail extraction failed:", e.message);
         thumbnailPath = null;
@@ -4826,11 +4831,20 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
     // Update clip renderStatus in project JSON
     if (projectData?.id && clipData?.id) {
       try {
-        projects.updateClip(watchFolder, projectData.id, clipData.id, {
+        // Read from disk, not the renderer's snapshot, which can lag a render behind.
+        const prevThumb = projects.loadProject(watchFolder, projectData.id)
+          ?.clips?.find((c) => c.id === clipData.id)?.thumbnailPath;
+        const res = projects.updateClip(watchFolder, projectData.id, clipData.id, {
           renderStatus: "rendered",
           renderPath: result.path,
           thumbnailPath,
         });
+        // The previous render thumbnail is superseded — only ours, only once the
+        // clip no longer points at it.
+        if (res?.success && thumbnailPath && prevThumb && prevThumb !== thumbnailPath
+            && prevThumb.endsWith("_renderthumb.jpg") && path.dirname(prevThumb) === clipsDir) {
+          fs.rmSync(prevThumb, { force: true });
+        }
       } catch (e) { /* non-critical */ }
     }
 
