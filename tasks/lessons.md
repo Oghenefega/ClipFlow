@@ -2093,3 +2093,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** a DOM probe reported the rows and tags present and correct; only a screenshot showed them clipped. The rule sat in the skill for the moment of debugging, not the moment of building.
 
 **Rule:** adding any nowrap content (tags, pills, labels) to a panel inside a Radix ScrollArea, measure `viewport > div` width against the viewport after the change. If it is wider, apply the scoped `!block` clamp to that ScrollArea. Take a screenshot before believing a DOM probe about layout.
+
+## Session 267 (2026-09-18) — "subtitles visible in the thumbnail" meant the burned-in captions, and frame 0 already had them; a science project was queued for nothing
+
+**What happened:** s266 moved the render thumbnail to frame 0. Fega said he needs the captions and subtitles visible in it. I recorded that as "Fega needs the burned-in captions AND subtitles visible", measured subtitle-on-screen rates across 212 clips (63 at frame 0, 136 at 1 s), and made "revisit the frame" step 1 of the HANDOFF, with three options including computing the first subtitle moment. It also blocked the alpha.9 cut. Asked in s267, Fega: what he meant was that the thumbnail was capturing the burned-in captions, "So the first frame works. You don't need to do any crazy science."
+
+**Why:** I read his sentence against a What's New line I had written ("no subtitle word on top of it") and assumed he wanted subtitle words present. He was actually worried the burn-in was gone. I built a measurement on top of an interpretation I never checked with him.
+
+**Rule:** when Fega's words about a visual could mean either "keep what's there" or "add something new", ask the one-line question before measuring or planning. That goes double when my own earlier wording may have planted the worry. Don't block a release on an interpretation he hasn't confirmed.
