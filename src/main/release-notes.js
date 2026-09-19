@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.9",
+    date: "2026-09-18",
     added: [
       "Screenshot just the gameplay or just your camera. The small arrow next to the screenshot button in the viewer gives you \"Gameplay only\" and \"Camera only\": that part of your layout, at full sharpness, with no subtitles or captions on it. The camera button on its own still saves the whole frame.",
       "After a screenshot, the message that pops up lets you crop it, add it to the Media tab (filed under the clip's game), or put it straight on your clip at the playhead.",

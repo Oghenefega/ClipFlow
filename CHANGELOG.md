@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-18 (session 267) — 0.5.0-alpha.9 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.9 and an installer cut to the update feed, at Fega's request so he can test the new screenshots.** This build promotes everything since alpha.8:
+  - Gameplay-only and camera-only screenshots, the crop window, and Add to Media / Put on clip from the screenshot message (#448).
+  - Each render gets its own thumbnail file, so a re-rendered clip's picture updates straight away (#446).
+  - The Queue and the editor's clip switcher show a clip's edited length (#447).
+- **The render thumbnail stays on the first frame (#446).** Session 266 left this "to be revisited", because I had read Fega's ask as needing subtitle words in the thumbnail. He meant the burned-in captions, which the first frame already has, so no change was needed.
+
 ## [Unreleased] — 2026-09-18 (session 267) — Screenshot just the gameplay or the camera, crop it, and put it in the Media tab or on the clip in one click
 
 ### Added
