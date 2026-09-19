@@ -16,6 +16,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { toFileUrl } from "../../components/shared";
+import { getClipLength } from "../models/timeMapping";
 import useCaptionStore from "../stores/useCaptionStore";
 import {
   Undo2,
@@ -114,8 +115,8 @@ function ClipNavigator({ clips, currentClipId, onSelect, onDelete, onClose, chev
     );
   }
 
-  // Derive duration from startTime/endTime if no explicit duration field
-  const getDuration = (c) => c.duration || ((c.endTime && c.startTime != null) ? (c.endTime - c.startTime) : 0);
+  // #447: the edited length, not the detected range
+  const getDuration = getClipLength;
 
   return (
     <div

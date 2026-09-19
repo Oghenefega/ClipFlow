@@ -165,6 +165,18 @@ function getTimelineDuration(segments) {
 }
 
 /**
+ * How long a clip's video runs, in seconds (#447). An edited clip is its
+ * sections — what the render cuts; an import is its file's own length; only a
+ * clip with neither falls back to the detected range, whose startTime can
+ * legitimately be 0. The detected range alone overstates an edited clip.
+ */
+function getClipLength(clip) {
+  if (Array.isArray(clip?.nleSegments) && clip.nleSegments.length > 0) return getTimelineDuration(clip.nleSegments);
+  if (clip?.duration > 0) return clip.duration;
+  return Math.max(0, (clip?.endTime ?? 0) - (clip?.startTime ?? 0));
+}
+
+/**
  * Id of the segment under a timeline position (#349 — the Layout panel's
  * "This section"). Sitting exactly on a join, timelineToSource resolves to the
  * EARLIER segment (its offset equals its full duration); on screen the playhead
@@ -507,6 +519,7 @@ module.exports = {
   timelineToSourceForSeek,
   sectionIndexForFrame,
   getTimelineDuration,
+  getClipLength,
   segmentIdAtTimeline,
   segmentIndexAtTimeline,
   getSegmentTimelineRange,

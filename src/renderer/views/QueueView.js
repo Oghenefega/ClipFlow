@@ -15,6 +15,7 @@ import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { getClipLength } from "../editor/models/timeMapping";
 
 // Small stroke-style trash glyph (lucide Trash2 path) — QueueView doesn't pull
 // in lucide-react, and an emoji trash renders in fixed color on dark rows.
@@ -403,7 +404,7 @@ function TiktokOptionsPanel({ clip, account, cachedInfo, onSave, onCreatorInfoLo
   // sees the problem without having to click Publish. Parent's gate also blocks
   // publish using the same data via the onCreatorInfoLoaded callback.
   const maxDurationSec = creatorInfo?.max_video_post_duration_sec;
-  const clipDurationSec = Number(clip.duration);
+  const clipDurationSec = getClipLength(clip);
   const durationTooLong = !!maxDurationSec && Number.isFinite(clipDurationSec) && clipDurationSec > maxDurationSec;
 
   // Toggling Branded Content ON while SELF_ONLY is selected must clear the
@@ -1497,7 +1498,7 @@ export default function QueueView({
     const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
     const info = tiktokAccount ? tiktokCreatorInfo[tiktokAccount.key] : null;
     const maxSec = info?.max_video_post_duration_sec;
-    const clipDuration = Number(clip.duration);
+    const clipDuration = getClipLength(clip);
     if (maxSec && Number.isFinite(clipDuration) && clipDuration > maxSec) {
       return `This clip is ${Math.round(clipDuration)}s — your TikTok account only allows posts up to ${maxSec}s.`;
     }
@@ -2561,7 +2562,7 @@ export default function QueueView({
           const isFailed = ps?.state === "failed";
           const isSel = selClip === clip.id;
           const hasVideoId = !!clip.renderPath;
-          const duration = clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 0;
+          const duration = getClipLength(clip);
           const durationStr = duration > 0 ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}` : "";
           const projName = projectInfo[clip._projectId]?.name || "";
           const badge = statusBadge(clip);
