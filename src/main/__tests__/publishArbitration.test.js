@@ -10,7 +10,7 @@ const QUEUE = 7; // a renderer's webContents id
 
 const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
 
-function makeDeps({ clips, publisher, onPublished, claim, updateClip }) {
+function makeDeps({ clips, publisher, onPublished, claim, updateClip, accounts, extraPublishers }) {
   const lines = [];
   const events = [];
   const published = [];
@@ -27,7 +27,7 @@ function makeDeps({ clips, publisher, onPublished, claim, updateClip }) {
     },
     store: { get: () => undefined },
     libraryRoot: () => "",
-    tokenStore: { getAccountsForUI: () => [{ key: "yt_1", platform: "YouTube" }] },
+    tokenStore: { getAccountsForUI: () => accounts || [{ key: "yt_1", platform: "YouTube" }] },
     projects: {
       listProjects: () => ({ projects: [project] }),
       // Same contract as projects.claimScheduledPublish: clear scheduledAt, hand back the clip.
@@ -44,6 +44,7 @@ function makeDeps({ clips, publisher, onPublished, claim, updateClip }) {
         published.push(args.clipId);
         return publisher ? publisher(args) : { videoId: "v1" };
       },
+      ...(extraPublishers || {}),
     },
     onPublished: onPublished || (() => {}),
     onClipChanged: () => {},
@@ -202,5 +203,45 @@ describe("#450 — the chosen YouTube thumbnail on a scheduled post", () => {
     });
     await scheduler.tickOnce();
     expect(Object.assign({}, ...updates).thumbnailFailedPosts).toBeUndefined();
+  });
+});
+
+// #455: the same picked moment is the cover on TikTok and Instagram. The scheduler
+// forwards it; publishTikTok/publishInstagram turn it into each platform's field.
+describe("#455 — the picked frame as the TikTok and Instagram cover", () => {
+  beforeEach(() => {
+    delete process.env.CLIPFLOW_ALLOW_DEV_PUBLISH;
+    jest.resetModules();
+    scheduler = require("../publish");
+  });
+
+  const accounts = [{ key: "tt_1", platform: "TikTok" }, { key: "ig_1", platform: "Instagram", igAccountId: "9" }];
+
+  test("the clip's picked moment reaches the TikTok and Instagram publishers", async () => {
+    const got = {};
+    makeDeps({
+      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1), youtubeThumbnailTime: 2 }],
+      accounts,
+      extraPublishers: {
+        tiktok: async (args) => { got.tiktok = args.coverTime; return { success: true, publish_id: "p1" }; },
+        instagram: async (args) => { got.instagram = args.coverTime; return { success: true, mediaId: "m1" }; },
+      },
+    });
+    await scheduler.tickOnce();
+    expect(got).toEqual({ tiktok: 2, instagram: 2 });
+  });
+
+  test("no pick forwards nothing", async () => {
+    const got = {};
+    makeDeps({
+      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1) }],
+      accounts,
+      extraPublishers: {
+        tiktok: async (args) => { got.tiktok = args.coverTime; return { success: true, publish_id: "p1" }; },
+        instagram: async (args) => { got.instagram = args.coverTime; return { success: true, mediaId: "m1" }; },
+      },
+    });
+    await scheduler.tickOnce();
+    expect(got).toEqual({ tiktok: undefined, instagram: undefined });
   });
 });

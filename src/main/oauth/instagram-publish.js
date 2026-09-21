@@ -127,6 +127,19 @@ function uploadBinary(uploadUrl, fileBuffer, fileSize, accessToken) {
 }
 
 /**
+ * The Reel container request. Split out so what reaches Instagram is testable
+ * without the network.
+ */
+function reelContainerBody({ caption, thumbOffsetMs }) {
+  const body = { media_type: "REELS", upload_type: "resumable" };
+  if (caption) body.caption = caption;
+  // #455: the frame picked in the Queue is the cover, in ms into the video.
+  // Instagram's default is 0 (the first frame), so nothing is sent without a pick.
+  if (Number.isInteger(thumbOffsetMs) && thumbOffsetMs > 0) body.thumb_offset = thumbOffsetMs;
+  return body;
+}
+
+/**
  * Publish a video as an Instagram Reel via resumable upload.
  *
  * @param {string} accessToken - User access token
@@ -139,7 +152,7 @@ function uploadBinary(uploadUrl, fileBuffer, fileSize, accessToken) {
  * @returns {Promise<object>} - { mediaId, status }
  */
 async function publishReel(accessToken, igUserId, videoPath, options = {}, onProgress = () => {}) {
-  const { caption = "", useIgGraph = false, uploadAttempts } = options;
+  const { caption = "", useIgGraph = false, uploadAttempts, thumbOffsetMs } = options;
   const GRAPH_BASE = getGraphBase({ useIgGraph });
 
   // Validate file exists
@@ -195,11 +208,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
   async function createContainerAndUpload() {
     onProgress({ stage: "init", pct: 5, detail: "Creating media container..." });
 
-    const containerBody = {
-      media_type: "REELS",
-      upload_type: "resumable",
-    };
-    if (caption) containerBody.caption = caption;
+    const containerBody = reelContainerBody({ caption, thumbOffsetMs });
 
     // For Instagram Business Login (graph.instagram.com), the `/me/media` endpoint
     // resolves to whichever IG user the access token represents — no stored ID lookup.
@@ -324,4 +333,5 @@ function taggedProcessingError(message) {
 
 module.exports = {
   publishReel,
+  reelContainerBody, // #455: exported for tests
 };

@@ -5396,7 +5396,7 @@ ipcMain.handle("tiktok:queryCreatorInfo", async (_event, { accountId }) => {
 // #329: the body is a named function so the main-process publish scheduler can call it
 // directly with no renderer in existence. The IPC handler is now a pass-through;
 // arguments, return shape and publishLog writes are unchanged.
-async function publishTikTok({ accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields, scheduled }) {
+async function publishTikTok({ accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields, coverTime, scheduled }) {
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "TikTok", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
@@ -5457,6 +5457,15 @@ async function publishTikTok({ accountId, videoPath, title, caption, clipId, pos
     //                        commercialDisclosure, isYourBrand, isBrandedContent }
     // All optional in transit; publishVideo enforces privacy presence for direct_post.
     const t = tiktokFields || {};
+    // #455: the frame picked in the Queue is the cover, clamped inside the file like
+    // YouTube's. Drafts (inbox) mode sends no post_info, so it has no cover.
+    const inbox = postMode === "inbox";
+    let coverMs = null;
+    if (coverTime > 0 && !inbox) {
+      const info = await ffmpeg.probe(videoPath).catch(() => null);
+      coverMs = clipPicture.pickCoverMs(coverTime, info?.duration);
+    }
+    const cover = coverTime > 0 ? (inbox ? { time: null, reason: "drafts mode has no cover" } : { time: coverMs / 1000 }) : null;
     const result = await tiktokPublish.publishVideo(
       accessToken,
       videoPath,
@@ -5468,6 +5477,7 @@ async function publishTikTok({ accountId, videoPath, title, caption, clipId, pos
         disable_comment: t.disableComment === true,
         brand_content_toggle: t.commercialDisclosure === true && t.isBrandedContent === true,
         brand_organic_toggle: t.commercialDisclosure === true && t.isYourBrand === true,
+        video_cover_timestamp_ms: coverMs,
         mode: postMode || "direct_post",
       },
       (progress) => {
@@ -5480,6 +5490,7 @@ async function publishTikTok({ accountId, videoPath, title, caption, clipId, pos
       ...logBase, status: "success",
       publishId: result.publish_id, postId: result.post_id,
       apiResponse: { status: result.status, publish_id: result.publish_id, post_id: result.post_id },
+      ...(cover ? { cover } : {}),
     });
 
     return {
@@ -5621,7 +5632,7 @@ ipcMain.handle("oauth:facebook:connect", async () => {
 // #329: the body is a named function so the main-process publish scheduler can call it
 // directly with no renderer in existence. The IPC handler is now a pass-through;
 // arguments, return shape and publishLog writes are unchanged.
-async function publishInstagram({ accountId, videoPath, title, caption, clipId, isTest, qualityNote, scheduled }) {
+async function publishInstagram({ accountId, videoPath, title, caption, clipId, isTest, qualityNote, coverTime, scheduled }) {
   // #187: qualityNote records when a lighter copy shipped instead of the render,
   // so a post's actual resolution is answerable later without guessing.
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath, ...(qualityNote ? { qualityNote } : {}), ...(scheduled ? { scheduled: true } : {}) };
@@ -5649,9 +5660,8 @@ async function publishInstagram({ accountId, videoPath, title, caption, clipId, 
     // by token-store before today's fix). IG Business Login accounts get the `ig_` prefix
     // on accountId from instagram-oauth.js; the publish handler MUST route their tokens to
     // graph.instagram.com or Meta returns "Cannot parse access token".
-    let isIgLogin = account.loginType === "instagram_business_login";
-    if (!account.loginType && account.platform === "Instagram" && String(accountId).startsWith("ig_")) {
-      isIgLogin = true;
+    const isIgLogin = tokenStore.isIgBusinessLogin(accountId, account);
+    if (isIgLogin && !account.loginType) {
       tokenStore.setLoginType(accountId, "instagram_business_login");
       require("electron-log/main").scope("instagram").info("Backfilled loginType=instagram_business_login", { accountId });
     }
@@ -5698,13 +5708,6 @@ async function publishInstagram({ accountId, videoPath, title, caption, clipId, 
 
     const postCaption = caption || title || "";
     const onProgress = (progress) => { mainWindow?.webContents.send("instagram:publishProgress", progress); };
-    const attempt = (file, uploadAttempts) => instagramPublish.publishReel(
-      accessToken,
-      account.igAccountId,
-      file,
-      { caption: postCaption, useIgGraph: isIgLogin, uploadAttempts },
-      onProgress
-    );
 
     // #189: Meta's upload endpoint gives itself ~35s to process a finished upload and
     // cannot clear a long 1080p clip inside it. Resolution is the only input that moves
@@ -5718,6 +5721,25 @@ async function publishInstagram({ accountId, videoPath, title, caption, clipId, 
     const canDownscale = sourceShortSide > LIGHT_COPY_SHORT_SIDE;
     const isLongClip = (info?.duration || 0) > IG_LONG_CLIP_SEC;
     const sourceLabel = info?.width && info?.height ? `${info.width}x${info.height}` : "full quality";
+
+    // #455: the frame picked in the Queue is the Reel's cover (ms into the video; a
+    // 720p copy has the same length). Facebook Login only: thumb_offset is documented
+    // for graph.facebook.com and not for Instagram Login, where a field the API does
+    // not know could fail the whole post. The Queue's "Cover on" row follows the same
+    // rule (token-store isIgBusinessLogin).
+    const thumbOffsetMs = isIgLogin || !info ? null : clipPicture.pickCoverMs(coverTime, info.duration);
+    const cover = coverTime > 0
+      ? (isIgLogin ? { time: null, reason: "Instagram Login has no documented cover field" }
+        : !info ? { time: null, reason: "the video could not be probed" }
+        : { time: thumbOffsetMs / 1000 })
+      : null;
+    const attempt = (file, uploadAttempts) => instagramPublish.publishReel(
+      accessToken,
+      account.igAccountId,
+      file,
+      { caption: postCaption, useIgGraph: isIgLogin, uploadAttempts, thumbOffsetMs },
+      onProgress
+    );
 
     let result;
     let lightPath = null;
@@ -5756,6 +5778,7 @@ async function publishInstagram({ accountId, videoPath, title, caption, clipId, 
       publishId: result.mediaId, postId: result.mediaId,
       ...(downscaled ? { qualityNote: `${LIGHT_COPY_SHORT_SIDE}p copy — sent automatically after ${sourceLabel} was refused` } : {}),
       apiResponse: result,
+      ...(cover ? { cover } : {}),
     });
 
     return { success: true, mediaId: result.mediaId, status: result.status, downscaled, downscaledTo: downscaled ? `${LIGHT_COPY_SHORT_SIDE}p` : null };

@@ -21,6 +21,14 @@ function clampPickTime(time, duration) {
   return t;
 }
 
+// #455: the picked moment as whole milliseconds for a platform's cover field (TikTok
+// video_cover_timestamp_ms, Instagram thumb_offset), or null with no pick. Both platforms
+// default to the first frame, so nothing is sent for one.
+function pickCoverMs(time, duration) {
+  const t = clampPickTime(time, duration);
+  return t > 0 ? Math.round(t * 1000) : null;
+}
+
 // A new name per cut (#446): Chromium keeps the first image it loaded for a file URL
 // for the whole session, so writing over one name left every screen on the old frame.
 // Id-keyed, so a retitle never has to move it (projects.js renameThumbnailTo).
@@ -54,4 +62,4 @@ function retirePicture(prevPath, { newPath, clipsDir, project }) {
   }
 }
 
-module.exports = { PICTURE_SUFFIX, clampPickTime, cutPicture, retirePicture };
+module.exports = { PICTURE_SUFFIX, clampPickTime, pickCoverMs, cutPicture, retirePicture };

@@ -128,6 +128,18 @@ function getAllAccounts() {
 }
 
 /**
+ * An Instagram account connected through Instagram Business Login (graph.instagram.com)
+ * rather than Facebook Login. Older saved accounts have no loginType; those got the
+ * `ig_` prefix from instagram-oauth.js. One rule for the publisher (which routes the
+ * token by it) and the Queue (whose "Cover on" row leaves such accounts out, #455).
+ */
+function isIgBusinessLogin(id, acct) {
+  if (!acct) return false;
+  if (acct.loginType) return acct.loginType === "instagram_business_login";
+  return acct.platform === "Instagram" && String(id).startsWith("ig_");
+}
+
+/**
  * Get all accounts as platform entries (for UI — no tokens exposed).
  * Returns array compatible with the platforms[] shape used by QueueView.
  */
@@ -145,6 +157,7 @@ function getAccountsForUI() {
     connectedAt: acct.connectedAt || "",
     // Meta-specific (no tokens exposed)
     igAccountId: acct.igAccountId || "",
+    igBusinessLogin: isIgBusinessLogin(id, acct), // #455: no cover field on this route
     pageId: acct.pageId || "",
     pageName: acct.pageName || "",
     // YouTube-specific
@@ -220,5 +233,6 @@ module.exports = {
   updateTokens,
   setLoginType,
   setNeedsReconnect,
+  isIgBusinessLogin,
   PLATFORM_ABBR,
 };

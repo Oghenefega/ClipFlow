@@ -3,7 +3,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { clampPickTime, cutPicture, retirePicture } = require("../clip-picture");
+const { clampPickTime, pickCoverMs, cutPicture, retirePicture } = require("../clip-picture");
 
 let dir;
 beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "clip-picture-")); });
@@ -26,6 +26,19 @@ describe("clampPickTime", () => {
   test("an unknown length keeps the pick", () => {
     expect(clampPickTime(3, undefined)).toBe(3);
     expect(clampPickTime(3, 0)).toBe(3);
+  });
+});
+
+describe("pickCoverMs (#455)", () => {
+  test("a pick becomes whole milliseconds, clamped inside the file", () => {
+    expect(pickCoverMs(2, 10)).toBe(2000);
+    expect(pickCoverMs(2.0004, 10)).toBe(2000);
+    expect(pickCoverMs(42, 10)).toBe(9900);
+    expect(pickCoverMs(3.25, undefined)).toBe(3250);
+  });
+
+  test("no pick sends nothing (the platforms default to the first frame)", () => {
+    for (const t of [undefined, null, 0, -1, NaN]) expect(pickCoverMs(t, 10)).toBeNull();
   });
 });
 

@@ -116,9 +116,34 @@ async function queryCreatorInfo(accessToken) {
 }
 
 /**
+ * The direct post's `post_info`. Split out so what reaches TikTok is testable
+ * without the network.
+ * @param {object} postInfo - { title, privacy_level, disable_duet, disable_stitch,
+ *   disable_comment, brand_content_toggle, brand_organic_toggle, video_cover_timestamp_ms }
+ */
+function buildPostInfo(postInfo) {
+  const cover = postInfo.video_cover_timestamp_ms;
+  return {
+    title: postInfo.title || "",
+    privacy_level: postInfo.privacy_level || "PUBLIC_TO_EVERYONE",
+    disable_duet: postInfo.disable_duet || false,
+    disable_stitch: postInfo.disable_stitch || false,
+    disable_comment: postInfo.disable_comment || false,
+    // Commercial Content Disclosure (TikTok Content Sharing Guidelines)
+    // brand_content_toggle = paid partnership / third-party promotion
+    // brand_organic_toggle = creator promoting their own brand
+    brand_content_toggle: postInfo.brand_content_toggle || false,
+    brand_organic_toggle: postInfo.brand_organic_toggle || false,
+    // #455: the frame picked in the Queue is the cover. TikTok uses the first frame
+    // when this is absent or invalid, so it is only sent for a real pick.
+    ...(Number.isInteger(cover) && cover > 0 ? { video_cover_timestamp_ms: cover } : {}),
+  };
+}
+
+/**
  * Initialize a direct post upload (video.publish scope).
  * @param {string} accessToken
- * @param {object} postInfo - { title, privacy_level, disable_duet, disable_stitch, disable_comment }
+ * @param {object} postInfo - see buildPostInfo
  * @param {number} fileSize - video file size in bytes
  * @returns {{ publish_id: string, upload_url: string }}
  */
@@ -127,18 +152,7 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
   log.info("Initializing direct post upload", { fileSize, chunkCount, chunkSize });
 
   const body = {
-    post_info: {
-      title: postInfo.title || "",
-      privacy_level: postInfo.privacy_level || "PUBLIC_TO_EVERYONE",
-      disable_duet: postInfo.disable_duet || false,
-      disable_stitch: postInfo.disable_stitch || false,
-      disable_comment: postInfo.disable_comment || false,
-      // Commercial Content Disclosure (TikTok Content Sharing Guidelines)
-      // brand_content_toggle = paid partnership / third-party promotion
-      // brand_organic_toggle = creator promoting their own brand
-      brand_content_toggle: postInfo.brand_content_toggle || false,
-      brand_organic_toggle: postInfo.brand_organic_toggle || false,
-    },
+    post_info: buildPostInfo(postInfo),
     source_info: {
       source: "FILE_UPLOAD",
       video_size: fileSize,
@@ -377,6 +391,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
       disableDuet, disableStitch, disableComment,
       brandContent: options.brand_content_toggle || false,
       brandOrganic: options.brand_organic_toggle || false,
+      coverMs: options.video_cover_timestamp_ms ?? null,
     });
 
     progress("init", 10, "Initializing upload...");
@@ -388,6 +403,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
       disable_comment: disableComment,
       brand_content_toggle: options.brand_content_toggle || false,
       brand_organic_toggle: options.brand_organic_toggle || false,
+      video_cover_timestamp_ms: options.video_cover_timestamp_ms,
     }, fileSize));
   }
 
@@ -415,5 +431,6 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
 module.exports = {
   queryCreatorInfo,
   publishVideo,
+  buildPostInfo, // #455: exported for tests
   apiPost, // #388: shared with the read-only Display API module
 };

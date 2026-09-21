@@ -190,9 +190,12 @@ async function publishClip(clip) {
             isYourBrand: clip.tiktokIsYourBrand === true,
             isBrandedContent: clip.tiktokIsBrandedContent === true,
           },
+          // #455: the frame picked in the Queue (stored under its #450 YouTube name)
+          // is the cover on TikTok and Instagram too.
+          coverTime: clip.youtubeThumbnailTime,
         });
       } else if (plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) {
-        result = await deps.publishers.instagram(base);
+        result = await deps.publishers.instagram({ ...base, coverTime: clip.youtubeThumbnailTime });
       } else if (plat.platform === "Facebook") {
         result = await deps.publishers.facebook(base);
       } else if (plat.platform === "YouTube") {

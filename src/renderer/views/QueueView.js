@@ -1926,9 +1926,10 @@ export default function QueueView({
               isYourBrand: clip.tiktokIsYourBrand === true,
               isBrandedContent: clip.tiktokIsBrandedContent === true,
             },
+            coverTime: clip.youtubeThumbnailTime, // #455: the picked frame is the cover
           });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
-          result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip), qualityNote: opts.qualityNote || "" });
+          result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip), qualityNote: opts.qualityNote || "", coverTime: clip.youtubeThumbnailTime });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
@@ -2247,12 +2248,14 @@ export default function QueueView({
               isYourBrand: clip.tiktokIsYourBrand === true,
               isBrandedContent: clip.tiktokIsBrandedContent === true,
             },
+            coverTime: clip.youtubeThumbnailTime, // #455: the picked frame is the cover
           });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
           result = await window.clipflow.instagramPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
             caption, clipId: clip.id, isTest: isClipTest(clip),
             scheduled: opts.scheduled === true,
+            coverTime: clip.youtubeThumbnailTime,
           });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({
