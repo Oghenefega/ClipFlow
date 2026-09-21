@@ -21,7 +21,7 @@ Identify which commits belong to THIS session (usually everything since the prev
    - **Process/behavior lesson about reading/explaining/tracing code** (hallucination, dead-code, liveness) → add to the `clipflow-trace-verify` skill.
    - **Universal non-negotiable** that must hold every session → propose a ONE-LINE addition to CLAUDE.md or a memory entry. Keep CLAUDE.md tiny; default to a skill, not CLAUDE.md.
    - **Too niche / one-off** → leave in lessons.md only, no promotion.
-3. Keep additions terse — a checklist line, not a paragraph. The full story stays in lessons.md; the skill gets the actionable rule.
+3. Keep additions terse — a checklist line, not a paragraph. The full story stays in lessons.md; the skill gets the actionable rule. **A rule that prescribes CODE is executed once, on the exact path it claims to cover, before it is saved** — the video-cleanup memory taught a snippet that never ran, and three components copied it (s269, #451).
 4. Update the `<!-- DISTILLED-THROUGH: -->` marker date in `tasks/lessons.md` to today.
 5. Report what was promoted and where (one line each), so the user can veto any routing before commit.
 

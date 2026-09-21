@@ -154,7 +154,7 @@ Profile these areas IN ORDER when investigating performance. Each has specific d
 | setInterval/setTimeout | Timers firing after component unmount | Clear in useEffect cleanup |
 | Large arrays in closures | Old subtitle/segment arrays held by stale closures | Check useCallback/useMemo deps |
 
-**Critical rule (from past incidents):** Every `<video>` element MUST have unmount cleanup that revokes blob URLs and nulls the src. Chromium will crash otherwise (blink::DOMDataStore).
+**Critical rule (from past incidents):** Every `<video>` element MUST have unmount cleanup that revokes blob URLs and nulls the src. Chromium will crash otherwise (blink::DOMDataStore). The cleanup must act on a node captured when the effect ran (`const v = ref.current;` above the `return`) — read inside a `useEffect` cleanup the ref is already `null` and the unload silently never happens (#451, memory `feedback_video_cleanup`).
 
 ### 4. Startup Time (Main Process)
 

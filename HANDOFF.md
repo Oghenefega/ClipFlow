@@ -1,60 +1,77 @@
-# HANDOFF — Session 268 (2026-09-19)
+# HANDOFF — Session 269 (2026-09-20)
 
 ## Current State
 
-**0.5.0-alpha.10 is on the feed** (`2cc6561`). Fega has installed it and **confirmed #449**: the
-waiting Sep 16 Valorant session now proposes Pt1–Pt4 in recording order. #449 is closed with the
-`status: untested` label removed. The build carries only that fix on top of alpha.9. alpha.9's three
-items (#446, #447, #448) are still open and untested.
+**The YouTube thumbnail picker (#450) is built, verified and pushed (`25978bc`), but it is not in an
+installer.** alpha.10 is still the build on the feed, so Fega cannot try it until the next cut. #450
+is open with `status: untested`. Its What's New lines are written under `unreleased` in
+`src/main/release-notes.js`. alpha.9's #446, #447 and #448 are still open and untested.
 
 ## Key Decisions
 
-- **One pass owns pending Day/Pt numbers** (`renumberRows` + one effect in `RenameView.js`). Every
-  path that adds or retags a waiting file just drops it into the list: both watchers, import, the
-  AI retag and Set Game. The pass then re-derives numbers in filename (= recording) order. Two
-  arrival-order recount effects were removed.
-- **Hand-typed Day/Pt stick** (Fega's call). `dayManual` / `partManual` survive every pass, and
-  derived parts step around a pinned one. Switching a row's game releases them. An Undo restore is
-  pinned to its original slot.
-- **`renameFiles` still renames in `createdAt` order.** That was left on purpose: for OBS files
-  it's birthtime (= recording start), and imports keep arbitrary names, so sorting by filename
-  isn't clearly better there. It only matters for the conditional-part naming styles.
-- **Old Arc Raiders Day oddities (Jan–Feb) and a test file named "RL 2026-10-15" stay as they are**
-  (Fega). Recorded in memory `project_known_library_day_oddities`, so audits don't flag them again.
+- **Probe before build.** YouTube's help says Shorts thumbnails are Studio-only and the API changelog
+  never mentions Shorts. A private solid-colour upload proved `thumbnails.set` sticks on Fega's
+  channel (Partner Program), including in the app's real order (set straight after the upload).
+- **Only a moment is stored** (`clip.youtubeThumbnailTime`, seconds; unset = first frame). The frame
+  is cut from the uploaded file at publish time, so a re-render can never leave a stale picture.
+- **The Thumbnail section is the last block of the YouTube card, under Tags, in the roomy layout.**
+  Both were Fega's calls over my first proposal (under Privacy, compact with a pop-up preview).
+- **A refused thumbnail never fails a post.** It is a note on the clip
+  (`thumbnailFailedPosts`) and a field on the publish-log entry, nothing more.
+- **The preview lets go of the render when idle** (canvas + `requestVideoFrameCallback`). A scrubbed
+  `<video>` keeps the file open on Windows and the title edit in the same card could not rename it.
+- `status: untested` issues stay OPEN, matching #446–#448 (the plan text said "close"; the repo's
+  practice won).
 
 ## Next Steps
 
-1. **Get Fega's alpha.9 results** (they're in the alpha.10 he now runs). Close each on confirmation
-   and drop `status: untested`:
-   - #448: Gameplay only → Crop 16:9 → Put on clip;
-   - #446: re-render after changing the title card; the Queue picture updates at once;
-   - #447: a trimmed clip's length in the Queue.
-2. Ask whether the Media tab should list **newest first** (unanswered since s267).
-3. From s265: ask how the alpha.8 Layout drawer changes went, and close #442/#443/#444 on
-   confirmation. #438's first real end-to-end is the next scheduled post that fires while Corva is
-   open.
-4. Carry-overs: #445 (recording levels undo), #439 (Post with no platforms is silent; a good small
-   pick), #440, the alpha.7 items still untested (#433–#437). Ask about #425, #419, #418, #416, #265.
-   #176 ("same-day files after a rename get Day+1") is probably settled by #267 + #449; check it and
-   close it if so.
+1. **Ask Fega: cut an installer for #450 now, or batch it?** After the cut he opens a rendered clip
+   in the Queue, drags the Thumbnail slider at the bottom of the YouTube card, posts, and checks his
+   channel's Shorts tab for that frame. Close #450 on confirmation and drop `status: untested`.
+2. Remind him to delete the two private test videos in YouTube Studio: "Corva thumbnail probe -
+   delete me" (`KGHPX3_Y9m8`) and "Corva thumbnail verify - delete me" (`jYcElA2CZRw`).
+3. Two questions he has not answered yet:
+   - fix the stale "Quota: 100 units per upload" comment at the top of
+     `src/main/oauth/youtube-publish.js`? (uploads have their own 100-a-day allowance now);
+   - add `downscaledPosts: null` to the editor's re-queue wipe (`EditorLayout.js`, the
+     `addToQueue` update around line 347), so an old Instagram "720p" tag does not survive a
+     re-render? It is the same gap this session closed for the new "No thumbnail" tag.
+4. **#451** is a small, already-proven fix (three video previews never unload on close). Good pick.
+5. **#452** before launch: what a channel outside the Partner Program sees. Unknown today.
+6. Carried over from s268: alpha.9 results (#446, #447, #448); Media tab newest-first?; the alpha.8
+   Layout drawer items (#442, #443, #444); #438's first real end-to-end; #445, #439, #440; the
+   alpha.7 items still untested (#433–#437); ask about #425, #419, #418, #416, #265; #176 is
+   probably settled by #267 + #449.
 
 ## Watch Out For
 
-- **Day/Pt re-derives whenever the pending list, `gamesDb`, the library rows or the rename history
-  changes.** Any new code that writes `day`/`part` onto a pending row has two options: set the
-  manual flag, or accept that the next pass overwrites the value.
-- **The dev profile's settings were restored from a backup** (watch folder, test folder, projects
-  root and Gemini key checked by read-back). The scratch fixture under the s268 scratchpad is
-  disposable. The test run sent about a dozen Gemini frame-sniff calls on colour-bar test videos
-  through the gateway.
+- **Only Fega's channel is proven.** What `thumbnails.set` does for a channel outside the Partner
+  Program (an error, or "OK" and ignored) is not known. The "No thumbnail" tooltip says "set it by
+  hand in YouTube Studio", which is false for a channel that is not eligible (#452).
+- **Post now and Retry were never clicked for real** (that would publish). They pass the pick the
+  same way the scheduler does, and the publish function was run end to end with the upload stubbed,
+  but the first real Post now is the first true end-to-end.
+- **The picker is keyed on `clip.id | renderPath | thumbnailPath`.** It relies on #446's
+  per-render thumbnail filename as the "this render changed" stamp, because the Queue stays mounted
+  while the editor re-renders to the same file name. If thumbnail naming changes, the preview can
+  show the old render's frames.
+- The dev profile was put back byte for byte (settings, tokens, publish log). The backups sit in
+  `%APPDATA%\clipflow-dev` as `*.backup-s269-fx450.restored-<timestamp>.json`. The scratch fixture
+  is disposable.
+- Stop a source-run dev app by process ID filtered on a command line containing `Desktop\ClipFlow`.
+  `taskkill //IM electron.exe` also kills DaVinci Resolve's Epidemic plugin, and `Corva.exe` is the
+  installed app.
 
 ## Logs / Debugging
 
-- A Pending row's order of arrival shows in app.log as the order of `Generated N preview frames for
-  <file>` lines after a boot. That's how the Sep 18 23:46 boot was shown to load 14-41-45 before
-  14-11-40. Read these with the `sess_` id.
-- Numbering audit (read-only, on a COPY of `%APPDATA%\Corva\data\clipflow.db`): s268 scratchpad
-  `audit449.js` checks parts within each game+date, and `audit449-days.js` checks Day numbers per
-  game.
-- Rename-tab test harness: s268 scratchpad `fx449-setup.js` / `fx449-drive.js` /
-  `fx449-restore.js`. Recipe and traps are in memory `project_cdp_verification_gotchas` (81).
+- Every YouTube success entry in `clipflow-publish-log.json` now carries
+  `thumbnail: { status: "set" | "failed", time, error }`. App log, scope `youtube`: "Thumbnail set"
+  or "Thumbnail not set".
+- A blocked file rename logs `[projects] Could not rename <file>: EBUSY: resource busy or locked`.
+  The rename swallows the error on purpose, so that line is the only trace. It is how the preview's
+  file lock was found.
+- Harnesses are in the s269 scratchpad: `yt-thumb-probe/probe.js` and `verify.js` (real API, private
+  uploads), `fx450/` (fixture `setup.js` / `restore.js`, `drag.js`, `v2test.js`, `integration.js`,
+  `locktest.js`, `kill-dev.ps1`), `react-ref-probe/probe.js`. The methods are written up in memory
+  (`project_youtube_shorts_thumbnail_api`, `project_video_preview_file_lock`,
+  `feedback_video_cleanup`) and on #450 / #451.
