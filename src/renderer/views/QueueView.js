@@ -417,7 +417,9 @@ function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave })
   };
 
   // Let the file go when the card closes. The node is captured because React has
-  // cleared the ref by cleanup time (#451).
+  // cleared the ref by cleanup time (#451), and the effect is keyed on the video
+  // existing: it only mounts once there is a render.
+  const hasVideo = !!url && !broken;
   useEffect(() => {
     const v = videoRef.current;
     return () => {
@@ -426,7 +428,7 @@ function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave })
       if (v && loaded.current) unload(v);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasVideo]);
 
   // A new render or a new pick: the next load reads the file's own length again.
   useEffect(() => { setVideoMax(0); setBroken(false); }, [url]);
@@ -486,7 +488,6 @@ function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave })
     requestSave(t);
   };
 
-  const hasVideo = !!url && !broken;
   const coverNames = coverOn.map((k) => COVER_NAMES[k]);
   const coverHint = [
     coverNames.length ? `The cover on ${joinNames(coverNames)}, and the picture Corva shows for this clip.` : "The picture Corva shows for this clip.",
