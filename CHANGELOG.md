@@ -4,6 +4,18 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-21 (session 272) — 0.5.0-alpha.12 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.12 and an installer cut to the update feed, at Fega's request.** It promotes everything since alpha.11, which is sessions 270 and 271:
+  - the thumbnail picker on the Queue card's picture, with the pick as the clip's picture everywhere and cut at the pick on every render (#454);
+  - the picked frame as the TikTok and Instagram cover (#455);
+  - the whole frame beside the details in the Tracker popup (#456);
+  - Projects previews drawn in the clip's layout (#457);
+  - the three video previews that now let go of their video when closed, the "Auto thumbnail" tag, and the Queue clearing an old "720p" tag (#451).
+
+  The What's New entry written across those two sessions was stamped with this version.
+
 ## [Unreleased] — 2026-09-21 (session 271) — One thumbnail picker on the Queue picture, TikTok and Instagram covers, whole-frame Tracker popup, Projects previews in your layout
 
 ### Added

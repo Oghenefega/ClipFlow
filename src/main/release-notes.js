@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.12",
+    date: "2026-09-21",
     added: [
       "The frame you pick is now the cover on TikTok and Instagram too, not just YouTube. It goes out with Post now, scheduled posts and Retry. Facebook still picks its own cover, TikTok posts sent to your drafts use the first frame, and on Instagram it works for accounts connected through Facebook.",
     ],
