@@ -8,7 +8,9 @@ import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { fixTextCasing } from "../editor/utils/subtitleCasing";
 import { bakeLegacyCaptionCaps } from "../editor/utils/casing";
 import { SubtitleOverlay, CaptionOverlay, useActiveSubtitleLine } from "../editor/components/PreviewOverlays";
-import { sourceToTimeline, timelineToSource, getTimelineDuration } from "../editor/models/timeMapping";
+import { sourceToTimeline, timelineToSource, getTimelineDuration, sectionIndexForFrame, segmentIndexAtTimeline } from "../editor/models/timeMapping";
+import { resolveClipReframe, resolveSegmentReframe, fitToScreenReframe } from "../editor/utils/reframeStyle";
+import { makeCompositeScratch, paintReframeComposite } from "../editor/utils/reframeCompositor";
 import { getReasonChips } from "../../shared/rejectReasons";
 
 // Error boundary for clip preview — prevents bad clip data from crashing the whole app
@@ -214,13 +216,16 @@ let _activeVideoRef = null;
 // file directly, so vid.currentTime is already source-absolute (no clipFileOffset). Returns
 // { timelineTime, needsSeek, seekTo, atEnd }; timelineTime is -1 while parked in a deleted
 // gap, signalling the caller to freeze the playhead until the seek lands. #113
+// A seek also names the section it lands in (seekIndex): with repeated footage (#351)
+// the landing frame's source time alone can't tell two copies of a moment apart, and
+// the layout painter needs to know which one it is (#457).
 function mapPreviewSourceTime(sourceAbs, nle, timelineNow = 0) {
   const mapped = sourceToTimeline(sourceAbs, nle);
   if (mapped.found) {
     const seg = nle[mapped.segmentIndex];
     if (sourceAbs >= seg.sourceEnd - 0.02) {
       const next = nle[mapped.segmentIndex + 1];
-      if (next) return { timelineTime: mapped.timelineTime, needsSeek: true, seekTo: next.sourceStart, atEnd: false };
+      if (next) return { timelineTime: mapped.timelineTime, needsSeek: true, seekTo: next.sourceStart, seekIndex: mapped.segmentIndex + 1, atEnd: false };
       return { timelineTime: getTimelineDuration(nle), needsSeek: false, seekTo: 0, atEnd: true };
     }
     return { timelineTime: mapped.timelineTime, needsSeek: false, seekTo: 0, atEnd: false };
@@ -232,9 +237,24 @@ function mapPreviewSourceTime(sourceAbs, nle, timelineNow = 0) {
   const here = timelineToSource(timelineNow, nle);
   const nextIdx = here.found ? here.segmentIndex + 1 : nle.length;
   if (nextIdx < nle.length) {
-    return { timelineTime: -1, needsSeek: true, seekTo: nle[nextIdx].sourceStart, atEnd: false };
+    return { timelineTime: -1, needsSeek: true, seekTo: nle[nextIdx].sourceStart, seekIndex: nextIdx, atEnd: false };
   }
   return { timelineTime: getTimelineDuration(nle), needsSeek: false, seekTo: 0, atEnd: true };
+}
+
+// ── #457: the clip's layout, drawn the way the editor draws it ──
+// One set of scratch canvases for every preview: paints are synchronous and one
+// preview plays at a time, so they never overlap (a set per card is ~4 MB each).
+const previewScratch = makeCompositeScratch();
+const layoutOn = (r) => !!(r && (r.camRect || r.camRect === null) && r.gameRect);
+// Posters are painted one at a time, from the still scaled down in main (wide enough
+// for a zoomed-in layout's crop at 2x pixel density).
+const POSTER_STILL_W = 1280;
+const scaleRect = (r, k) => ({ x: r.x * k, y: r.y * k, w: r.w * k, h: r.h * k });
+const scaleLayout = (rf, k) => (k === 1 ? rf : { ...rf, camRect: rf.camRect ? scaleRect(rf.camRect, k) : rf.camRect, gameRect: scaleRect(rf.gameRect, k) });
+let posterQueue = Promise.resolve();
+function queuePosterPaint(job) {
+  posterQueue = posterQueue.then(job).catch(() => {});
 }
 
 function ClipVideoPlayer({ clip, project, template }) {
@@ -269,6 +289,53 @@ function ClipVideoPlayer({ clip, project, template }) {
     : (clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null);
   const filePath = videoFilePath; // alias kept for the existing logic below
   const thumbPath = clip.thumbnailPath ? toFileUrl(clip.thumbnailPath) : null;
+
+  // #457: the clip's layout, with the editor's cascade — section → clip → project.
+  // Memoised on the layout objects, never on `clip`/`project` identity: every
+  // approve/reject rebuilds both, and the posters must not repaint for it.
+  const canvasRef = useRef(null);
+  const clipReframe = resolveClipReframe(clip, project);
+  const segReframes = useMemo(
+    () => (useNle ? nleSegments.map((s) => resolveSegmentReframe(s, clip, project)) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [useNle, nleSegments, clip.reframe, project?.reframe]
+  );
+  // Only when playing the recording itself: a legacy clip MP4 is already cut.
+  const anyLayout = sourceMode && (useNle ? segReframes.some(layoutOn) : layoutOn(clipReframe));
+  const lastSectionRef = useRef({ index: 0, frameTime: -1 });
+  const seekTargetRef = useRef(null); // the section a cut-seek is heading into
+  // The layout of the section a presented frame belongs to, by the editor's rules
+  // (PreviewPanelNew paintActive): a frame in removed footage keeps the last
+  // section, and a raw section inside a laid-out clip is letterboxed.
+  const layoutForFrame = (frameTime, vw, vh) => {
+    if (!useNle) return clipReframe;
+    const last = lastSectionRef.current;
+    const hint = seekTargetRef.current ?? segmentIndexAtTimeline(tlTimeRef.current, nleSegments);
+    const found = sectionIndexForFrame(frameTime, nleSegments, hint, last);
+    if (found !== -1 && found === seekTargetRef.current) seekTargetRef.current = null;
+    const idx = found !== -1 ? found : Math.min(last.index, nleSegments.length - 1);
+    lastSectionRef.current = { index: idx, frameTime };
+    const rf = segReframes[idx];
+    if (layoutOn(rf)) return rf;
+    const donor = segReframes.find(layoutOn);
+    return donor && vw ? fitToScreenReframe(vw, vh, donor.style) : null;
+  };
+  const layoutForFrameRef = useRef(layoutForFrame);
+  layoutForFrameRef.current = layoutForFrame;
+  // Before play, a raw recording frame (the detection still) is drawn through the
+  // layout of the section around it. A finished render frame already is one.
+  const rawPoster = anyLayout && !!clip.thumbnailPath && !/_renderthumb/.test(clip.thumbnailPath);
+  const posterRf = useMemo(() => {
+    if (!rawPoster) return null;
+    if (!useNle) return clipReframe;
+    const mid = ((clip.startTime || 0) + (clip.endTime || 0)) / 2; // where the still was cut
+    const idx = Math.max(0, nleSegments.findIndex((s) => mid >= s.sourceStart && mid < s.sourceEnd));
+    if (layoutOn(segReframes[idx])) return segReframes[idx];
+    const donor = segReframes.find(layoutOn);
+    const w = project?.sourceWidth, h = project?.sourceHeight;
+    return donor && w && h ? fitToScreenReframe(w, h, donor.style) : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawPoster, useNle, nleSegments, clipReframe, segReframes, clip.startTime, clip.endTime, project?.sourceWidth, project?.sourceHeight]);
 
   const tpl = template || FALLBACK_TEMPLATE;
   const CONTAINER_W = 220;
@@ -355,6 +422,7 @@ function ClipVideoPlayer({ clip, project, template }) {
             vid.pause();
             vid.currentTime = playStart;
             tlTimeRef.current = 0;
+            seekTargetRef.current = null;
             setCurrentTime(0);
             setIsPlaying(false);
             return;
@@ -362,6 +430,7 @@ function ClipVideoPlayer({ clip, project, template }) {
           if (result.needsSeek && !vid.seeking &&
               Math.abs(vid.currentTime - result.seekTo) > 0.05) {
             vid.currentTime = result.seekTo;
+            seekTargetRef.current = result.seekIndex; // #457: the layout painter's hint
           }
           if (result.timelineTime >= 0) {
             tlTimeRef.current = result.timelineTime;
@@ -399,6 +468,72 @@ function ClipVideoPlayer({ clip, project, template }) {
       vid.load();
     };
   }, [hasVideo]);
+
+  // #457: while the video is up, every frame it presents is painted in its section's
+  // layout onto the canvas over it — the editor viewer's compositor, shared. The
+  // callback runs outside ClipPreviewBoundary, so a failed paint must not throw.
+  useEffect(() => {
+    const vid = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!anyLayout || !hasVideo || !vid || !canvas) return undefined;
+    let handle = 0;
+    let disposed = false;
+    const paint = (frameMeta) => {
+      try {
+        const t = frameMeta && typeof frameMeta.mediaTime === "number" ? frameMeta.mediaTime : vid.currentTime;
+        const rf = layoutForFrameRef.current(t, vid.videoWidth, vid.videoHeight);
+        if (rf) paintReframeComposite(canvas, vid, rf, previewScratch);
+      } catch (e) { /* the previous frame stays up */ }
+    };
+    const loop = (_now, meta) => {
+      if (disposed) return;
+      paint(meta);
+      handle = vid.requestVideoFrameCallback(loop);
+    };
+    handle = vid.requestVideoFrameCallback(loop);
+    const onSeeked = () => paint(null);
+    vid.addEventListener("seeked", onSeeked);
+    vid.addEventListener("loadeddata", onSeeked);
+    return () => {
+      disposed = true;
+      vid.cancelVideoFrameCallback(handle);
+      vid.removeEventListener("seeked", onSeeked);
+      vid.removeEventListener("loadeddata", onSeeked);
+    };
+  }, [anyLayout, hasVideo]);
+
+  // #457: the poster — the raw still drawn through the layout, painted once the card
+  // is near the screen (a project can hold two dozen of them). Main hands the still over
+  // scaled down and it is closed once drawn: from the full-size file, the page kept
+  // every card's frame decoded at full size. If that fails, the plain still shows.
+  const [posterFailed, setPosterFailed] = useState(false);
+  const posterKey = rawPoster && !hasVideo ? `${clip.thumbnailPath}|${JSON.stringify(posterRf)}` : "";
+  useEffect(() => { setPosterFailed(false); }, [posterKey]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!posterKey || !canvas) return undefined;
+    if (!posterRf) { setPosterFailed(true); return undefined; }
+    let cancelled = false;
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      queuePosterPaint(async () => {
+        if (cancelled) return;
+        const res = await window.clipflow?.clipPosterStill(clip.thumbnailPath, POSTER_STILL_W);
+        if (cancelled) return;
+        if (!res || res.error) { setPosterFailed(true); return; }
+        const bmp = await createImageBitmap(new Blob([res.bytes], { type: "image/jpeg" }));
+        try {
+          if (!cancelled) paintReframeComposite(canvas, bmp, scaleLayout(posterRf, bmp.width / res.sourceWidth), previewScratch);
+        } finally {
+          bmp.close();
+        }
+      });
+    }, { rootMargin: "300px" });
+    io.observe(canvas);
+    return () => { cancelled = true; io.disconnect(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posterKey]);
 
   const togglePlay = useCallback((e) => {
     // Don't toggle when clicking the seek bar
@@ -439,6 +574,7 @@ function ClipVideoPlayer({ clip, project, template }) {
       // videoDuration is timeline time → map the target back to a source position.
       const r = timelineToSource(rel, nleSegments);
       vid.currentTime = r.found ? r.sourceTime : playStart;
+      seekTargetRef.current = r.found ? r.segmentIndex : 0;
     } else {
       vid.currentTime = sourceMode ? (clipStart + rel) : rel;
     }
@@ -469,7 +605,7 @@ function ClipVideoPlayer({ clip, project, template }) {
             onPause={() => setIsPlaying(false)}
             onPlay={() => setIsPlaying(true)}
           />
-        ) : thumbPath ? (
+        ) : rawPoster && !posterFailed ? null /* the canvas below paints the still in the clip's layout */ : thumbPath ? (
           <img
             src={thumbPath}
             alt=""
@@ -480,6 +616,12 @@ function ClipVideoPlayer({ clip, project, template }) {
           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 32, opacity: 0.2 }}>🎬</span>
           </div>
+        )}
+
+        {/* #457: the clip in its layout — over the video while it plays, and the poster
+            before that. Under the subtitle and caption overlays. */}
+        {anyLayout && (
+          <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", pointerEvents: "none" }} />
         )}
 
         {/* Subtitle overlay — shared renderer, word-level karaoke during playback */}

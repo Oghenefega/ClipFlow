@@ -5,8 +5,8 @@
  *
  * Shared by the editor viewer (PreviewPanelNew) and the Projects preview (#457), so the
  * two cannot drift. Moved here verbatim from PreviewPanelNew; the only additions are
- * that the source may be a still (an <img> of a raw recording frame, for the Projects
- * poster) and that the scratch canvases are passed in.
+ * that the source may be a still (a raw recording frame, for the Projects poster) and
+ * that the scratch canvases are passed in.
  *
  * CJS with no JSX: vite.config.js hands `module.exports =` files to its CommonJS
  * plugin, and jest runs this in plain node.
@@ -66,8 +66,9 @@ const newCanvas = () => document.createElement("canvas");
 /**
  * Paint one frame of `source` in layout `rf` onto `canvas`.
  * @param {HTMLCanvasElement} canvas - sized from its CSS box × DPR (capped 1440 wide)
- * @param {HTMLVideoElement|HTMLImageElement} source - a video with a frame (readyState ≥ 2),
- *   or a loaded still at the recording's own size (the layout rects are source pixels)
+ * @param {HTMLVideoElement|HTMLImageElement|ImageBitmap} source - a video with a frame
+ *   (readyState ≥ 2), or a decoded still. The layout rects are in the source's pixels,
+ *   so a still at another size needs its layout scaled to match.
  * @param {{camRect: object|null, gameRect: object, style: object}} rf - a resolved layout
  * @param {{hq, blur, feather}} scratch - from makeCompositeScratch(), reused across paints
  */
@@ -76,8 +77,8 @@ function paintReframeComposite(canvas, source, rf, scratch) {
   if (!canvas || !source || !rf || rf.camRect === undefined || !rf.gameRect) return;
   const isVideo = typeof source.videoWidth === "number";
   if (isVideo && source.readyState < 2) return;
-  const vw = isVideo ? source.videoWidth : source.naturalWidth;
-  const vh = isVideo ? source.videoHeight : source.naturalHeight;
+  const vw = isVideo ? source.videoWidth : (source.naturalWidth || source.width);
+  const vh = isVideo ? source.videoHeight : (source.naturalHeight || source.height);
   if (!vw || !vh) return;
   const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
   if (!cssW || !cssH) return;

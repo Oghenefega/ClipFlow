@@ -88,6 +88,11 @@ describe("paintReframeComposite", () => {
     expect(fromVideo.length).toBeGreaterThan(5);
   });
 
+  test("a decoded bitmap (width/height, no natural size) paints too", () => {
+    paintReframeComposite(fakeCanvas("out", 226, 404), { __name: "bmp", width: 2560, height: 2880 }, REACTION, makeCompositeScratch());
+    expect(on("out").length).toBeGreaterThan(3);
+  });
+
   test("scratch canvases are made once and reused", () => {
     const scratch = makeCompositeScratch();
     paintReframeComposite(fakeCanvas("out", 226, 404), video(), REACTION, scratch);

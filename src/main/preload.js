@@ -204,6 +204,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
   // #454: pick the frame that is the clip's picture and cover → { youtubeThumbnailTime, thumbnailPath } | { error }
   clipSetThumbnailTime: (projectId, clipId, time) => ipcRenderer.invoke("clip:setThumbnailTime", projectId, clipId, time),
+  // #457: a library still scaled to maxWidth → { bytes (JPEG), width, height, sourceWidth, sourceHeight } | { error }
+  clipPosterStill: (stillPath, maxWidth) => ipcRenderer.invoke("clip:posterStill", stillPath, maxWidth),
   projectClaimScheduledPublish: (projectId, clipId) => ipcRenderer.invoke("project:claimScheduledPublish", projectId, clipId),
   projectDuplicateClip: (projectId, clipId, overrides) => ipcRenderer.invoke("project:duplicateClip", projectId, clipId, overrides),
   projectRepostClip: (projectId, clipId) => ipcRenderer.invoke("project:repostClip", projectId, clipId),

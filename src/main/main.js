@@ -96,7 +96,7 @@ process.on("uncaughtException", (err) => {
   fatal("Corva hit an unexpected error.", err);
 });
 
-const { BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu } = require("electron");
+const { BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu, nativeImage } = require("electron");
 
 // #244: Windows toast notifications need an AppUserModelID matching the installed
 // shortcut's (electron-builder sets it from build.appId). In dev the toast
@@ -5037,6 +5037,28 @@ ipcMain.handle("clip:setThumbnailTime", (_, projectId, clipId, time) => {
   clipPictureSaves.set(clipId, run);
   run.then(() => { if (clipPictureSaves.get(clipId) === run) clipPictureSaves.delete(clipId); });
   return run;
+});
+
+// #457: the still a Projects card paints its layout poster from, scaled down here.
+// Drawn straight into a canvas, a full-size recording frame is decoded at full size
+// (2560x2880 is ~30 MB) and the page kept every one: measured ~700 MB after scrolling
+// a 24-clip project, against ~250 MB for the plain pictures it replaced. Only images
+// inside the project library are read.
+ipcMain.handle("clip:posterStill", async (_, stillPath, maxWidth) => {
+  try {
+    const root = libraryRoot();
+    const abs = path.resolve(String(stillPath || ""));
+    const inLibrary = root && abs.toLowerCase().startsWith(path.resolve(root).toLowerCase() + path.sep);
+    if (!inLibrary || !/\.(jpe?g|png)$/i.test(abs) || !fs.existsSync(abs)) return { error: "Not a still in the project library" };
+    const img = nativeImage.createFromPath(abs);
+    if (img.isEmpty()) return { error: "The still could not be read" };
+    const size = img.getSize();
+    const small = maxWidth > 0 && size.width > maxWidth ? img.resize({ width: Math.round(maxWidth), quality: "good" }) : img;
+    const out = small.getSize();
+    return { bytes: small.toJPEG(88), width: out.width, height: out.height, sourceWidth: size.width, sourceHeight: size.height };
+  } catch (err) {
+    return { error: err.message };
+  }
 });
 
 // Session 124: WYSIWYG viewer screenshot → Shorts thumbnail PNG. Same payload
