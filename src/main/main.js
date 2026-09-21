@@ -115,6 +115,7 @@ const setupRuntime = require("./setup-runtime");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
+const clipPicture = require("./clip-picture");
 const assetLibrary = require("./assets");
 const reframeDetect = require("./reframe-detect");
 const highlights = require("./highlights");
@@ -4776,7 +4777,8 @@ async function verifyRenderOutput(result) {
       problems.push(`file is ${info.duration.toFixed(2)}s, timeline is ${result.duration.toFixed(2)}s`);
     }
   }
-  if (problems.length === 0) return;
+  // The probe is the file's real length, which the picture cut clamps to (#454).
+  if (problems.length === 0) return info;
   try { fs.unlinkSync(result.path); } catch (_) {}
   throw new Error(`Render verification failed: ${problems.join("; ")}`);
 }
@@ -4802,7 +4804,7 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
       return { canceled: true };
     }
 
-    await verifyRenderOutput(result);
+    const probe = await verifyRenderOutput(result);
 
     // Extract thumbnail from rendered clip. #205: it lives in the project's own
     // clips folder, NOT beside the MP4 — the output folder is a folder the user
@@ -4812,17 +4814,25 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
     // #446: a new name per render. Chromium keeps the first image it loaded for
     // a file URL for the whole session, so overwriting one fixed name left every
     // screen showing the previous render's title card until an app restart.
-    // The thumbnail is the first frame of the finished video, with whatever is
-    // burned in at that moment.
+    // #454: the picture is the frame picked in the Queue (the first frame when
+    // nothing is picked), with whatever is burned in at that moment. The pick is
+    // read from disk, because the editor's clip snapshot can predate it, and clamped
+    // to the file just made, because a re-trim can leave it past the new end. A
+    // moved pick is saved so every screen and every platform cover use one moment.
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     let thumbnailPath = null;
     let clipsDir = null;
+    let pickUpdate = {};
     if (projectData?.id && clipData?.id) {
       try {
         clipsDir = projects.getClipsDir(watchFolder, projectData.id);
-        fs.mkdirSync(clipsDir, { recursive: true });
-        thumbnailPath = path.join(clipsDir, `${clipData.id}_${Date.now()}_renderthumb.jpg`);
-        await ffmpeg.generateThumbnail(result.path, thumbnailPath, 0);
+        const pick = projects.loadProject(watchFolder, projectData.id)
+          ?.clips?.find((c) => c.id === clipData.id)?.youtubeThumbnailTime;
+        const t = clipPicture.clampPickTime(pick, probe?.duration);
+        if (pick > 0 && t !== pick) pickUpdate = { youtubeThumbnailTime: t > 0 ? t : null };
+        thumbnailPath = await clipPicture.cutPicture({
+          videoPath: result.path, clipsDir, clipId: clipData.id, time: t, cut: ffmpeg.generateThumbnail,
+        });
       } catch (e) {
         console.warn("[render] Thumbnail extraction failed:", e.message);
         thumbnailPath = null;
@@ -4839,12 +4849,14 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
           renderStatus: "rendered",
           renderPath: result.path,
           thumbnailPath,
+          ...pickUpdate,
         });
-        // The previous render thumbnail is superseded — only ours, only once the
-        // clip no longer points at it.
-        if (res?.success && thumbnailPath && prevThumb && prevThumb !== thumbnailPath
-            && prevThumb.endsWith("_renderthumb.jpg") && path.dirname(prevThumb) === clipsDir) {
-          fs.rmSync(prevThumb, { force: true });
+        // The previous picture is superseded — only ours, and only once no clip
+        // points at it (a duplicate shares its parent's picture).
+        if (res?.success && thumbnailPath) {
+          clipPicture.retirePicture(prevThumb, {
+            newPath: thumbnailPath, clipsDir, project: projects.loadProject(watchFolder, projectData.id),
+          });
         }
       } catch (e) { /* non-critical */ }
     }
@@ -4977,6 +4989,54 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
     sendRenderProgress({ stage: "error", clipId: clipData?.id ?? null, detail: err.message, ...renderQueueSnapshot() });
     return { error: err.message };
   }
+});
+
+// #454: the frame picked in the Queue becomes the clip's picture on every screen,
+// and its moment is the cover on YouTube, TikTok and Instagram. The picture is cut
+// from the render here. Saves for one clip run one at a time: a drag commits on
+// release and the arrow keys commit on every press, and an older cut that landed
+// last would win.
+const clipPictureSaves = new Map(); // clipId -> tail of that clip's save chain
+async function setClipPicture(projectId, clipId, time) {
+  try {
+    if (!Number.isFinite(time) || time < 0) return { error: "That isn't a moment in the clip." };
+    // A re-render writes this clip's own file in place; don't read it half-written.
+    if (renderCurrentJob?.clipId === clipId || renderQueue.some((j) => j.clipId === clipId)) {
+      return { error: "This clip is rendering. Pick its frame when the render is done." };
+    }
+    const root = libraryRoot();
+    const clip = projects.loadProject(root, projectId)?.clips?.find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+    if (!clip.renderPath || !fs.existsSync(clip.renderPath)) {
+      return { error: "The rendered video is missing. Render the clip again to pick its frame." };
+    }
+    const { duration } = await ffmpeg.probe(clip.renderPath);
+    const t = clipPicture.clampPickTime(time, duration);
+    const clipsDir = projects.getClipsDir(root, projectId);
+    const thumbnailPath = await clipPicture.cutPicture({
+      videoPath: clip.renderPath, clipsDir, clipId, time: t, cut: ffmpeg.generateThumbnail,
+    });
+    // The old picture is read right before the write that replaces it.
+    const prevThumb = projects.loadProject(root, projectId)?.clips?.find((c) => c.id === clipId)?.thumbnailPath;
+    const youtubeThumbnailTime = t > 0 ? t : null; // null = the first frame
+    const res = projects.updateClip(root, projectId, clipId, { youtubeThumbnailTime, thumbnailPath });
+    if (!res?.success) {
+      fs.rmSync(thumbnailPath, { force: true });
+      return { error: res?.error || "The clip could not be saved." };
+    }
+    clipPicture.retirePicture(prevThumb, { newPath: thumbnailPath, clipsDir, project: projects.loadProject(root, projectId) });
+    logger.info(logger.MODULES.system, "Clip picture set", { clipId, time: t });
+    return { youtubeThumbnailTime, thumbnailPath };
+  } catch (err) {
+    logger.warn(logger.MODULES.system, "Clip picture not set", { clipId, error: err.message });
+    return { error: err.message };
+  }
+}
+ipcMain.handle("clip:setThumbnailTime", (_, projectId, clipId, time) => {
+  const run = (clipPictureSaves.get(clipId) || Promise.resolve()).then(() => setClipPicture(projectId, clipId, time));
+  clipPictureSaves.set(clipId, run);
+  run.then(() => { if (clipPictureSaves.get(clipId) === run) clipPictureSaves.delete(clipId); });
+  return run;
 });
 
 // Session 124: WYSIWYG viewer screenshot → Shorts thumbnail PNG. Same payload

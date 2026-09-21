@@ -665,6 +665,9 @@ function duplicateClip(watchFolder, projectId, clipId, overrides = {}) {
     publishState: {},
     createdAt: new Date().toISOString(),
   };
+  // #454: the picked frame is a moment in the ORIGINAL's footage; a copy covers
+  // different footage, and its first render would otherwise cut its picture there.
+  delete copy.youtubeThumbnailTime;
 
   // Sit right after the original so the pair reads together in the clip list.
   project.clips.splice(idx + 1, 0, copy);
