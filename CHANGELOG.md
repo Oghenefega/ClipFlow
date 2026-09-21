@@ -4,6 +4,36 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-21 (session 271) — One thumbnail picker on the Queue picture, TikTok and Instagram covers, whole-frame Tracker popup, Projects previews in your layout
+
+### Added
+- **The picked frame is now the cover on TikTok and Instagram too (#455).** TikTok Direct Post takes it as `post_info.video_cover_timestamp_ms` and the Instagram Reel container as `thumb_offset`, both in milliseconds. It is sent from all three places a post is built (Post now, Retry including "Send IG a 720p copy", and the scheduler), clamped inside the file, and never sent without a pick (both platforms default to the first frame). TikTok drafts mode has no cover field. Instagram gets it only through Facebook Login, where `thumb_offset` is documented; for Instagram Login it isn't, and an unknown field could fail the whole post. The publish log records the cover time sent, or null with the reason none was sent. Facebook is unchanged.
+
+### Changed
+- **One thumbnail picker, on the Queue card's picture (#454).** The open card showed the clip's picture top-left and #450's slider, with its own preview, at the bottom of the YouTube card, and the two disagreed as soon as the slider moved. The picture is now the picker: the slider sits under it with the time, Reset, and a "Cover on" row with the icons of the platforms that take the pick. The YouTube card's Thumbnail section is gone, and both open-card layouts (Unscheduled, Scheduled) have it. The preview keeps #450's file-lock pattern: the video holds the render only while frames are fetched.
+- **The picked frame is the clip's picture everywhere (#454).** Letting go of the slider asks main to cut that frame from the render into a new `<clipId>_<stamp>_renderthumb.jpg` (`clip:setThumbnailTime`), saved together with the pick. The Queue row, the Tracker popup, the Projects card and Analytics follow at once. Saves for one clip run one at a time, and the last pick wins; they're refused while the clip renders. Renders now cut the picture at the pick instead of frame 0, clamped to the new file, and a pick a re-trim leaves past the end is saved at its clamped value. A duplicated clip starts with no pick.
+- **The Tracker popup shows the whole frame beside the details (#456).** It drew the 9:16 picture into a 220×132 strip with `object-fit: cover`, which kept the middle third of the frame, usually the caption band. Now the whole frame (90×160) sits on the left, with the title, platform links and status on the right. The detail popover is 300px wide; the log popover stays 248px.
+- **The Projects clip preview draws the clip's layout, like the editor's viewer (#457).** It used to show a centre slice of the raw recording. While playing, a canvas over the video is painted every frame in that frame's section layout, using the editor's rules: section, then clip, then project; removed footage keeps the last section; a raw section inside a laid-out clip is letterboxed. Before play, the raw still is drawn through the layout of the section around it. A finished render's picture and a clip with no layout look as before.
+- **The editor's layout compositor now lives in `src/renderer/editor/utils/reframeCompositor.js` (#457).** It moved verbatim from PreviewPanelNew so the Projects preview and the editor can't drift. It can also draw a decoded still, and it has tests that record its canvas calls for each layout shape.
+
+### Fixed
+- **Re-rendering a clip no longer deletes a picture that a duplicate still uses.** `duplicateClip` shares the original's picture file, and the render's clean-up deleted it, leaving the copy blank. The clean-up now keeps any picture another clip in the project points at.
+- **The Queue's frame preview lets go of the render about 60ms after you stop dragging, not 2.5s.** The last frame of a drag is presented while the seek is still settling and nothing follows it, so only the 2.5s safety timer released the file (#450 had the same gap). It now also checks on `seeked`. Measured on a 114 MB render: locked mid-drag (EBUSY), free 61–67ms after release.
+
+Checked on a dev copy of the app pointed at a disposable test library, with projects, watch, render and test-render folders all repointed there and only token-less placeholder accounts. The test library had:
+- an RGB-thirds test render, so frame colour shows the pick;
+- a 2560×2880 recording shaped like Fega's canvas, with his "Reaction Content Style" and "Cam Zm" layouts;
+- a 24-clip project for load testing.
+
+Results:
+- Queue: picks at 1/3/5/99s cut red/green/blue/blue. Ten saves fired at once end on the last value with one picture file. Arrow keys save once. Reset gives the red first frame. A pick mid-render is refused with a message. The Tracker popup and the Queue row follow the pick.
+- Covers: with the upload functions replaced by recorders, a 2s pick sends 2000ms to TikTok and Instagram, and 99s on a 6s file sends 5900. No pick, drafts mode and an Instagram Login account send nothing and log why.
+- Projects preview: frame by frame across a cut, every frame before 5.000s is in the project layout and every frame from 5.000s in the section layout.
+- Editor: pixel-identical before and after the compositor move where no feathered edge is in frame. Elsewhere it differs by the same edge noise two runs of one build show.
+- Memory: drawing the full-size stills cost ~700 MB after three passes over 24 cards. So main now scales the still to 1280px (`clip:posterStill`, library images only) and the bitmap is closed after drawing: ~230 MB, below the old plain pictures' ~250 MB. No main-thread task over 50ms while scrolling.
+
+Jest: 585/585.
+
 ## [Unreleased] — 2026-09-21 (session 270) — Video previews let go when closed, "Auto thumbnail", Queue clears the 720p tag
 
 ### Fixed

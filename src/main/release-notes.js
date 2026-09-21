@@ -14,10 +14,19 @@ module.exports = [
   {
     version: "unreleased",
     date: "",
+    added: [
+      "The frame you pick is now the cover on TikTok and Instagram too, not just YouTube. It goes out with Post now, scheduled posts and Retry. Facebook still picks its own cover, TikTok posts sent to your drafts use the first frame, and on Instagram it works for accounts connected through Facebook.",
+    ],
     changed: [
+      "The thumbnail picker moved onto the clip's picture. Open a clip in the Queue: the slider is right under its picture, and dragging it shows each frame in the picture itself. Let go and that frame is saved. The old Thumbnail section at the bottom of the YouTube card is gone.",
+      "The frame you pick becomes the clip's picture everywhere in Corva: its row in the Queue, the Tracker, the Projects tab and Analytics. Reset brings back the first frame. Re-rendering a clip keeps your pick, where before every render went back to the first frame.",
+      "The Tracker's clip popup now shows the whole frame of your clip beside its title, instead of a wide strip cut from the middle of it.",
+      "Clip previews on the Projects tab now look like the clip the editor makes: your layout's webcam box and game box over the blurred background, switching layouts exactly at a cut. That goes for the picture before you press play too. Before, they showed a plain slice from the middle of your recording.",
       "The yellow tag on a YouTube post whose thumbnail YouTube didn't take now reads \"Auto thumbnail\", because that is what your video shows: YouTube's own automatic pick instead of the frame you chose. Hover the tag to see YouTube's reason.",
     ],
     fixed: [
+      "Re-rendering a clip no longer blanks the picture of a copy you made of it.",
+      "Renaming a clip right after picking its thumbnail now renames its video file too. The picker used to hold on to the file for a couple of seconds after you let go.",
       "Sending a clip back to the Queue from the editor now clears its old \"720p\" tag, the same way it clears old failures. The tag from its last Instagram post used to stay on the clip and show up on the next post, even when that post went out at full size.",
       "The clip player on the Projects tab, the video previews in the editor's Media tab and the audio track window now shut their video down when you close them. Before, the video could stay open in the background and keep the file busy.",
     ],
