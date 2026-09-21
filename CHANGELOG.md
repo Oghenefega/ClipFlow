@@ -4,6 +4,24 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-20 (session 269) — Pick the YouTube thumbnail for a clip with a slider
+
+### Added
+- **A Thumbnail slider on the Queue's YouTube card (#450).** It sits at the bottom of the card, under Tags, with a small preview of the rendered clip. Dragging shows that moment of the video straight away, and letting go saves it. Left alone, the thumbnail is the first frame, and "Reset to first frame" goes back to that. A clip that isn't rendered yet shows a one-line note instead of the slider.
+- **Corva sets that frame as the video's thumbnail right after the YouTube upload (#450).** The frame is cut from the exact file that was uploaded, so captions and subtitles are in it. Scheduled posts, Post now and Retry all do it, and the Queue says "Setting the thumbnail..." while it happens. It uses the YouTube permission Corva already has, so no account needs reconnecting.
+- **A thumbnail YouTube refuses never turns a post into a failure (#450).** The clip still counts as sent. A yellow "No thumbnail" tag shows beside YouTube in the clip's Posted panel and on its row in the Published shelf, with the reason on hover. The publish log records, for every YouTube post, whether the thumbnail was set, which moment was used, and why it failed if it did.
+
+### Changed
+- **Re-queuing a clip from the editor also clears an old "No thumbnail" note**, the same way it already clears old publish failures, so a fresh render doesn't inherit the last post's warning.
+
+YouTube's help page says custom thumbnails for Shorts can only be added in YouTube Studio on a computer, and the API's change history never mentions Shorts, so this was tested against YouTube before anything was built. A private upload of a plain navy video was given a plain magenta thumbnail through the API, and YouTube served magenta at all six sizes. The finished code was then run in the app's real order (thumbnail sent straight after the upload, before YouTube finishes processing) on a red/green/blue test video with 4.5 s picked: YouTube served the green frame and still did 90 seconds after processing ended. Fega's channel is in the Partner Program. What YouTube does for a channel that isn't is not known and is filed as #452.
+
+The slider was driven with real mouse input on a dev copy of the app pointed at a scratch project: the preview follows the drag, nothing saves until release, the pick survives a restart, and both notes read correctly. The real publish function was also run end to end with the upload stubbed out and no YouTube login: the thumbnail step failed, the post still came back as sent, and the log entry carried the reason. Three tests pin the scheduler side.
+
+One bug was caught and fixed before shipping. The first version of the preview kept the rendered file open after scrubbing, and Windows refuses to rename an open file, so editing a clip's title in the same card stopped renaming its video. The preview now holds the file only while it is fetching a frame: each frame is copied to a small picture underneath, and the video lets go as soon as the slider settles. Checked on a 112 MB test render across six drags in both directions: right frame every time, file free after each, and a title edit straight after scrubbing renamed the video.
+
+Two private test videos are left on the channel for Fega to delete ("Corva thumbnail probe - delete me" and "Corva thumbnail verify - delete me"). Not yet tried on the installed app, so #450 stays `status: untested`. Found on the way and filed: three older video previews never unload when they close (#451).
+
 ## [Unreleased] — 2026-09-19 (session 268) — 0.5.0-alpha.10 on the feed
 
 ### Changed

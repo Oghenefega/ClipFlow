@@ -10,7 +10,7 @@ const QUEUE = 7; // a renderer's webContents id
 
 const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
 
-function makeDeps({ clips, publisher, onPublished, claim }) {
+function makeDeps({ clips, publisher, onPublished, claim, updateClip }) {
   const lines = [];
   const events = [];
   const published = [];
@@ -37,7 +37,7 @@ function makeDeps({ clips, publisher, onPublished, claim }) {
         c.scheduledAt = null;
         return { claimed: true, clip: { ...c } };
       }),
-      updateClip: () => ({}),
+      updateClip: updateClip || (() => ({})),
     },
     publishers: {
       youtube: async (args) => {
@@ -153,5 +153,54 @@ describe("#438 — one in-flight registry for the scheduler and the Queue", () =
     expect(events).toEqual([]);
     expect(lines).toContain('Scheduler: skipping "A" — Already published');
     expect(scheduler.inFlightClipIds()).toEqual([]);
+  });
+});
+
+// #450: the frame the creator picked rides the scheduled post, and a thumbnail
+// YouTube refuses is a note on a post that WENT OUT — it must never read as a failure.
+describe("#450 — the chosen YouTube thumbnail on a scheduled post", () => {
+  beforeEach(() => {
+    delete process.env.CLIPFLOW_ALLOW_DEV_PUBLISH;
+    jest.resetModules();
+    scheduler = require("../publish");
+  });
+
+  test("the clip's picked moment reaches the publisher", async () => {
+    let got = "never called";
+    makeDeps({
+      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1), youtubeThumbnailTime: 4.5 }],
+      publisher: (args) => { got = args.thumbnailTime; return { videoId: "v1" }; },
+    });
+    await scheduler.tickOnce();
+    expect(got).toBe(4.5);
+  });
+
+  test("a refused thumbnail is recorded on the clip and the post still counts as sent", async () => {
+    const updates = [];
+    const tracked = [];
+    makeDeps({
+      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1) }],
+      publisher: () => ({ success: true, videoId: "v1", thumbnail: { status: "failed", time: 0, error: "HTTP 403" } }),
+      updateClip: (_root, _pid, _cid, u) => { updates.push(u); return {}; },
+      onPublished: (row) => tracked.push(row),
+    });
+    await scheduler.tickOnce();
+    const merged = Object.assign({}, ...updates);
+    expect(merged.publishState).toEqual({ yt_1: "success" });
+    expect(merged.thumbnailFailedPosts).toEqual({ yt_1: "HTTP 403" });
+    expect(merged.publishedAt).toBeTruthy();
+    // Full success is what writes the tracker row.
+    expect(tracked).toHaveLength(1);
+  });
+
+  test("a thumbnail that was set leaves no note", async () => {
+    const updates = [];
+    makeDeps({
+      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1) }],
+      publisher: () => ({ success: true, videoId: "v1", thumbnail: { status: "set", time: 4.5 } }),
+      updateClip: (_root, _pid, _cid, u) => { updates.push(u); return {}; },
+    });
+    await scheduler.tickOnce();
+    expect(Object.assign({}, ...updates).thumbnailFailedPosts).toBeUndefined();
   });
 });

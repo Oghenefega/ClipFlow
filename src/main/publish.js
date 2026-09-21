@@ -161,6 +161,7 @@ async function publishClip(clip) {
   const settings = captionSettings();
   const nextPublishState = { ...(clip.publishState || {}) };
   const nextDownscaled = { ...(clip.downscaledPosts || {}) };
+  const nextThumbnailFailed = { ...(clip.thumbnailFailedPosts || {}) };
   const captured = {};
   const failures = [];
   let allSuccess = true;
@@ -200,6 +201,7 @@ async function publishClip(clip) {
           tags: resolveTags(clip, settings.ytDescriptions, settings.gamesDb),
           youtubeTitle: clip.youtubeTitle || clip.title,
           privacyStatus: clip.youtubePrivacy || "public",
+          thumbnailTime: clip.youtubeThumbnailTime,
         });
       } else {
         const msg = `${plat.platform} publishing isn't supported yet`;
@@ -216,6 +218,9 @@ async function publishClip(clip) {
       } else {
         nextPublishState[plat.key] = "success";
         if (result?.downscaled) nextDownscaled[plat.key] = result.downscaledTo || "720p";
+        // #450: posted, but YouTube didn't take the chosen thumbnail — kept on the
+        // clip so the Queue can say so when the window comes back.
+        if (result?.thumbnail?.status === "failed") nextThumbnailFailed[plat.key] = result.thumbnail.error || "Unknown error";
         anySuccess = true;
         const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
         const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -232,6 +237,7 @@ async function publishClip(clip) {
       const updates = { publishState: { ...nextPublishState } };
       if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
       if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
+      if (Object.keys(nextThumbnailFailed).length) updates.thumbnailFailedPosts = { ...nextThumbnailFailed };
       const res = deps.projects.updateClip(deps.libraryRoot(), clip._projectId, clip.id, updates);
       if (updates.publishedAt) publishedStamped = true;
       // Keep a live copy so the tracker row reads the persisted publishState/publishedAt.

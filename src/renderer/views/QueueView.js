@@ -304,6 +304,170 @@ function charCountColor(len, max) {
   return T.textTertiary;
 }
 
+const fmtThumbTime = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+
+// #450: pick the frame of the RENDERED clip that becomes the YouTube thumbnail.
+// Only the moment is stored (clip.youtubeThumbnailTime); the frame itself is cut
+// from the uploaded file at publish time (youtube-publish.js), so a re-render can
+// never leave a stale picture behind. Unset = the first frame.
+//
+// The preview is a <video> with a canvas underneath it. Chromium keeps a scrubbed
+// file open, and an open render cannot be renamed (the title edit in this same
+// card, #188) or deleted — so the video only holds the file while a frame is being
+// fetched. Every frame it presents is copied to the canvas, and once the slider has
+// settled the video lets the file go and the canvas keeps showing the picture.
+function YoutubeThumbnailPicker({ clip, saved, onSave }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const loaded = useRef(false); // the <video> currently has the file
+  const wantTime = useRef(clip.youtubeThumbnailTime || 0);
+  const shownTime = useRef(-1); // media time of the last frame copied to the canvas
+  const settled = useRef(true); // nobody is dragging: release as soon as the frame is in
+  const releaseTimer = useRef(null);
+  const frameCallback = useRef(0);
+  const [max, setMax] = useState(0);
+  const [time, setTime] = useState(clip.youtubeThumbnailTime || 0);
+  const [broken, setBroken] = useState(false);
+  // The query is the render's version (see the caller's key): the file name can
+  // survive a re-render, and the old bytes must not.
+  const url = clip.renderPath ? `${toFileUrl(clip.renderPath)}?v=${encodeURIComponent(clip.thumbnailPath || "")}` : "";
+
+  // Media elements MUST be unloaded or Chromium crashes — and here, keeps the file locked.
+  const release = (v = videoRef.current) => {
+    clearTimeout(releaseTimer.current);
+    if (!v || !loaded.current) return;
+    loaded.current = false;
+    // load() does not drop a pending frame callback — left alone it would fire on
+    // the next acquire alongside the new one, and the chain would double each time.
+    v.cancelVideoFrameCallback(frameCallback.current);
+    v.pause();
+    v.removeAttribute("src");
+    v.load();
+  };
+
+  const releaseIfSettled = () => {
+    const v = videoRef.current;
+    if (settled.current && v && !v.seeking && Math.abs(shownTime.current - wantTime.current) < 0.12) release();
+  };
+
+  // Runs once per frame the <video> actually presents — the only moment a frame
+  // is guaranteed drawable (at "seeked" it often is not yet).
+  const onFrame = (_now, meta) => {
+    const v = videoRef.current;
+    const c = canvasRef.current;
+    if (!v || !c || !loaded.current) return;
+    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+    shownTime.current = meta.mediaTime;
+    releaseIfSettled();
+    if (loaded.current) frameCallback.current = v.requestVideoFrameCallback(onFrame);
+  };
+
+  const acquire = () => {
+    const v = videoRef.current;
+    if (!v || loaded.current || !url) return;
+    loaded.current = true;
+    shownTime.current = -1;
+    v.src = url;
+    frameCallback.current = v.requestVideoFrameCallback(onFrame);
+  };
+
+  // Show the saved frame when the card opens; let the file go when it closes.
+  // The node is captured because React has cleared the ref by cleanup time.
+  useEffect(() => {
+    const v = videoRef.current;
+    acquire();
+    return () => release(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const seek = (t) => {
+    wantTime.current = t;
+    setTime(t);
+    settled.current = false;
+    clearTimeout(releaseTimer.current);
+    acquire();
+    const v = videoRef.current;
+    if (v && v.readyState >= 1) v.currentTime = t; // before that, onLoadedMetadata applies wantTime
+  };
+  // Saved when the slider is let go, not on every tick of the drag.
+  const commit = (t) => {
+    settled.current = true;
+    releaseIfSettled();
+    // A window that is not being painted presents no frame — never hold the file for it.
+    clearTimeout(releaseTimer.current);
+    releaseTimer.current = setTimeout(() => release(), 2500);
+    if (t !== (clip.youtubeThumbnailTime || 0)) onSave(t);
+  };
+
+  const hasVideo = !!url && !broken;
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{ padding: "10px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div style={FIELD_LABEL}>Thumbnail</div>
+        {saved && (
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+            Saved
+          </span>
+        )}
+        <div style={{ flex: 1 }} />
+        {hasVideo && <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textTertiary }}>{time > 0 ? fmtThumbTime(time) : "First frame"}</span>}
+      </div>
+      {hasVideo ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ position: "relative", width: 72, height: 128, flexShrink: 0, borderRadius: 6, overflow: "hidden", background: "#000", border: `1px solid ${T.border}` }}>
+            <canvas ref={canvasRef} width={216} height={384} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />
+            {/* No src in JSX: acquire()/release() own it. Unloaded, it paints nothing and the canvas shows through. */}
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              preload="auto"
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                // A re-trimmed render can be shorter than it was when the frame was picked.
+                const end = Math.max(0, (v.duration || 0) - 0.1);
+                const t = Math.min(wantTime.current, end);
+                wantTime.current = t;
+                setMax(end);
+                setTime(t);
+                if (t > 0) v.currentTime = t;
+              }}
+              onError={() => { if (loaded.current) { release(); setBroken(true); } }}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover" }}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+            <input
+              type="range"
+              min={0}
+              max={max}
+              step={0.05}
+              value={time}
+              disabled={!max}
+              onChange={(e) => seek(parseFloat(e.target.value))}
+              onPointerUp={(e) => commit(parseFloat(e.currentTarget.value))}
+              onKeyUp={(e) => commit(parseFloat(e.currentTarget.value))}
+              onBlur={(e) => commit(parseFloat(e.currentTarget.value))}
+              style={{ width: "100%", accentColor: T.accent, height: 3, cursor: "pointer" }}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ flex: 1, fontSize: 11, color: T.textTertiary, lineHeight: 1.4 }}>The frame YouTube shows on your channel, in search and on the homepage.</span>
+              {time > 0 && (
+                <button onClick={() => { seek(0); commit(0); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, flexShrink: 0 }}>Reset to first frame</button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>
+          {clip.renderPath ? "The rendered video is missing. Render the clip again to pick its thumbnail." : "Render the clip first, then pick its thumbnail here."}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // TikTok per-clip options panel — guideline-compliant UX for Content Posting API
 // audit (https://developers.tiktok.com/doc/content-sharing-guidelines/).
 //
@@ -1051,6 +1215,21 @@ export default function QueueView({
     } catch (e) { console.error("YouTube privacy save failed:", e); }
   };
 
+  // #450: the moment of the rendered clip whose frame becomes the YouTube thumbnail
+  const saveYoutubeThumbnailTime = async (clip, value) => {
+    if (!clip._projectId) return;
+    const time = value > 0 ? value : null; // null = the first frame
+    try {
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubeThumbnailTime: time });
+      if (!r?.error) {
+        updateClipInState(clip._projectId, clip.id, { youtubeThumbnailTime: time });
+        setCaptionSavedFlash(`${clip.id}:youtube-thumb`);
+        clearTimeout(captionFlashTimer.current);
+        captionFlashTimer.current = setTimeout(() => setCaptionSavedFlash(null), 1600);
+      }
+    } catch (e) { console.error("YouTube thumbnail save failed:", e); }
+  };
+
   // #291: the game's tag list for a clip, ignoring any per-clip override — the
   // value "Reset to game tags" goes back to, and what a save is compared against.
   const gameTagsFor = (clip) => resolveTags({ ...clip, youtubeTags: undefined }, ytDescriptions, gamesDb);
@@ -1450,6 +1629,20 @@ export default function QueueView({
                 );
               })()}
 
+              {/* #450: YouTube thumbnail — last in the card. Title, description and
+                  tags read as one run; a video preview between them split it. */}
+              {isYt && (
+                <YoutubeThumbnailPicker
+                  // The Queue stays mounted while the editor re-renders a clip, often
+                  // to the same file name. The render thumbnail is renamed on every
+                  // render (#446), so it versions the picker along with the path.
+                  key={`${clip.id}|${clip.renderPath || ""}|${clip.thumbnailPath || ""}`}
+                  clip={clip}
+                  saved={captionSavedFlash === `${clip.id}:youtube-thumb`}
+                  onSave={(t) => saveYoutubeThumbnailTime(clip, t)}
+                />
+              )}
+
               {/* TikTok: per-clip options panel (Content Posting API audit) */}
               {pk === "tiktok" && (() => {
                 const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
@@ -1699,6 +1892,8 @@ export default function QueueView({
     // #189: platform key → the resolution a post actually went out at, when it wasn't
     // the render's. Only Instagram sets it, and only via its automatic fallback.
     let nextDownscaled = { ...(clip.downscaledPosts || {}) };
+    // #450: account key -> why YouTube didn't take the chosen thumbnail on a post that otherwise went out.
+    let nextThumbnailFailed = { ...(clip.thumbnailFailedPosts || {}) };
     let allSuccess = true;
     // #156: same publishedAt stamp as publishClip — a retry that lands means the clip
     // has now gone out, and the scheduler must not treat it as still pending.
@@ -1737,7 +1932,7 @@ export default function QueueView({
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
-          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb), youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
+          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb), youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", thumbnailTime: clip.youtubeThumbnailTime, isTest: isClipTest(clip) });
         }
         if (result?.error) {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: result.error } } }));
@@ -1747,6 +1942,7 @@ export default function QueueView({
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
           nextPublishState[platKey] = "success";
           if (result?.downscaled) nextDownscaled[platKey] = result.downscaledTo || "720p";
+          if (result?.thumbnail?.status === "failed") nextThumbnailFailed[platKey] = result.thumbnail.error || "Unknown error";
           anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -1764,6 +1960,7 @@ export default function QueueView({
         const updates = { publishState: { ...nextPublishState } };
         if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
         if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
+        if (Object.keys(nextThumbnailFailed).length) updates.thumbnailFailedPosts = { ...nextThumbnailFailed };
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
         if (updates.publishedAt) publishedStamped = true;
@@ -2005,6 +2202,8 @@ export default function QueueView({
     // #189: platform key → the resolution a post actually went out at, when it wasn't
     // the render's. Only Instagram sets it, and only via its automatic fallback.
     let nextDownscaled = { ...(clip.downscaledPosts || {}) };
+    // #450: account key -> why YouTube didn't take the chosen thumbnail on a post that otherwise went out.
+    let nextThumbnailFailed = { ...(clip.thumbnailFailedPosts || {}) };
     let allSuccess = true;
     // #244: this run's failures, for the scheduler's loud-failure path.
     const runFailures = [];
@@ -2067,6 +2266,7 @@ export default function QueueView({
             title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb),
             youtubeTitle: clip.youtubeTitle || clip.title,
             privacyStatus: clip.youtubePrivacy || "public",
+            thumbnailTime: clip.youtubeThumbnailTime,
             isTest: isClipTest(clip),
             scheduled: opts.scheduled === true,
           });
@@ -2091,6 +2291,7 @@ export default function QueueView({
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
           nextPublishState[plat.key] = "success";
           if (result?.downscaled) nextDownscaled[plat.key] = result.downscaledTo || "720p";
+          if (result?.thumbnail?.status === "failed") nextThumbnailFailed[plat.key] = result.thumbnail.error || "Unknown error";
           anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -2112,6 +2313,7 @@ export default function QueueView({
         const updates = { publishState: { ...nextPublishState } };
         if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
         if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
+        if (Object.keys(nextThumbnailFailed).length) updates.thumbnailFailedPosts = { ...nextThumbnailFailed };
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
         if (updates.publishedAt) publishedStamped = true;
@@ -2778,12 +2980,15 @@ export default function QueueView({
                                     // Instagram refused the full-size render. Persisted on the clip,
                                     // so the badge is still here after a restart.
                                     const downscaledTo = clip.downscaledPosts?.[platKey];
+                                    // #450: the post went out, but YouTube didn't take the chosen thumbnail.
+                                    const thumbnailFailed = clip.thumbnailFailedPosts?.[platKey];
                                     return (
                                       <div key={platKey} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                                         <span style={{ fontSize: 12 }}>{icon}</span>
                                         <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
                                         <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? "Processing…" : st === "done" ? "Sent" : st}</span>
                                         {downscaledTo && <span title={`Instagram couldn't process the full-size render, so Corva sent a ${downscaledTo} copy automatically. Your render is untouched.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>{downscaledTo}</span>}
+                                        {thumbnailFailed && <span title={`The clip posted, but YouTube didn't take the thumbnail you picked (${thumbnailFailed}). You can set it by hand in YouTube Studio.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>No thumbnail</span>}
                                       </div>
                                     );
                                   })}
@@ -3095,6 +3300,11 @@ export default function QueueView({
                             </span>
                           )
                         ))}
+                        {/* #450: a clip that posted everywhere lands here, so this is where
+                            "YouTube didn't take the thumbnail you picked" has to be said. */}
+                        {Object.keys(clip.thumbnailFailedPosts || {}).length > 0 && (
+                          <span title={`The clip posted, but YouTube didn't take the thumbnail you picked (${Object.values(clip.thumbnailFailedPosts)[0]}). You can set it by hand in YouTube Studio.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>No thumbnail</span>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRepost(clip); }}
                           disabled={!!reposting}
