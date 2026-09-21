@@ -40,7 +40,7 @@ Identify which commits belong to THIS session (usually everything since the prev
 Keep it lean — commits and CHANGELOG.md already record what was built; don't restate it. Sections:
 - **Current State** — one or two sentences on the app's condition and where the work stands
 - **Key Decisions** — only if any were made: one line each, with the why
-- **Next Steps** — prioritized list for next session
+- **Next Steps** — prioritized list for next session. Write a question for Fega the way you'd ask it in chat: plain words, whether a user can see or feel it, what a yes changes, and your recommendation. The next session relays these lines to him (s270). Something with no user-visible effect is a plan line, not a question.
 - **Watch Out For** — gotchas, fragile areas, known issues
 - **Logs/Debugging** — any relevant error patterns or debug findings
 
