@@ -306,17 +306,23 @@ function charCountColor(len, max) {
 
 const fmtThumbTime = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
 
-// #450: pick the frame of the RENDERED clip that becomes the YouTube thumbnail.
-// Only the moment is stored (clip.youtubeThumbnailTime); the frame itself is cut
-// from the uploaded file at publish time (youtube-publish.js), so a re-render can
-// never leave a stale picture behind. Unset = the first frame.
+// #454: the picture on the open Queue card IS the thumbnail picker. It replaced #450's
+// section at the bottom of the YouTube card, whose own preview disagreed with this
+// picture. Dragging the slider under it shows frames of the rendered clip live; letting
+// go saves that moment, and main cuts it into the clip's picture (clip.thumbnailPath) —
+// the one every screen shows, and the cover on YouTube, TikTok and Instagram (#455).
 //
-// The preview is a <video> with a canvas underneath it. Chromium keeps a scrubbed
-// file open, and an open render cannot be renamed (the title edit in this same
-// card, #188) or deleted — so the video only holds the file while a frame is being
-// fetched. Every frame it presents is copied to the canvas, and once the slider has
-// settled the video lets the file go and the canvas keeps showing the picture.
-function YoutubeThumbnailPicker({ clip, saved, onSave }) {
+// The live frames come from a <video> over a canvas over the picture. Chromium keeps a
+// scrubbed file open, and an open render cannot be renamed (the title edit on this card,
+// #188) or deleted — so the video only holds the file while frames are being fetched.
+// Every frame it presents is copied to the canvas; once the slider has settled the video
+// lets the file go, and the canvas holds that frame until the newly cut picture loads.
+const PICK_W = 120;
+const PICK_H = Math.round((PICK_W * 16) / 9);
+const COVER_NAMES = { youtube: "YouTube", tiktok: "TikTok", instagram: "Instagram" };
+const joinNames = (n) => (n.length < 2 ? n.join("") : `${n.slice(0, -1).join(", ")} and ${n[n.length - 1]}`);
+
+function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const loaded = useRef(false); // the <video> currently has the file
@@ -324,18 +330,37 @@ function YoutubeThumbnailPicker({ clip, saved, onSave }) {
   const shownTime = useRef(-1); // media time of the last frame copied to the canvas
   const settled = useRef(true); // nobody is dragging: release as soon as the frame is in
   const releaseTimer = useRef(null);
+  const keyTimer = useRef(null);
   const frameCallback = useRef(0);
-  const [max, setMax] = useState(0);
+  const saves = useRef({ running: false, next: null }); // one save in flight, the latest waiting
+  const pictureLoaded = useRef(""); // src of the picture that has finished loading
   const [time, setTime] = useState(clip.youtubeThumbnailTime || 0);
+  const [videoMax, setVideoMax] = useState(0);
+  const [showCanvas, setShowCanvas] = useState(false);
   const [broken, setBroken] = useState(false);
-  // The query is the render's version (see the caller's key): the file name can
-  // survive a re-render, and the old bytes must not.
+  const [error, setError] = useState(null);
+  // Async code and timers read the latest props through these.
+  const clipRef = useRef(clip);
+  clipRef.current = clip;
+  const pictureUrl = clip.thumbnailPath ? toFileUrl(clip.thumbnailPath) : "";
+  const pictureUrlRef = useRef(pictureUrl);
+  pictureUrlRef.current = pictureUrl;
+  // The query is the render's version: a re-render can keep the file name, and the old
+  // bytes must not be served. The picture is renamed on every render (#446) and every
+  // pick, so a pick only costs a fresh load.
   const url = clip.renderPath ? `${toFileUrl(clip.renderPath)}?v=${encodeURIComponent(clip.thumbnailPath || "")}` : "";
+  // The file's own length once the video has loaded; until then the clip's edited length.
+  const max = videoMax || Math.max(0, getClipLength(clip) - 0.1);
+
+  const busy = () => saves.current.running || saves.current.next !== null;
+  // The canvas stands in while frames are fetched and saved. It goes once the video has
+  // let go of the file and the picture shows the saved frame.
+  const maybeHideCanvas = () => {
+    if (!loaded.current && !busy() && pictureLoaded.current === pictureUrlRef.current) setShowCanvas(false);
+  };
 
   // Media elements MUST be unloaded or Chromium crashes — and here, keeps the file locked.
-  const release = (v = videoRef.current) => {
-    clearTimeout(releaseTimer.current);
-    if (!v || !loaded.current) return;
+  const unload = (v) => {
     loaded.current = false;
     // load() does not drop a pending frame callback — left alone it would fire on
     // the next acquire alongside the new one, and the chain would double each time.
@@ -343,6 +368,13 @@ function YoutubeThumbnailPicker({ clip, saved, onSave }) {
     v.pause();
     v.removeAttribute("src");
     v.load();
+  };
+  const release = () => {
+    clearTimeout(releaseTimer.current);
+    const v = videoRef.current;
+    if (!v || !loaded.current) return;
+    unload(v);
+    maybeHideCanvas();
   };
 
   const releaseIfSettled = () => {
@@ -356,7 +388,13 @@ function YoutubeThumbnailPicker({ clip, saved, onSave }) {
     const v = videoRef.current;
     const c = canvasRef.current;
     if (!v || !c || !loaded.current) return;
-    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+    // Cover, like the picture under it: an imported clip need not be 9:16.
+    const vw = v.videoWidth;
+    const vh = v.videoHeight;
+    if (vw && vh) {
+      const s = Math.max(c.width / vw, c.height / vh);
+      c.getContext("2d").drawImage(v, (c.width - vw * s) / 2, (c.height - vh * s) / 2, vw * s, vh * s);
+    }
     shownTime.current = meta.mediaTime;
     releaseIfSettled();
     if (loaded.current) frameCallback.current = v.requestVideoFrameCallback(onFrame);
@@ -367,20 +405,64 @@ function YoutubeThumbnailPicker({ clip, saved, onSave }) {
     if (!v || loaded.current || !url) return;
     loaded.current = true;
     shownTime.current = -1;
+    const c = canvasRef.current;
+    if (c) {
+      const dpr = window.devicePixelRatio || 1;
+      c.width = Math.round(PICK_W * dpr);
+      c.height = Math.round(PICK_H * dpr);
+    }
+    setShowCanvas(true);
     v.src = url;
     frameCallback.current = v.requestVideoFrameCallback(onFrame);
   };
 
-  // Show the saved frame when the card opens; let the file go when it closes.
-  // The node is captured because React has cleared the ref by cleanup time.
+  // Let the file go when the card closes. The node is captured because React has
+  // cleared the ref by cleanup time (#451).
   useEffect(() => {
     const v = videoRef.current;
-    acquire();
-    return () => release(v);
+    return () => {
+      clearTimeout(releaseTimer.current);
+      clearTimeout(keyTimer.current);
+      if (v && loaded.current) unload(v);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A new render or a new pick: the next load reads the file's own length again.
+  useEffect(() => { setVideoMax(0); setBroken(false); }, [url]);
+
+  // Follow a pick saved somewhere else (a re-render moves one that no longer fits).
+  useEffect(() => {
+    if (!settled.current || busy()) return;
+    const t = clip.youtubeThumbnailTime || 0;
+    wantTime.current = t;
+    setTime(t);
+  }, [clip.youtubeThumbnailTime]);
+
+  // Saves run one at a time and the latest moment wins: a drag saves on release and the
+  // arrow keys on every settle, and main cuts each one from the render.
+  const requestSave = async (t) => {
+    const q = saves.current;
+    q.next = t;
+    if (q.running) return;
+    q.running = true;
+    while (q.next !== null) {
+      const next = q.next;
+      q.next = null;
+      const res = await onSave(next);
+      if (res?.error && q.next === null) {
+        setError(res.error);
+        const back = clipRef.current.youtubeThumbnailTime || 0;
+        wantTime.current = back;
+        setTime(back);
+      }
+    }
+    q.running = false;
+    maybeHideCanvas();
+  };
+
   const seek = (t) => {
+    setError(null);
     wantTime.current = t;
     setTime(t);
     settled.current = false;
@@ -391,77 +473,115 @@ function YoutubeThumbnailPicker({ clip, saved, onSave }) {
   };
   // Saved when the slider is let go, not on every tick of the drag.
   const commit = (t) => {
+    clearTimeout(keyTimer.current);
     settled.current = true;
     releaseIfSettled();
     // A window that is not being painted presents no frame — never hold the file for it.
     clearTimeout(releaseTimer.current);
     releaseTimer.current = setTimeout(() => release(), 2500);
-    if (t !== (clip.youtubeThumbnailTime || 0)) onSave(t);
+    if (t === (clipRef.current.youtubeThumbnailTime || 0) && !busy()) {
+      maybeHideCanvas();
+      return;
+    }
+    requestSave(t);
   };
 
   const hasVideo = !!url && !broken;
+  const coverNames = coverOn.map((k) => COVER_NAMES[k]);
+  const coverHint = [
+    coverNames.length ? `The cover on ${joinNames(coverNames)}, and the picture Corva shows for this clip.` : "The picture Corva shows for this clip.",
+    facebookOn ? "Facebook picks its own cover." : "",
+  ].filter(Boolean).join(" ");
   return (
-    <div onClick={(e) => e.stopPropagation()} style={{ padding: "10px 12px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <div style={FIELD_LABEL}>Thumbnail</div>
-        {saved && (
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
-            Saved
-          </span>
+    <div onClick={(e) => e.stopPropagation()}>
+      <div title={hasVideo ? coverHint : undefined} style={{ position: "relative", width: PICK_W, height: PICK_H, borderRadius: 10, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {pictureUrl ? (
+          <img
+            src={pictureUrl}
+            alt=""
+            onLoad={(e) => { pictureLoaded.current = e.currentTarget.getAttribute("src"); maybeHideCanvas(); }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <span style={{ color: T.textMuted, fontSize: 32 }}>{"🎬"}</span>
         )}
-        <div style={{ flex: 1 }} />
-        {hasVideo && <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textTertiary }}>{time > 0 ? fmtThumbTime(time) : "First frame"}</span>}
+        <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: showCanvas ? "block" : "none" }} />
+        {/* No src in JSX: acquire()/release() own it. Unloaded, it paints nothing and what is under it shows through. */}
+        {hasVideo && (
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            preload="auto"
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              // A re-trimmed render can be shorter than it was when the frame was picked.
+              const end = Math.max(0, (v.duration || 0) - 0.1);
+              const t = Math.min(wantTime.current, end);
+              wantTime.current = t;
+              setVideoMax(end);
+              setTime(t);
+              if (t > 0) v.currentTime = t;
+            }}
+            // The last frame of a drag is often presented while the seek is still
+            // settling, and no frame follows it — so check again once it has.
+            onSeeked={() => releaseIfSettled()}
+            onError={() => { if (loaded.current) { release(); setBroken(true); } }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover" }}
+          />
+        )}
       </div>
       {hasVideo ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ position: "relative", width: 72, height: 128, flexShrink: 0, borderRadius: 6, overflow: "hidden", background: "#000", border: `1px solid ${T.border}` }}>
-            <canvas ref={canvasRef} width={216} height={384} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />
-            {/* No src in JSX: acquire()/release() own it. Unloaded, it paints nothing and the canvas shows through. */}
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              preload="auto"
-              onLoadedMetadata={(e) => {
-                const v = e.currentTarget;
-                // A re-trimmed render can be shorter than it was when the frame was picked.
-                const end = Math.max(0, (v.duration || 0) - 0.1);
-                const t = Math.min(wantTime.current, end);
-                wantTime.current = t;
-                setMax(end);
-                setTime(t);
-                if (t > 0) v.currentTime = t;
-              }}
-              onError={() => { if (loaded.current) { release(); setBroken(true); } }}
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover" }}
-            />
+        <>
+          <input
+            type="range"
+            min={0}
+            max={max}
+            step={0.05}
+            value={Math.min(time, max)}
+            disabled={!max || disabled}
+            aria-label="Thumbnail frame"
+            title={disabled ? "Posting now. The frame can change once it's done." : coverHint}
+            onChange={(e) => seek(parseFloat(e.target.value))}
+            onPointerUp={(e) => commit(parseFloat(e.currentTarget.value))}
+            onKeyUp={(e) => {
+              // Arrow keys save once the presses settle, not on every press.
+              const t = parseFloat(e.currentTarget.value);
+              clearTimeout(keyTimer.current);
+              keyTimer.current = setTimeout(() => commit(t), 350);
+            }}
+            onBlur={(e) => commit(parseFloat(e.currentTarget.value))}
+            style={{ display: "block", width: "100%", margin: "10px 0 0", accentColor: T.accent, height: 3, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, minHeight: 20 }}>
+            {saved ? (
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                Saved
+              </span>
+            ) : (
+              <span style={{ fontSize: 10.5, color: T.textTertiary, fontVariantNumeric: "tabular-nums" }}>{time > 0 ? fmtThumbTime(time) : "First frame"}</span>
+            )}
+            <div style={{ flex: 1 }} />
+            {time > 0 && !disabled && (
+              <button onClick={() => { seek(0); commit(0); }} title="Use the first frame" style={{ padding: "2px 7px", borderRadius: 5, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset</button>
+            )}
           </div>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-            <input
-              type="range"
-              min={0}
-              max={max}
-              step={0.05}
-              value={time}
-              disabled={!max}
-              onChange={(e) => seek(parseFloat(e.target.value))}
-              onPointerUp={(e) => commit(parseFloat(e.currentTarget.value))}
-              onKeyUp={(e) => commit(parseFloat(e.currentTarget.value))}
-              onBlur={(e) => commit(parseFloat(e.currentTarget.value))}
-              style={{ width: "100%", accentColor: T.accent, height: 3, cursor: "pointer" }}
-            />
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ flex: 1, fontSize: 11, color: T.textTertiary, lineHeight: 1.4 }}>The frame YouTube shows on your channel, in search and on the homepage.</span>
-              {time > 0 && (
-                <button onClick={() => { seek(0); commit(0); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, flexShrink: 0 }}>Reset to first frame</button>
-              )}
-            </div>
+          {error && <div style={{ marginTop: 6, fontSize: 10.5, color: T.red, lineHeight: 1.35 }}>{error}</div>}
+          <div title={coverHint} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+            {coverOn.length > 0 ? (
+              <>
+                <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.textTertiary, marginRight: 2 }}>Cover on</span>
+                {coverOn.map((k) => <PlatformIcon key={k} platform={k} size={13} />)}
+              </>
+            ) : facebookOn ? (
+              <span style={{ fontSize: 10.5, color: T.textTertiary, lineHeight: 1.4 }}>Facebook picks its own cover.</span>
+            ) : null}
           </div>
-        </div>
+        </>
       ) : (
-        <div style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>
-          {clip.renderPath ? "The rendered video is missing. Render the clip again to pick its thumbnail." : "Render the clip first, then pick its thumbnail here."}
+        <div style={{ marginTop: 8, fontSize: 10.5, color: T.textMuted, fontStyle: "italic", lineHeight: 1.4 }}>
+          {clip.renderPath ? "The rendered video is missing. Render the clip again to pick its frame." : "Render the clip to pick its frame."}
         </div>
       )}
     </div>
@@ -1215,20 +1335,52 @@ export default function QueueView({
     } catch (e) { console.error("YouTube privacy save failed:", e); }
   };
 
-  // #450: the moment of the rendered clip whose frame becomes the YouTube thumbnail
-  const saveYoutubeThumbnailTime = async (clip, value) => {
-    if (!clip._projectId) return;
-    const time = value > 0 ? value : null; // null = the first frame
+  // #454: the frame picked on the card's picture. Main cuts it into the clip's picture
+  // and saves both; the returned fields go straight into state, so the row, the Tracker,
+  // Projects and Analytics all follow. Resolves to what main returned ({ error } on a refusal).
+  const saveThumbnailPick = async (clip, value) => {
+    if (!clip._projectId) return { error: "This clip has no project." };
     try {
-      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubeThumbnailTime: time });
-      if (!r?.error) {
-        updateClipInState(clip._projectId, clip.id, { youtubeThumbnailTime: time });
-        setCaptionSavedFlash(`${clip.id}:youtube-thumb`);
-        clearTimeout(captionFlashTimer.current);
-        captionFlashTimer.current = setTimeout(() => setCaptionSavedFlash(null), 1600);
-      }
-    } catch (e) { console.error("YouTube thumbnail save failed:", e); }
+      const r = await window.clipflow?.clipSetThumbnailTime(clip._projectId, clip.id, value > 0 ? value : 0);
+      if (!r || r.error) return r || { error: "The frame could not be saved." };
+      updateClipInState(clip._projectId, clip.id, { youtubeThumbnailTime: r.youtubeThumbnailTime, thumbnailPath: r.thumbnailPath });
+      setCaptionSavedFlash(`${clip.id}:thumb`);
+      clearTimeout(captionFlashTimer.current);
+      captionFlashTimer.current = setTimeout(() => setCaptionSavedFlash(null), 1600);
+      return r;
+    } catch (e) {
+      console.error("Thumbnail pick save failed:", e);
+      return { error: "The frame could not be saved." };
+    }
   };
+
+  // #455: the platforms that take the picked frame as their cover. TikTok only on direct
+  // posts (drafts have no cover), Instagram only through Facebook Login (the cover field
+  // is undocumented for Instagram Login, so main never sends it there). Same rules as
+  // publishTikTok / publishInstagram in main.
+  const coverPlatformsFor = (clip) => {
+    const on = getEnabledPlatforms(clip);
+    const out = [];
+    if (on.includes("youtube")) out.push("youtube");
+    if (on.includes("tiktok") && (platformOptions?.tiktokPostMode || "direct_post") === "direct_post") out.push("tiktok");
+    if (on.includes("instagram") && activePlat.some((p) => accountToPlatformKey(p) === "instagram" && !p.igBusinessLogin)) out.push("instagram");
+    return out;
+  };
+
+  // The picker in the left column of both open-card layouts (Unscheduled, Scheduled).
+  const renderThumbnailPicker = (clip, isPublishing) => (
+    <ThumbnailPicker
+      // Keyed by clip only: a pick renames the picture, and remounting on it would
+      // drop the drag state mid-save.
+      key={clip.id}
+      clip={clip}
+      coverOn={coverPlatformsFor(clip)}
+      facebookOn={getEnabledPlatforms(clip).includes("facebook")}
+      disabled={isPublishing}
+      saved={captionSavedFlash === `${clip.id}:thumb`}
+      onSave={(t) => saveThumbnailPick(clip, t)}
+    />
+  );
 
   // #291: the game's tag list for a clip, ignoring any per-clip override — the
   // value "Reset to game tags" goes back to, and what a save is compared against.
@@ -1628,20 +1780,6 @@ export default function QueueView({
                   </div>
                 );
               })()}
-
-              {/* #450: YouTube thumbnail — last in the card. Title, description and
-                  tags read as one run; a video preview between them split it. */}
-              {isYt && (
-                <YoutubeThumbnailPicker
-                  // The Queue stays mounted while the editor re-renders a clip, often
-                  // to the same file name. The render thumbnail is renamed on every
-                  // render (#446), so it versions the picker along with the path.
-                  key={`${clip.id}|${clip.renderPath || ""}|${clip.thumbnailPath || ""}`}
-                  clip={clip}
-                  saved={captionSavedFlash === `${clip.id}:youtube-thumb`}
-                  onSave={(t) => saveYoutubeThumbnailTime(clip, t)}
-                />
-              )}
 
               {/* TikTok: per-clip options panel (Content Posting API audit) */}
               {pk === "tiktok" && (() => {
@@ -2877,15 +3015,9 @@ export default function QueueView({
                   {isSel && (
                     <div style={{ padding: "20px 24px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
                       <div style={{ display: "flex", gap: 24 }}>
-                        {/* Large thumbnail */}
+                        {/* Large thumbnail \u2014 also the thumbnail picker (#454) */}
                         <div style={{ width: 120, flexShrink: 0 }}>
-                          <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            {clip.thumbnailPath ? (
-                              <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            ) : (
-                              <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>
-                            )}
-                          </div>
+                          {renderThumbnailPicker(clip, isPublishing)}
                         </div>
                         {/* Detail content */}
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -3167,9 +3299,7 @@ export default function QueueView({
                 <div style={{ padding: "20px 24px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
                   <div style={{ display: "flex", gap: 24 }}>
                     <div style={{ width: 120, flexShrink: 0 }}>
-                      <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>}
-                      </div>
+                      {renderThumbnailPicker(clip, isPublishing)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{clip.title}</div>
