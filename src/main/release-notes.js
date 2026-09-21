@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.11",
+    date: "2026-09-20",
     added: [
       "Pick the thumbnail for your YouTube Shorts. Open a rendered clip in the Queue and scroll to the bottom of its YouTube card: under Tags there is a new Thumbnail slider with a small preview of your clip. Drag it to the frame you want and let go, and it is saved. Leave it alone and the thumbnail is the first frame of your video. \"Reset to first frame\" takes you back to that.",
       "Right after a clip uploads to YouTube, Corva sets the frame you picked as its thumbnail, captions and subtitles included. It happens for scheduled posts, Post now and Retry, and you do not need to reconnect your YouTube account. The thumbnail shows on your channel page, in search and on the homepage. YouTube opened custom thumbnails for Shorts in July 2026, starting with channels in its Partner Program.",

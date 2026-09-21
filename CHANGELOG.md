@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-20 (session 270) — 0.5.0-alpha.11 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.11 and an installer cut to the update feed, at Fega's request.** It promotes the YouTube thumbnail picker (#450): a Thumbnail slider at the bottom of the Queue's YouTube card, the picked frame set as the video's thumbnail right after upload, and a yellow "No thumbnail" tag when YouTube refuses one without failing the post. It is the only change since alpha.10. The What's New entry written in session 269 was stamped with this version.
+
 ## [Unreleased] — 2026-09-20 (session 269) — Pick the YouTube thumbnail for a clip with a slider
 
 ### Added
