@@ -1,41 +1,74 @@
-# HANDOFF — Session 270 (2026-09-21)
+# HANDOFF — Session 271 (2026-09-21)
 
 ## Current State
 
-**alpha.11 is on the update feed** and carries the YouTube thumbnail picker (#450). Work done after the cut is committed but not yet in an installer (`06c2bb3`): the #451 video-preview fix, the "Auto thumbnail" tag rename, and Queue clearing the old 720p tag. Its What's New lines wait under `unreleased`. #450 and #451 are open with `status: untested`, as are alpha.9's #446–#448.
+Four features are built and verified on a dev copy but not yet in an installer:
+- one thumbnail picker, on the Queue card's picture (#454);
+- the picked frame as the TikTok and Instagram cover (#455);
+- the whole frame in the Tracker popup (#456);
+- Projects previews drawn in the clip's layout (#457).
+
+With session 270's `06c2bb3` (#451, "Auto thumbnail", the 720p clear), that's the next installer's batch. Its What's New lines are all under `unreleased`. #454–#457 are open with `status: untested`, as are #450, #451 and #446–#448. The installed app is still alpha.11.
 
 ## Key Decisions
 
-- **#452: for a channel that can't use custom Shorts thumbnails, hide the slider and show one plain line** (Fega). Building it waits on a test with a non-Partner channel. That test decides how Corva finds out: a 403 to remember, or a silent 200 that needs a read-back.
-- **The tag is "Auto thumbnail", not "No thumbnail"** (Fega's wording). A refused pick means the video shows YouTube's automatic thumbnail. The hover no longer promises YouTube Studio.
-- **Pressing Queue in the editor wipes `downscaledPosts` too.** Those notes belong to one upload, and a re-queued clip posts as new uploads. Fega agreed after the explanation.
-- **Code comments and other internal-only fixes are not Fega's decisions.** State the plan and fold them into the next change.
+- **One picker, on the Queue card's picture (Fega).** The pick is the clip's picture everywhere (Queue row, Tracker, Projects, Analytics) and the cover on YouTube, TikTok and Instagram. Renders cut the picture at the pick.
+- **Calls made in the approved plan:**
+  - A Facebook-only clip keeps the slider, because it still sets Corva's picture.
+  - A duplicated clip starts with no pick; a repost keeps its pick.
+  - TikTok drafts mode sends no cover, because drafts have no cover field.
+- **#452 changed: keep the slider for non-Partner channels, and drop only YouTube from "Cover on".** The slider no longer serves only YouTube. This is noted on the issue.
+- **Instagram gets the cover only through Facebook Login.** `thumb_offset` is documented for graph.facebook.com and not for Instagram Login, where an unknown field could fail the whole post. Fega's account is Facebook Login.
+- **Projects posters are drawn from a still that main scales to 1280px (`clip:posterStill`).** Drawn from full-size stills, the page held ~700 MB after three passes over 24 cards. Scaled, it holds ~230 MB, below the old plain pictures (~250 MB).
 
 ## Next Steps
 
-1. **Fega installs alpha.11** (relaunch, then Install on the banner). Then he opens a rendered clip in the Queue, drags the Thumbnail slider at the bottom of its YouTube card, posts it, and checks that the channel's Shorts tab shows that frame. Close #450 when he confirms.
-2. **The next installer carries `06c2bb3`.** Batch it with more work (~10 changes) unless Fega asks sooner.
-3. **#452 test, when Fega is ready (about 10 minutes for him).** He makes a second YouTube channel on his Google account (a new channel isn't in the Partner Program), verifies it with his phone, and connects it in a dev copy I open for him. I rerun the s269 probe (`yt-thumb-probe`) against it, then build the hide-slider behaviour. He deletes one private test video afterwards.
-4. **#453 before launch** (launch-ops): every customer shares YouTube's 100 uploads a day. It needs the compliance audit and a plain "daily limit reached" message.
-5. Carried over from s268/s269, as pointers for me. **Rewrite each one in plain words before asking Fega:** alpha.9 results (#446, #447, #448); Media tab newest-first?; the alpha.8 Layout drawer items (#442, #443, #444); #438's first real end-to-end; #445, #439, #440; the alpha.7 items still untested (#433–#437); #425, #419, #418, #416, #265; #176 is probably settled by #267 + #449.
+1. **Cut the installer (alpha.12).** Fega asked for this next session. Use the `clipflow-update-launcher` skill. The batch is `06c2bb3` plus `940754c..e2940ba`.
+2. **Fega's checks after installing.** Rewrite these in plain words when asking:
+   - drag the slider under a Queue clip's picture: the row picture and the Tracker popup show that frame;
+   - press play on a Projects clip: it looks like the editor;
+   - on the next real post of a picked clip, the TikTok and Instagram covers show the picked frame.
+
+   Close #454, #456 and #457 once he confirms. Close #455 once a real post shows both covers.
+3. **Fable review of this batch.** Commits `940754c`, `a511f1b`, `632e3bd`, `7333423`, `64367fc`, `3e3b2c6`, `2660b6e` and `e2940ba`, per the model/effort split.
+4. **Question for Fega, asked the way it would be asked in chat:**
+
+   > "Your two clips from yesterday (The WORST HIDING SPOT EVER and BRO STOOD NO CHANCE!) posted with your picked frame on YouTube. Inside Corva, the Tracker and Queue still show their first frame. Want me to re-cut their pictures once? It only changes what Corva shows you, and it needs Corva closed for a minute. I'd say yes, it's quick."
+
+   Both picks are in `proj_1788433070416_i2dcg8`.
+5. **#452 test, when Fega is ready.** Carried over, with the new target: drop YouTube from "Cover on" rather than hide the slider.
+6. **#453 before launch** (launch-ops).
+7. **Carried-over pointers from s268–s270.** Rewrite each in plain words before asking:
+   - #446, #447, #448;
+   - Media tab newest-first?;
+   - #442, #443, #444;
+   - #438's first real end-to-end;
+   - #445, #439, #440;
+   - #433 through #437;
+   - #425, #419, #418, #416, #265;
+   - #176 is probably settled.
 
 ## Watch Out For
 
-- **The installed alpha.11 still says "No thumbnail".** The rename ships with the next installer. alpha.11's What's New text in source now says "Auto thumbnail" too: What's New shows every release a user hasn't seen, so anyone who skips alpha.11 reads the current name.
-- **Only Fega's channel is proven** for custom Shorts thumbnails (#452). The Data API can't tell whether a channel is eligible, and Google's policies forbid guessing a channel's monetization status.
-- **The dev copy points at real folders:** `watchFolder` (the Rename tab lists real pending files, so never click Rename there), `outputFolder`, and `testWatchFolder` (testMode projects render there). Repoint all three before any test that renders (memory gotcha 82).
-- **Post now and Retry have never been clicked for real with a thumbnail pick** (carried from s269). The first real Post now is the first true end-to-end.
-- **The picker is keyed on `clip.id | renderPath | thumbnailPath`** (carried from s269). If thumbnail naming changes, the preview can show the old render's frames.
-- Stop a source-run dev app with the scratchpad `kill-dev.ps1` (PID filter on `Desktop\ClipFlow`). `taskkill //IM electron.exe` also kills DaVinci Resolve's Epidemic plugin, and `Corva.exe` is the installed app.
+- **The installed alpha.11 still has the old picker** at the bottom of the YouTube card and the "No thumbnail" wording. Everything in this handoff reaches Fega only with the next installer.
+- **The Cover-on row depends on the `igBusinessLogin` flag** that `token-store.getAccountsForUI` now returns. Any new place that shows covers uses the same rule (`isIgBusinessLogin`).
+- **`clip:posterStill` only reads images under `libraryRoot()`.** A legacy still stored elsewhere falls back to the plain picture, which is the old look.
+- **Never draw full-size recording stills into a canvas in the page.** See memory `project_canvas_fullsize_still_memory`.
+- **The editor compositor has run-to-run noise at feathered edges** (up to ~360 px, max 15/255). A pixel A/B needs a same-build baseline.
+- **The first pick on a reposted clip leaves one orphan picture file** (`… repost.jpg` isn't treated as ours). This was accepted.
+- **The dev copy points at real folders.** Before any test, repoint `projectsRoot`, `watchFolder`, `outputFolder` and `testWatchFolder`. The s271 `fx271/setup.js` repoints all four.
+- **The changelog hook blocks any git commit command containing "wrap".** Reword; don't bypass.
+- Stop a source-run dev app with `kill-dev.ps1` (PID filter on `Desktop\ClipFlow`), never by image name.
 
 ## Logs / Debugging
 
-- **s270 harness** (scratchpad `fx451/`):
-  - `setup.js`, `reseed.js` and `restore.js`. Restore puts the dev profile back byte for byte, and the backups are renamed `*.backup-s270-fx451.restored-<ts>.json`.
-  - `drv.js <9222|9229> <expr|@file> [shot.png]`.
-  - `patch-load.js`: wraps `HTMLMediaElement.prototype.load` and logs `__probe`-tagged elements.
-  - `main-dialog.js`: fakes the file dialog in main, so Settings → Tools & Keys → "🎧 Recalibrate…" opens on a two-track fixture.
-  - The `t-*.js` drivers and `kill-dev.ps1`.
-- Launch for CDP plus main-process patching: `CLIPFLOW_PROFILE=dev npx electron --inspect=9229 --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion --disable-renderer-backgrounding --disable-background-timer-throttling .` In main, `process.mainModule` is electron, so require by absolute path.
-- Every YouTube success entry in `clipflow-publish-log.json` carries `thumbnail: { status, time, error }`. App log, scope `youtube`: "Thumbnail set" or "Thumbnail not set".
-- A blocked file rename logs `[projects] Could not rename <file>: EBUSY`. The rename swallows the error on purpose, so that line is the only trace.
+- **s271 harness** (scratchpad `9d76305b-…/scratchpad/fx271/`):
+  - `setup.js` / `restore.js` back up and repoint all four dev folders. `--accounts` seeds five token-less accounts, including an Instagram Login one.
+  - `reseed.js` seeds three fixture projects: an RGB-thirds render, a 2560×2880 layout project using Fega's Reaction and Cam Zm layouts, and a 24-clip load project.
+  - `cdp.js`: eval, shot, click, drag, down/moveheld/up (hold mid-gesture), key, gc. `drv.js 9229` evaluates in main.
+  - `main-spy.js` swaps the TikTok and Instagram upload calls for recorders.
+  - `ab.sh` is the editor-compositor A/B; `mem-run.sh` is the three-pass memory run via `app.getAppMetrics()`.
+  - `pxdiff.js` does exact pixel diffs; `color.js` reports RGB-thirds colours.
+- **App log:** "Clip picture set {clipId, time}" or "Clip picture not set".
+- **Publish log:** TikTok and Instagram success entries carry `cover: {time}`, or `{time: null, reason}` when nothing was sent.
+- A blocked render rename still logs `[projects] Could not rename <file>: EBUSY`. The Queue picker should now let go of the file within ~70 ms of release.
