@@ -1341,7 +1341,8 @@ export default function TrackerView({
       {popover && (
         <div ref={popoverRef} onClick={(e) => e.stopPropagation()} style={{
           position: "fixed", left: popPos ? popPos.left : -9999, top: popPos ? popPos.top : -9999,
-          visibility: popPos ? "visible" : "hidden", width: 248, zIndex: 2000,
+          // #456: the detail popover is wider so the whole 9:16 frame fits beside the details.
+          visibility: popPos ? "visible" : "hidden", width: popover.type === "log" ? 248 : 300, zIndex: 2000,
           background: T.surface, borderRadius: T.radius.lg, padding: 14, border: `1px solid ${T.borderHover}`, boxShadow: "0 20px 60px rgba(var(--shade),calc(0.7 * var(--shadeK)))",
         }}>
           {popover.type === "log" ? (
@@ -1407,54 +1408,60 @@ export default function TrackerView({
                       <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono }}>{DAY_SHORT[wd.findIndex((d) => d.iso === entry.date)] || entry.day} {"·"} {entry.time}</div>
                     </div>
                   </div>
-                  {entry.title && (
-                    <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, margin: "2px 0 10px" }}>{cleanTitle(entry.title)}</div>
-                  )}
-                  {link?.thumbnailPath && (
-                    // Fixed-height box, NOT a bare <img>: the popover measures itself in a
-                    // layout effect to decide whether to flip above the card, and an image
-                    // that only gains height once decoded made it grow off the bottom of
-                    // the window after positioning. The box also doubles as the fallback —
-                    // the clip library is on an external drive, so when it's unplugged the
-                    // frame is simply a tinted block instead of a broken-image glyph.
-                    <div style={{ width: "100%", height: 132, borderRadius: 8, border: `1px solid ${T.border}`, marginBottom: 10, overflow: "hidden", background: rgba(gd.color, 0.16) }}>
-                      <img
-                        src={toFileUrl(link.thumbnailPath)} alt=""
-                        onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                      />
+                  {/* #456: the whole 9:16 frame beside the details. A wide strip cropped to
+                      the middle third of the frame, which was usually the caption band. */}
+                  <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+                    {link?.thumbnailPath && (
+                      // Fixed-size box, NOT a bare <img>: the popover measures itself in a
+                      // layout effect to decide whether to flip above the card, and an image
+                      // that only gains height once decoded made it grow off the bottom of
+                      // the window after positioning. The box also doubles as the fallback —
+                      // the clip library is on an external drive, so when it's unplugged the
+                      // frame is simply a tinted block instead of a broken-image glyph.
+                      <div style={{ width: 90, height: 160, flexShrink: 0, borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden", background: rgba(gd.color, 0.16) }}>
+                        <img
+                          src={toFileUrl(link.thumbnailPath)} alt=""
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                        />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+                      {entry.title && (
+                        <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, marginTop: 2 }}>{cleanTitle(entry.title)}</div>
+                      )}
+                      {entry.platformResults && entry.platformResults.length > 0 ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          {entry.platformResults.map((row, i) => {
+                            const label = PLATFORM_LABELS[row.platform] || row.platform;
+                            return row.url ? (
+                              <span key={i} onClick={() => window.clipflow?.openExternal?.(row.url)} title={`${label} · view post`} style={{
+                                position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+                                width: 30, height: 30, borderRadius: 8, cursor: "pointer",
+                                background: T.accentDim, border: `1px solid ${T.accentBorder}`,
+                              }}>
+                                <PlatformIcon platform={row.platform} size={16} />
+                                <span style={{ position: "absolute", bottom: -3, right: -3, width: 12, height: 12, borderRadius: "50%", background: T.surface, color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
+                              </span>
+                            ) : (
+                              <span key={i} title={label} style={{
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                width: 30, height: 30, borderRadius: 8, opacity: 0.6,
+                                background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`,
+                              }}>
+                                <PlatformIcon platform={row.platform} size={16} />
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : entry.platforms ? (
+                        <div style={{ color: T.textTertiary, fontSize: 11 }}>{entry.platforms}</div>
+                      ) : null}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` : "0 0 5px rgba(var(--lift),0.2)") }} />
+                        <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
+                      </div>
                     </div>
-                  )}
-                  {entry.platformResults && entry.platformResults.length > 0 ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                      {entry.platformResults.map((row, i) => {
-                        const label = PLATFORM_LABELS[row.platform] || row.platform;
-                        return row.url ? (
-                          <span key={i} onClick={() => window.clipflow?.openExternal?.(row.url)} title={`${label} · view post`} style={{
-                            position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
-                            width: 30, height: 30, borderRadius: 8, cursor: "pointer",
-                            background: T.accentDim, border: `1px solid ${T.accentBorder}`,
-                          }}>
-                            <PlatformIcon platform={row.platform} size={16} />
-                            <span style={{ position: "absolute", bottom: -3, right: -3, width: 12, height: 12, borderRadius: "50%", background: T.surface, color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
-                          </span>
-                        ) : (
-                          <span key={i} title={label} style={{
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            width: 30, height: 30, borderRadius: 8, opacity: 0.6,
-                            background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`,
-                          }}>
-                            <PlatformIcon platform={row.platform} size={16} />
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : entry.platforms ? (
-                    <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 10 }}>{entry.platforms}</div>
-                  ) : null}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` : "0 0 5px rgba(var(--lift),0.2)") }} />
-                    <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
                   </div>
                   {(link?.projectId || link?.renderPath) && (
                     <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
