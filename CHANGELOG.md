@@ -4,6 +4,22 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-21 (session 270) — Video previews let go when closed, "Auto thumbnail", Queue clears the 720p tag
+
+### Fixed
+- **Three video previews now let go of their video when they close (#451).** These are the Projects tab clip player, the video cells in the editor's Media tab and the audio track window. Each unloaded its media element in a React unmount cleanup that read the element from its ref inside the cleanup. React 18 has already cleared DOM refs by then, so the unload never ran. The element kept its file open (on Windows an open file can't be renamed or deleted) and Chromium kept the decoder alive. Each one now captures the element when it appears and unloads that element. The capture is keyed on what makes the element mount: the player's video only exists after the first play, and a Media cell's only once its preview path resolves.
+- **Pressing Queue in the editor now also clears an old "720p" tag.** Publishing only ever adds that tag and the #450 thumbnail note, never removes them, so the re-queue wipe is the one place they reset. The wipe already cleared publish failures and the thumbnail note but missed the Instagram "720p" note. A clip whose last post went out as the 720p copy would then show "720p" on its next post, even one sent at full size.
+
+### Changed
+- **The yellow #450 tag now reads "Auto thumbnail" instead of "No thumbnail", at Fega's suggestion.** Every YouTube video has a thumbnail. When the picked frame is refused, YouTube shows its own automatic pick, so the old label described a state that never exists. The hover now says YouTube didn't take the frame you picked, so the video uses YouTube's automatic thumbnail, and gives the reason. It no longer promises "You can set it by hand in YouTube Studio", which is false for channels outside the Partner Program (#452). The alpha.11 What's New line now uses the new name too, so anyone who hasn't read it yet sees the label the app shows.
+- **The quota note at the top of `youtube-publish.js` now describes the June 2026 upload bucket:** 100 uploads a day for the whole Google project, shared by every user. It still said 100 units per upload out of 10,000, which was only true from December 2025 to June 2026.
+
+Checked on a dev copy of the app pointed at a disposable test library, with projects, render output and the test-render folder all repointed there and no account holding a token. Each of the three previews was opened and closed with `HTMLMediaElement.prototype.load` instrumented, first on the alpha.11 build and then on the fix. Before the fix, none of them called `load()` on close, even though the Projects player had been playing and the Media cell and both calibration elements had fully loaded. After it, each one unloaded its detached element with the source removed. Pressing Queue in the editor on a clip seeded with a post, a thumbnail note and a 720p note cleared all three on disk, and the render landed in the test library. Both "Auto thumbnail" tags (Posted panel and Published shelf) show the new label and hover, and the shelf row still fits at 1280×860. Jest: 556/556.
+
+Filed and researched, with no code:
+- **#453:** since 2026-06-01, YouTube's 100-uploads-a-day allowance belongs to the Google project, so every Corva customer would share it. Raising it needs YouTube's compliance audit. Launch item.
+- **#452:** web research found nothing published on what the API returns for a channel outside the Partner Program, and the API can't say whether a channel is eligible. Fega chose the behaviour: when a channel can't use custom Shorts thumbnails, hide the slider and show one line saying why. Building it waits on a test with a non-Partner channel, which will show how Corva can find out.
+
 ## [Unreleased] — 2026-09-20 (session 270) — 0.5.0-alpha.11 on the feed
 
 ### Changed

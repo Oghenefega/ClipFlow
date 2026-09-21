@@ -342,9 +342,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
     // Re-queuing produces a fresh render that has never been published, so wipe any
     // saved publish failures from a prior attempt — otherwise the Queue card redraws
     // stale "Failed" markers from a previous session on the brand-new clip. The
-    // same goes for the #450 "YouTube didn't take the thumbnail" note.
+    // same goes for the #450 "Auto thumbnail" note and the #189 "720p" note:
+    // publishing only ever adds them, so an old one would sit on a new post.
     await window.clipflow?.projectUpdateClip(project.id, clip.id, {
-      ...(addToQueue ? { status: "approved", publishState: {}, thumbnailFailedPosts: null } : {}),
+      ...(addToQueue ? { status: "approved", publishState: {}, thumbnailFailedPosts: null, downscaledPosts: null } : {}),
       renderStatus: "rendering",
     });
 

@@ -12,12 +12,23 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    changed: [
+      "The yellow tag on a YouTube post whose thumbnail YouTube didn't take now reads \"Auto thumbnail\", because that is what your video shows: YouTube's own automatic pick instead of the frame you chose. Hover the tag to see YouTube's reason.",
+    ],
+    fixed: [
+      "Sending a clip back to the Queue from the editor now clears its old \"720p\" tag, the same way it clears old failures. The tag from its last Instagram post used to stay on the clip and show up on the next post, even when that post went out at full size.",
+      "The clip player on the Projects tab, the video previews in the editor's Media tab and the audio track window now shut their video down when you close them. Before, the video could stay open in the background and keep the file busy.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.11",
     date: "2026-09-20",
     added: [
       "Pick the thumbnail for your YouTube Shorts. Open a rendered clip in the Queue and scroll to the bottom of its YouTube card: under Tags there is a new Thumbnail slider with a small preview of your clip. Drag it to the frame you want and let go, and it is saved. Leave it alone and the thumbnail is the first frame of your video. \"Reset to first frame\" takes you back to that.",
       "Right after a clip uploads to YouTube, Corva sets the frame you picked as its thumbnail, captions and subtitles included. It happens for scheduled posts, Post now and Retry, and you do not need to reconnect your YouTube account. The thumbnail shows on your channel page, in search and on the homepage. YouTube opened custom thumbnails for Shorts in July 2026, starting with channels in its Partner Program.",
-      "If YouTube does not accept the thumbnail, your clip still posts and still counts as sent. A yellow \"No thumbnail\" tag appears next to YouTube on that clip, in its Posted panel and on its row in the Published shelf, and hovering the tag tells you why.",
+      "If YouTube does not accept the thumbnail, your clip still posts and still counts as sent. A yellow \"Auto thumbnail\" tag appears next to YouTube on that clip, in its Posted panel and on its row in the Published shelf, and hovering the tag tells you why.",
     ],
   },
   {

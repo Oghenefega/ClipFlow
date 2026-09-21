@@ -65,10 +65,15 @@ function VideoThumb({ path }) {
       .catch(() => { if (alive) setSrc(toFileUrl(path)); });
     return () => { alive = false; };
   }, [path]);
-  useEffect(() => () => {
+  // The <video> only exists once src resolves (and is swapped out if it fails),
+  // so the element is captured when it appears: React has already cleared ref
+  // by the time an unmount cleanup runs (#451).
+  const hasVideo = !!src && !failed;
+  useEffect(() => {
     const v = ref.current;
-    if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
-  }, []);
+    if (!v) return undefined;
+    return () => { v.pause(); v.removeAttribute("src"); v.load(); };
+  }, [hasVideo]);
   if (!src) return <div className="w-full h-16 bg-secondary/40" />;
   if (failed) {
     return (

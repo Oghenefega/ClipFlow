@@ -6,7 +6,8 @@
  *   2. Upload video binary in chunks (PUT to resumable URI)
  *   3. Return video ID on completion
  *
- * Quota: 100 units per upload (default daily limit: 10,000 units).
+ * Quota: since 2026-06-01 uploads have their own bucket, 100 videos.insert
+ * calls a day for the whole Google project, shared by every user (#453).
  * Chunk size: 256 KB minimum, multiples of 256 KB.
  *
  * #450: after the upload, setThumbnailFromFrame() sends one frame of the same

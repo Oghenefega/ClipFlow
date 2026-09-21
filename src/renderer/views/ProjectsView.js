@@ -386,17 +386,19 @@ function ClipVideoPlayer({ clip, project, template }) {
     return () => cancelAnimationFrame(rafId);
   }, [isPlaying, isSeeking, useNle, nleSegments, playStart, sourceMode, clipStart, clipEnd]);
 
-  // Abort video fetch on unmount — prevents Chromium renderer crash
+  // Abort video fetch on unmount — prevents Chromium renderer crash. The
+  // element is captured when it mounts (first play), because React has
+  // already cleared videoRef by the time an unmount cleanup runs (#451).
+  const hasVideo = showVideo && !!filePath;
   useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return undefined;
     return () => {
-      const vid = videoRef.current;
-      if (vid) {
-        vid.pause();
-        vid.removeAttribute("src");
-        vid.load();
-      }
+      vid.pause();
+      vid.removeAttribute("src");
+      vid.load();
     };
-  }, []);
+  }, [hasVideo]);
 
   const togglePlay = useCallback((e) => {
     // Don't toggle when clicking the seek bar

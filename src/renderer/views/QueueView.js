@@ -2988,7 +2988,7 @@ export default function QueueView({
                                         <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
                                         <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? "Processing…" : st === "done" ? "Sent" : st}</span>
                                         {downscaledTo && <span title={`Instagram couldn't process the full-size render, so Corva sent a ${downscaledTo} copy automatically. Your render is untouched.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>{downscaledTo}</span>}
-                                        {thumbnailFailed && <span title={`The clip posted, but YouTube didn't take the thumbnail you picked (${thumbnailFailed}). You can set it by hand in YouTube Studio.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>No thumbnail</span>}
+                                        {thumbnailFailed && <span title={`YouTube didn't take the frame you picked, so this video uses YouTube's automatic thumbnail. Reason: ${thumbnailFailed}`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Auto thumbnail</span>}
                                       </div>
                                     );
                                   })}
@@ -3303,7 +3303,7 @@ export default function QueueView({
                         {/* #450: a clip that posted everywhere lands here, so this is where
                             "YouTube didn't take the thumbnail you picked" has to be said. */}
                         {Object.keys(clip.thumbnailFailedPosts || {}).length > 0 && (
-                          <span title={`The clip posted, but YouTube didn't take the thumbnail you picked (${Object.values(clip.thumbnailFailedPosts)[0]}). You can set it by hand in YouTube Studio.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>No thumbnail</span>
+                          <span title={`YouTube didn't take the frame you picked, so this video uses YouTube's automatic thumbnail. Reason: ${Object.values(clip.thumbnailFailedPosts)[0]}`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>Auto thumbnail</span>
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRepost(clip); }}

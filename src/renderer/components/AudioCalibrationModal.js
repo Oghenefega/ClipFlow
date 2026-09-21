@@ -123,10 +123,12 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
   }, [cur, stopPlayback]);
 
   // Unmount cleanup — media elements MUST be unloaded or Chromium crashes,
-  // and the temp sample files get cleaned up best-effort.
+  // and the temp sample files get cleaned up best-effort. Both elements are
+  // captured now: React has already cleared the refs by the time an unmount
+  // cleanup runs (#451).
   useEffect(() => {
+    const a = audioRef.current, v = videoRef.current;
     return () => {
-      const a = audioRef.current, v = videoRef.current;
       if (a) { a.pause(); a.removeAttribute("src"); a.load(); }
       if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
