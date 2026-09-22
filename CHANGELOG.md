@@ -14,7 +14,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Projects previews drawn in the clip's layout (#457);
   - the three video previews that now let go of their video when closed, the "Auto thumbnail" tag, and the Queue clearing an old "720p" tag (#451).
 
-  The What's New entry written across those two sessions was stamped with this version.
+  The What's New entry written across those two sessions was stamped with this version. Fega installed it through the in-app update and confirmed that the picked frame shows as the thumbnail on YouTube, TikTok and Instagram, so #450 and #455 are closed.
 
 ## [Unreleased] — 2026-09-21 (session 271) — One thumbnail picker on the Queue picture, TikTok and Instagram covers, whole-frame Tracker popup, Projects previews in your layout
 

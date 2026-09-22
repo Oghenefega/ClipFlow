@@ -79,6 +79,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
      what step 4 exists to catch. Read the tail of the log for `building block map`, not just ✓ built.
    - The `>500 kB chunk` Vite warning is **benign** (desktop app, no code-splitting wanted). Don't "fix" it.
    - The electron-builder "author is missed" / "@electron/rebuild not required" warnings are cosmetic. Ignore.
+   - So are the "signing with signtool.exe" lines. No certificate is configured, and the installer comes out `NotSigned` (`Get-AuthenticodeSignature`, s272). Signing is still deferred (#51).
 4. **Verify the artifacts** — `dist/Corva Setup <version>.exe` (pre-rename builds: `ClipFlow Setup`), its `.blockmap`, and `dist/alpha.yml`
    all with fresh timestamps, and `alpha.yml`'s `version:` line reads the new version.
 5. **Publish the feed** — `powershell -ExecutionPolicy Bypass -File scripts/publish-update.ps1`.
