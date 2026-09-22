@@ -12,6 +12,21 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    added: [
+      "Re-transcribe just one part of a clip. Right-click a section on the timeline and choose \"Re-transcribe this section\", or open the menu on the Re-transcribe button at the top of the editor and pick a section. Only the subtitles in that part are redone. Every other line you fixed, hid, moved or styled stays exactly as it was, and Ctrl+Z undoes it. A part where nobody is talking tells you \"No speech found\" and is left as it was.",
+    ],
+    changed: [
+      "\"Whole clip\" on the Re-transcribe button now redoes every part your clip actually shows, including anything you stretched it into or moved it to, and Ctrl+Z undoes it. Before, it redid only the moment Corva first picked and threw away all your subtitle fixes.",
+      "When you approve a clip and then trim or re-cut it, Corva now learns from the version you kept, words and title, instead of the moment it first picked. Clips you approved before this update are brought up to date the first time you open it.",
+      "The title ideas Corva writes when you approve a clip now come from the words in your cut, not from the moment Corva first picked.",
+    ],
+    fixed: [
+      "Re-transcribing a clip from an older recording no longer fills it with nonsense words. When a recording's audio tracks don't match your current setup, Corva now says it can't tell which track is your mic and leaves your subtitles alone.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.12",
     date: "2026-09-21",
     added: [

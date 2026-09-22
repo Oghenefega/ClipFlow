@@ -152,7 +152,9 @@ function buildPlaystylePrompt({ gameName, currentPlayStyle, approvedClips, publi
     .map((c, i) => {
       const snippet = excerpt(c.transcript_segment);
       const lines = [snippet ? `${i + 1}. "${snippet}"` : `${i + 1}. (no transcript)`];
-      if (c.title) lines.push(`   Clip title: ${c.title}`);
+      // #458: an auto "Clip N" title is a placeholder, not the creator's words
+      // (the detection prompt skips it the same way, ai-prompt.js).
+      if (c.title && !/^Clip \d+$/.test(String(c.title).trim())) lines.push(`   Clip title: ${c.title}`);
       if ((c.user_note || "").trim()) lines.push(`   Creator's note: ${c.user_note.trim()}`);
       return lines.join("\n");
     });

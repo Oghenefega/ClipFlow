@@ -114,6 +114,9 @@ const depsCheck = require("./deps-check");
 const setupRuntime = require("./setup-runtime");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
+const sectionRetranscribe = require("./section-retranscribe");
+const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
+const { visibleSubtitleSegments } = require("../renderer/editor/models/timeMapping");
 const projects = require("./projects");
 const clipPicture = require("./clip-picture");
 const assetLibrary = require("./assets");
@@ -1462,6 +1465,25 @@ app.whenReady().then(async () => {
       }
     } catch (err) {
       logger.error(logger.MODULES.system, `Subtitle pollution repair failed: ${err.message}`);
+    }
+
+    // #458: approvals recorded before their taste rows followed edits still
+    // hold each clip as it looked when approved. Once per database (the guard
+    // is a row in that database); only projects with an approved clip are read.
+    // An unreachable library (drive not mounted yet) waits for the next launch
+    // instead of being marked done with nothing read.
+    try {
+      const root = libraryRoot();
+      const reachable = !!root && fs.existsSync(root);
+      const r = !reachable ? { ran: false } : feedbackDb.repairApprovedRowsOnce(() =>
+        (projects.listProjects(root).projects || [])
+          .filter((p) => (p.clips || []).some((c) => c.status === "approved" || c.status === "ready"))
+          .map((p) => projects.loadProject(root, p.id))
+          .filter(Boolean)
+      );
+      if (r.ran) logger.info(logger.MODULES.system, `#458 approved taste rows refreshed from the clips: ${r.changed}`, { backup: r.backup });
+    } catch (err) {
+      logger.error(logger.MODULES.system, `#458 approved-row repair failed: ${err.message}`);
     }
 
     // #181: one-time repair of legacy flat-folder render collisions. Record
@@ -2904,8 +2926,20 @@ ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
   }
 });
 
-// ============ RE-TRANSCRIBE CLIP (lazy-cut: extract audio from source range) ============
-ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
+// ============ RE-TRANSCRIBE SECTIONS (#459) ============
+// The editor names the stretches of the recording it wants redone — one
+// section, or every section the clip shows ("Whole clip") — and splices the
+// words into its subtitles itself. Nothing here writes the project: the
+// editor's autosave does, so this handler can't race it. Same engine as the
+// pipeline's clip pass: one Python process for every range (transcribeBatch
+// loads the model once) with the word-timing voters (#359). One run at a
+// time — each is a full model load.
+let rangeRetranscribeBusy = false;
+ipcMain.handle("retranscribe:ranges", async (_, projectId, clipId, ranges) => {
+  if (rangeRetranscribeBusy) return { error: "A re-transcribe is already running" };
+  rangeRetranscribeBusy = true;
+  const tmpFiles = [];
+  const t0 = Date.now();
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const project = projects.loadProject(watchFolder, projectId);
@@ -2916,57 +2950,98 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
 
     const sourceFile = project.sourceFile;
     if (!sourceFile || !fs.existsSync(sourceFile)) {
-      return { error: "Source recording not found. Cannot retranscribe clip." };
+      return { error: "Source recording not found. Cannot re-transcribe." };
     }
 
-    const startSec = clip.startTime || 0;
-    const endSec = clip.endTime || 0;
-    if (!(endSec > startSec)) {
-      return { error: `Invalid clip range: ${startSec}-${endSec}` };
+    const wanted = (Array.isArray(ranges) ? ranges : [])
+      .filter((r) => Number.isFinite(r?.start) && Number.isFinite(r?.end) && r.end > r.start);
+    if (wanted.length === 0) return { error: "Nothing to re-transcribe" };
+
+    // A recording made with a different audio layout (an older OBS setup)
+    // doesn't tell us which track is the mic: today's voice track can be game
+    // audio there, and Whisper turns game audio into nonsense ("a cat, but a
+    // cat…", s273). The pipeline asks for calibration in that case (#169); a
+    // re-transcribe can't recalibrate for one old file without breaking the
+    // setting for every new one, so it stops and changes nothing.
+    const setup = store.get("audioSetup");
+    let fileTracks = null;
+    try { fileTracks = (await ffmpeg.probeAudioTracks(sourceFile)).trackCount; } catch (_) { /* like the pipeline: a failed probe never blocks */ }
+    if (setup && fileTracks > 1 && setup.trackCount !== fileTracks) {
+      logger.info(logger.MODULES.subtitles, "Section re-transcribe refused: audio layout differs", { clipId, fileTracks, setupTracks: setup.trackCount });
+      return { error: `This recording has ${fileTracks} audio tracks; your setup describes ${setup.trackCount}`, code: "track-layout" };
     }
 
-    // Step 1: Extract audio range from source (lazy-cut: no clip MP4 to read from)
+    const progress = (stage, pct) => mainWindow?.webContents.send("retranscribe:progress", { stage, pct });
+
+    // Step 1: extract each range, padded, from the source (lazy-cut: no clip MP4)
+    progress("extracting", 10);
     const clipsDir = projects.getClipsDir(watchFolder, projectId);
     if (!fs.existsSync(clipsDir)) fs.mkdirSync(clipsDir, { recursive: true });
     const safeId = String(clip.id).replace(/[^a-zA-Z0-9_-]/g, "_");
-    const wavPath = path.join(clipsDir, `${safeId}-retranscribe.wav`);
-    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "extracting", pct: 10 });
     const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
-    await ffmpeg.extractAudioRange(sourceFile, wavPath, startSec, endSec, audioTrack);
+    const items = [];
+    for (let i = 0; i < wanted.length; i++) {
+      const { start, end } = wanted[i];
+      const { extractStart, extractEnd } = sectionRetranscribe.paddedWindow(start, end, project.sourceDuration);
+      const audio = path.join(clipsDir, `${safeId}-range${i}.wav`);
+      const output = path.join(clipsDir, `${safeId}-range${i}.json`);
+      tmpFiles.push(audio, output);
+      await ffmpeg.extractAudioRange(sourceFile, audio, extractStart, extractEnd, audioTrack);
+      items.push({ start, end, extractStart, extractEnd, audio, output });
+    }
 
-    // Step 2: Transcribe with whisperx
-    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 });
-    const storeOpts = {
+    // Step 2: transcribe, with the vocabulary hints the pipeline gives this
+    // game (ai-pipeline.js) — keyed by the clip's own tag, like its feedback.
+    progress("transcribing", 30);
+    const gamesDb = store.get("gamesDb") || [];
+    const tag = clip.gameTag || project.gameTag;
+    const gameEntry = (Array.isArray(gamesDb) ? gamesDb : Object.values(gamesDb)).find((g) => g.tag === tag);
+    let gameVocab = "";
+    if ((gameEntry?.entryType || "game") === "game" && project.game) {
+      gameVocab = `, ${project.game}`;
+      if (gameEntry?.hashtag) gameVocab += `, ${gameEntry.hashtag}`;
+    }
+    await whisper.transcribeBatch(items.map(({ audio, output }) => ({ audio, output })), {
       pythonPath: store.get("whisperPythonPath") || "",
       model: store.get("whisperModel") || "large-v3-turbo",
       language: "en",
-      batchSize: 16,
       computeType: "float16",
       hfToken: store.get("hfToken") || "",
       hfHome: store.get("hfHome") || appPaths.defaultHfHome(),
-      wordTiming: true, // clip audio — the voters run (#359); proof line goes to app.log (#358)
+      gameVocab,
+      // The Python side's [TIMING] proof line lands in app.log (#358).
       onLog: (line) => logger.info(logger.MODULES.subtitles, `retranscribe ${line}`),
-      onProgress: (pct) => {
-        if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 + Math.floor(pct * 0.6) });
-      },
-    };
-    const transcription = await whisper.transcribe(wavPath, storeOpts);
+      onProgress: (pct) => progress("transcribing", 30 + Math.floor(pct * 0.6)),
+    });
 
-    // Step 3: Clean up temp wav
-    try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }
+    // Step 3: read each range's words back, in source time
+    progress("saving", 95);
+    const results = items.map(({ start, end, extractStart, extractEnd, output }) => {
+      if (!fs.existsSync(output)) return { start, end, error: "transcription output missing" };
+      const transcription = JSON.parse(fs.readFileSync(output, "utf-8"));
+      const words = sectionRetranscribe.wordsForRange(transcription, extractStart, extractEnd, start, end);
+      return { start, end, words, silent: sectionRetranscribe.isSilenceResult(words) };
+    });
 
-    // Step 4: Save clip-level transcription to project
-    // #78: a fresh retranscription is the new source of truth — drop any editor-saved
-    // sub1 (which now wins over clip.transcription on reopen) so the redo isn't defeated
-    // by stale/polluted edits. Clearing _format makes the new transcription authoritative.
-    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "saving", pct: 95 });
-    const updates = { transcription, subtitles: { sub1: [], sub2: [] } };
-    await projects.updateClip(watchFolder, projectId, clipId, updates);
-
-    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "done", pct: 100 });
-    return { success: true, transcription };
+    logger.info(logger.MODULES.subtitles, "Section re-transcribe", {
+      clipId,
+      seconds: Math.round((Date.now() - t0) / 100) / 10,
+      ranges: results.map((r) => ({
+        start: +r.start.toFixed(2),
+        end: +r.end.toFixed(2),
+        words: r.words ? r.words.length : 0,
+        ...(r.silent ? { silent: true } : {}),
+        ...(r.error ? { error: r.error } : {}),
+      })),
+    });
+    progress("done", 100);
+    return { success: true, results };
   } catch (err) {
+    logger.warn(logger.MODULES.subtitles, "Section re-transcribe failed", { clipId, error: err.message });
     return { error: err.message };
+  } finally {
+    for (const f of tmpFiles) { try { fs.unlinkSync(f); } catch (_) { /* never written */ } }
+    rangeRetranscribeBusy = false;
   }
 });
 
@@ -3229,6 +3304,17 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
         } catch (e) {
           console.error("[feedback] retag failed:", e.message);
         }
+      }
+    }
+    // #458: an approved clip's taste row follows its edits — words and title
+    // come from the clip as saved, so an approve-then-re-cut stops teaching
+    // the AI's original cut. Writes only when something actually changed.
+    const touchesTaste = ["subtitles", "title"].some((k) => Object.prototype.hasOwnProperty.call(updates || {}, k));
+    if (touchesTaste && result?.clip && result.projectName) {
+      try {
+        feedbackDb.refreshApproved(result.projectName, result.clip);
+      } catch (e) {
+        console.error("[feedback] approved refresh failed:", e.message);
       }
     }
     return result;
@@ -4561,7 +4647,15 @@ function maybeAutoGenerateOnApprove(project, clip) {
   if (clip.suggestions?.titles?.length) return;
   if (autoTitlegenInFlight.has(clip.id)) return;
 
-  const transcript = (clip.transcription?.segments || []).map((s) => s.text).join(" ").trim();
+  // #458: the words of the clip as it was cut, the same ones the editor's
+  // Generate sends (_collectClipParams: the saved subtitles clipped to the
+  // sections — switched-off lines included, they were still said).
+  // clip.transcription is the AI's original window and never follows an
+  // edit, so an edit-then-Queue clip got cards about the moment it left.
+  const lines = resolveClipSubtitles(clip, project, { includeExtras: false }).segments
+    .map((s) => ({ startSec: s.start, endSec: s.end, text: s.text, words: s.words }));
+  const cut = clip.nleSegments?.length ? visibleSubtitleSegments(lines, clip.nleSegments) : lines;
+  const transcript = cut.map((s) => s.text).join(" ").trim();
   // No transcript and no Gemini means the stills path on the text provider —
   // the dearest way to write blind. Not worth doing unasked.
   if (!transcript && !geminiProvider.isConfigured()) {

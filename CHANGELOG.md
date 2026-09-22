@@ -4,6 +4,70 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-22 (session 273) — Re-transcribe one section; what Corva learns from an approval follows your edits
+
+### Added
+- **Re-transcribe one section of a clip (#459).** Two ways to do it:
+  - right-click a video section on the timeline and choose "Re-transcribe this section";
+  - use the new menu on the top-bar Re-transcribe button, which lists "Whole clip" and each section with its timeline times. A one-section clip runs straight away.
+
+  What it changes:
+  - Only the subtitle lines inside that stretch of the recording are replaced. Every other line stays exactly as it was: fixed words, switched-off lines, moved lines and word styles.
+  - The new words come from the same engine a clip gets when it's first processed: one Python run for all the ranges, with the four-way word-timing vote.
+  - A line that crosses the section's edge keeps its words outside the section, and lines that were ALL CAPS are replaced by ALL CAPS lines.
+  - The whole re-transcribe undoes in one Ctrl+Z.
+  - A stretch with no talking reports "No speech found" and changes nothing, instead of writing Whisper's usual silence word "you".
+  - Footage used twice on the timeline is transcribed once.
+
+  The handler (`retranscribe:ranges`) doesn't write the project itself. The editor puts the words in, and its autosave writes them.
+
+### Changed
+- **"Whole clip" re-transcribes what the clip shows now, and can be undone (#459).**
+  - Before, the button re-transcribed the AI's original pick window (`clip.startTime`–`endTime`). Anything a clip had been extended into or re-cut to kept the weaker words from the full-recording pass. That was 102 of Fega's 227 approved clips, 1,047 s in all.
+  - It also wiped every subtitle edit on the clip, with no way back.
+  - It now runs the section routine over every section the clip shows, as one undo step.
+  - `retranscribe:clip` and its preload binding had no other callers and are removed.
+- **What Corva learns from an approval follows your edits (#458).**
+  - An approval's taste row holds the words and title the clip-finding prompt and the play-style update learn from. It used to be a snapshot taken at the moment of approval.
+  - So a clip approved in the Projects tab and then re-cut in the editor kept teaching the AI's original cut.
+  - Every save of an approved clip now refreshes that row's words and title from the clip. It writes only when something actually changed and never replaces words with an empty subtitle list. Rejections and imported clips are left alone.
+- **One-time repair of older approvals (#458).**
+  - On the next launch, approvals recorded before this change are brought up to date from the clips on disk. It runs once per database, before anything else, and keeps a copy first (`clipflow.db.bak-pre458`).
+  - The guard is a new `maintenance_runs` table (migration v13), not a settings flag, because a source run and the installed app keep separate databases. A library that isn't reachable at launch waits for the next one.
+  - Measured on a copy of Fega's real data:
+    - 131 of 237 approvals updated: 106 had words and title change, 12 title only (for example "Clip 6" became "The #1 problem in Rocket league I have #rocketleague"), and 9 words only.
+    - Approvals still holding the AI's original cut went from 70 to 1.
+    - No rejection or other field changed, and the repair took 0.5 s.
+    - What still differs is pairs of clips sharing one original window (a clip and its duplicate share one approval, as they always have) and two old approvals of clips that are now rejected.
+- **Title cards written on approve (#420) read the clip as it was cut (#458).** They used `clip.transcription`, the AI's original window, which never follows an edit, so a clip edited and then queued got cards about the moment it had left. They now use the saved subtitles clipped to the clip's sections, the same words the editor's Generate button sends.
+- The play-style update no longer lists an auto "Clip N" title as the creator's title. The clip-finding prompt already skipped these.
+
+### Fixed
+- **Re-transcribe no longer writes nonsense over good subtitles on older recordings.**
+  - A recording made with a different OBS audio layout doesn't say which track is the mic. January's files have 4 audio tracks; today's setup describes 5.
+  - Today's voice track is game audio in those files, and Whisper turned it into "not a cat, but a cat, wasn't a cat…". The old whole-clip button had the same flaw.
+  - Re-transcribe now compares the recording's track count with the saved audio setup. When they differ, it says "Can't tell which track is your mic" and changes nothing.
+
+Checked on a dev copy of the app with its projects, watch, render and test-render folders all pointed at a scratch library, and no accounts. The fixtures were copies of two projects with nothing approved or posted, "2026-07-29 MC Day1 Pt1" (5 tracks) and "2026-01-23 AR Day16 Pt3" (4 tracks), and only their rejected clips were edited. Each fixture clip had three sections: one inside the AI window, one outside with talking, and one outside in silence. A hand-typed word marked a line in the first.
+
+Results in the running app:
+- **January recording:** refused in 0.2 s with the new message. Nothing changed on disk.
+- **One section (right-click):**
+  - Only that section's lines were replaced (7 lines became 16). The marked word and the other 11 lines were identical on disk, and the silent section was untouched.
+  - The real audio extraction ran (12 s).
+  - One Undo restored all 18 lines byte-identically.
+- **Silent section:** "No speech found", nothing changed.
+- **Top-bar menu:**
+  - It listed Whole clip and Sections 1–3 at 0:00–0:12, 0:12–0:22 and 0:22–0:27. Escape and a second press close it.
+  - "Whole clip" replaced the first two sections and left the silent one alone, and Undo brought everything back.
+- **Reopen:** reopening the clip showed exactly what was saved.
+- **Learning:** approving through the Projects tab's own call wrote the row. A section re-transcribe then updated that same row's words, and renaming the clip in the editor updated its title.
+- **Title cards on approve:** their new transcript matched the Transcript panel word for word. This ran the same lines against the saved clip rather than triggering a paid model call.
+
+The Python engine was replaced by a stand-in during these runs, returning this recording's real words in the engine's exact output format. The machine was out of memory: DaVinci Resolve held about 15 GB. Under that pressure, the first real run stalled for about 15 minutes in the word-timing vote and then failed with nothing changed, and a manual rerun failed with "bad allocation". Once memory eased, the real engine ran separately on the same section: 33 s including model load. Parakeet still couldn't load for memory, so the vote fell back to three voters. Its output went through the new word selection correctly: 31 words, in source time.
+
+Also: 26 new tests (the splice, the word selection and silence check, the refresh and the one-time repair), and the full suite passes (611). The menu first drew under the preview's "Fit" control, because the top bar is its own z-10 layer; it's now drawn at the page level. `setSegmentMode` and the new splice share one line builder (`_lineFromGroup`), so the two can't drift.
+
 ## [Unreleased] — 2026-09-21 (session 272) — 0.5.0-alpha.12 on the feed
 
 ### Changed

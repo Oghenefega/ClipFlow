@@ -324,6 +324,22 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_ai_calls_clip ON ai_calls(clip_id)`);
     },
   },
+  {
+    version: 13,
+    description: "Create maintenance_runs: one-time repairs of this database's rows, by name (#458)",
+    up(database) {
+      // A repair of DB rows is guarded here, in the same file as the rows —
+      // never by a settings flag: source-run prod and the packaged app share
+      // settings but keep separate databases (#458, feedback.js).
+      database.run(`
+        CREATE TABLE maintenance_runs (
+          name   TEXT PRIMARY KEY,
+          ran_at TEXT NOT NULL DEFAULT (datetime('now')),
+          note   TEXT
+        )
+      `);
+    },
+  },
 ];
 
 /**

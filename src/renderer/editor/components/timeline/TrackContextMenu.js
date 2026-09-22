@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from "react";
-import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, ClipboardCopy, ClipboardPaste } from "lucide-react";
+import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, ClipboardCopy, ClipboardPaste, Mic } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, splitKey, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey, onCopyLayout, onPasteLayout, canCopyLayout, canPasteLayout, copyLayoutKey, pasteLayoutKey }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, splitKey, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey, onCopyLayout, onPasteLayout, canCopyLayout, canPasteLayout, copyLayoutKey, pasteLayoutKey, onRetranscribe, canRetranscribe }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -66,6 +66,21 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
         </button>
       )}
       <Separator />
+      {/* #459: new words for this section only; every other line stays. */}
+      {track === "audio" && onRetranscribe && (
+        <>
+          <button
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+              canRetranscribe ? "text-foreground hover:bg-secondary/60" : "text-muted-foreground/50 cursor-default"
+            }`}
+            disabled={!canRetranscribe}
+            onClick={() => { onRetranscribe(); onClose(); }}
+          >
+            <Mic className={`h-3.5 w-3.5 ${canRetranscribe ? "text-sky-400" : "text-muted-foreground/40"}`} /> Re-transcribe this section
+          </button>
+          <Separator />
+        </>
+      )}
       {track === "audio" && onMoveEarlier && (
         <>
           <button

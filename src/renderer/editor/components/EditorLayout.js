@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -77,6 +78,55 @@ function fmtDuration(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// ── #459: Re-transcribe menu — the whole clip, or one section of it ──
+// Times are timeline times, the ones the ruler shows. Ten or more sections
+// split into two columns (ui-standards: long dropdowns). Portaled to <body>:
+// the top bar is a z-10 stacking context, so inside it the preview's Fit
+// control drew over the first row.
+function RetranscribeMenu({ menu, onPick, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    // The button toggles the menu itself — a press on it is not "outside".
+    const onDown = (e) => {
+      if (ref.current?.contains(e.target) || menu.el?.contains(e.target)) return;
+      onClose();
+    };
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menu, onClose]);
+
+  const twoCol = menu.rows.length >= 10;
+  const width = twoCol ? 340 : 220;
+  const item = "w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors";
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed rounded-lg border bg-popover shadow-xl z-[100] overflow-hidden"
+      style={{ top: menu.rect.bottom + 4, left: Math.max(8, menu.rect.right - width), width, fontFamily: "'DM Sans', -apple-system, sans-serif" }}
+    >
+      <button className={item} onClick={() => onPick("all")}>
+        <Mic className="h-3.5 w-3.5 text-sky-400" /> Whole clip
+        <span className="ml-auto text-muted-foreground text-[10px]">{menu.rows.length} sections</span>
+      </button>
+      <Separator />
+      <div className={`max-h-[320px] overflow-y-auto ${twoCol ? "grid grid-cols-2" : ""}`}>
+        {menu.rows.map((r) => (
+          <button key={r.id} className={item} onClick={() => onPick([r.id])}>
+            Section {r.n}
+            <span className="ml-auto text-muted-foreground text-[10px]">{fmtDuration(r.from)}–{fmtDuration(r.to)}</span>
+          </button>
+        ))}
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 // ── Clip Navigator Dropdown ──
@@ -283,8 +333,11 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
   const openIsCurrent = !!(renderJob && clip && renderJob.clipId === clip.id);
   const openIsWaiting = !!(renderJob && clip && (renderJob.waitingIds || []).includes(clip.id));
   const openInvolved = openIsCurrent || openIsWaiting || (clip && renderingClipIds.has(clip.id));
-  const [retranscribing, setRetranscribing] = useState(false);
-  const [retranscribeStage, setRetranscribeStage] = useState("");
+  // #459: the run lives in the store, so starting it from the timeline's
+  // section menu shows its progress on this button too.
+  const retranscribeState = useEditorStore((s) => s.retranscribeState);
+  const retranscribeSections = useEditorStore((s) => s.retranscribeSections);
+  const [retranscribeMenu, setRetranscribeMenu] = useState(null); // { rows, rect, el } while open
   const [, forceUpdate] = useState(0);
   const titleInputRef = useRef(null);
   const navChevronRef = useRef(null);
@@ -518,50 +571,26 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
     submitDebugReport(rating, debugNote, debugChecks);
   }, [debugNote, debugChecks, debugNoteOpen, submitDebugReport]);
 
-  const onRetranscribe = useCallback(async () => {
-    if (!clip || !project || retranscribing) return;
-    setRetranscribing(true);
-    setRetranscribeStage("Starting...");
-
-    // Listen for progress
-    const progressHandler = (data) => {
-      const labels = { extracting: "Extracting audio...", transcribing: "Transcribing...", saving: "Saving...", done: "Done!" };
-      setRetranscribeStage(labels[data.stage] || data.stage);
-    };
-    window.clipflow?.onRetranscribeProgress?.(progressHandler);
-
-    try {
-      const result = await window.clipflow.retranscribeClip(project.id, clip.id);
-      if (result?.error) {
-        console.error("Re-transcribe failed:", result.error);
-        setRetranscribeStage("Failed");
-        setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 2000);
-      } else {
-        // Update clip data in editor store WITHOUT full reinit
-        // (initFromContext is too heavy — it resets waveform, playback, templates, undo stack)
-        // #78: also drop the in-memory editor-saved sub1 so the immediate initSegments
-        // below rebuilds from the fresh transcription, not stale edits. Disk was cleared
-        // server-side in retranscribe:clip.
-        const updatedClip = { ...clip, transcription: result.transcription, subtitles: { sub1: [], sub2: [] } };
-        const updatedProject = { ...project, clips: project.clips.map(c => c.id === clip.id ? updatedClip : c) };
-        useEditorStore.setState({ project: updatedProject, clip: updatedClip });
-        // Reload subtitle segments from the new transcription. initSegments only
-        // sets originalSegments — we explicitly rebuild editSegments here to
-        // preserve the user's current mode rather than reset to default.
-        const currentMode = useSubtitleStore.getState().segmentMode || "3word";
-        useSubtitleStore.getState().initSegments(updatedProject, updatedClip);
-        useSubtitleStore.getState().setSegmentMode(currentMode);
-        setRetranscribeStage("Done!");
-        setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 1500);
-      }
-    } catch (err) {
-      console.error("Re-transcribe error:", err);
-      setRetranscribeStage("Failed");
-      setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 2000);
-    } finally {
-      window.clipflow?.removeRetranscribeProgressListener?.();
-    }
-  }, [clip, project, retranscribing]);
+  // #459: one section runs straight away; more open the menu — the whole clip
+  // (every section it shows) or a single section. Sections are read at click
+  // time so this shell doesn't re-render on every trim.
+  const onRetranscribeClick = useCallback((e) => {
+    if (retranscribeMenu) { setRetranscribeMenu(null); return; }
+    const segs = useEditorStore.getState().nleSegments;
+    if (segs.length <= 1) { retranscribeSections("all"); return; }
+    let t = 0;
+    const rows = segs.map((s, i) => {
+      const from = t;
+      t += s.sourceEnd - s.sourceStart;
+      return { id: s.id, n: i + 1, from, to: t };
+    });
+    setRetranscribeMenu({ rows, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
+  }, [retranscribeMenu, retranscribeSections]);
+  const closeRetranscribeMenu = useCallback(() => setRetranscribeMenu(null), []);
+  const pickRetranscribe = useCallback((ids) => {
+    setRetranscribeMenu(null);
+    retranscribeSections(ids);
+  }, [retranscribeSections]);
 
   const onTitleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -875,21 +904,28 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-8 px-3 text-xs font-medium ${retranscribing ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={onRetranscribe}
-                disabled={retranscribing}
+                className={`h-8 px-3 text-xs font-medium ${retranscribeState.running ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={onRetranscribeClick}
+                disabled={retranscribeState.running}
               >
-                {retranscribing ? (
+                {retranscribeState.running ? (
                   <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                 ) : (
                   <Mic className="h-3.5 w-3.5 mr-1.5" />
                 )}
-                {retranscribing ? retranscribeStage : "Re-transcribe"}
+                {retranscribeState.stage || "Re-transcribe"}
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="text-xs">Re-run transcription on this clip</TooltipContent>
+            <TooltipContent className="text-xs">Re-run transcription on this clip, or on one section of it</TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        {retranscribeMenu && (
+          <RetranscribeMenu
+            menu={retranscribeMenu}
+            onPick={pickRetranscribe}
+            onClose={closeRetranscribeMenu}
+          />
+        )}
 
         <Separator orientation="vertical" className="h-5" />
 

@@ -14,6 +14,7 @@ import { normalizeMediaPlacements, DEFAULT_MEDIA_SEC, DEFAULT_VIDEO_VOLUME, MEDI
 import { normalizeMix, setLevel as setMixLevel, resolveClipAudioMix } from "../models/audioMix"; // #272
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight, rollCut } from "../models/segmentOps";
 import { resolveReframeStyle, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
+import { mergeSourceRanges } from "../utils/replaceWordsInRange";
 
 // ── Autosave internals (module-closure, NOT in state) ──
 // Kept outside Zustand state to avoid infinite subscribe loops when the timer is (re)set.
@@ -164,6 +165,9 @@ const useEditorStore = create((set, get) => ({
   saveError: null,
   waveformPeaks: null,
   waveformError: null,
+  // #459: the one re-transcribe that can run at a time, and what the top-bar
+  // button says about it. Not reset on a clip switch — the run still is.
+  retranscribeState: { running: false, stage: "" },
 
   // ── NLE Segment Model (non-destructive editing) ──
   // Each segment is { id, sourceStart, sourceEnd } — a window into the source file.
@@ -2094,6 +2098,62 @@ const useEditorStore = create((set, get) => ({
       console.error("Save failed:", e);
       set({ saveError: describeSaveFailure(e?.message) || "the clip could not be written" });
       return false;
+    }
+  },
+
+  // #459: re-transcribe the sections picked ("all" = every section the clip
+  // shows, which is what "Whole clip" means — not the AI's original window).
+  // Main hands back the words; they go into the subtitles as one undo step
+  // and autosave writes them like any other edit.
+  retranscribeSections: async (sectionIds) => {
+    const { clip, project, nleSegments, retranscribeState } = get();
+    if (!clip || !project || retranscribeState.running) return;
+    const picked = sectionIds === "all" ? nleSegments : nleSegments.filter((s) => sectionIds.includes(s.id));
+    const ranges = mergeSourceRanges(picked);
+    if (ranges.length === 0) return;
+    const clipId = clip.id;
+    const projectId = project.id;
+    const show = (stage) => set({ retranscribeState: { running: true, stage } });
+    const settle = (stage, ms) => {
+      set({ retranscribeState: { running: false, stage } });
+      setTimeout(() => {
+        const s = get().retranscribeState;
+        if (!s.running && s.stage === stage) set({ retranscribeState: { running: false, stage: "" } });
+      }, ms);
+    };
+    const labels = { extracting: "Extracting audio...", transcribing: "Transcribing...", saving: "Saving..." };
+    show("Starting...");
+    window.clipflow?.onRetranscribeProgress?.((d) => { if (labels[d?.stage]) show(labels[d.stage]); });
+    try {
+      const res = await window.clipflow.retranscribeRanges(projectId, clipId, ranges);
+      // Another clip may be open by now (#97/#436). These words belong to the
+      // clip that asked for them, which is no longer on screen.
+      if (get().clip?.id !== clipId || get().project?.id !== projectId) {
+        console.warn("[Re-transcribe] clip changed while it ran — result dropped", { clipId });
+        settle("", 0);
+        return;
+      }
+      if (!res?.success) {
+        console.error("Re-transcribe failed:", res?.error);
+        // An older recording's tracks don't say which one is the mic — say
+        // that, since "Failed" would read like something to retry.
+        if (res?.code === "track-layout") settle("Can't tell which track is your mic", 5000);
+        else settle("Failed", 2000);
+        return;
+      }
+      const spoken = (res.results || []).filter((r) => !r.error && !r.silent);
+      if (spoken.length === 0) {
+        settle((res.results || []).some((r) => r.error) ? "Failed" : "No speech found", 2500);
+        return;
+      }
+      useSubtitleStore.getState().replaceWordsInRanges(spoken);
+      get().markDirty();
+      settle("Done!", 1500);
+    } catch (err) {
+      console.error("Re-transcribe error:", err);
+      settle("Failed", 2000);
+    } finally {
+      window.clipflow?.removeRetranscribeProgressListener?.();
     }
   },
 

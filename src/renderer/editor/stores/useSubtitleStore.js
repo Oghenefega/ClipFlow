@@ -4,6 +4,7 @@ import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
 import { resolveClipSubtitles, lineExtras, carryLineExtras } from "../utils/resolveSubtitles";
 import { capsSegment } from "../utils/casing";
+import { replaceWordsInRange } from "../utils/replaceWordsInRange";
 import { visibleSubtitleSegments } from "../models/timeMapping";
 // Cross-store imports — accessed only inside function bodies (after init),
 // so ESM live bindings resolve the cycle correctly. Do NOT destructure or
@@ -28,6 +29,28 @@ const _newSegId = () => "seg_" + Date.now() + "_" + (_segIdSeq++).toString(36);
 // Format a source-absolute timestamp for display (relative to clip origin)
 function _displayFmt(sourceTimeSec, origin) {
   return fmtTime(sourceTimeSec - (origin || 0));
+}
+
+// One freshly grouped line (segmentWords output) in the editor's line shape.
+// Shared by the mode switch and #459's section re-transcribe so the two can't
+// drift. Settings come off the words (`_line`, a mode switch) or the line
+// itself (already carried by replaceWordsInRange).
+function _lineFromGroup(seg, origin) {
+  return {
+    id: _newSegId(),
+    start: _displayFmt(seg.startSec, origin),
+    end: _displayFmt(seg.endSec, origin),
+    dur: (seg.endSec - seg.startSec).toFixed(1) + "s",
+    text: seg.text,
+    track: seg.track || "s1",
+    conf: seg.conf || "high",
+    startSec: seg.startSec,
+    endSec: seg.endSec,
+    warning: seg.warning || null,
+    words: seg.words.map(({ _line, ...w }) => w),
+    ...lineExtras(seg),
+    ...carryLineExtras(seg.words),
+  };
 }
 
 // Build an even-split word-list from a segment's text across its time range. The viewer
@@ -1318,6 +1341,43 @@ const useSubtitleStore = create((set, get) => ({
   setAnimateSpeed: (v) => { get()._pushStyleUndo(); set({ animateSpeed: v }); },
 
   // ── Segment mode switching ──
+  // #459: fresh words for stretches of the recording — one section, or every
+  // section on "Whole clip" — as ONE undo step. Lines outside every stretch
+  // are left exactly as they were. results: [{ start, end, words }] in source
+  // seconds. Returns how many lines were rebuilt.
+  replaceWordsInRanges: (results) => {
+    const usable = (results || []).filter((r) => Array.isArray(r.words) && r.words.length > 0);
+    if (usable.length === 0) return 0;
+    get()._pushUndo();
+    const { segmentMode, _sourceOrigin, activeSegId } = get();
+    const origin = _sourceOrigin || 0;
+    const group = (words) => segmentWords(cleanWordTimestamps(words), segmentMode || "3word");
+    const bySource = (a, b) => a.startSec - b.startSec;
+    let lines = get().editSegments;
+    let originals = get().originalSegments;
+    let rebuiltCount = 0;
+    for (const r of usable) {
+      const { untouched, rebuilt, span } = replaceWordsInRange(lines, r, r.words, group);
+      const fresh = rebuilt.map((seg) => _lineFromGroup(seg, origin));
+      lines = [...untouched, ...fresh].sort(bySource);
+      // A mode switch treats a line no original overlaps as hand-made and
+      // leaves it unregrouped — the originals follow the new words too.
+      originals = [
+        ...originals.filter((s) => !(s.startSec < span.end && s.endSec > span.start)),
+        ...fresh,
+      ].sort(bySource);
+      rebuiltCount += fresh.length;
+    }
+    set({
+      editSegments: lines,
+      originalSegments: originals,
+      activeSegId: lines.some((s) => s.id === activeSegId) ? activeSegId : null,
+      selectedWordInfo: null,
+      editingWordKey: null,
+    });
+    return rebuiltCount;
+  },
+
   setSegmentMode: (mode) => {
     const { originalSegments, editSegments, _skipNextSegmentation, _chunkPending } = get();
     if (_skipNextSegmentation) {
@@ -1407,20 +1467,7 @@ const useSubtitleStore = create((set, get) => ({
 
     // ── Delegate to pure segmentation function (spec v1.1) ──
     const origin = get()._sourceOrigin || 0;
-    const rawSegs = segmentWords(cleanedWords, mode).map((seg, i) => ({
-      id: _newSegId(),
-      start: _displayFmt(seg.startSec, origin),
-      end: _displayFmt(seg.endSec, origin),
-      dur: (seg.endSec - seg.startSec).toFixed(1) + "s",
-      text: seg.text,
-      track: seg.track || "s1",
-      conf: seg.conf || "high",
-      startSec: seg.startSec,
-      endSec: seg.endSec,
-      warning: seg.warning || null,
-      words: seg.words.map(({ _line, ...w }) => w),
-      ...carryLineExtras(seg.words),
-    }));
+    const rawSegs = segmentWords(cleanedWords, mode).map((seg) => _lineFromGroup(seg, origin));
 
     // Merge manually-created segments back in, sorted by time
     const merged = [...rawSegs, ...manualSegs].sort((a, b) => a.startSec - b.startSec);

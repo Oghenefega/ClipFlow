@@ -128,6 +128,7 @@ export default function TimelinePanelNew() {
   const deleteNleSegment = useEditorStore((s) => s.deleteNleSegment);
   const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
   const trimNleSegmentRight = useEditorStore((s) => s.trimNleSegmentRight);
+  const retranscribeRunning = useEditorStore((s) => s.retranscribeState.running); // #459
   const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Music + SFX lanes
   const mediaPlacements = useEditorStore((s) => s.mediaPlacements); // #310 Media lanes
   const mediaTrackCount = useEditorStore((s) => s.mediaTrackCount);
@@ -2356,6 +2357,8 @@ export default function TimelinePanelNew() {
           onMoveLater={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx + 1) : undefined}
           canMoveEarlier={nleIdx > 0}
           canMoveLater={nleIdx >= 0 && nleIdx < nleSegments.length - 1}
+          onRetranscribe={contextMenu.track === "audio" ? () => useEditorStore.getState().retranscribeSections([contextMenu.segId]) : undefined}
+          canRetranscribe={!retranscribeRunning}
           onCopyLayout={contextMenu.track === "audio" ? () => useEditorStore.getState().copyLayout(contextMenu.segId) : undefined}
           onPasteLayout={contextMenu.track === "audio" ? () => {
             useEditorStore.getState().pasteLayout(contextMenu.segId).then((r) => {

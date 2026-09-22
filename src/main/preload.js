@@ -378,9 +378,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   concatRecutClip: (projectId, clipId, segments) =>
     ipcRenderer.invoke("clip:concatRecut", projectId, clipId, segments),
 
-  // Re-transcribe a specific clip
-  retranscribeClip: (projectId, clipId) =>
-    ipcRenderer.invoke("retranscribe:clip", projectId, clipId),
+  // #459: re-transcribe stretches of the recording — [{ start, end }] in source
+  // seconds (one section, or every section on "Whole clip"). Returns the words.
+  retranscribeRanges: (projectId, clipId, ranges) =>
+    ipcRenderer.invoke("retranscribe:ranges", projectId, clipId, ranges),
   onRetranscribeProgress: (callback) => {
     ipcRenderer.on("retranscribe:progress", (_, data) => callback(data));
   },

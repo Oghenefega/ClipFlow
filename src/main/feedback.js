@@ -1,3 +1,4 @@
+const fs = require("fs");
 const database = require("./database");
 const { BOOKKEEPING_REJECT_REASONS } = require("../shared/rejectReasons");
 
@@ -190,6 +191,75 @@ function handleStatusTransition(project, prevStatus, clip) {
 }
 
 /**
+ * #458: an approved clip's taste row follows the clip. The row is a snapshot
+ * of the moment the clip was approved, so a clip approved in the Projects tab
+ * and THEN re-cut in the editor went on teaching the AI's original cut. Its
+ * words and title are re-derived from the clip; the window stays the row's
+ * identity, as for every other matcher here. Returns true when the row
+ * changed (or, dry, would change). Nothing is written otherwise.
+ *
+ * Empty subtitles never replace words: an empty sub1 means "no saved edits"
+ * (the editor falls back to the clip's transcription), not "nothing was said".
+ */
+function refreshApprovedRow(projectName, clip, { dryRun = false } = {}) {
+  if (clip.source === "import" || clip.source === "silent-fallback") return false;
+  if (!isApprovedStatus(clip.status)) return false;
+  const db = database.getDb();
+  if (!db) return false;
+  const entry = entryFromClip({ name: projectName }, clip, "approved");
+  const row = database.toRows(db.exec(
+    `SELECT id, transcript_segment, title FROM feedback
+      WHERE video_id = ? AND clip_start = ? AND clip_end = ? AND decision = 'approved'
+      ORDER BY timestamp DESC, id DESC LIMIT 1`,
+    [entry.videoId, entry.clipStart, entry.clipEnd]
+  ))[0];
+  if (!row) return false;
+  const words = entry.transcriptSegment || row.transcript_segment || "";
+  if (words === (row.transcript_segment || "") && entry.title === (row.title || "")) return false;
+  if (!dryRun) db.run(`UPDATE feedback SET transcript_segment = ?, title = ? WHERE id = ?`, [words, entry.title, row.id]);
+  return true;
+}
+
+/** refreshApprovedRow + save, for the project:updateClip choke point. */
+function refreshApproved(projectName, clip) {
+  const refreshed = refreshApprovedRow(projectName, clip);
+  if (refreshed) database.save();
+  return { refreshed };
+}
+
+/**
+ * #458 catch-up, once per DATABASE: rows written before the refresh existed
+ * still hold each clip as it looked when approved. The guard lives in the
+ * database itself, not the settings store — source-run prod and the packaged
+ * app share settings but keep separate databases. A copy of the file is kept
+ * before the first row changes. Rows whose project is gone stay as they are.
+ *
+ * @param {() => Array} loadProjects - full projects (clips with subtitles)
+ */
+const REPAIR_458 = "458-approved-rows-follow-clip";
+function repairApprovedRowsOnce(loadProjects) {
+  const db = database.getDb();
+  if (!db) return { ran: false };
+  const done = database.toRows(db.exec(`SELECT name FROM maintenance_runs WHERE name = ?`, [REPAIR_458])).length > 0;
+  if (done) return { ran: false };
+
+  const pairs = [];
+  for (const project of loadProjects() || []) {
+    for (const clip of project.clips || []) pairs.push([project.name, clip]);
+  }
+  const stale = pairs.filter(([name, clip]) => refreshApprovedRow(name, clip, { dryRun: true }));
+  let backup = null;
+  if (stale.length > 0) {
+    backup = database.DB_PATH + ".bak-pre458";
+    fs.copyFileSync(database.DB_PATH, backup);
+    for (const [name, clip] of stale) refreshApprovedRow(name, clip);
+  }
+  db.run(`INSERT INTO maintenance_runs (name, note) VALUES (?, ?)`, [REPAIR_458, `${stale.length} approved row(s) refreshed`]);
+  database.save();
+  return { ran: true, changed: stale.length, backup };
+}
+
+/**
  * Get the last N approved clips for a game tag (for few-shot injection).
  */
 function getApprovedClips(gameTag, limit = 20) {
@@ -320,6 +390,8 @@ function getApprovalStats(rollingProjects = 10) {
 module.exports = {
   logFeedback,
   handleStatusTransition,
+  refreshApproved,
+  repairApprovedRowsOnce,
   retagClip,
   updateReasons,
   getApprovedClips,

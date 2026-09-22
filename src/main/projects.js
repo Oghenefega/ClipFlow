@@ -308,7 +308,8 @@ function updateClip(watchFolder, projectId, clipId, updates) {
   project.clips[clipIndex] = merged;
   saveProject(watchFolder, project);
 
-  return { success: true, clip: merged };
+  // projectName: the feedback row key (#458) — saves the caller a second read.
+  return { success: true, clip: merged, projectName: project.name };
 }
 
 /**
