@@ -740,7 +740,6 @@ function repostClip(watchFolder, projectId, clipId) {
   delete copy.publishedAt;
   delete copy.queueOrder;
   delete copy.downscaledPosts;
-  delete copy.thumbnailFailedPosts;
 
   // Sit right after the original so the pair reads together in the clip list.
   project.clips.splice(idx + 1, 0, copy);

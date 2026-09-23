@@ -157,52 +157,24 @@ describe("#438 — one in-flight registry for the scheduler and the Queue", () =
   });
 });
 
-// #450: the frame the creator picked rides the scheduled post, and a thumbnail
-// YouTube refuses is a note on a post that WENT OUT — it must never read as a failure.
-describe("#450 — the chosen YouTube thumbnail on a scheduled post", () => {
+// #460: YouTube gets no thumbnail — the Data API's image never shows on a Short.
+// The picked frame still goes to TikTok and Instagram (#455, below).
+describe("#460 — no thumbnail on a scheduled YouTube post", () => {
   beforeEach(() => {
     delete process.env.CLIPFLOW_ALLOW_DEV_PUBLISH;
     jest.resetModules();
     scheduler = require("../publish");
   });
 
-  test("the clip's picked moment reaches the publisher", async () => {
+  test("a picked moment is not sent to YouTube", async () => {
     let got = "never called";
     makeDeps({
       clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1), youtubeThumbnailTime: 4.5 }],
-      publisher: (args) => { got = args.thumbnailTime; return { videoId: "v1" }; },
+      publisher: (args) => { got = args; return { videoId: "v1" }; },
     });
     await scheduler.tickOnce();
-    expect(got).toBe(4.5);
-  });
-
-  test("a refused thumbnail is recorded on the clip and the post still counts as sent", async () => {
-    const updates = [];
-    const tracked = [];
-    makeDeps({
-      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1) }],
-      publisher: () => ({ success: true, videoId: "v1", thumbnail: { status: "failed", time: 0, error: "HTTP 403" } }),
-      updateClip: (_root, _pid, _cid, u) => { updates.push(u); return {}; },
-      onPublished: (row) => tracked.push(row),
-    });
-    await scheduler.tickOnce();
-    const merged = Object.assign({}, ...updates);
-    expect(merged.publishState).toEqual({ yt_1: "success" });
-    expect(merged.thumbnailFailedPosts).toEqual({ yt_1: "HTTP 403" });
-    expect(merged.publishedAt).toBeTruthy();
-    // Full success is what writes the tracker row.
-    expect(tracked).toHaveLength(1);
-  });
-
-  test("a thumbnail that was set leaves no note", async () => {
-    const updates = [];
-    makeDeps({
-      clips: [{ id: "c1", title: "A", scheduledAt: minutesAgo(1) }],
-      publisher: () => ({ success: true, videoId: "v1", thumbnail: { status: "set", time: 4.5 } }),
-      updateClip: (_root, _pid, _cid, u) => { updates.push(u); return {}; },
-    });
-    await scheduler.tickOnce();
-    expect(Object.assign({}, ...updates).thumbnailFailedPosts).toBeUndefined();
+    expect(got).not.toBe("never called");
+    expect(got).not.toHaveProperty("thumbnailTime");
   });
 });
 

@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-23 (session 274) — YouTube no longer gets a thumbnail; its Shorts show YouTube's own frame
+
+### Removed
+- **Corva no longer sends a thumbnail to YouTube (#460).**
+  - Why: `thumbnails.set` accepts the picked frame for a Short, but YouTube shows it nowhere a viewer sees. Every Shorts card, search result and link preview uses one of YouTube's three suggested frames, checked on Fega's Sept 21–22 posts.
+  - Only YouTube Studio can switch between those frames. Google staff confirmed apps can't reach them ("not yet fully supported" for Shorts surfaces, issuetracker 561838826, 2026-09-18).
+  - `setThumbnailFromFrame` and its upload are gone from `youtube-publish.js`. Every publish path (the Queue's two and the scheduler's) stopped passing `thumbnailTime`.
+  - The yellow "Auto thumbnail" tag and its `thumbnailFailedPosts` bookkeeping are gone too. Old values on clips are simply ignored.
+  - The picked frame still sets the cover on TikTok and Instagram, and is still the clip's picture inside Corva.
+
+### Changed
+- **The Queue picker's "Cover on" row lists only TikTok and Instagram (#460).** Its hover note now says "YouTube picks its own frame for Shorts. You can change it in YouTube Studio." If YouTube is the only platform on, the row reads "YouTube picks its own cover.", the same way Facebook's does.
+
 ## [Unreleased] — 2026-09-22 (session 273) — Re-transcribe one section; what Corva learns from an approval follows your edits
 
 ### Added

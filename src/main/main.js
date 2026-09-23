@@ -6039,7 +6039,7 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 // #329: the body is a named function so the main-process publish scheduler can call it
 // directly with no renderer in existence. The IPC handler is now a pass-through;
 // arguments, return shape and publishLog writes are unchanged.
-async function publishYouTube({ accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, thumbnailTime, isTest, scheduled }) {
+async function publishYouTube({ accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest, scheduled }) {
   // #401: youtubeTitle + tags ride along so Analytics can show what YouTube actually got (clipTitle stays the clip's own title — title-caption-log learns from it).
   const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", youtubeTitle: youtubeTitle || "", tags: tags || [], platform: "YouTube", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
@@ -6105,21 +6105,18 @@ async function publishYouTube({ accountId, videoPath, title, caption, clipId, ta
       }
     );
 
-    // #450: the creator's chosen frame becomes the thumbnail. It only reports —
-    // the video is live at this point, and anything reaching the catch below
-    // would stamp a successful post as failed for every caller.
-    mainWindow?.webContents.send("youtube:publishProgress", { stage: "thumbnail", pct: 100, detail: "Setting the thumbnail..." });
-    const thumbnail = await youtubePublish.setThumbnailFromFrame(accessToken, result.videoId, videoPath, thumbnailTime);
+    // #460: no custom thumbnail. thumbnails.set lands on a Short but YouTube shows
+    // it nowhere — every Shorts card, search and share preview uses one of its own
+    // suggested frames, which only Studio can switch (Google, issuetracker 561838826).
 
     require("electron-log/main").scope("youtube").info("Publish success", { videoId: result.videoId });
     publishLog.logPublish({
       ...logBase, status: "success",
       publishId: result.videoId, postId: result.videoId,
       apiResponse: result,
-      thumbnail,
     });
 
-    return { success: true, videoId: result.videoId, status: result.status, thumbnail };
+    return { success: true, videoId: result.videoId, status: result.status };
   } catch (err) {
     require("electron-log/main").scope("youtube").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });

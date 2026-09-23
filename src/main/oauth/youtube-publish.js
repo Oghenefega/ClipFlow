@@ -10,22 +10,18 @@
  * calls a day for the whole Google project, shared by every user (#453).
  * Chunk size: 256 KB minimum, multiples of 256 KB.
  *
- * #450: after the upload, setThumbnailFromFrame() sends one frame of the same
- * file as the custom thumbnail (thumbnails.set, 50 quota units, covered by the
- * youtube.upload scope). Proven to stick on Shorts for a Partner Program
- * channel on 2026-09-20 — before YouTube's July 2026 rollout the call answered
- * 200 and was silently ignored for Shorts.
+ * #460: no custom thumbnail. #450 sent the picked frame through
+ * thumbnails.set, but on Shorts YouTube shows that image nowhere; its Shorts
+ * cards use one of its own suggested frames, which only Studio can switch
+ * (Google, issuetracker 561838826, 2026-09-18). Restore from git history if the
+ * Data API reaches parity with Studio.
  */
 const https = require("https");
 const fs = require("fs");
-const os = require("os");
-const path = require("path");
 const { URL } = require("url");
 const log = require("electron-log/main").scope("youtube");
-const ffmpeg = require("../ffmpeg");
 
 const YT_UPLOAD_BASE = "https://www.googleapis.com/upload/youtube/v3/videos";
-const YT_THUMBNAIL_BASE = "https://www.googleapis.com/upload/youtube/v3/thumbnails/set";
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
 
 // ── HTTP helpers ──
@@ -218,84 +214,6 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress = (
   throw new Error("Upload completed but no final response received");
 }
 
-/**
- * POST a JPEG as a video's custom thumbnail (thumbnails.set, simple media upload).
- */
-function uploadThumbnail(accessToken, videoId, image) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(`${YT_THUMBNAIL_BASE}?videoId=${encodeURIComponent(videoId)}&uploadType=media`);
-    const options = {
-      hostname: url.hostname,
-      path: url.pathname + url.search,
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "image/jpeg",
-        "Content-Length": image.length,
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        if (res.statusCode === 200) return resolve();
-        try {
-          const err = JSON.parse(data);
-          reject(new Error(`Thumbnail upload failed (HTTP ${res.statusCode}): ${err.error?.message || data.substring(0, 300)}`));
-        } catch {
-          reject(new Error(`Thumbnail upload failed (HTTP ${res.statusCode}): ${data.substring(0, 300)}`));
-        }
-      });
-    });
-
-    // The video is already live when this runs — a stalled request must not
-    // hold the whole publish open behind it.
-    req.setTimeout(30000, () => req.destroy(new Error("Thumbnail upload timed out")));
-    req.on("error", reject);
-    req.write(image);
-    req.end();
-  });
-}
-
-/**
- * #450: make one frame of the uploaded video its custom thumbnail.
- *
- * The frame comes from the exact file that was uploaded, so the picture always
- * matches the post. `time` is the creator's pick in seconds; unset means the
- * first frame.
- *
- * Never throws. The video is already live by the time this runs, and every
- * caller of publishYouTube reads a thrown error as "the post failed" — so the
- * outcome is only ever reported.
- *
- * @param {string} accessToken
- * @param {string} videoId
- * @param {string} videoPath - The file that was just uploaded
- * @param {number} [time] - Seconds into the video
- * @returns {Promise<{status: "set"|"failed", time: number, error?: string}>}
- */
-async function setThumbnailFromFrame(accessToken, videoId, videoPath, time) {
-  const framePath = path.join(os.tmpdir(), `clipflow-ytthumb-${Date.now()}.jpg`);
-  let t = Number.isFinite(time) && time > 0 ? time : 0;
-  try {
-    // A seek at or past the end decodes nothing — keep the pick inside the clip
-    // (a re-trimmed render can be shorter than it was when the frame was chosen).
-    const { duration } = await ffmpeg.probe(videoPath);
-    if (duration > 0) t = Math.min(t, Math.max(0, duration - 0.1));
-    await ffmpeg.generateThumbnail(videoPath, framePath, t);
-    await uploadThumbnail(accessToken, videoId, fs.readFileSync(framePath));
-    log.info("Thumbnail set", { videoId, time: t });
-    return { status: "set", time: t };
-  } catch (err) {
-    log.warn("Thumbnail not set", { videoId, time: t, error: err.message });
-    return { status: "failed", time: t, error: err.message };
-  } finally {
-    try { fs.rmSync(framePath, { force: true }); } catch { /* temp dir — the OS sweeps it */ }
-  }
-}
-
 module.exports = {
   publishVideo,
-  setThumbnailFromFrame,
 };

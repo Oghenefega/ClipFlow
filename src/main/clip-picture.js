@@ -3,7 +3,7 @@
  *
  * The picture is the frame picked in the Queue (`clip.youtubeThumbnailTime`, seconds;
  * unset = the first frame), cut from the rendered file. Every screen shows it, and the
- * same moment is the cover on YouTube, TikTok and Instagram (#450, #455). Two writers
+ * same moment is the cover on TikTok and Instagram (#455; YouTube dropped in #460). Two writers
  * cut it — a render finishing and a new pick — and both go through here, so they name,
  * check and retire pictures the same way.
  */
@@ -13,8 +13,7 @@ const path = require("path");
 const PICTURE_SUFFIX = "_renderthumb.jpg";
 
 // Keep the moment inside the file: a seek at or past the end decodes nothing, and a
-// re-trimmed render can be shorter than it was when the frame was picked. Same rule
-// as the YouTube cut at publish time (youtube-publish.js setThumbnailFromFrame).
+// re-trimmed render can be shorter than it was when the frame was picked.
 function clampPickTime(time, duration) {
   let t = Number.isFinite(time) && time > 0 ? time : 0;
   if (duration > 0) t = Math.min(t, Math.max(0, duration - 0.1));

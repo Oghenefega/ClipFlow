@@ -319,10 +319,10 @@ const fmtThumbTime = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStar
 // lets the file go, and the canvas holds that frame until the newly cut picture loads.
 const PICK_W = 120;
 const PICK_H = Math.round((PICK_W * 16) / 9);
-const COVER_NAMES = { youtube: "YouTube", tiktok: "TikTok", instagram: "Instagram" };
+const COVER_NAMES = { tiktok: "TikTok", instagram: "Instagram" };
 const joinNames = (n) => (n.length < 2 ? n.join("") : `${n.slice(0, -1).join(", ")} and ${n[n.length - 1]}`);
 
-function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave }) {
+function ThumbnailPicker({ clip, coverOn, facebookOn, youtubeOn, disabled, saved, onSave }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const loaded = useRef(false); // the <video> currently has the file
@@ -492,6 +492,8 @@ function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave })
   const coverHint = [
     coverNames.length ? `The cover on ${joinNames(coverNames)}, and the picture Corva shows for this clip.` : "The picture Corva shows for this clip.",
     facebookOn ? "Facebook picks its own cover." : "",
+    // #460: apps can't set what a Short shows, only Studio can.
+    youtubeOn ? "YouTube picks its own frame for Shorts. You can change it in YouTube Studio." : "",
   ].filter(Boolean).join(" ");
   return (
     <div onClick={(e) => e.stopPropagation()}>
@@ -575,8 +577,8 @@ function ThumbnailPicker({ clip, coverOn, facebookOn, disabled, saved, onSave })
                 <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.textTertiary, marginRight: 2 }}>Cover on</span>
                 {coverOn.map((k) => <PlatformIcon key={k} platform={k} size={13} />)}
               </>
-            ) : facebookOn ? (
-              <span style={{ fontSize: 10.5, color: T.textTertiary, lineHeight: 1.4 }}>Facebook picks its own cover.</span>
+            ) : facebookOn || youtubeOn ? (
+              <span style={{ fontSize: 10.5, color: T.textTertiary, lineHeight: 1.4 }}>{facebookOn && youtubeOn ? "Facebook and YouTube pick their own covers." : `${facebookOn ? "Facebook" : "YouTube"} picks its own cover.`}</span>
             ) : null}
           </div>
         </>
@@ -1362,7 +1364,6 @@ export default function QueueView({
   const coverPlatformsFor = (clip) => {
     const on = getEnabledPlatforms(clip);
     const out = [];
-    if (on.includes("youtube")) out.push("youtube");
     if (on.includes("tiktok") && (platformOptions?.tiktokPostMode || "direct_post") === "direct_post") out.push("tiktok");
     if (on.includes("instagram") && activePlat.some((p) => accountToPlatformKey(p) === "instagram" && !p.igBusinessLogin)) out.push("instagram");
     return out;
@@ -1377,6 +1378,7 @@ export default function QueueView({
       clip={clip}
       coverOn={coverPlatformsFor(clip)}
       facebookOn={getEnabledPlatforms(clip).includes("facebook")}
+      youtubeOn={getEnabledPlatforms(clip).includes("youtube")}
       disabled={isPublishing}
       saved={captionSavedFlash === `${clip.id}:thumb`}
       onSave={(t) => saveThumbnailPick(clip, t)}
@@ -2032,7 +2034,6 @@ export default function QueueView({
     // the render's. Only Instagram sets it, and only via its automatic fallback.
     let nextDownscaled = { ...(clip.downscaledPosts || {}) };
     // #450: account key -> why YouTube didn't take the chosen thumbnail on a post that otherwise went out.
-    let nextThumbnailFailed = { ...(clip.thumbnailFailedPosts || {}) };
     let allSuccess = true;
     // #156: same publishedAt stamp as publishClip — a retry that lands means the clip
     // has now gone out, and the scheduler must not treat it as still pending.
@@ -2072,7 +2073,7 @@ export default function QueueView({
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
-          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb), youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", thumbnailTime: clip.youtubeThumbnailTime, isTest: isClipTest(clip) });
+          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb), youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
         }
         if (result?.error) {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: result.error } } }));
@@ -2082,7 +2083,6 @@ export default function QueueView({
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
           nextPublishState[platKey] = "success";
           if (result?.downscaled) nextDownscaled[platKey] = result.downscaledTo || "720p";
-          if (result?.thumbnail?.status === "failed") nextThumbnailFailed[platKey] = result.thumbnail.error || "Unknown error";
           anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -2100,7 +2100,6 @@ export default function QueueView({
         const updates = { publishState: { ...nextPublishState } };
         if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
         if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
-        if (Object.keys(nextThumbnailFailed).length) updates.thumbnailFailedPosts = { ...nextThumbnailFailed };
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
         if (updates.publishedAt) publishedStamped = true;
@@ -2343,7 +2342,6 @@ export default function QueueView({
     // the render's. Only Instagram sets it, and only via its automatic fallback.
     let nextDownscaled = { ...(clip.downscaledPosts || {}) };
     // #450: account key -> why YouTube didn't take the chosen thumbnail on a post that otherwise went out.
-    let nextThumbnailFailed = { ...(clip.thumbnailFailedPosts || {}) };
     let allSuccess = true;
     // #244: this run's failures, for the scheduler's loud-failure path.
     const runFailures = [];
@@ -2408,7 +2406,6 @@ export default function QueueView({
             title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb),
             youtubeTitle: clip.youtubeTitle || clip.title,
             privacyStatus: clip.youtubePrivacy || "public",
-            thumbnailTime: clip.youtubeThumbnailTime,
             isTest: isClipTest(clip),
             scheduled: opts.scheduled === true,
           });
@@ -2433,7 +2430,6 @@ export default function QueueView({
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
           nextPublishState[plat.key] = "success";
           if (result?.downscaled) nextDownscaled[plat.key] = result.downscaledTo || "720p";
-          if (result?.thumbnail?.status === "failed") nextThumbnailFailed[plat.key] = result.thumbnail.error || "Unknown error";
           anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -2455,7 +2451,6 @@ export default function QueueView({
         const updates = { publishState: { ...nextPublishState } };
         if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
         if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
-        if (Object.keys(nextThumbnailFailed).length) updates.thumbnailFailedPosts = { ...nextThumbnailFailed };
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
         if (updates.publishedAt) publishedStamped = true;
@@ -3116,15 +3111,12 @@ export default function QueueView({
                                     // Instagram refused the full-size render. Persisted on the clip,
                                     // so the badge is still here after a restart.
                                     const downscaledTo = clip.downscaledPosts?.[platKey];
-                                    // #450: the post went out, but YouTube didn't take the chosen thumbnail.
-                                    const thumbnailFailed = clip.thumbnailFailedPosts?.[platKey];
                                     return (
                                       <div key={platKey} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                                         <span style={{ fontSize: 12 }}>{icon}</span>
                                         <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
                                         <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? "Processing…" : st === "done" ? "Sent" : st}</span>
                                         {downscaledTo && <span title={`Instagram couldn't process the full-size render, so Corva sent a ${downscaledTo} copy automatically. Your render is untouched.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>{downscaledTo}</span>}
-                                        {thumbnailFailed && <span title={`YouTube didn't take the frame you picked, so this video uses YouTube's automatic thumbnail. Reason: ${thumbnailFailed}`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Auto thumbnail</span>}
                                       </div>
                                     );
                                   })}
@@ -3434,11 +3426,6 @@ export default function QueueView({
                             </span>
                           )
                         ))}
-                        {/* #450: a clip that posted everywhere lands here, so this is where
-                            "YouTube didn't take the thumbnail you picked" has to be said. */}
-                        {Object.keys(clip.thumbnailFailedPosts || {}).length > 0 && (
-                          <span title={`YouTube didn't take the frame you picked, so this video uses YouTube's automatic thumbnail. Reason: ${Object.values(clip.thumbnailFailedPosts)[0]}`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>Auto thumbnail</span>
-                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRepost(clip); }}
                           disabled={!!reposting}
