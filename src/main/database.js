@@ -340,6 +340,30 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 14,
+    description: "Create reposts: one row per repost, linked to the first post, with both post times (#461)",
+    up(database) {
+      // Written by src/main/repost-log.js. original_clip_id is the FIRST post
+      // even for a repost of a repost; parent_clip_id is the clip it was copied
+      // from. Times are local "YYYY-MM-DD HH:MM" (the tracker's slot times).
+      // created_at is NULL only for a backfilled repost whose clip is gone.
+      database.run(`
+        CREATE TABLE reposts (
+          repost_clip_id     TEXT PRIMARY KEY,
+          original_clip_id   TEXT NOT NULL,
+          parent_clip_id     TEXT NOT NULL,
+          project_id         TEXT,
+          title              TEXT,
+          game               TEXT,
+          created_at         TEXT,
+          original_posted_at TEXT,
+          posted_at          TEXT
+        )
+      `);
+      database.run(`CREATE INDEX idx_reposts_original ON reposts(original_clip_id)`);
+    },
+  },
 ];
 
 /**

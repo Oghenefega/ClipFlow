@@ -12,6 +12,7 @@ import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
 import { Card, PageHeader, toFileUrl, CopyIconButton } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
+import PostPill from "../components/PostPill";
 import { downloadBlob } from "../utils/recapCardImage";
 import {
   PLATFORMS, PLATFORM_LABEL, LENGTH_BUCKETS, DAYS, HOUR_BANDS,
@@ -174,7 +175,7 @@ function DrawerVideo({ src }) {
   return <video ref={ref} src={src} controls autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }} />;
 }
 
-function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelect }) {
+function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelect, repostIndex, onOpenTrackerAt }) {
   const [playing, setPlaying] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [capPlatform, setCapPlatform] = useState(null);
@@ -286,8 +287,21 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
             {clip.duration > 0 && chip(`${Math.round(clip.duration)}s`)}
             {chip(`${SOURCE_LABEL[SOURCE_ORDER.includes(clip.titleSource) ? clip.titleSource : "unknown"]} title`, clip.titleSource === "self")}
             {clip.repostOf && chip("Repost")}
+            {repostIndex?.byOriginal?.get(clip.clipId)?.length > 0 && chip(`Reposted ×${repostIndex.byOriginal.get(clip.clipId).length}`)}
             {clip.source === "import" && chip("Import")}
           </div>
+          {/* #461: the other days this post went out, both ways — each opens in the Tracker. */}
+          {(() => {
+            const original = repostIndex?.originalOf?.get(clip.clipId);
+            const list = original ? [original] : (repostIndex?.byOriginal?.get(clip.clipId) || []);
+            if (!list.length) return null;
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "-2px 0 10px" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textTertiary, marginRight: 2 }}>{original ? "Repost of" : "Reposted"}</span>
+                {list.map((p) => <PostPill key={p.clipId} post={p} onGo={() => onOpenTrackerAt?.(p.clipId, p.date)} />)}
+              </div>
+            );
+          })()}
           <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-1px", lineHeight: 1, color: T.text }}>
             {clip.fetchedAt ? fmtK(clip.total) : "—"}<span style={{ fontSize: 12, color: T.textTertiary, fontWeight: 400, marginLeft: 8, letterSpacing: 0 }}>views across {PLATFORMS.filter((p) => clip.views[p] != null).length} platform{PLATFORMS.filter((p) => clip.views[p] != null).length === 1 ? "" : "s"}</span>
           </div>
@@ -364,7 +378,7 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
 
 // ---- the tab ----------------------------------------------------------------
 
-export default function AnalyticsView({ gamesDb = [], active, localProjects = [], onOpenInEditor }) {
+export default function AnalyticsView({ gamesDb = [], active, localProjects = [], onOpenInEditor, repostIndex, onOpenTrackerAt }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -719,7 +733,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
 
     </div>
       {selected && (
-        <ClipDrawer clip={selected} medianAll={medianAll} related={related} onClose={closeDrawer} onOpenInEditor={onOpenInEditor} onSelect={setSelectedId} />
+        <ClipDrawer clip={selected} medianAll={medianAll} related={related} onClose={closeDrawer} onOpenInEditor={onOpenInEditor} onSelect={setSelectedId} repostIndex={repostIndex} onOpenTrackerAt={onOpenTrackerAt} />
       )}
     </div>
   );

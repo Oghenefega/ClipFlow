@@ -106,6 +106,14 @@ const reconcileRenameHistory = async (entries, watchFolder, testWatchFolder) => 
   return out;
 };
 
+// "16:30" → "4:30 PM", the tracker's slot format.
+const to12h = (hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  const ap = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ap}`;
+};
+
 export default function App() {
   // Navigation
   const [view, setView] = useState("rename");
@@ -883,12 +891,6 @@ export default function App() {
   // Scheduled clips for the Tracker Calendar's read-only future preview. scheduledAt is a local
   // ISO string "YYYY-MM-DDTHH:MM:00", so date/time slice without any UTC conversion.
   const scheduledClips = React.useMemo(() => {
-    const to12h = (hhmm) => {
-      const [h, m] = hhmm.split(":").map(Number);
-      const ap = h >= 12 ? "PM" : "AM";
-      const h12 = h % 12 === 0 ? 12 : h % 12;
-      return `${h12}:${String(m).padStart(2, "0")} ${ap}`;
-    };
     // clipId/projectId/paths ride along so the Tracker's week log can show the frame
     // and offer "open in editor" / "show in Explorer" on a not-yet-published clip (#218).
     return Object.entries(allClips).flatMap(([projectId, clips]) =>
@@ -906,6 +908,61 @@ export default function App() {
       }))
     );
   }, [allClips]);
+
+  // #461: which posts were reposted, and when each repost went out. Posted reposts come
+  // from the tracker (its row outlives a deleted clip); scheduled and still-waiting ones
+  // from the clips. A repost of a repost counts under the FIRST post.
+  //   byOriginal: original clipId → [{ clipId, projectId, state, date, time }], oldest first
+  //   originalOf: repost clipId  → { clipId, projectId, state, date, time } of the first post
+  // state: "posted" | "scheduled" | "queued" (date/time null for queued).
+  const repostIndex = React.useMemo(() => {
+    const parentOf = new Map();
+    const clipAt = new Map();
+    for (const [projectId, clips] of Object.entries(allClips)) {
+      for (const c of clips) {
+        clipAt.set(c.id, { projectId, clip: c });
+        if (c.repostOf) parentOf.set(c.id, c.repostOf);
+      }
+    }
+    const postedRow = new Map();
+    for (const t of trackerData) {
+      if (!t?.clipId) continue;
+      if (!postedRow.has(t.clipId)) postedRow.set(t.clipId, t);
+      if (t.repostOf && !parentOf.has(t.clipId)) parentOf.set(t.clipId, t.repostOf);
+    }
+    const firstPost = (id) => {
+      const seen = new Set([id]);
+      while (parentOf.has(id) && !seen.has(parentOf.get(id))) { id = parentOf.get(id); seen.add(id); }
+      return id;
+    };
+    const describe = (id) => {
+      const projectId = clipAt.get(id)?.projectId || null;
+      const t = postedRow.get(id);
+      if (t) return { clipId: id, projectId, state: "posted", date: t.date, time: t.time };
+      const at = clipAt.get(id)?.clip?.scheduledAt;
+      if (at) return { clipId: id, projectId, state: "scheduled", date: at.slice(0, 10), time: to12h(at.slice(11, 16)) };
+      return { clipId: id, projectId, state: "queued", date: null, time: null };
+    };
+    const byOriginal = new Map();
+    const originalOf = new Map();
+    for (const id of parentOf.keys()) {
+      // A repost pressed but deleted before it went out is no longer anywhere.
+      if (!clipAt.has(id) && !postedRow.has(id)) continue;
+      const first = firstPost(id);
+      if (!byOriginal.has(first)) byOriginal.set(first, []);
+      byOriginal.get(first).push(describe(id));
+      originalOf.set(id, describe(first));
+    }
+    for (const list of byOriginal.values()) list.sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"));
+    return { byOriginal, originalOf };
+  }, [allClips, trackerData]);
+
+  // #461: jump the Tracker to one post — its week, with its popup open.
+  const [trackerFocus, setTrackerFocus] = useState(null);
+  const openTrackerAt = useCallback((clipId, date) => {
+    setTrackerFocus({ clipId, date, nonce: Date.now() });
+    setView("tracker");
+  }, []);
 
   // #315: clips stuck between "scheduled" and "posted".
   //
@@ -1154,6 +1211,8 @@ export default function App() {
               onOpenInEditor={handleOpenQueueClipInEditor}
               onCreateGame={handleNewGame}
               focusFailedSignal={queueFocusFailed}
+              repostIndex={repostIndex}
+              onOpenTrackerAt={openTrackerAt}
             />
           </div>
         </div>
@@ -1190,13 +1249,15 @@ export default function App() {
               // clip field uses, so the Queue's scheduler picks up the new time.
               onRescheduleClip={(projectId, clipId, scheduledAt) => handleUpdateClipFields(projectId, clipId, { scheduledAt })}
               onRepostClip={handleRepostClip}
+              repostIndex={repostIndex}
+              focusEntry={trackerFocus}
             />
           </div>
         </div>
         <div style={tabPaneStyle(view === "analytics")}>
           {/* #397: wider than the other tabs — the clip grid wants the room. The view owns its maxWidth (it grows when the clip panel docks, #401). */}
           <div style={{ padding: "32px 40px" }}>
-            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} localProjects={localProjects} onOpenInEditor={handleOpenAnalyticsClipInEditor} />
+            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} localProjects={localProjects} onOpenInEditor={handleOpenAnalyticsClipInEditor} repostIndex={repostIndex} onOpenTrackerAt={openTrackerAt} />
           </div>
         </div>
         <div style={tabPaneStyle(view === "settings")}>

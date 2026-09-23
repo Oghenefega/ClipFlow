@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
+import PostPill from "../components/PostPill";
 import { toFileUrl } from "../components/shared";
 import {
   ledgerTotal, rankForXp, weekEntries, computeRecap, localISO, addDaysISO, weekStartISO,
@@ -100,6 +101,8 @@ export default function TrackerView({
   onOpenQueue,
   onRescheduleClip,
   onRepostClip,
+  repostIndex,
+  focusEntry,
 }) {
   // #276: the Calendar sub-view folded into week navigation — one view, offset in
   // weeks from today. 0 = live current week, negative = frozen past, positive = preview.
@@ -698,6 +701,30 @@ export default function TrackerView({
     setShowTemplateEditor(false);
   };
 
+  // ---------- jump to one post (#461) ----------
+  // A repost pill (or App's openTrackerAt) names a clip and its day: flip to that week,
+  // then open the card's popup once the week has drawn — through the card's own click,
+  // so the popup is the same one a press on the card gives.
+  const [pendingFocus, setPendingFocus] = useState(null);
+  const goToPost = (clipId, date) => {
+    if (!clipId || !date) return;
+    const weeks = Math.round((Date.parse(`${weekStartISO(new Date(`${date}T12:00:00`))}T00:00:00Z`) - Date.parse(`${curWeekStart}T00:00:00Z`)) / (7 * 864e5));
+    goWeek(weeks - weekOffset);
+    setPendingFocus({ clipId, n: Date.now() });
+  };
+  useEffect(() => { if (focusEntry) goToPost(focusEntry.clipId, focusEntry.date); }, [focusEntry]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!pendingFocus) return;
+    const raf = requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-tracker-clip="${CSS.escape(pendingFocus.clipId)}"]`);
+      setPendingFocus(null);
+      if (!card) return;
+      card.scrollIntoView({ block: "center" });
+      card.click();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pendingFocus]);
+
   // ---------- drag a scheduled clip to another slot (#282) ----------
   // Only clips that haven't published yet move: they carry `scheduledAt` on the clip
   // object and nothing has gone out to a platform. Posted entries are history.
@@ -1185,11 +1212,14 @@ export default function TrackerView({
                     // entries (auto or manual) are history and stay put, and a half-posted
                     // one can't be moved to a slot it is already past.
                     const movable = isSched && !!item.clipId && !!item.projectId && !!onRescheduleClip;
+                    // #461: this post was reposted since — outlined, where a repost's own mark is filled.
+                    const reposts = item.clipId ? repostIndex?.byOriginal?.get(item.clipId) : null;
                     const retryTitle = isRetry
                       ? `${item.title || "Clip"} — went out on ${item.postedCount} platform${item.postedCount === 1 ? "" : "s"}, ${item.failedCount} still failing. Click to retry in the Queue.`
                       : null;
                     return (
                       <div key={(isSched ? "s" : isRetry ? "r" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
+                        data-tracker-clip={item.clipId || undefined}
                         title={retryTitle || (movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || ""))}
                         draggable={movable}
                         onDragStart={movable ? (e) => startClipDrag(item, e) : undefined}
@@ -1231,7 +1261,14 @@ export default function TrackerView({
                             position: "relative", fontSize: 10, lineHeight: 1.35, fontWeight: 500,
                             color: "rgba(var(--lift),0.78)", display: "-webkit-box", WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word",
-                          }}>{cleanTitle(item.title)}</div>
+                          }}>
+                            {/* #461: in the title, not the top row — beside a 4-letter game tag
+                                the top row had no room left and the tag shrank to "1…". */}
+                            {reposts?.length > 0 && (
+                              <span title={`Reposted ${reposts.length} time${reposts.length === 1 ? "" : "s"}. Click for the days.`} style={{ display: "inline-block", fontFamily: T.mono, fontSize: 8.5, fontWeight: 800, lineHeight: 1.3, padding: "0 3px", marginRight: 4, borderRadius: 4, verticalAlign: 1, color: T.accentLight, border: `1px solid ${T.accentBorder}` }}>{`↻${reposts.length}`}</span>
+                            )}
+                            {cleanTitle(item.title)}
+                          </div>
                         )}
                       </div>
                     );
@@ -1461,6 +1498,20 @@ export default function TrackerView({
                         <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` : "0 0 5px rgba(var(--lift),0.2)") }} />
                         <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
                       </div>
+                      {/* #461: the other days this post went out, both ways. */}
+                      {(() => {
+                        const reposts = entry.clipId ? repostIndex?.byOriginal?.get(entry.clipId) : null;
+                        const original = entry.clipId ? repostIndex?.originalOf?.get(entry.clipId) : null;
+                        if (!reposts?.length && !original) return null;
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, marginRight: 1 }}>{original ? "Repost of" : "Reposted"}</span>
+                            {(original ? [original] : reposts).map((p) => (
+                              <PostPill key={p.clipId} post={p} onGo={() => goToPost(p.clipId, p.date)} onQueue={() => { closePopover(); onOpenQueue?.(); }} />
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                   {(link?.projectId || link?.renderPath) && (

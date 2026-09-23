@@ -4,9 +4,21 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-09-23 (session 274) — YouTube no longer gets a thumbnail; its Shorts show YouTube's own frame
+## [Unreleased] — 2026-09-23 (session 274) — YouTube no longer gets a thumbnail; reposted clips say so and link to each other
 
-### Removed
+### Added
+- **A reposted clip now says so, and links to its reposts (#461).**
+  - **Tracker calendar:** the original's card starts its title with an outlined `↻N` (N = how many times it was reposted). It sits in the title line because beside a 4-letter game tag like "100T" the top row had no room.
+  - **Tracker popup:** the original lists every repost as a date pill. A posted one is solid, a scheduled one is dashed yellow, and one still waiting reads "In Queue". A repost's popup says "Repost of <date>".
+  - **Jumping:** pressing a date moves the calendar to that week and opens that post's popup. "In Queue" opens the Queue.
+  - **Elsewhere:** the same pills are on the Queue's Published rows, behind a "↻ Reposted ×N" or "↻ Repost of <date>" chip, and in the Analytics clip panel, next to a new "Reposted ×N" chip. From either, a date opens the Tracker at that post.
+  - A repost of a repost counts under the first post.
+- **Every repost is recorded for later analysis (#461).**
+  - A new `reposts` table (database migration v14) gets one row per Repost press, written through `src/main/repost-log.js`.
+  - Each row holds the first post's id, the parent clip, when the press happened, when the original went out, and when the repost went out. That last one is stamped by `recordPublishedClip`, so it covers both Queue and scheduled posts.
+  - A one-time catch-up on first launch covers reposts made before now. It is guarded in the database (`maintenance_runs`). On a copy of Fega's database it recorded all 17: 7 posted, 10 scheduled.
+  - Views already live per clip, so comparing original and repost views is one join. The Analytics view that answers "does reposting pay off?" is #462.
+
 - **Corva no longer sends a thumbnail to YouTube (#460).**
   - Why: `thumbnails.set` accepts the picked frame for a Short, but YouTube shows it nowhere a viewer sees. Every Shorts card, search result and link preview uses one of YouTube's three suggested frames, checked on Fega's Sept 21–22 posts.
   - Only YouTube Studio can switch between those frames. Google staff confirmed apps can't reach them ("not yet fully supported" for Shorts surfaces, issuetracker 561838826, 2026-09-18).

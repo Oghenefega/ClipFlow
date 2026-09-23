@@ -126,6 +126,7 @@ const render = require("./render");
 const aiPipeline = require("./ai-pipeline");
 const database = require("./database");
 const feedbackDb = require("./feedback");
+const repostLog = require("./repost-log");
 const namingPresets = require("./naming-presets");
 const fileMigration = require("./file-migration");
 const ytDescriptionBackfill = require("./yt-description-backfill");
@@ -1484,6 +1485,19 @@ app.whenReady().then(async () => {
       if (r.ran) logger.info(logger.MODULES.system, `#458 approved taste rows refreshed from the clips: ${r.changed}`, { backup: r.backup });
     } catch (err) {
       logger.error(logger.MODULES.system, `#458 approved-row repair failed: ${err.message}`);
+    }
+
+    // #461: reposts made before the reposts table existed. Once per database, and
+    // like #458 an unreachable library waits for the next launch.
+    try {
+      const root = libraryRoot();
+      const r = !(root && fs.existsSync(root)) ? { ran: false } : repostLog.backfillOnce(
+        () => projects.listProjects(root).projects || [], // the summary keeps every clip's repostOf
+        store.get("trackerData") || []
+      );
+      if (r.ran) logger.info(logger.MODULES.system, `#461 reposts recorded from the library: ${r.count}`);
+    } catch (err) {
+      logger.error(logger.MODULES.system, `#461 repost backfill failed: ${err.message}`);
     }
 
     // #181: one-time repair of legacy flat-folder render collisions. Record
@@ -3342,7 +3356,13 @@ ipcMain.handle("project:duplicateClip", async (_, projectId, clipId, overrides) 
 ipcMain.handle("project:repostClip", async (_, projectId, clipId) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
-    return projects.repostClip(watchFolder, projectId, clipId);
+    const res = projects.repostClip(watchFolder, projectId, clipId);
+    // #461: every press is a row, linked to the first post.
+    if (res?.success) {
+      const clips = projects.loadProject(watchFolder, projectId)?.clips || [];
+      repostLog.recordRepost(res.clip, { projectId, clips, trackerRows: store.get("trackerData") || [] });
+    }
+    return res;
   } catch (err) { return { error: err.message }; }
 });
 
@@ -3976,6 +3996,9 @@ function recordPublishedClip(row, { training } = {}) {
       logger.warn(logger.MODULES.system, `Title/caption training row failed: ${err.message}`);
     }
   }
+
+  // #461: a repost going out stamps its row in the reposts table.
+  if (row.repostOf) repostLog.markPosted(row);
 
   mainWindow?.webContents.send("tracker:appended", row);
   return row;

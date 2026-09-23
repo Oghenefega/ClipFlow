@@ -9,6 +9,7 @@ import CaptionsView from "./CaptionsView";
 import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
+import PostPill from "../components/PostPill";
 import { localISO, weekStartISO } from "../utils/trackerEngine";
 import { isActiveDay } from "../utils/trackerTemplate";
 import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
@@ -921,7 +922,7 @@ export default function QueueView({
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, streamSchedule,
   platformOptions, setPlatformOptions, gamesDb, setGamesDb, streamingMode, onOpenInEditor, onCreateGame,
-  focusFailedSignal, onRepostClip,
+  focusFailedSignal, onRepostClip, repostIndex, onOpenTrackerAt,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -2521,6 +2522,7 @@ export default function QueueView({
   // (missing render file, deleted project) are shown on the row that was clicked.
   const [reposting, setReposting] = useState(null);   // clipId in flight
   const [repostErr, setRepostErr] = useState(null);   // { clipId, message }
+  const [repostsShown, setRepostsShown] = useState(null); // #461: clipId whose repost days are open
   const handleRepost = async (clip) => {
     if (reposting) return;
     setReposting(clip.id);
@@ -3426,6 +3428,20 @@ export default function QueueView({
                             </span>
                           )
                         ))}
+                        {/* #461: this post was reposted, or is itself a repost — the chip opens the days. */}
+                        {(repostIndex?.byOriginal?.get(clip.id)?.length > 0 || repostIndex?.originalOf?.has(clip.id)) && (() => {
+                          const n = repostIndex.byOriginal.get(clip.id)?.length || 0;
+                          // A bare "↻ Repost" beside the Repost button read as the same action twice.
+                          const orig = repostIndex.originalOf.get(clip.id);
+                          const origDay = orig?.date ? new Date(`${orig.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+                          return (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setRepostsShown(repostsShown === clip.id ? null : clip.id); }}
+                              title={n ? "The days this clip was reposted" : "The day the original went out"}
+                              style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: "transparent", color: T.accentLight, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}
+                            >{n ? `↻ Reposted ×${n}` : `↻ Repost of ${origDay || "an earlier post"}`}</button>
+                          );
+                        })()}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRepost(clip); }}
                           disabled={!!reposting}
@@ -3437,6 +3453,16 @@ export default function QueueView({
                       {repostErr?.clipId === clip.id && (
                         <div style={{ padding: "5px 12px", borderTop: `1px solid ${T.border}`, color: T.red, fontSize: 11 }}>{repostErr.message}</div>
                       )}
+                      {repostsShown === clip.id && (() => {
+                        const original = repostIndex?.originalOf?.get(clip.id);
+                        const list = original ? [original] : (repostIndex?.byOriginal?.get(clip.id) || []);
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", padding: "6px 12px", borderTop: `1px solid ${T.border}` }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textTertiary, marginRight: 2 }}>{original ? "Repost of" : "Reposted"}</span>
+                            {list.map((p) => <PostPill key={p.clipId} post={p} onGo={() => onOpenTrackerAt?.(p.clipId, p.date)} />)}
+                          </div>
+                        );
+                      })()}
 
                       {isOpen && (
                         <div style={{ borderTop: `1px solid ${T.border}`, background: "rgba(var(--shade),calc(0.16 * var(--shadeK)))" }}>
