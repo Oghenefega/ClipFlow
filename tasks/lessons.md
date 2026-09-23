@@ -2161,3 +2161,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I read his sentence against a What's New line I had written ("no subtitle word on top of it") and assumed he wanted subtitle words present. He was actually worried the burn-in was gone. I built a measurement on top of an interpretation I never checked with him.
 
 **Rule:** when Fega's words about a visual could mean either "keep what's there" or "add something new", ask the one-line question before measuring or planning. That goes double when my own earlier wording may have planted the worry. Don't block a release on an interpretation he hasn't confirmed.
+
+## Session 274 (2026-09-23) — I told Fega his YouTube pick showed "in search, home and subscriptions" without checking a single one of those pages
+
+**What happened:** Fega reported that YouTube wasn't using the saved thumbnail. I found the API image at `maxresdefault` and a separate vertical `oar2` image on the Shorts shelf. I then told him twice that the pick still shows "in search, on the home page and in subscriptions". He sent screenshots of search and the home page, and both showed the auto frame. Pulling the page HTML afterwards showed that no Shorts surface uses the API image at all: the /shorts page, search, and even the watch page's og:image all point to YouTube's auto frames.
+
+**Why:** I inferred the surfaces from the image family (landscape = wide surfaces) and from the s269 memory note. I never loaded a real page to see which image URL it references. The s269 probe had the same gap: it measured the URLs `videos.list` reports, not the ones YouTube's pages use.
+
+**Rule:** before saying where a platform shows an image, fetch the actual surface (page HTML or a screenshot) and read which image URL it references. "The API accepted it" and "the CDN has it" prove nothing about what viewers see.
