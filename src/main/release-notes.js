@@ -16,11 +16,14 @@ module.exports = [
     date: "",
     added: [
       "Re-transcribe just one part of a clip. Right-click a section on the timeline and choose \"Re-transcribe this section\", or open the menu on the Re-transcribe button at the top of the editor and pick a section. Only the subtitles in that part are redone. Every other line you fixed, hid, moved or styled stays exactly as it was, and Ctrl+Z undoes it. A part where nobody is talking tells you \"No speech found\" and is left as it was.",
+      "You can now see when a clip has been reposted. In the Tracker, a post you've reposted starts its title with a small ↻ and a count. Click it and the popup lists every repost by day and time: solid if it's posted, dashed yellow if it's scheduled, \"In Queue\" if it's still waiting. Press a date and the Tracker jumps to that week with that post open. A repost's popup says which day the original went out and takes you back to it. The same dates are on the Queue's Published list and in a clip's Analytics panel.",
+      "Corva now keeps a record of every repost: when you pressed Repost, when the original went out, and when the repost went out. Reposts you made before this update are recorded the first time you open it. This is so Corva can later show whether reposting pays off.",
     ],
     changed: [
       "\"Whole clip\" on the Re-transcribe button now redoes every part your clip actually shows, including anything you stretched it into or moved it to, and Ctrl+Z undoes it. Before, it redid only the moment Corva first picked and threw away all your subtitle fixes.",
       "When you approve a clip and then trim or re-cut it, Corva now learns from the version you kept, words and title, instead of the moment it first picked. Clips you approved before this update are brought up to date the first time you open it.",
       "The title ideas Corva writes when you approve a clip now come from the words in your cut, not from the moment Corva first picked.",
+      "Corva no longer sends your picked frame to YouTube. YouTube accepted it but never showed it: Shorts in search, on your channel and in the feed always use one of YouTube's own suggested frames, and only YouTube Studio can choose between those. The \"Cover on\" row under a clip's picture in the Queue now lists only TikTok and Instagram, where your frame really is the cover. Hovering the picture tells you to change YouTube's frame in YouTube Studio. The yellow \"Auto thumbnail\" tag is gone with it.",
     ],
     fixed: [
       "Re-transcribing a clip from an older recording no longer fills it with nonsense words. When a recording's audio tracks don't match your current setup, Corva now says it can't tell which track is your mic and leaves your subtitles alone.",

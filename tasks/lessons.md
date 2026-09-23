@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-22 (s273) -- Session 273: three self-caught lessons. (1) Engine runs near the commit limit stall ~15 min or die "bad allocation" (Resolve held ~15 GB) -> clipflow-ffmpeg-media: read commit free first, stub transcribeBatch, timeout 300; memory project_engine_memory_pressure. (2) A January 4-track fixture put game audio on today's voice index -> clipflow-ffmpeg-media: ffprobe the track count against audioSetup before any track-index test; memory project_obs_recording_layout updated. (3) A fixed menu inside the z-10 top bar drew under the preview -> clipflow-ui-debug: portal to body, verify with elementFromPoint plus a screenshot. Everything below the NEXT-UNDISTILLED marker dated 2026-09-22 or earlier is distilled. -->
+> <!-- DISTILLED-THROUGH: 2026-09-23 (s274) -- Session 274: one lesson (Fega-corrected). I claimed the YouTube thumbnail showed in search, home and subscriptions without loading any of those pages -> clipflow-trace-verify: load the surface and grep the image URL it uses before saying where a platform shows something; memory project_youtube_shorts_thumbnail_api corrected. Everything below the NEXT-UNDISTILLED marker dated 2026-09-23 or earlier is distilled. -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
