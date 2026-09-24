@@ -12,7 +12,7 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
+    version: "0.5.0-alpha.15",
     date: "2026-09-24",
     added: [
       "Imported clips remember where they came from. In the Queue, an imported clip shows \"from <your original file name>\" under its title, even after you retitle it, and a Show original button opens Explorer with the original selected. The Tracker's clip panel shows the same line and button. If the original has been moved or deleted since, Corva says so.",

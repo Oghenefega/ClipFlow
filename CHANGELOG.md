@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-24 (session 278) — 0.5.0-alpha.15 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.15 and the installer published to the update feed.** This build ships everything since alpha.14 (`2498221..HEAD`): imported clips linking back to their original file, and the single "Remove import" with the boot repair for imports stranded by the old remove paths (#471). The What's New entry was stamped with this version.
+
 ## [Unreleased] — 2026-09-24 (session 278) — Imported clips link back to their original file
 
 ### Added
