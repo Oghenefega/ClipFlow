@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
 import PostPill from "../components/PostPill";
@@ -251,21 +252,19 @@ export default function TrackerView({
 
   // ---------- count-up animation ----------
   const [animPosted, setAnimPosted] = useState(0);
-  const [animPct, setAnimPct] = useState(0);
   const [animXp, setAnimXp] = useState(0);
   const [ringReady, setRingReady] = useState(false);
   // Last values the counters actually displayed — each animation run starts from here,
   // so the counters re-animate whenever posted/target/totalXp change (data loading in
   // after mount, a new post logged live) instead of freezing at their mount-time values.
-  const animFromRef = useRef({ posted: 0, pct: 0, xp: 0 });
+  const animFromRef = useRef({ posted: 0, xp: 0 });
   // #276: the ring counts posted clips on current/past weeks, scheduled clips on
   // future ones. A past untracked week has target null — 0%, never a full ring.
   const ringCount = viewMode === "future" ? weekAgg.sched : posted;
   useEffect(() => {
-    const pct = target > 0 ? Math.round(Math.min(1, ringCount / target) * 100) : (viewMode === "current" ? 100 : 0);
     const done = () => {
-      setAnimPosted(ringCount); setAnimPct(pct); setAnimXp(totalXp); setRingReady(true);
-      animFromRef.current = { posted: ringCount, pct, xp: totalXp };
+      setAnimPosted(ringCount); setAnimXp(totalXp); setRingReady(true);
+      animFromRef.current = { posted: ringCount, xp: totalXp };
     };
     if (document.hidden) {
       done();
@@ -280,17 +279,15 @@ export default function TrackerView({
       const e = 1 - Math.pow(1 - p, 3);
       const shown = {
         posted: Math.round(from.posted + (ringCount - from.posted) * e),
-        pct: Math.round(from.pct + (pct - from.pct) * e),
         xp: Math.round(from.xp + (totalXp - from.xp) * e),
       };
       setAnimPosted(shown.posted);
-      setAnimPct(shown.pct);
       setAnimXp(shown.xp);
       animFromRef.current = shown;
       if (p < 1) raf = requestAnimationFrame(step);
       else done();
     };
-    setRingReady(true); // trigger CSS width/dashoffset transitions immediately
+    setRingReady(true); // trigger CSS width transitions immediately
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [ringCount, target, totalXp, viewMode]);
@@ -305,7 +302,9 @@ export default function TrackerView({
   const [pickerPos, setPickerPos] = useState(null);
   useEffect(() => {
     if (!pickerOpen) return;
-    const onClick = (e) => { if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickerOpen(false); };
+    // The Switch button toggles the list itself — leaving it to this handler as well
+    // closed the list on mousedown and reopened it on the click.
+    const onClick = (e) => { if (pickerRef.current && !pickerRef.current.contains(e.target) && !pickerBtnRef.current?.contains(e.target)) setPickerOpen(false); };
     const onKey = (e) => { if (e.key === "Escape") setPickerOpen(false); };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -908,20 +907,27 @@ export default function TrackerView({
     toast(`Moved to ${DAY_SHORT[DAY_NAMES.indexOf(dayName)]} ${"·"} ${shortSlot(slotTime)}`);
   };
 
-  // ---------- ring geometry ----------
-  const R = 36, C = 2 * Math.PI * R; // #279: 88px ring (was 142) — height budget
-  const progFrac = target > 0 ? Math.min(1, ringCount / target) : (viewMode === "current" ? 1 : 0);
-  const dashOffset = ringReady ? C * (1 - progFrac) : C;
-  // #276: ring color by mode — live pace for the current week, frozen verdict for
+  // ---------- goal chips (#468) ----------
+  // #276: status colour by mode — live pace for the current week, frozen verdict for
   // past weeks (green hit / red miss / neutral untracked), scheduled yellow for future.
   const outcome = weekAgg.state; // current | future | hit | missed | untracked | noData
   const paceColor = viewMode === "current"
     ? (pace.status === "green" ? T.green : pace.status === "yellow" ? T.yellow : T.red)
     : viewMode === "future" ? T.yellow
       : outcome === "hit" ? T.green : outcome === "missed" ? T.red : T.textTertiary;
-  const expFrac = viewMode === "current" && target > 0 ? Math.min(1, pace.expected / target) : 0;
-  const tickDeg = expFrac * 360;
-  const tickHidden = expFrac <= 0 || expFrac >= 1;
+  // One chip per post toward the target, lit in the colour of the game it was for,
+  // in the order the posts went out; they light one by one as the count animates.
+  // Future weeks show what's scheduled as outlined chips. An untracked past week
+  // (no target) shows just what was posted.
+  const chipPosts = (viewMode === "future"
+    ? wd.flatMap((d) => schedByDate.get(d.iso) || [])
+    : [...thisWeekEntries]
+  ).sort((a, b) => (a.date || "").localeCompare(b.date || "") || parseTimeToMinutes(a.time || "12:00 AM") - parseTimeToMinutes(b.time || "12:00 AM"));
+  const chipTotal = target > 0 ? target : ringCount;
+  const chipGap = chipTotal > 40 ? 1 : chipTotal > 24 ? 3 : 4;
+  // The chip where pace says you should be, while you're short of it.
+  const paceChip = viewMode === "current" && target > 0 && ringCount < pace.expectedRounded ? Math.min(target, pace.expectedRounded) - 1 : -1;
+  const bonus = target > 0 ? Math.max(0, ringCount - target) : 0;
 
   return (
     <div ref={wrapRef} style={{ fontFamily: T.font, color: T.text, display: "flex", gap: PANEL_GAP, alignItems: "flex-start" }}>
@@ -986,9 +992,12 @@ export default function TrackerView({
           transform: npHover ? "translateY(-1px)" : "none",
           transition: "border-color .18s ease, box-shadow .18s ease, transform .18s ease",
         }}>
-        {pickerOpen && pickerPos && (
+        {/* #469: portalled to <body>. Inside the card, the card's hover lift (a transform)
+            made it the containing block for this fixed list, and its overflow:hidden
+            clipped it — the list opened ~790px off-screen and Switch did nothing. */}
+        {pickerOpen && pickerPos && createPortal(
           <div ref={pickerRef} style={{
-            position: "fixed", top: pickerPos.top, right: pickerPos.right, zIndex: 20, width: 300, maxHeight: 340, overflowY: "auto",
+            position: "fixed", top: pickerPos.top, right: pickerPos.right, zIndex: 2500, width: 300, maxHeight: 340, overflowY: "auto", fontFamily: T.font,
             background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 10, boxShadow: "0 18px 50px rgba(var(--shade),calc(0.6 * var(--shadeK)))",
           }}>
             <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.textTertiary, fontWeight: 600, padding: "4px 6px 9px" }}>What are you playing this week</div>
@@ -1010,7 +1019,8 @@ export default function TrackerView({
                 </div>
               ))}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Poster: the same cached Steam key art the Projects tab uses, now full-bleed
@@ -1088,65 +1098,62 @@ export default function TrackerView({
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
-              <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: "rotate(-90deg)" }}>
-                <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(var(--lift),0.06)" strokeWidth="7" />
-                <circle cx="44" cy="44" r={R} fill="none" stroke={paceColor} strokeWidth="7" strokeLinecap="round"
-                  strokeDasharray={C.toFixed(1)} strokeDashoffset={dashOffset.toFixed(1)}
-                  style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1), stroke 0.4s" }} />
-                {!tickHidden && (
-                  <line x1="44" y1="8" x2="44" y2="16" stroke={T.bg} strokeWidth="3" strokeLinecap="round"
-                    transform={`rotate(${tickDeg} 44 44)`} style={{ transition: "transform 0.9s cubic-bezier(.4,0,.2,1)" }} />
-                )}
-              </svg>
-              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: T.mono, fontSize: 22, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: T.text }}>{animPosted}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>{target != null ? `of ${target}` : "posted"}</span>
-                <span style={{ fontSize: 10, color: paceColor, fontWeight: 600, marginTop: 3, letterSpacing: "0.04em" }}>
-                  {viewMode === "current" ? `${animPct}%`
-                    : viewMode === "future" ? "scheduled"
-                      : outcome === "hit" ? "HIT" : outcome === "missed" ? "MISSED" : "untracked"}
+          {/* Count + status on one line */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, minWidth: 0, marginBottom: 10 }}>
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6, flexShrink: 0 }}>
+              <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: T.text }}>{animPosted}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: T.textTertiary }}>{target != null ? `of ${target}` : "posted"}</span>
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {viewMode === "current" ? (
+                goalReached
+                  ? <span style={{ color: T.green }}>Goal hit {"·"} every post now is bonus</span>
+                  : <>
+                    <span style={{ color: paceColor }}>{pace.diff === 0 ? "On pace" : pace.diff > 0 ? `${pace.diff} ahead of pace` : `${Math.abs(pace.diff)} behind pace`}</span>
+                    <span style={{ color: T.textSecondary, fontWeight: 500 }}> {"·"} {pace.expectedRounded} by now</span>
+                  </>
+              ) : viewMode === "future" ? (
+                <span style={{ color: T.textSecondary, fontWeight: 500 }}><span style={{ color: paceColor, fontWeight: 600 }}>{weekAgg.sched} scheduled</span> {"·"} nothing posted yet</span>
+              ) : (
+                <span style={{ color: paceColor }}>
+                  {outcome === "hit" ? "Goal hit" : outcome === "missed" ? "Goal missed" : "No goal tracked"}
+                  <span style={{ color: T.textSecondary, fontWeight: 500 }}> {"·"} {target != null ? `${posted} of ${target} posted` : `${posted} posted`}</span>
                 </span>
-              </div>
-            </div>
+              )}
+            </span>
+          </div>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: T.text, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{viewedGameName} <span style={{ fontFamily: T.mono, color: T.textSecondary, fontWeight: 500, marginLeft: 2 }}>{mainCount}</span>
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: T.textSecondary, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.textTertiary }} />Variety <span style={{ fontFamily: T.mono, marginLeft: 2 }}>{varietyCount}</span>
-                  </span>
-                </div>
-                <div style={{ height: 6, borderRadius: 3, background: "rgba(var(--lift),0.06)", overflow: "hidden", display: "flex" }}>
-                  <div style={{ height: "100%", background: gameColor, width: ringReady && posted ? `${Math.round((mainCount / posted) * 100)}%` : "0%", transition: "width 0.6s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
-                  <div style={{ height: "100%", background: "rgba(var(--lift),0.22)", width: ringReady && posted ? `${Math.round((varietyCount / posted) * 100)}%` : "0%", transition: "width 0.6s cubic-bezier(.4,0,.2,1)" }} />
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 500 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: paceColor, flexShrink: 0 }} />
-                {viewMode === "current" ? (
-                  <span>
-                    <span style={{ color: paceColor, fontWeight: 600 }}>
-                      {pace.diff === 0 ? "On pace" : pace.diff > 0 ? `${pace.diff} ahead of pace` : `${Math.abs(pace.diff)} behind pace`}
-                    </span>{" "}
-                    <span style={{ color: T.textSecondary }}>{"·"} {pace.expectedRounded} by now</span>
-                  </span>
-                ) : viewMode === "future" ? (
-                  <span style={{ color: T.textSecondary }}><span style={{ color: paceColor, fontWeight: 600 }}>{weekAgg.sched} scheduled</span> {"·"} nothing posted yet</span>
-                ) : (
-                  <span style={{ color: T.textSecondary }}>
-                    <span style={{ color: paceColor, fontWeight: 600 }}>
-                      {outcome === "hit" ? "Goal hit" : outcome === "missed" ? "Goal missed" : "No goal tracked"}
-                    </span>{" "}
-                    {target != null ? <>{"·"} {posted} of {target} posted</> : <>{"·"} {posted} posted</>}
-                  </span>
-                )}
-              </div>
-            </div>
+          {/* #468: the chips */}
+          <div style={{ display: "flex", gap: chipGap }}>
+            {Array.from({ length: chipTotal }, (_, i) => {
+              const post = chipPosts[i];
+              const color = post ? resolveGameDisplay(post.game).color : null;
+              const lit = !!post && i < animPosted;
+              const isPace = i === paceChip;
+              return (
+                <span key={i} title={post ? `${resolveGameDisplay(post.game).name}${post.title ? ` · ${cleanTitle(post.title)}` : ""}` : (isPace ? `${pace.expectedRounded} by now` : undefined)} style={{
+                  flex: 1, minWidth: 0, height: 22, borderRadius: chipTotal > 40 ? 2 : 5,
+                  background: lit ? (viewMode === "future" ? rgba(color, 0.14) : color) : "rgba(var(--lift),0.05)",
+                  border: lit && viewMode === "future" ? `1px dashed ${rgba(color, 0.8)}` : "none",
+                  boxShadow: lit && viewMode !== "future"
+                    ? `0 0 10px ${rgba(color, 0.5)}, inset 0 1px 0 rgba(255,255,255,0.35)`
+                    : isPace ? `inset 0 0 0 1.5px ${paceColor}` : "none",
+                  animation: isPace && !lit ? "tp-blink 1.8s ease-in-out infinite" : "none",
+                  transition: "background .25s ease, box-shadow .25s ease",
+                }} />
+              );
+            })}
+          </div>
+
+          {/* Main game vs variety — the chips already show the colours, this is the count */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: "auto", paddingTop: 10, fontSize: 11, color: T.textSecondary }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor, boxShadow: `0 0 6px ${rgba(gameColor, 0.6)}` }} />{viewedGameName} <b style={{ color: T.text, fontWeight: 700 }}>{mainCount}</b>
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.textTertiary }} />Variety <b style={{ color: T.text, fontWeight: 700 }}>{varietyCount}</b>
+            </span>
+            {bonus > 0 && <span style={{ marginLeft: "auto", color: T.green, fontWeight: 700 }}>+{bonus} bonus</span>}
           </div>
         </div>
 
@@ -1679,7 +1686,7 @@ export default function TrackerView({
         <span>{toastMsg}</span>
       </div>
 
-      <style>{`@keyframes tp-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } }`}</style>
+      <style>{`@keyframes tp-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } } @keyframes tp-blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }`}</style>
     </div>
       {detail && (() => {
         const entry = detail.entry;
