@@ -228,6 +228,8 @@ const provider = {
       usage: {
         inputTokens: usage.input_tokens || 0,
         outputTokens: usage.output_tokens || 0,
+        // #464: web searches bill per request on top of tokens.
+        webSearches: usage.server_tool_use?.web_search_requests || 0,
       },
     };
   },

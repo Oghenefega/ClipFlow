@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const { getCost } = require("./ai/cost-tracker");
+const { getCost, getWebSearchCost } = require("./ai/cost-tracker");
 
 /**
  * Structured logger for AI pipeline runs.
@@ -82,6 +82,14 @@ class PipelineLogger {
       this._append(`          of which thinking: ${thinkingTokens} tokens (${share}% of output)`);
     }
     this._append(`        Total: $${totalCost.toFixed(4)}`);
+  }
+
+  /** Log web searches a call ran; they bill per request on top of tokens (#464). */
+  logWebSearches(count) {
+    if (!(count > 0)) return;
+    const cost = getWebSearchCost(count);
+    this.apiCost += cost;
+    this._append(`[API]   Web searches: ${count} ($${cost.toFixed(4)})`);
   }
 
   /** Log info message */

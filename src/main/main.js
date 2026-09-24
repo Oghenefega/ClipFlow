@@ -4722,12 +4722,43 @@ function maybeAutoGenerateOnApprove(project, clip) {
     .finally(() => autoTitlegenInFlight.delete(clip.id));
 }
 
+// #464: one cost-log entry per research call (feeds the monthly total in
+// Settings), tokens plus the per-search fee. Best-effort — never fails the
+// call. Returns the dollar cost for the ai_calls row.
+function writeResearchCostLog(gameName, model, usage) {
+  const cost = costTracker.getCost(model, usage.inputTokens, usage.outputTokens).totalCost
+    + costTracker.getWebSearchCost(usage.webSearches);
+  try {
+    const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+    const costLogger = new pipelineLogger.PipelineLogger(processingDir, `game research ${gameName}`);
+    costLogger.info(`Game research — ${gameName}`);
+    costLogger.logApiUsage(usage.inputTokens, usage.outputTokens, model);
+    costLogger.logWebSearches(usage.webSearches);
+    costLogger.finalize();
+  } catch (e) {
+    logger.warn(logger.MODULES.pipeline, "Could not write game research cost log", { error: e.message });
+  }
+  return cost;
+}
+
 // Research a game using Opus with web search (one-time per game)
 ipcMain.handle("anthropic:researchGame", async (_, gameName) => {
+  // #464: every call, success or failure, leaves an ai_calls row like the
+  // title/caption path does.
+  const t0 = Date.now();
+  const model = "claude-opus-4-6";
+  let provider = null;
+  let usage = null;
+  let costUsd = null;
+  const record = (ok, error) => aiCallLog.record({
+    kind: "research_game", provider: provider?.name, model, path: "web-search",
+    usage, costUsd, durationMs: Date.now() - t0, ok, error,
+  });
   try {
-    const provider = llmProvider.getProvider();
-    const { text } = await provider.chat({
-      model: "claude-opus-4-6",
+    provider = llmProvider.getProvider();
+    let text;
+    ({ text, usage } = await provider.chat({
+      model,
       system: `You write the game note that a clip-picking model reads before it scans a creator's recording of this game. It needs to know what playing the game is like: how a session goes, the modes and player count, the energy, and the funny or chaotic situations that tend to happen, which are the moments worth clipping. Developer, publisher, release dates, platforms, system requirements and review scores don't help it pick clips, so leave them out.
 
 Your reply is saved as-is and inserted into that model's prompt, which cuts it off at 1,500 characters. Write one short paragraph of plain prose, 3-5 sentences, with no headings or bullets, and begin with the description itself, not a line about your research.`,
@@ -4739,17 +4770,26 @@ Your reply is saved as-is and inserted into that model's prompt, which cuts it o
       // Not web_search_20260209: measured 2026-09-23 it took ~2 min (past the
       // 120 s timeout) and ~10x the tokens on a well-known game; this one ~10 s.
       tools: [{ type: "web_search_20250305", name: "web_search" }],
-    });
+    }));
+    costUsd = writeResearchCostLog(gameName, model, usage);
 
-    if (!text) return { error: "Empty response from LLM provider" };
+    if (!text) {
+      record(false, "Empty response from LLM provider");
+      return { error: "Empty response from LLM provider" };
+    }
 
     // Backstop for a lead-in line ("Based on my research, …") that Opus 4.6
     // still writes inside the answer block now and then (seen 2026-09-23).
     let summary = text.replace(/^(I'll research|Here is|Here's|Let me|Based on my research)[^\n]*\n+/i, "").trim();
 
-    if (!summary) return { error: "No text summary in research response" };
+    if (!summary) {
+      record(false, "No text summary in research response");
+      return { error: "No text summary in research response" };
+    }
+    record(true);
     return { success: true, data: summary };
   } catch (err) {
+    record(false, err.message);
     return { error: err.message };
   }
 });

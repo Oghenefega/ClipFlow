@@ -70,4 +70,16 @@ function hasPricing(model) {
   return model in PRICING;
 }
 
-module.exports = { getCost, hasPricing, PRICING };
+// Anthropic web search: $10 per 1,000 searches, billed on top of tokens (#464).
+const WEB_SEARCH_USD = 10 / 1000;
+
+/**
+ * Cost of the web searches a call ran.
+ * @param {number} count - usage.server_tool_use.web_search_requests
+ * @returns {number} USD
+ */
+function getWebSearchCost(count) {
+  return (count || 0) * WEB_SEARCH_USD;
+}
+
+module.exports = { getCost, getWebSearchCost, hasPricing, PRICING };

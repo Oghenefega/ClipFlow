@@ -1,5 +1,6 @@
 /**
- * ai_calls — one row per title/caption model call (#424).
+ * ai_calls — one row per title/caption model call (#424), and per game
+ * research call (kind "research_game", #464; its cost includes web searches).
  *
  * Before this table the app could not answer "how often is Rephrase used",
  * "what did the stills fallback cost this month" or "how many Gemini calls
