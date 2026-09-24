@@ -12,12 +12,23 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.14",
+    date: "2026-09-24",
+    added: [
+      "Clips now open in a panel on the right, the same in Projects, the Tracker and Analytics. The player runs the full height of the window, so you watch a clip at a real size instead of a small thumbnail. Use ← and → to go to the previous or next clip, and Esc to close.",
+      "The Tracker now shows views. Every posted clip in the week has its total views under the title, and the clip's panel shows the exact number with a link that opens Analytics on that clip for the per-platform breakdown.",
+      "The Rank card on the Tracker is now polished metal and glass, in the metal of your rank from Bronze to Diamond, with a light that catches the badge and bar. Hover the card to switch between Glass and a full brushed-Metal plate. Corva remembers your pick.",
+    ],
     changed: [
+      "Inside a project, clips are now a grid instead of one big card each. A usual project's clips fit on one screen: each tile has the picture, length, title, score and approve / reject. Click a tile for everything else: the full-size player, transcript, reject reasons, rename, game tag and Open in Editor. Rejecting from a tile shows \"Why? →\" to add a reason. When you approve the open clip, the panel moves to the next one.",
+      "The Tracker uses the whole window. The calendar is full width and reaches the bottom of the screen.",
+      "The weekly goal on the Tracker is a row of chips instead of a circle. Each post lights a chip in its game's colour, and while you're behind, the chip where you should be by now pulses.",
+      "In Import clips (Queue), the clip picture is bigger and the platform toggles show the TikTok, Instagram, Facebook and YouTube icons.",
       "Looking up a game now counts toward your AI spend. When you add a game, Corva researches it once in the background, and that lookup (including its web searches) now shows in Settings → Pipeline Logs as its own \"game research\" entry and is added to the \"This month\" total. Before, it cost money but never appeared anywhere.",
     ],
     fixed: [
+      "In Import clips, going back to a clip's old filename no longer loses the AI title. A switch under each title flips between \"AI title\" and \"Original name\" whenever you like.",
+      "The Switch button on the Tracker's Now Playing card opens the game list again. It was opening off the edge of the screen.",
       "The game description Corva writes when you add a game now comes back as one clean paragraph. Before, it could arrive broken into a dozen pieces split mid-sentence, sometimes starting with a line like \"I'll look this up\". You can see it under \"Game Knowledge (AI-Researched)\" when you edit a game in Settings, and clip detection reads it for every recording of that game.",
     ],
   },

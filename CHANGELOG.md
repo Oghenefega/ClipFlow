@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-24 (session 277) — 0.5.0-alpha.14 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.14 and the installer published to the update feed.** This build ships everything since alpha.13 (`5178d30..HEAD`). From session 276: game research cost tracking (#464) and clean game-research notes. From session 277: the Import clips title switch, bigger thumbnail and platform icons (#465); the Projects clip grid (#467); the shared full-height clip panel in Projects, Tracker and Analytics, the full-width Tracker with views on posted clips, and the restored card look (#466); the weekly goal chips (#468); the Switch game fix (#469); and the metallic-glass Rank card with its Metal alternative (#470). The What's New entry was stamped with this version and folds in session 276's lines.
+
 ## [Unreleased] — 2026-09-24 (session 277) — Projects clip grid, a full-height Tracker, and one clip panel across Projects, Tracker and Analytics
 
 ### Added
