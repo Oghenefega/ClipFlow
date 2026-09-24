@@ -2193,3 +2193,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I designed at fixed widths (a 164 px minimum tile, a 250 px preview column copied from the Analytics drawer) and judged the result by "does everything fit", not by "does it use the screen". Copying the Analytics drawer's sizes brought its proportions along even though this screen has different content.
 
 **Rule:** for a screen whose job is showing many things at a glance, size it from the window: tiles fit the usual clip count into the visible height, and a side panel's preview grows to the panel's height. Before showing a mock, screenshot it at Fega's window size and at 1280×860 and look for empty regions, not just overflow.
+
+## Session 277 (2026-09-24) — I restyled the Tracker's clip cards while making the calendar fill the window, and lost the look Fega liked
+
+**What happened:** Fega asked for a bigger calendar with less dead space. I also put a thumbnail on every card, switched the card to a side-by-side layout and stretched cards up to 120 px tall. The thumbnail sat on top of the card's game-colour corner glow and hid it, and the tall boxes made the thin game-colour border read as a flat dark block. He called it "a huge let down" and asked for the thumbnail to go.
+
+**Why:** "Fill the space" was about the calendar's size. I read it as permission to redesign the card inside it, and never compared my card against the current one side by side before shipping.
+
+**Rule:** when a layout change resizes existing elements, keep their visual treatment (gradient, border, colour, type) exactly as it is unless Fega asked to change it. Before showing it, put a screenshot of the old element next to the new one and check nothing about its look changed.

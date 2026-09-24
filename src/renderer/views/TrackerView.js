@@ -801,7 +801,7 @@ export default function TrackerView({
   // "Upcoming" line and the retro "Log a post" row are fixed chrome.
   const busiestDay = Math.max(1, ...dayModels.map((m) => m.dayRows.length));
   const logRowsH = logBox.paneH - logBox.top - 32 - (41 + 33 + 11 + 24 + 18 + 26);
-  const rowH = logBox.paneH > 0 ? Math.max(24, Math.min(120, Math.floor(logRowsH / busiestDay) - 3)) : null;
+  const rowH = logBox.paneH > 0 ? Math.max(24, Math.min(60, Math.floor(logRowsH / busiestDay) - 3)) : null;
 
   // ← → walk the viewed week's posted and scheduled clips in calendar order.
   const weekOrder = useMemo(() => wd.flatMap((d) => [
@@ -1275,14 +1275,8 @@ export default function TrackerView({
                     const movable = isSched && !!item.clipId && !!item.projectId && !!onRescheduleClip;
                     // #461: this post was reposted since — outlined, where a repost's own mark is filled.
                     const reposts = item.clipId ? repostIndex?.byOriginal?.get(item.clipId) : null;
-                    // #466: the clip's picture and its overall views, when the row is tall enough.
-                    const link = isSched || isRetry ? item : (item.clipId ? clipIndex?.get(item.clipId) : null);
+                    // #466: the posted clip's overall views, on a line under its title.
                     const views = !isSched && !isRetry && item.clipId ? viewsByClip.get(item.clipId) : undefined;
-                    // Each line only when the row can hold it: picture 40px, views line 58px,
-                    // a second title line 72px, a third 86px.
-                    const roomy = rowH != null && rowH >= 40;
-                    const showViews = rowH != null && rowH >= 58;
-                    const titleLines = rowH == null ? 2 : rowH >= 86 ? 3 : rowH >= 72 ? 2 : 1;
                     const isOpen = !!detail && entryKey(detail.entry) === entryKey(item);
                     const retryTitle = isRetry
                       ? `${item.title || "Clip"} — went out on ${item.postedCount} platform${item.postedCount === 1 ? "" : "s"}, ${item.failedCount} still failing. Click to retry in the Queue.`
@@ -1296,24 +1290,23 @@ export default function TrackerView({
                         onDragStart={movable ? (e) => startClipDrag(item, e) : undefined}
                         onClick={(e) => (isRetry ? onOpenQueue?.() : openDetail(item, isSched, !e.isTrusted))}
                         style={{
-                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "row", alignItems: "stretch", gap: 7,
-                          height: rowH ?? undefined, boxSizing: "border-box",
+                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 3,
+                          // #466: rows share one height so the week fills the window; a card
+                          // with more to say still grows past it.
+                          minHeight: rowH ?? undefined, boxSizing: "border-box",
                           background: isRetry ? T.redDim : rgba(gd.color, isSched ? 0.05 : 0.09),
                           border: `1px ${isSched ? "dashed" : "solid"} ${isOpen ? T.accent : ring}`,
                           boxShadow: isOpen ? `0 0 0 1px ${T.accent}` : "none",
-                          borderRadius: 6, padding: roomy ? 4 : "4px 6px", marginBottom: 3, cursor: movable ? "grab" : "pointer",
+                          borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: movable ? "grab" : "pointer",
                           opacity: isSched && !isOpen ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
                         }}
                         onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = isRetry ? T.red : isOpen ? T.accent : rgba(gd.color, 0.5); }}
                         onMouseLeave={(ev) => { ev.currentTarget.style.opacity = isSched && !isOpen ? 0.62 : 1; ev.currentTarget.style.borderColor = isOpen ? T.accent : ring; }}
                       >
-                        <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(90px 50px at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
-                        {roomy && (
-                          <div style={{ position: "relative", height: "100%", aspectRatio: "9 / 16", flexShrink: 0, borderRadius: 4, overflow: "hidden", background: rgba(gd.color, 0.22) }}>
-                            {link?.thumbnailPath && <img src={toFileUrl(link.thumbnailPath)} alt="" loading="lazy" draggable={false} onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                          </div>
-                        )}
-                        <div style={{ position: "relative", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3 }}>
+                        {/* #466: sized to the card, not in px — the full-width week makes cards
+                            about twice as wide, and a fixed 90×50 glow shrank to a corner. This
+                            is the share of the card it covered at the old 960px width. */}
+                        <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(80% 100% at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
                         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
                           {/* #378: the tag is the ONLY thing on this row allowed to shrink.
                               A day column is a seventh of the card, and with a badge beside
@@ -1338,7 +1331,7 @@ export default function TrackerView({
                         {item.title && (
                           <div style={{
                             position: "relative", fontSize: 10, lineHeight: 1.35, fontWeight: 500,
-                            color: "rgba(var(--lift),0.78)", display: "-webkit-box", WebkitLineClamp: titleLines,
+                            color: "rgba(var(--lift),0.78)", display: "-webkit-box", WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word",
                           }}>
                             {/* #461: in the title, not the top row — beside a 4-letter game tag
@@ -1349,12 +1342,11 @@ export default function TrackerView({
                             {cleanTitle(item.title)}
                           </div>
                         )}
-                        {showViews && (views != null || isSched) && (
+                        {views != null && (
                           <div style={{ position: "relative", fontSize: 9.5, fontWeight: 600, color: T.textTertiary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {views != null ? <><b style={{ color: T.text, fontWeight: 700 }}>{fmtViews(views)}</b> views</> : "Scheduled"}
+                            <b style={{ color: "rgba(var(--lift),0.78)", fontWeight: 700 }}>{fmtViews(views)}</b> views
                           </div>
                         )}
-                        </div>
                       </div>
                     );
                   }
@@ -1384,7 +1376,7 @@ export default function TrackerView({
                       } : undefined}
                       onDragLeave={droppable ? (ev) => resetSlot(ev.currentTarget) : undefined}
                       onDrop={droppable ? (ev) => { ev.preventDefault(); resetSlot(ev.currentTarget); dropOnSlot(d.iso, d.dayName, row.time); } : undefined}
-                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(var(--lift),0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22, height: rowH ?? undefined, boxSizing: "border-box" }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(var(--lift),0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: rowH ?? 22, boxSizing: "border-box" }}
                       onMouseEnter={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; } : undefined}
                       onMouseLeave={slotInteractive ? (ev) => resetSlot(ev.currentTarget) : undefined}
                     >
