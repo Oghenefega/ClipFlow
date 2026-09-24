@@ -2169,3 +2169,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I inferred the surfaces from the image family (landscape = wide surfaces) and from the s269 memory note. I never loaded a real page to see which image URL it references. The s269 probe had the same gap: it measured the URLs `videos.list` reports, not the ones YouTube's pages use.
 
 **Rule:** before saying where a platform shows an image, fetch the actual surface (page HTML or a screenshot) and read which image URL it references. "The API accepted it" and "the CDN has it" prove nothing about what viewers see.
+
+## Session 275 (2026-09-23) — I respaced missed clips from "now" and threw away the minute Fega chose to post at
+
+**What happened:** For #463 (missed clips all posting at once), I asked Fega about gaps and collisions, then shipped a rule that posts the first missed clip "now" (5:00) and slides the rest from there. His 1:30/2:30/3:30 slots became 5:00/6:00/7:00, and a pushed clip landed at 8:00. He posts at :30 past the hour on purpose, and every moved clip lost that.
+
+**Why:** I treated a posting time as nothing more than an order plus a gap. My questions covered spacing and collisions but never "what about the clock time you picked?", so the one property he cared about was never on the table.
+
+**Rule:** when code moves a time the user chose, list every property of that time (order, gap, time of day, minute past the hour, weekday) and decide on each one out loud before building. By default, keep the minute past the hour.

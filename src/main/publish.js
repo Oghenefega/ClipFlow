@@ -46,8 +46,8 @@ const TICK_MS = 60_000;
 const PREFLIGHT_WINDOW_MS = 60 * 60_000;
 /** #463: how late the oldest due clip must be before the missed slots get respaced. */
 const LATE_GRACE_MS = 5 * 60_000;
-/** #463: the most room a not-yet-due clip is pushed to keep from the clip before it. */
-const MIN_GAP_MS = 60 * 60_000;
+/** #463: missed clips move in whole hours, and a not-yet-due clip is kept at most this far from the one before. */
+const HOUR_MS = 60 * 60_000;
 
 let deps = null;
 let timer = null;
@@ -149,11 +149,16 @@ function localSlot(ms) {
 
 /**
  * #463: Corva was closed (or the PC off) through one or more slots. Without this, every
- * missed clip went out in the same tick, seconds apart. Now the oldest posts now and the
- * rest slide later by the same amount, keeping the gaps Fega scheduled. A clip that isn't
- * due yet only moves when it would land within an hour of the previous one (or its own
- * tighter booked gap); the first clip with room stops the push, so tomorrow's slots are
- * untouched.
+ * missed clip went out in the same tick, seconds apart.
+ *
+ * Every move is a WHOLE NUMBER OF HOURS. That keeps each clip's minute past the hour
+ * (Fega posts at :30 on purpose) and the gaps between clips (hourly, 45 min, anything)
+ * without detecting a pattern. The missed clips all shift by the same amount: the
+ * fewest hours that bring the oldest back to now, give or take LATE_GRACE_MS. So
+ * 1:30/2:30/3:30 opened at 5:00 → 5:30/6:30/7:30. A clip that isn't due yet moves only
+ * when it would land within an hour of the previous one (or its own tighter booked gap),
+ * by as few whole hours as that takes; the first clip with room stops the push, so
+ * tomorrow's slots are untouched.
  *
  * Runs only when the oldest due clip is past LATE_GRACE_MS — an on-time tick is up to
  * 60s late and must never move anything.
@@ -161,20 +166,22 @@ function localSlot(ms) {
 function respaceMissed(now) {
   const all = scheduledClips();
   if (all.length === 0) return;
-  const firstOrig = new Date(all[0].scheduledAt).getTime();
-  if (now - firstOrig <= LATE_GRACE_MS) return;
+  const late = now - new Date(all[0].scheduledAt).getTime();
+  if (late <= LATE_GRACE_MS) return;
+  // Minus the grace, so opening a minute past the slot's minute posts now, not an hour on.
+  const shift = Math.ceil((late - LATE_GRACE_MS) / HOUR_MS) * HOUR_MS;
 
-  let prevOrig = firstOrig;
-  let prevNew = Math.ceil(now / 60_000) * 60_000; // whole minutes, like the Queue's slots
+  let prevOrig = null;
+  let prevNew = null;
   const moved = [];
-  for (const clip of all.slice(1)) {
+  for (const clip of all) {
     const orig = new Date(clip.scheduledAt).getTime();
-    // Missed clips keep their full gap. A clip still ahead only needs MIN_GAP_MS of room
-    // (or less, if it was booked tighter) — keeping its whole gap would push every slot
-    // after it, tomorrow's included, by the same amount forever.
-    const gap = orig <= now ? orig - prevOrig : Math.min(orig - prevOrig, MIN_GAP_MS);
-    const next = Math.max(orig, prevNew + gap);
-    if (next === orig) break;
+    let next = orig + shift;
+    if (orig > now) {
+      const need = prevNew + Math.min(orig - prevOrig, HOUR_MS);
+      if (need <= orig) break;
+      next = orig + Math.ceil((need - orig) / HOUR_MS) * HOUR_MS;
+    }
     const slot = localSlot(next);
     const res = deps.projects.updateClip(deps.libraryRoot(), clip._projectId, clip.id, { scheduledAt: slot });
     if (res?.error) {
@@ -189,10 +196,12 @@ function respaceMissed(now) {
   }
   if (moved.length === 0) return;
 
-  const at = new Date(moved[0]).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const first = moved[0] <= now
+    ? "the first is going out now"
+    : `the first posts at ${new Date(moved[0]).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
   deps.notify({
-    title: "Scheduled clips spaced out",
-    body: `Corva was closed through your posting times. One clip is going out now and ${moved.length} ${moved.length === 1 ? "has" : "have"} been moved later — the next posts at ${at}.`,
+    title: "Scheduled clips moved",
+    body: `Corva was closed through your posting times, so ${moved.length} ${moved.length === 1 ? "clip was" : "clips were"} moved later. They keep their minutes past the hour — ${first}.`,
   });
 }
 
