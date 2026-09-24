@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-23 (s276) -- Session 276: one lesson (self-caught). Two prompt-audit hunks (newer web search tool, dropping the no-preamble guard) looked right on paper and failed on the first live call -> clipflow-code-review: a change to what the model is sent ships only after one live call on the real path has been read and timed. Everything below the NEXT-UNDISTILLED marker dated 2026-09-23 or earlier is distilled. -->
+> <!-- DISTILLED-THROUGH: 2026-09-24 (s277) -- Session 277: two lessons from Fega corrections. Grid/panel/calendar mocks and builds that left half the screen empty -> clipflow-ui-debug: size many-at-a-glance screens from the window, check 2000x1125 and 1280x860 for empty regions. Restyled the Tracker cards while resizing the calendar -> clipflow-ui-debug: resizing keeps the visual treatment, compare old vs new side by side, size glows in %. Also the #469 transform containing-block trap appended to the existing portal rule there. Everything below the NEXT-UNDISTILLED marker dated 2026-09-24 or earlier is distilled. -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
