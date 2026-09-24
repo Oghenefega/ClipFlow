@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-24 (session 277) — Import window keeps the AI title; Tracker panel and Projects grid mocked
+
+### Fixed
+- **Import clips: going back to the old filename no longer loses the AI title for good (#465).** The grey "was: …" line under each title had a hidden click that replaced the AI title with the old filename, and nothing brought the AI title back. The window now keeps both titles and shows a visible switch under the title, **AI title · Original name**, so either one is a click away. A hand-typed title is still yours to edit. When there's no AI title (no key, or the AI pass failed), the line reads "was: <filename> · 23s" as before.
+
+### Changed
+- **Import clips: a bigger thumbnail and real platform icons.** The clip thumbnail is 60×107 (was 34×60), big enough to recognise the clip. The TT/IG/FB/YT letter chips are now the platform icons: green border when on, grey and faded when off. Hovering a platform says what a click does.
+
 ## [Unreleased] — 2026-09-23 (session 276) — Claude Code skills, rules and app AI prompts corrected after a prompt audit
 
 ### Fixed

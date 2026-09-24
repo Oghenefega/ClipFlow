@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import T from "../styles/theme";
 import { Select, Checkbox, toFileUrl } from "./shared";
+import PlatformIcon from "./PlatformIcon";
 
 // Queue imports review grid (#240) — the gate between a dropped wave of
 // pre-ClipFlow files and the queue. Rows appear instantly with the stripped
@@ -8,7 +9,7 @@ import { Select, Checkbox, toFileUrl } from "./shared";
 // in per row. Nothing touches disk or memory until Confirm.
 
 const PLATFORM_KEYS = ["tiktok", "instagram", "facebook", "youtube"];
-const PLATFORM_SHORT = { tiktok: "TT", instagram: "IG", facebook: "FB", youtube: "YT" };
+const PLATFORM_NAME = { tiktok: "TikTok", instagram: "Instagram", facebook: "Facebook", youtube: "YouTube" };
 
 // Same preset palette as the Settings color picker — new games created from
 // the grid get a deterministic pick so re-runs don't shuffle colors.
@@ -74,6 +75,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
     (initialRows || []).map((r) => ({
       ...r,
       title: r.base,
+      aiTitle: null, // #465: kept apart from title so switching to the old name never loses it
       gameName: "",
       aiStatus: "pending", // pending → generating → done | failed; "none" = no key
       aiGuess: null, // { game, confidence } hint when not auto-assigned
@@ -105,7 +107,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
         else if (data.status === "done") {
           patchRow(data.fingerprint, (r) => {
             const next = { aiStatus: "done" };
-            if (data.title) next.title = data.title;
+            if (data.title) { next.title = data.title; next.aiTitle = data.title; }
             const guess = String(data.game || "unknown").trim();
             if (guess && guess.toLowerCase() !== "unknown") {
               const hit = (gamesDb || []).find((g) => (g.name || "").toLowerCase() === guess.toLowerCase());
@@ -302,7 +304,7 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
             </div>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "34px 44px 1fr 170px 130px 64px", gap: 10, alignItems: "center", padding: "8px 20px", borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, background: T.surface, zIndex: 1 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "34px 70px 1fr 170px 136px 64px", gap: 10, alignItems: "center", padding: "8px 20px", borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, background: T.surface, zIndex: 1 }}>
                 <span />
                 <span style={cellLabel}>Clip</span>
                 <span style={cellLabel}>Title</span>
@@ -311,11 +313,11 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
                 <span />
               </div>
               {live.map((row) => (
-                <div key={row.fingerprint} style={{ display: "grid", gridTemplateColumns: "34px 44px 1fr 170px 130px 64px", gap: 10, alignItems: "center", padding: "8px 20px", borderBottom: `1px solid ${T.border}`, opacity: row.skipped ? 0.4 : 1 }}>
+                <div key={row.fingerprint} style={{ display: "grid", gridTemplateColumns: "34px 70px 1fr 170px 136px 64px", gap: 10, alignItems: "center", padding: "8px 20px", borderBottom: `1px solid ${T.border}`, opacity: row.skipped ? 0.4 : 1 }}>
                   <div onClick={() => toggleChecked(row.fingerprint)} style={{ cursor: "pointer" }}>
                     <Checkbox checked={checked.has(row.fingerprint)} size={16} />
                   </div>
-                  <div style={{ width: 34, height: 60, borderRadius: 5, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 60, height: 107, borderRadius: 6, overflow: "hidden", background: "rgba(var(--lift),0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {row.thumbPath
                       ? <img src={toFileUrl(row.thumbPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <span style={{ fontSize: 14 }}>{"🎬"}</span>}
@@ -335,12 +337,24 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
                         <span title="AI title failed — the old filename stands in" style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, flexShrink: 0 }}>no AI</span>
                       )}
                     </div>
-                    <div
-                      onClick={() => !row.skipped && patchRow(row.fingerprint, { title: row.base })}
-                      title="Click to use the old name as the title"
-                      style={{ fontSize: 10, color: T.textMuted, marginTop: 3, cursor: row.skipped ? "default" : "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    >
-                      was: {row.base} · {Math.round(row.duration)}s
+                    {/* #465: a visible switch between the two titles — both are kept, so
+                        either one is always a click away. A hand edit selects neither. */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 10, minWidth: 0 }}>
+                      {row.aiTitle && [["AI title", row.aiTitle], ["Original name", row.base]].map(([label, value]) => {
+                        const on = row.title === value;
+                        return (
+                          <button
+                            key={label}
+                            onClick={() => patchRow(row.fingerprint, { title: value })}
+                            disabled={row.skipped || phase === "importing"}
+                            title={value}
+                            style={{ flexShrink: 0, padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, fontFamily: T.font, cursor: row.skipped ? "default" : "pointer", border: `1px solid ${on ? T.accentBorder : T.border}`, background: on ? T.accentDim : "transparent", color: on ? T.accentLight : T.textTertiary }}
+                          >{label}</button>
+                        );
+                      })}
+                      <span style={{ color: T.textMuted, marginLeft: row.aiTitle ? 4 : 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {row.aiTitle ? "" : `was: ${row.base} · `}{Math.round(row.duration)}s
+                      </span>
                     </div>
                     {row.copyPct != null && phase === "importing" && (
                       <div style={{ height: 3, borderRadius: 2, background: "rgba(var(--lift),0.06)", marginTop: 4, overflow: "hidden" }}>
@@ -367,9 +381,9 @@ export default function ImportReviewModal({ initialRows, excluded, gamesDb, onCr
                           key={pk}
                           onClick={() => patchRow(row.fingerprint, (r) => ({ toggles: { ...r.toggles, [pk]: !on } }))}
                           disabled={row.skipped || phase === "importing"}
-                          title={`${pk} ${on ? "on" : "off"}`}
-                          style={{ padding: "4px 6px", borderRadius: 5, border: `1px solid ${on ? T.green : T.border}`, background: on ? "rgba(74,222,128,0.10)" : "transparent", color: on ? T.green : T.textMuted, fontSize: 9, fontWeight: 800, cursor: "pointer", fontFamily: T.mono, letterSpacing: "0.5px", textDecoration: on ? "none" : "line-through" }}
-                        >{PLATFORM_SHORT[pk]}</button>
+                          title={`${PLATFORM_NAME[pk]} ${on ? "on — click to leave it out" : "off — click to include"}`}
+                          style={{ width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, borderRadius: 8, border: `1px solid ${on ? T.green : T.border}`, background: on ? "rgba(74,222,128,0.10)" : "transparent", cursor: "pointer" }}
+                        ><PlatformIcon platform={pk} size={15} style={{ opacity: on ? 1 : 0.3, filter: on ? "none" : "grayscale(1)" }} /></button>
                       );
                     })}
                   </div>
