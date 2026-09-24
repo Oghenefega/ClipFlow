@@ -2185,3 +2185,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I judged the changes from docs and pattern tables, not from what the model actually produced on the real call path.
 
 **Rule:** a change to what the model is sent (a removed guard, a newer tool version, a reworded example) is a hypothesis until one live call on the real path has been read and timed. Tests, a clean apply and a boot say nothing about the model's output.
+
+## Session 277 (2026-09-24) — my Projects grid and Tracker mockup left half the screen empty
+
+**What happened:** Fega asked for a clip grid and a side panel so he could see more at once. My mockup sized the tiles and the panel's preview with fixed pixel widths. At his 2000×1125 window with the panel open, the grid took the top third and the panel's preview sat in its top half, with empty space below both. The Tracker calendar also used only half the page. He crossed out the empty areas and said it makes Corva look like it found few clips.
+
+**Why:** I designed at fixed widths (a 164 px minimum tile, a 250 px preview column copied from the Analytics drawer) and judged the result by "does everything fit", not by "does it use the screen". Copying the Analytics drawer's sizes brought its proportions along even though this screen has different content.
+
+**Rule:** for a screen whose job is showing many things at a glance, size it from the window: tiles fit the usual clip count into the visible height, and a side panel's preview grows to the panel's height. Before showing a mock, screenshot it at Fega's window size and at 1280×860 and look for empty regions, not just overflow.
