@@ -39,6 +39,23 @@ const EditorIcon = ({ size = 13 }) => (
   </svg>
 );
 
+// #471: an imported clip's original file — a page with a back-arrow.
+const OriginalIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M15 15H9" /><path d="m12 12-3 3 3 3" />
+  </svg>
+);
+
+// #471: an import's title (and its copy's file name) can change; the original's
+// name is what the creator will recognise in their own folders.
+function ImportedFrom({ clip, missing }) {
+  const name = String(clip.importedFrom).split(/[\\/]/).pop();
+  // The row is narrow — a missing original replaces the name rather than trailing it.
+  return missing
+    ? <span title={`Was imported from ${clip.importedFrom} — moved or deleted since import`} style={{ color: T.yellow }}>original missing</span>
+    : <span title={`Imported from ${clip.importedFrom}`}>from {name}</span>;
+}
+
 // Shared style for the hover-revealed icon buttons (Show in folder / Open in
 // editor) and their wrapper. Hidden by default; the row's mouseenter flips
 // opacity + pointerEvents directly, the same way it already swaps the row wash —
@@ -61,7 +78,7 @@ const setRowActions = (e, shown) => {
 
 // #204: reveal the render in Explorer / jump to the clip in the editor, so a
 // queued clip can be watched or located without hunting for its project first.
-function RowActions({ clip, onOpenInEditor }) {
+function RowActions({ clip, onOpenInEditor, onShowOriginal }) {
   const hover = (e, on) => {
     e.currentTarget.style.color = on ? T.text : T.textTertiary;
     e.currentTarget.style.background = on ? "rgba(var(--lift),0.07)" : "transparent";
@@ -76,6 +93,15 @@ function RowActions({ clip, onOpenInEditor }) {
           onMouseEnter={(e) => hover(e, true)}
           onMouseLeave={(e) => hover(e, false)}
         ><FolderIcon /></button>
+      )}
+      {clip.source === "import" && clip.importedFrom && onShowOriginal && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onShowOriginal(clip); }}
+          title="Show the original file in Explorer"
+          style={rowActBtn}
+          onMouseEnter={(e) => hover(e, true)}
+          onMouseLeave={(e) => hover(e, false)}
+        ><OriginalIcon /></button>
       )}
       {/* #240: imports have no editing path — a clip posts as-is or gets culled. */}
       {clip._projectId && clip.source !== "import" && onOpenInEditor && (
@@ -1230,6 +1256,39 @@ export default function QueueView({
       updateClipInState(clip._projectId, clip.id, { renderPath: null, renderStatus: "pending" });
       if (selClip === clip.id) setSelClip(null);
     } catch (e) { console.error("Delete render failed:", e); }
+  };
+
+  // #471: an import has nothing to come back to once it leaves the queue (no
+  // editor, no Projects entry), so removing one deletes the clip and its copy and
+  // forgets the file — the original can be imported again later.
+  const removeImport = async (clip) => {
+    if (!clip._projectId) return;
+    try {
+      const r = await window.clipflow?.queueImportsRemove?.(clip._projectId, clip.id);
+      if (!r || r.error) { console.error("Remove import failed:", r?.error); return; }
+      setLocalProjects?.((prev) => prev.map((p) =>
+        p.id !== clip._projectId ? p : { ...p, clips: (p.clips || []).filter((c) => c.id !== clip.id) }));
+      if (selClip === clip.id) setSelClip(null);
+    } catch (e) { console.error("Remove import failed:", e); }
+  };
+
+  // Opens the remove popover. For an import it also checks the original is
+  // still where it was, so the popover can warn when the copy is the last one.
+  const askDelete = (e, clip) => {
+    setDeleteAsk({ clip, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 160) });
+    if (clip.source === "import" && clip.importedFrom) {
+      window.clipflow?.fileExists?.(clip.importedFrom).then((ok) => {
+        if (!ok) setDeleteAsk((prev) => (prev && prev.clip.id === clip.id ? { ...prev, originalMissing: true } : prev));
+      }).catch(() => {});
+    }
+  };
+
+  // #471: originals found missing by "Show original" — their "from" line says so.
+  const [missingOriginals, setMissingOriginals] = useState(() => new Set());
+  const showOriginal = async (clip) => {
+    const ok = await window.clipflow?.fileExists?.(clip.importedFrom);
+    if (ok) window.clipflow?.revealInFolder(clip.importedFrom);
+    else setMissingOriginals((prev) => new Set(prev).add(clip.id));
   };
 
   // Save inline title edit
@@ -2828,32 +2887,48 @@ export default function QueueView({
           onMouseDown={(e) => e.stopPropagation()}
           style={{ position: "fixed", left: deleteAsk.x, top: deleteAsk.y, zIndex: 10001, width: 240, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, boxShadow: "0 12px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: 6, fontFamily: T.font }}
         >
-          <button
-            onClick={() => { dequeueClip(deleteAsk.clip); setDeleteAsk(null); }}
-            style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.05)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>Remove from queue</div>
-            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>
-              {deleteAsk.clip.source === "import"
-                ? "The imported copy stays in ClipFlow Imports; it won't be offered for import again."
-                : "Clip and files stay — re-queue it from the editor anytime."}
-            </div>
-          </button>
-          <button
-            onClick={() => { removeAndDeleteRender(deleteAsk.clip); setDeleteAsk(null); }}
-            style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.10)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>{deleteAsk.clip.source === "import" ? "Remove + delete imported copy" : "Remove + delete rendered video"}</div>
-            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>
-              {deleteAsk.clip.source === "import"
-                ? "Takes it off the queue and deletes the copy in ClipFlow Imports. Your original file is never touched."
-                : "Takes it off the queue and deletes the rendered MP4 from disk. The clip and your edits stay in Projects."}
-            </div>
-          </button>
+          {deleteAsk.clip.source === "import" ? (
+            // #471: one choice for imports — see removeImport.
+            <button
+              onClick={() => { removeImport(deleteAsk.clip); setDeleteAsk(null); }}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.10)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Remove import</div>
+              <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>
+                {deleteAsk.clip.repostOf
+                  ? "Takes this repost off the queue and deletes its copy in ClipFlow Imports. Your original file is never touched."
+                  : "Takes it off the queue and deletes the copy in ClipFlow Imports. You can import the original again later. Your original file is never touched."}
+              </div>
+              {deleteAsk.originalMissing && (
+                <div style={{ fontSize: 10, color: T.yellow, marginTop: 4, overflowWrap: "anywhere" }}>
+                  Your original is no longer at {deleteAsk.clip.importedFrom}, so this copy is the only one left.
+                </div>
+              )}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => { dequeueClip(deleteAsk.clip); setDeleteAsk(null); }}
+                style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.05)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>Remove from queue</div>
+                <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Clip and files stay — re-queue it from the editor anytime.</div>
+              </button>
+              <button
+                onClick={() => { removeAndDeleteRender(deleteAsk.clip); setDeleteAsk(null); }}
+                style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.10)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Remove + delete rendered video</div>
+                <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Takes it off the queue and deletes the rendered MP4 from disk. The clip and your edits stay in Projects.</div>
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -2939,7 +3014,12 @@ export default function QueueView({
                     {/* Title + sub */}
                     <div style={{ minWidth: 0, paddingRight: 8 }}>
                       <div style={{ color: T.text, fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
-                      <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2 }}>{durationStr}{projName ? ` \u00B7 ${projName}` : ""}</div>
+                      <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {durationStr}
+                        {clip.source === "import" && clip.importedFrom
+                          ? <>{durationStr ? " \u00B7 " : ""}<ImportedFrom clip={clip} missing={missingOriginals.has(clip.id)} /></>
+                          : (projName ? ` \u00B7 ${projName}` : "")}
+                      </div>
                     </div>
                     {/* Game tag */}
                     <div>{gameTag && <GamePill tag={(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()} color={gameColorFor(clip)} size="sm" variant="solid" />}</div>
@@ -2957,7 +3037,7 @@ export default function QueueView({
                     <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
                     {/* Action buttons */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
-                      <RowActions clip={clip} onOpenInEditor={onOpenInEditor} />
+                      <RowActions clip={clip} onOpenInEditor={onOpenInEditor} onShowOriginal={showOriginal} />
                       {/* #354: schedule straight from the row — no expanding, no scrolling */}
                       {!isPub && !isPublishing && (
                         <button
@@ -2992,7 +3072,7 @@ export default function QueueView({
                       )}
                       {!isPublishing && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteAsk({ clip, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 160) }); }}
+                          onClick={(e) => { e.stopPropagation(); askDelete(e, clip); }}
                           title="Remove from queue / delete clip"
                           style={{ width: 24, height: 24, flexShrink: 0, borderRadius: 6, border: "none", background: "transparent", color: T.textMuted, opacity: 0.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
                           onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
@@ -3154,7 +3234,7 @@ export default function QueueView({
                           {/* Actions */}
                           <div style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 14, borderTop: `1px solid ${T.border}`, flexWrap: "wrap" }}>
                             <button
-                              onClick={() => dequeueClip(clip)}
+                              onClick={(e) => (clip.source === "import" ? askDelete(e, clip) : dequeueClip(clip))}
                               style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, transition: "all 0.15s" }}
                               onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.red; e.currentTarget.style.color = T.red; }}
                               onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textTertiary; }}
@@ -3252,6 +3332,11 @@ export default function QueueView({
                 {/* Title */}
                 <div style={{ minWidth: 0, paddingRight: 8 }}>
                   <div style={{ color: T.text, fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
+                  {clip.source === "import" && clip.importedFrom && (
+                    <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <ImportedFrom clip={clip} missing={missingOriginals.has(clip.id)} />
+                    </div>
+                  )}
                 </div>
                 {/* Game */}
                 <div>{gameTag && <GamePill tag={(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()} color={gameColorFor(clip)} size="sm" variant="solid" />}</div>
@@ -3265,7 +3350,7 @@ export default function QueueView({
                 )}
                 {/* Action */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
-                  <RowActions clip={clip} onOpenInEditor={onOpenInEditor} />
+                  <RowActions clip={clip} onOpenInEditor={onOpenInEditor} onShowOriginal={showOriginal} />
                   {!isPub && !isPublishing && hasVideoId && (() => {
                     const tikBlock = getTiktokBlockReason(clip);
                     return (
@@ -3279,7 +3364,7 @@ export default function QueueView({
                   })()}
                   {!isPublishing && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteAsk({ clip, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 160) }); }}
+                      onClick={(e) => { e.stopPropagation(); askDelete(e, clip); }}
                       title="Remove from queue / delete clip"
                       style={{ width: 24, height: 24, flexShrink: 0, borderRadius: 6, border: "none", background: "transparent", color: T.textMuted, opacity: 0.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
@@ -3324,7 +3409,7 @@ export default function QueueView({
                       {renderCaptionCards(clip)}
                       {/* Actions */}
                       <div style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 14, borderTop: `1px solid ${T.border}`, flexWrap: "wrap" }}>
-                        <button onClick={() => dequeueClip(clip)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, transition: "all 0.15s" }}
+                        <button onClick={(e) => (clip.source === "import" ? askDelete(e, clip) : dequeueClip(clip))} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, transition: "all 0.15s" }}
                           onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.red; e.currentTarget.style.color = T.red; }}
                           onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textTertiary; }}
                         >Remove</button>

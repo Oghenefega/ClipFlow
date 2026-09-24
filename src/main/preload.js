@@ -318,6 +318,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   queueImportsGenerate: (rows) => ipcRenderer.invoke("queueImports:generate", rows),
   queueImportsCancelGenerate: () => ipcRenderer.invoke("queueImports:cancelGenerate"),
   queueImportsConfirm: (payload) => ipcRenderer.invoke("queueImports:confirm", payload),
+  queueImportsRemove: (projectId, clipId) => ipcRenderer.invoke("queueImports:remove", projectId, clipId),
   // Returns an unsubscribe fn — the review modal mounts/unmounts per wave.
   onQueueImportsProgress: (callback) => {
     const handler = (_, data) => callback(data);

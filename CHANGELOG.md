@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-24 (session 278) — Imported clips link back to their original file
+
+### Added
+- **Imported clips show where they came from (#471).** In the Queue, an import's sub-line reads "from <original file name>" in both the unscheduled and scheduled lists, with the full path on hover. The copy in `ClipFlow Imports` is named after the title and renamed when the title changes, so this line is the only stable link to the creator's own folders. A new hover button, Show original, opens Explorer on the original. If the file has moved, the line turns yellow and reads "original missing". The Tracker's clip panel shows "Imported from <name>" under the title and a Show original button, which uses the existing toast when the original is gone. Week-grid card tooltips add the same line. `trackerClipIndex` and `scheduledClips` in App.js now carry `source` and `importedFrom`.
+- **New imports store their fingerprint on the clip (`importFingerprint`),** so removal can forget exactly the right `importMemory` entry.
+
+### Changed
+- **Imports have one remove choice, "Remove import" (#471).** It deletes the clip, its copy and its thumbnail, and clears the file's `importMemory` entry so the original can be imported again (`queue-imports.removeImport`, IPC `queueImports:remove`). A repost of an import keeps its entry, because its content has already been posted. The popover warns when the original is gone and the copy is the last one. The expanded-row Remove buttons open the same popover for imports instead of removing straight away.
+- **The Tracker's side panel no longer offers "Open in editor" on imported clips,** matching the Queue. Imports have nothing to edit.
+
+### Fixed
+- **Removing an import no longer strands it (#471).** "Remove from queue" and "Remove + delete imported copy" both left a `dequeued` clip that no screen shows (imports have no editor and are hidden from Projects). The file also stayed in `importMemory`, so importing it again was refused as "already imported". A boot repair (`repairStuckImports`) now clears the memory entry and drops the record for each such clip. It never deletes files. The real library has 2 such clips. The repair was checked on a dev-profile fixture of the same shape (Remove import, missing-original warnings and re-import all driven in the app). New Jest suite: `src/main/__tests__/queueImports.test.js`.
+
 ## [Unreleased] — 2026-09-24 (session 277) — 0.5.0-alpha.14 on the feed
 
 ### Changed

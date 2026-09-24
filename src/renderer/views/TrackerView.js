@@ -1380,6 +1380,9 @@ export default function TrackerView({
                     const reposts = item.clipId ? repostIndex?.byOriginal?.get(item.clipId) : null;
                     // #466: the posted clip's overall views, on a line under its title.
                     const views = !isSched && !isRetry && item.clipId ? viewsByClip.get(item.clipId) : undefined;
+                    // #471: an import names its original file in the hover.
+                    const importedFrom = (isSched ? item : (item.clipId ? clipIndex?.get(item.clipId) : null))?.importedFrom;
+                    const fromLine = importedFrom ? `\nImported from ${importedFrom.split(/[\\/]/).pop()}` : "";
                     const isOpen = !!detail && entryKey(detail.entry) === entryKey(item);
                     const retryTitle = isRetry
                       ? `${item.title || "Clip"} — went out on ${item.postedCount} platform${item.postedCount === 1 ? "" : "s"}, ${item.failedCount} still failing. Click to retry in the Queue.`
@@ -1388,7 +1391,7 @@ export default function TrackerView({
                       <div key={(isSched ? "s" : isRetry ? "r" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
                         data-tracker-clip={item.clipId || undefined}
                         data-tracker-key={entryKey(item)}
-                        title={retryTitle || (movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || ""))}
+                        title={retryTitle || ((movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || "")) + fromLine)}
                         draggable={movable}
                         onDragStart={movable ? (e) => startClipDrag(item, e) : undefined}
                         onClick={(e) => (isRetry ? onOpenQueue?.() : openDetail(item, isSched, !e.isTrusted))}
@@ -1813,6 +1816,11 @@ export default function TrackerView({
               : <PanelPoster src={thumb} canPlay={!!link?.renderPath} onPlay={() => setDetailPlaying(true)} tint={rgba(gd.color, 0.16)} />}
           >
             <h2 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, paddingRight: 36, color: T.text, wordBreak: "break-word" }}>{cleanTitle(entry.title) || gd.name}</h2>
+            {link?.importedFrom && (
+              <div title={link.importedFrom} style={{ fontSize: 11.5, color: T.textTertiary, marginTop: 6, overflowWrap: "anywhere" }}>
+                Imported from {link.importedFrom.split(/[\\/]/).pop()}
+              </div>
+            )}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "12px 0" }}>
               {chip(<><span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 5, background: rgba(gd.color, 0.2), color: gd.color }}>{gd.tag}</span>{gd.name}</>)}
               {chip(`${DAY_SHORT[wd.findIndex((d) => d.iso === entry.date)] || entry.day} · ${entry.time}`)}
@@ -1880,11 +1888,22 @@ export default function TrackerView({
             )}
             {(link?.projectId || link?.renderPath) && (
               <div style={{ display: "flex", gap: 6, marginTop: 18 }}>
-                {link.projectId && (
+                {/* #471: imports have nothing to edit — same rule as the Queue's row actions. */}
+                {link.projectId && link.source !== "import" && (
                   <button onClick={() => { closeDetail(); onOpenInEditor?.(link.projectId, entry.clipId); }} style={btn("transparent", T.accent, "#fff")}>Open in editor</button>
                 )}
                 {link.renderPath && (
                   <button onClick={() => window.clipflow?.revealInFolder?.(link.renderPath)} style={btn(T.border, "rgba(var(--lift),0.04)", T.text)}>Show in folder</button>
+                )}
+                {link.importedFrom && (
+                  <button
+                    onClick={async () => {
+                      const ok = await window.clipflow?.fileExists?.(link.importedFrom);
+                      if (ok) window.clipflow?.revealInFolder?.(link.importedFrom);
+                      else toast("The original was moved or deleted since import");
+                    }}
+                    style={btn(T.border, "rgba(var(--lift),0.04)", T.text)}
+                  >Show original</button>
                 )}
               </div>
             )}

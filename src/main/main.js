@@ -1337,6 +1337,15 @@ app.whenReady().then(async () => {
   // description every other entry has. One-shot — a later Del stays deleted.
   ytDescriptionBackfill.backfillYtDescriptions(store, (msg) => logger.info(logger.MODULES.system, msg));
 
+  // #471: imports removed from the queue before #471 were left unreachable and
+  // could never be imported again — forget them and drop the hidden records.
+  try {
+    const { repaired } = queueImports.repairStuckImports({ store, watchFolder: libraryRoot() });
+    if (repaired) logger.info(logger.MODULES.system, `Repaired ${repaired} stuck imported clip(s)`);
+  } catch (err) {
+    logger.warn(logger.MODULES.system, "Stuck-import repair failed", { error: err.message });
+  }
+
   // #183: seed the title/caption training table from the publish log and
   // tracker rows the app has been accumulating all along.
   //
@@ -2854,6 +2863,15 @@ ipcMain.handle("queueImports:generate", async (_, rows) => {
 ipcMain.handle("queueImports:cancelGenerate", async () => {
   try {
     return queueImports.cancelGenerate();
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// #471: one "Remove import" — forget the file, delete the copy and the clip.
+ipcMain.handle("queueImports:remove", async (_, projectId, clipId) => {
+  try {
+    return queueImports.removeImport({ store, watchFolder: libraryRoot(), projectId, clipId });
   } catch (err) {
     return { error: err.message };
   }

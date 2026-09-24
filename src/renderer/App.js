@@ -905,6 +905,8 @@ export default function App() {
         thumbnailPath: c.thumbnailPath || null,
         renderPath: c.renderPath || null,
         repostOf: c.repostOf || null, // #306: badge a scheduled repost in the calendar
+        source: c.source || null, // #471: see trackerClipIndex
+        importedFrom: c.importedFrom || null,
       }))
     );
   }, [allClips]);
@@ -1019,7 +1021,11 @@ export default function App() {
     const m = new Map();
     for (const [projectId, clips] of Object.entries(allClips)) {
       for (const c of clips) {
-        m.set(c.id, { projectId, thumbnailPath: c.thumbnailPath || null, renderPath: c.renderPath || null });
+        m.set(c.id, {
+          projectId, thumbnailPath: c.thumbnailPath || null, renderPath: c.renderPath || null,
+          // #471: an import names its original file and has no editor.
+          source: c.source || null, importedFrom: c.importedFrom || null,
+        });
       }
     }
     return m;

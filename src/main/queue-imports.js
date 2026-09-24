@@ -381,6 +381,8 @@ async function confirm({ store, watchFolder, items, skips, sendProgress }) {
           // means "all platforms on", the queue's default read.
           ...(toggles && Object.values(toggles).some((v) => v === false) ? { platformToggles: toggles } : {}),
           importedFrom: item.path,
+          // #471: the importMemory key — lets "Remove import" forget exactly this file.
+          importFingerprint: item.fingerprint,
           importedAt: nowIso(),
           createdAt: nowIso(),
         };
@@ -405,13 +407,101 @@ async function confirm({ store, watchFolder, items, skips, sendProgress }) {
   return { success: true, imported, failed, skipped: (skips || []).length };
 }
 
+/**
+ * #471: the importMemory key of an import clip. Clips imported before #471 have
+ * no stored fingerprint; the copy is byte-identical to the original, so either
+ * file answers it. With both gone, fall back to the one imported entry recorded
+ * under the original's file name (ambiguous names answer nothing).
+ */
+function fingerprintForClip(clip, memory) {
+  if (clip.importFingerprint) return clip.importFingerprint;
+  for (const p of [clip.renderPath, clip.importedFrom]) {
+    try {
+      if (p && fs.existsSync(p)) return fingerprintFile(p);
+    } catch (e) { /* try the next one */ }
+  }
+  if (!clip.importedFrom) return null;
+  const name = path.basename(clip.importedFrom);
+  const matches = Object.entries(memory || {}).filter(([, m]) => m?.status === "imported" && m.file === name);
+  return matches.length === 1 ? matches[0][0] : null;
+}
+
+/**
+ * Forget an import clip's file so the original can be imported again. A repost
+ * of an import is never forgotten: its content already went out once, and the
+ * memory entry is what refuses a second import of it.
+ * Returns true when an entry was removed.
+ */
+function forgetClip(store, clip) {
+  if (clip.repostOf) return false;
+  const memory = { ...(store.get("importMemory") || {}) };
+  const fp = fingerprintForClip(clip, memory);
+  if (!fp || !memory[fp]) return false;
+  delete memory[fp];
+  store.set("importMemory", memory);
+  return true;
+}
+
+/**
+ * #471 "Remove import": take an import clip off the queue for good — forget its
+ * file (so the original can come back through Import) and delete the clip with
+ * its copy in ClipFlow Imports and its thumbnail. The original is never touched.
+ */
+function removeImport({ store, watchFolder, projectId, clipId }) {
+  const project = projectsLib.loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+  const clip = project.clips.find((c) => c.id === clipId);
+  if (!clip) return { error: "Clip not found" };
+  if (clip.source !== "import") return { error: "Not an imported clip" };
+
+  const forgotten = forgetClip(store, clip);
+  const res = projectsLib.deleteClip(watchFolder, projectId, clipId, true);
+  if (res.error) return res;
+  logger.info(logger.MODULES.system, "Removed imported clip", {
+    clipId, title: clip.title, importedFrom: clip.importedFrom || null, repost: !!clip.repostOf, forgotten,
+  });
+  return { success: true, forgotten };
+}
+
+/**
+ * #471 boot repair: before #471 an import removed from the queue stayed behind
+ * as a "dequeued" clip no screen shows, and its file could never be imported
+ * again. Forget each one and drop the record. Files are left alone — a copy
+ * still on disk may be the only one left.
+ */
+function repairStuckImports({ store, watchFolder }) {
+  if (!watchFolder) return { repaired: 0 };
+  const { projects: all } = projectsLib.listProjects(watchFolder);
+  let repaired = 0;
+  for (const summary of all.filter((p) => p.kind === "import")) {
+    const project = projectsLib.loadProject(watchFolder, summary.id);
+    if (!project) continue;
+    const stuck = project.clips.filter((c) => c.source === "import" && c.status === "dequeued" && !c.repostOf);
+    if (!stuck.length) continue;
+    for (const clip of stuck) {
+      const forgotten = forgetClip(store, clip);
+      logger.info(logger.MODULES.system, "Repaired stuck imported clip", {
+        clipId: clip.id, title: clip.title, importedFrom: clip.importedFrom || null, forgotten,
+      });
+    }
+    const ids = new Set(stuck.map((c) => c.id));
+    project.clips = project.clips.filter((c) => !ids.has(c.id));
+    projectsLib.saveProject(watchFolder, project);
+    repaired += stuck.length;
+  }
+  return { repaired };
+}
+
 module.exports = {
   inspect,
   generate,
   cancelGenerate,
   confirm,
+  removeImport,
+  repairStuckImports,
   // exported for tests
   stripImportPrefix,
   fingerprintFile,
+  fingerprintForClip,
   importsRootFor,
 };
