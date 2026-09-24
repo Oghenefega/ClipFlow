@@ -964,6 +964,13 @@ export default function App() {
     setView("tracker");
   }, []);
 
+  // #466: the Tracker's clip panel hands off to Analytics for the per-platform breakdown.
+  const [analyticsFocus, setAnalyticsFocus] = useState(null);
+  const openAnalyticsAt = useCallback((clipId) => {
+    setAnalyticsFocus({ clipId, nonce: Date.now() });
+    setView("analytics");
+  }, []);
+
   // #315: clips stuck between "scheduled" and "posted".
   //
   // A scheduled publish that only partly worked leaves the clip in a gap: the
@@ -1217,7 +1224,8 @@ export default function App() {
           </div>
         </div>
         <div style={tabPaneStyle(view === "tracker")}>
-          <div style={{ padding: "32px 40px", maxWidth: 960, margin: "0 auto" }}>
+          {/* #466: full width — the week log fills the window and the clip panel docks beside it. */}
+          <div style={{ padding: "32px 40px" }}>
             <TrackerView
               mainGame={mainGame}
               setMainGame={setMainGame}
@@ -1251,13 +1259,15 @@ export default function App() {
               onRepostClip={handleRepostClip}
               repostIndex={repostIndex}
               focusEntry={trackerFocus}
+              active={view === "tracker"}
+              onOpenAnalyticsAt={openAnalyticsAt}
             />
           </div>
         </div>
         <div style={tabPaneStyle(view === "analytics")}>
           {/* #397: wider than the other tabs — the clip grid wants the room. The view owns its maxWidth (it grows when the clip panel docks, #401). */}
           <div style={{ padding: "32px 40px" }}>
-            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} localProjects={localProjects} onOpenInEditor={handleOpenAnalyticsClipInEditor} repostIndex={repostIndex} onOpenTrackerAt={openTrackerAt} />
+            <AnalyticsView gamesDb={gamesDb} active={view === "analytics"} localProjects={localProjects} onOpenInEditor={handleOpenAnalyticsClipInEditor} repostIndex={repostIndex} onOpenTrackerAt={openTrackerAt} focusClip={analyticsFocus} />
           </div>
         </div>
         <div style={tabPaneStyle(view === "settings")}>
@@ -1349,7 +1359,8 @@ export default function App() {
         {/* ClipBrowser — per-project; conditional render so each project is fresh */}
         {showClipBrowser && (
           <div style={{ flex: 1, overflow: "auto", scrollbarGutter: "stable" }}>
-            <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            {/* #467: full width — the clip grid sizes itself to the window. */}
+            <div style={{ padding: "32px 40px" }}>
               {renderClipBrowser()}
             </div>
           </div>

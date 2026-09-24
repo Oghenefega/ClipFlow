@@ -13,6 +13,7 @@ import PLATFORM_BRAND from "../styles/platformBrand";
 import { Card, PageHeader, toFileUrl, CopyIconButton } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
 import PostPill from "../components/PostPill";
+import ClipSidePanel, { usePaneBox, sidePanelSize, usePanelKeys, PanelVideo, PanelPoster, PANEL_GAP } from "../components/ClipSidePanel";
 import { downloadBlob } from "../utils/recapCardImage";
 import {
   PLATFORMS, PLATFORM_LABEL, LENGTH_BUCKETS, DAYS, HOUR_BANDS,
@@ -29,11 +30,6 @@ const WINDOWS = [
 const SOURCE_ORDER = ["self", "ai_edited", "ai", "unknown"];
 const SOURCE_LABEL = { self: "Hand-written", ai_edited: "AI, edited", ai: "AI as-is", unknown: "Unknown" };
 const GRID_STEP = 16;
-// #401: the clip panel docks as a right column (never over the grid). Its height
-// is the window minus the 36px title bar, the 56px nav and a little breathing
-// room, so it scrolls on its own while the grid scrolls underneath.
-const PANEL_W = 620;
-const PANEL_H = "calc(100vh - 136px)";
 const SORTS = [{ id: "top", label: "Top" }, { id: "newest", label: "Newest" }, { id: "oldest", label: "Oldest" }];
 const TYPE_FILTERS = [{ id: "all", label: "All categories" }, { id: "main", label: "Main" }, { id: "other", label: "Variety" }];
 
@@ -161,30 +157,13 @@ function ClipCard({ clip, medianAll, selected, onClick }) {
 
 // ---- clip drawer ------------------------------------------------------------
 
-// Every <video> must release its source on unmount or Chromium's renderer
-// eventually crashes — same teardown as ProjectsView's ClipVideoPlayer. Its own
-// component so the cleanup runs on unmount ONLY: keyed on `playing` it ran
-// against the freshly mounted element and stripped the src before the first
-// frame (#401 "play does nothing").
-function DrawerVideo({ src }) {
-  const ref = useRef(null);
-  useEffect(() => () => {
-    const v = ref.current;
-    if (v) { try { v.pause(); v.removeAttribute("src"); v.load(); } catch (_) { /* already gone */ } }
-  }, []);
-  return <video ref={ref} src={src} controls autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }} />;
-}
-
-function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelect, repostIndex, onOpenTrackerAt }) {
+// #466: the shared clip panel (components/ClipSidePanel.js) — the same full-height
+// viewer as Projects and the Tracker, with the Analytics details beside it.
+function ClipDrawer({ clip, size, medianAll, related, onClose, onOpenInEditor, onSelect, repostIndex, onOpenTrackerAt }) {
   const [playing, setPlaying] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [capPlatform, setCapPlatform] = useState(null);
   useEffect(() => { setPlaying(false); setCaptionOpen(false); setCapPlatform(null); }, [clip?.clipId]);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
   if (!clip) return null;
 
   const x = medianAll > 0 ? clip.total / medianAll : 0;
@@ -217,168 +196,147 @@ function ClipDrawer({ clip, medianAll, related, onClose, onOpenInEditor, onSelec
   );
 
   return (
-    <aside data-keep-panel="" style={{
-      position: "sticky", top: 12, width: PANEL_W, height: PANEL_H, flexShrink: 0, overflow: "auto",
-      background: glass, border: `1px solid ${T.borderHover}`, borderRadius: 22,
-      boxShadow: shadowLift, padding: "18px 20px 24px", fontFamily: T.font, boxSizing: "border-box",
-    }}>
-      <button onClick={onClose} title="Close (Esc)" style={{ position: "absolute", top: 12, right: 14, width: 28, height: 28, borderRadius: "50%", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, fontSize: 15, cursor: "pointer", fontFamily: T.font }}>×</button>
-
-      <div style={{ display: "grid", gridTemplateColumns: "250px minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
-        {/* Left: poster + platform breakdown + history */}
-        <div>
-          <div style={{ position: "relative", aspectRatio: "9/16", borderRadius: 18, overflow: "hidden", background: mix(color, 16), boxShadow: "0 20px 50px -20px rgba(var(--shade),calc(0.9 * var(--shadeK)))" }}>
-            {playing && clip.renderPath ? (
-              <DrawerVideo key={clip.clipId} src={toFileUrl(clip.renderPath)} />
-            ) : (
-              <>
-                {clip.thumbnailPath && <img src={toFileUrl(clip.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                <button onClick={() => clip.renderPath && setPlaying(true)} disabled={!clip.renderPath} title={clip.renderPath ? "Play" : "Rendered file not in the library"} style={{ position: "absolute", inset: 0, background: "transparent", border: "none", cursor: clip.renderPath ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(10,11,16,0.72)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", paddingLeft: 3, opacity: clip.renderPath ? 1 : 0.4 }}>▶</span>
-                </button>
-              </>
-            )}
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 44px 46px", gap: 6, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
-              <span>Platform</span><span style={{ textAlign: "right" }}>views</span><span style={{ textAlign: "right" }}>likes</span><span style={{ textAlign: "right" }}>link</span>
-            </div>
-            {PLATFORMS.map((p) => {
-              const v = clip.views[p];
-              const url = clip.urls?.[p];
-              const posted = clip.hasPost[p];
-              return (
-                <div key={p} style={{ display: "grid", gridTemplateColumns: "1fr 52px 44px 46px", gap: 6, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: T.text }}><Dot color={PLATFORM_BRAND[p].bar} /> {PLATFORM_LABEL[p]}</span>
-                  <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: v == null ? T.textTertiary : T.text, fontWeight: 600 }}>{v == null ? (posted ? "…" : "—") : fmtK(v)}</span>
-                  <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: T.textSecondary }}>{clip.engagement?.[p]?.likes != null ? fmtK(clip.engagement[p].likes) : "—"}</span>
-                  <span style={{ textAlign: "right" }}>
-                    {url ? <a onClick={(e) => { e.preventDefault(); open(url); }} href={url} style={{ color: T.accentLight, fontSize: 11.5, cursor: "pointer" }}>open ↗</a>
-                      : <span style={{ color: T.textTertiary, fontSize: 11 }} title={posted ? (p === "tiktok" ? "Link arrives with TikTok's approval" : "Link arrives with the next refresh") : "Not posted here"}>{posted ? "soon" : "—"}</span>}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div style={h4}>Views over time</div>
-            {ms ? (
-              <div style={box}>
-                <span style={{ color: T.text, fontWeight: 600 }}>Day 2: {ms.day2 == null ? "—" : fmtK(ms.day2)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Day 7: {ms.day7 == null ? "—" : fmtK(ms.day7)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Now: {fmtK(ms.now)}</span>
-                <div style={{ marginTop: 6 }}>
-                  <Sparkline points={clip.history.map(([day, total]) => ({ day, total }))} width={226} height={34} color={T.accentLight} />
-                  <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 2 }}>{clip.history.length} daily snapshot{clip.history.length === 1 ? "" : "s"}, {fmtDate(ms.firstDay)} → {fmtDate(ms.lastDay)}</div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ ...box, color: T.textTertiary }}>Daily snapshots start with the next refresh. Day 2, day 7 and the curve fill in from there.</div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: title, chips, headline number, actions, caption, related */}
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, paddingRight: 30, color: T.text }}>{stripTags(clip.title) || clip.title}</h2>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0" }}>
-            {chip(<><Dot color={color} size={6} /> {clip.gameName}</>)}
-            {chip(`${fmtDate(clip.date)}${clip.time ? ` · ${clip.time}` : ""}`)}
-            {clip.duration > 0 && chip(`${Math.round(clip.duration)}s`)}
-            {chip(`${SOURCE_LABEL[SOURCE_ORDER.includes(clip.titleSource) ? clip.titleSource : "unknown"]} title`, clip.titleSource === "self")}
-            {clip.repostOf && chip("Repost")}
-            {repostIndex?.byOriginal?.get(clip.clipId)?.length > 0 && chip(`Reposted ×${repostIndex.byOriginal.get(clip.clipId).length}`)}
-            {clip.source === "import" && chip("Import")}
-          </div>
-          {/* #461: the other days this post went out, both ways — each opens in the Tracker. */}
-          {(() => {
-            const original = repostIndex?.originalOf?.get(clip.clipId);
-            const list = original ? [original] : (repostIndex?.byOriginal?.get(clip.clipId) || []);
-            if (!list.length) return null;
-            return (
-              <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "-2px 0 10px" }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textTertiary, marginRight: 2 }}>{original ? "Repost of" : "Reposted"}</span>
-                {list.map((p) => <PostPill key={p.clipId} post={p} onGo={() => onOpenTrackerAt?.(p.clipId, p.date)} />)}
-              </div>
-            );
-          })()}
-          <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-1px", lineHeight: 1, color: T.text }}>
-            {clip.fetchedAt ? fmtK(clip.total) : "—"}<span style={{ fontSize: 12, color: T.textTertiary, fontWeight: 400, marginLeft: 8, letterSpacing: 0 }}>views across {PLATFORMS.filter((p) => clip.views[p] != null).length} platform{PLATFORMS.filter((p) => clip.views[p] != null).length === 1 ? "" : "s"}</span>
-          </div>
-          <div style={{ fontSize: 12, color: T.textSecondary, marginTop: 6 }}>
-            {clip.fetchedAt && medianAll > 0 && (x >= 1
-              ? <span style={{ color: T.green, fontWeight: 600 }}>{x.toFixed(1)}× your median</span>
-              : <span style={{ color: T.red, fontWeight: 600 }}>{Math.round(x * 100)}% of your median</span>)}
-            {clip.fetchedAt && medianAll > 0 && " · "}{fmtK(likes)} likes · {fmtK(comments)} comments
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-            <Btn primary onClick={() => onOpenInEditor?.(clip.projectId, clip.clipId)} disabled={!clip.projectId || !onOpenInEditor} title={clip.projectId ? "Open this clip in the editor" : "Project not found in the library"}>Open in editor</Btn>
-            <Btn onClick={() => window.clipflow?.revealInFolder?.(clip.renderPath)} disabled={!clip.renderPath} title={clip.renderPath ? "Show the rendered file in Explorer" : "Rendered file not in the library"}>Show in folder</Btn>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-            {PLATFORMS.map((p) => {
-              const url = clip.urls?.[p];
-              return (
-                <Btn key={p} onClick={() => open(url)} disabled={!url} title={url || (clip.hasPost[p] ? (p === "tiktok" ? "Link arrives with TikTok's approval" : "Link arrives with the next refresh") : "Not posted here")}>
-                  <PlatformIcon platform={p} size={13} /> {PLATFORM_LABEL[p]} ↗
-                </Btn>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: 16 }}>
-            <div style={{ ...h4, display: "flex", alignItems: "center", gap: 8 }}>As posted<span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, marginLeft: "auto" }}>copy what worked</span></div>
-            {postedOn.length > 1 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-                {postedOn.map((p) => (
-                  <button key={p} onClick={() => setCapPlatform(p)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
-                    background: p === cp ? "rgba(var(--lift),0.07)" : "transparent", color: p === cp ? T.text : T.textTertiary, border: `1px solid ${p === cp ? T.border : "transparent"}` }}>
-                    <PlatformIcon platform={p} size={12} /> {PLATFORM_LABEL[p]}
-                  </button>
-                ))}
-              </div>
-            )}
-            {copyRow("Caption", capText, (
-              <>
-                {/* Captions carry the full description block (links, schedule, gear list) — clamp so the related clips stay in reach. */}
-                <div style={{ ...box, ...(captionOpen || !longCaption ? {} : { display: "-webkit-box", WebkitLineClamp: 7, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
-                  {capText || <span style={{ color: T.textTertiary }}>No caption stored for this post.</span>}
-                </div>
-                {longCaption && (
-                  <button onClick={() => setCaptionOpen((o) => !o)} style={{ background: "transparent", border: "none", color: T.accentLight, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 2px 0" }}>{captionOpen ? "Show less" : "Show the whole caption"}</button>
-                )}
-              </>
-            ))}
-            {logged?.tags && copyRow("YouTube tags", logged.tags.join(", "), <div style={box}>{logged.tags.join(", ")}</div>)}
-            {cp && !logged && <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 6 }}>From the tracker — this post predates the per-platform log, so every platform shows the same text.</div>}
-          </div>
-
-          {related.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={h4}>Same game, this window</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {related.map((r) => (
-                  <div key={r.clipId} onClick={() => onSelect(r.clipId)} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11.5, cursor: "pointer", padding: 4, borderRadius: 9 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                    <div style={{ width: 34, aspectRatio: "9/16", borderRadius: 7, overflow: "hidden", flexShrink: 0, background: mix(color, 16) }}>
-                      {r.thumbnailPath && <img src={toFileUrl(r.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                    </div>
-                    <span style={{ color: T.textSecondary, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{stripTags(r.title) || r.title} · <span style={{ color: T.text, fontWeight: 600 }}>{fmtK(r.total)}</span></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+    <ClipSidePanel
+      size={size}
+      onClose={onClose}
+      preview={playing && clip.renderPath
+        ? <PanelVideo key={clip.clipId} src={toFileUrl(clip.renderPath)} poster={clip.thumbnailPath ? toFileUrl(clip.thumbnailPath) : undefined} />
+        : <PanelPoster src={clip.thumbnailPath ? toFileUrl(clip.thumbnailPath) : null} canPlay={!!clip.renderPath} onPlay={() => setPlaying(true)} tint={mix(color, 16)} />}
+    >
+      <h2 style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, paddingRight: 36, color: T.text }}>{stripTags(clip.title) || clip.title}</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0" }}>
+        {chip(<><Dot color={color} size={6} /> {clip.gameName}</>)}
+        {chip(`${fmtDate(clip.date)}${clip.time ? ` · ${clip.time}` : ""}`)}
+        {clip.duration > 0 && chip(`${Math.round(clip.duration)}s`)}
+        {chip(`${SOURCE_LABEL[SOURCE_ORDER.includes(clip.titleSource) ? clip.titleSource : "unknown"]} title`, clip.titleSource === "self")}
+        {clip.repostOf && chip("Repost")}
+        {repostIndex?.byOriginal?.get(clip.clipId)?.length > 0 && chip(`Reposted ×${repostIndex.byOriginal.get(clip.clipId).length}`)}
+        {clip.source === "import" && chip("Import")}
       </div>
-    </aside>
+      {/* #461: the other days this post went out, both ways — each opens in the Tracker. */}
+      {(() => {
+        const original = repostIndex?.originalOf?.get(clip.clipId);
+        const list = original ? [original] : (repostIndex?.byOriginal?.get(clip.clipId) || []);
+        if (!list.length) return null;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "-2px 0 10px" }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textTertiary, marginRight: 2 }}>{original ? "Repost of" : "Reposted"}</span>
+            {list.map((p) => <PostPill key={p.clipId} post={p} onGo={() => onOpenTrackerAt?.(p.clipId, p.date)} />)}
+          </div>
+        );
+      })()}
+      <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-1px", lineHeight: 1, color: T.text }}>
+        {clip.fetchedAt ? fmtK(clip.total) : "—"}<span style={{ fontSize: 12, color: T.textTertiary, fontWeight: 400, marginLeft: 8, letterSpacing: 0 }}>views across {PLATFORMS.filter((p) => clip.views[p] != null).length} platform{PLATFORMS.filter((p) => clip.views[p] != null).length === 1 ? "" : "s"}</span>
+      </div>
+      <div style={{ fontSize: 12, color: T.textSecondary, marginTop: 6 }}>
+        {clip.fetchedAt && medianAll > 0 && (x >= 1
+          ? <span style={{ color: T.green, fontWeight: 600 }}>{x.toFixed(1)}× your median</span>
+          : <span style={{ color: T.red, fontWeight: 600 }}>{Math.round(x * 100)}% of your median</span>)}
+        {clip.fetchedAt && medianAll > 0 && " · "}{fmtK(likes)} likes · {fmtK(comments)} comments
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
+        <Btn primary onClick={() => onOpenInEditor?.(clip.projectId, clip.clipId)} disabled={!clip.projectId || !onOpenInEditor} title={clip.projectId ? "Open this clip in the editor" : "Project not found in the library"}>Open in editor</Btn>
+        <Btn onClick={() => window.clipflow?.revealInFolder?.(clip.renderPath)} disabled={!clip.renderPath} title={clip.renderPath ? "Show the rendered file in Explorer" : "Rendered file not in the library"}>Show in folder</Btn>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+        {PLATFORMS.map((p) => {
+          const url = clip.urls?.[p];
+          return (
+            <Btn key={p} onClick={() => open(url)} disabled={!url} title={url || (clip.hasPost[p] ? (p === "tiktok" ? "Link arrives with TikTok's approval" : "Link arrives with the next refresh") : "Not posted here")}>
+              <PlatformIcon platform={p} size={13} /> {PLATFORM_LABEL[p]} ↗
+            </Btn>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 44px 46px", gap: 6, fontSize: 10.5, color: T.textTertiary, paddingBottom: 4 }}>
+          <span>Platform</span><span style={{ textAlign: "right" }}>views</span><span style={{ textAlign: "right" }}>likes</span><span style={{ textAlign: "right" }}>link</span>
+        </div>
+        {PLATFORMS.map((p) => {
+          const v = clip.views[p];
+          const url = clip.urls?.[p];
+          const posted = clip.hasPost[p];
+          return (
+            <div key={p} style={{ display: "grid", gridTemplateColumns: "1fr 52px 44px 46px", gap: 6, alignItems: "center", padding: "6px 0", borderTop: `1px solid ${T.border}`, fontSize: 12, opacity: posted ? 1 : 0.45 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: T.text }}><Dot color={PLATFORM_BRAND[p].bar} /> {PLATFORM_LABEL[p]}</span>
+              <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: v == null ? T.textTertiary : T.text, fontWeight: 600 }}>{v == null ? (posted ? "…" : "—") : fmtK(v)}</span>
+              <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: T.textSecondary }}>{clip.engagement?.[p]?.likes != null ? fmtK(clip.engagement[p].likes) : "—"}</span>
+              <span style={{ textAlign: "right" }}>
+                {url ? <a onClick={(e) => { e.preventDefault(); open(url); }} href={url} style={{ color: T.accentLight, fontSize: 11.5, cursor: "pointer" }}>open ↗</a>
+                  : <span style={{ color: T.textTertiary, fontSize: 11 }} title={posted ? (p === "tiktok" ? "Link arrives with TikTok's approval" : "Link arrives with the next refresh") : "Not posted here"}>{posted ? "soon" : "—"}</span>}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <div style={h4}>Views over time</div>
+        {ms ? (
+          <div style={box}>
+            <span style={{ color: T.text, fontWeight: 600 }}>Day 2: {ms.day2 == null ? "—" : fmtK(ms.day2)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Day 7: {ms.day7 == null ? "—" : fmtK(ms.day7)}</span> · <span style={{ color: T.text, fontWeight: 600 }}>Now: {fmtK(ms.now)}</span>
+            <div style={{ marginTop: 6 }}>
+              <Sparkline points={clip.history.map(([day, total]) => ({ day, total }))} width={Math.max(160, size.details - 24)} height={34} color={T.accentLight} />
+              <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 2 }}>{clip.history.length} daily snapshot{clip.history.length === 1 ? "" : "s"}, {fmtDate(ms.firstDay)} → {fmtDate(ms.lastDay)}</div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ ...box, color: T.textTertiary }}>Daily snapshots start with the next refresh. Day 2, day 7 and the curve fill in from there.</div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <div style={{ ...h4, display: "flex", alignItems: "center", gap: 8 }}>As posted<span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, marginLeft: "auto" }}>copy what worked</span></div>
+        {postedOn.length > 1 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+            {postedOn.map((p) => (
+              <button key={p} onClick={() => setCapPlatform(p)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
+                background: p === cp ? "rgba(var(--lift),0.07)" : "transparent", color: p === cp ? T.text : T.textTertiary, border: `1px solid ${p === cp ? T.border : "transparent"}` }}>
+                <PlatformIcon platform={p} size={12} /> {PLATFORM_LABEL[p]}
+              </button>
+            ))}
+          </div>
+        )}
+        {copyRow("Caption", capText, (
+          <>
+            {/* Captions carry the full description block (links, schedule, gear list) — clamp so the related clips stay in reach. */}
+            <div style={{ ...box, ...(captionOpen || !longCaption ? {} : { display: "-webkit-box", WebkitLineClamp: 7, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
+              {capText || <span style={{ color: T.textTertiary }}>No caption stored for this post.</span>}
+            </div>
+            {longCaption && (
+              <button onClick={() => setCaptionOpen((o) => !o)} style={{ background: "transparent", border: "none", color: T.accentLight, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 2px 0" }}>{captionOpen ? "Show less" : "Show the whole caption"}</button>
+            )}
+          </>
+        ))}
+        {logged?.tags && copyRow("YouTube tags", logged.tags.join(", "), <div style={box}>{logged.tags.join(", ")}</div>)}
+        {cp && !logged && <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 6 }}>From the tracker — this post predates the per-platform log, so every platform shows the same text.</div>}
+      </div>
+
+      {related.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={h4}>Same game, this window</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {related.map((r) => (
+              <div key={r.clipId} onClick={() => onSelect(r.clipId)} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11.5, cursor: "pointer", padding: 4, borderRadius: 9 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--lift),0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                <div style={{ width: 34, aspectRatio: "9/16", borderRadius: 7, overflow: "hidden", flexShrink: 0, background: mix(color, 16) }}>
+                  {r.thumbnailPath && <img src={toFileUrl(r.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                </div>
+                <span style={{ color: T.textSecondary, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{stripTags(r.title) || r.title} · <span style={{ color: T.text, fontWeight: 600 }}>{fmtK(r.total)}</span></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </ClipSidePanel>
   );
 }
 
 // ---- the tab ----------------------------------------------------------------
 
-export default function AnalyticsView({ gamesDb = [], active, localProjects = [], onOpenInEditor, repostIndex, onOpenTrackerAt }) {
+export default function AnalyticsView({ gamesDb = [], active, localProjects = [], onOpenInEditor, repostIndex, onOpenTrackerAt, focusClip }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -483,6 +441,18 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
   const selected = useMemo(() => allClips.find((c) => c.clipId === selectedId) || null, [allClips, selectedId]);
   const related = useMemo(() => (selected ? ranked.filter((c) => c.clipId !== selected.clipId && c.gameName === selected.gameName).slice(0, 4) : []), [selected, ranked]);
   const closeDrawer = useCallback(() => setSelectedId(null), []);
+  // #466: the Tracker's "See the breakdown in Analytics" lands here with its clip open.
+  useEffect(() => { if (focusClip?.clipId) setSelectedId(focusClip.clipId); }, [focusClip]);
+  // #466: the panel is as tall as the tab and docks beside the page; ← → walk the grid.
+  const wrapRef = useRef(null);
+  const paneBox = usePaneBox(wrapRef);
+  const panel = selected ? sidePanelSize(paneBox) : null;
+  const stepClip = (d) => {
+    const i = gridClips.findIndex((c) => c.clipId === selectedId);
+    const next = i >= 0 ? gridClips[i + d] : null;
+    if (next) setSelectedId(next.clipId);
+  };
+  usePanelKeys({ open: !!selected, onClose: closeDrawer, onPrev: () => stepClip(-1), onNext: () => stepClip(1) });
   // #401: a click on the grid side closes the docked panel. Cards, table rows and
   // the grid controls opt out with data-keep-panel so one click swaps or filters.
   const clickAway = useCallback((e) => { if (!e.target.closest("[data-keep-panel]")) setSelectedId(null); }, []);
@@ -535,12 +505,12 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
   const tileLabel = { fontSize: 10, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary, display: "flex", alignItems: "center", gap: 6 };
   const tileValue = (on) => ({ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 8, color: on ? T.text : T.textTertiary });
   const sel = { fontSize: 12, fontWeight: 600, fontFamily: T.font, color: T.text, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 8px", cursor: "pointer", maxWidth: 170 };
-  // With the panel docked the content column narrows (562px at a 1280 window), so
+  // With the panel docked the content column narrows, so
   // the fixed-column rows wrap instead of crushing.
   const narrow = !!selected;
 
   return (
-    <div style={{ maxWidth: narrow ? 1440 + PANEL_W + 18 : 1440, margin: "0 auto", display: "flex", gap: 18, alignItems: "flex-start" }}>
+    <div ref={wrapRef} style={{ maxWidth: panel ? 1440 + panel.w + PANEL_GAP : 1440, margin: "0 auto", display: "flex", gap: PANEL_GAP, alignItems: "flex-start" }}>
     <div style={{ flex: 1, minWidth: 0 }} onClick={narrow ? clickAway : undefined}>
       <PageHeader title="Analytics" style={{ marginBottom: 18 }}>
        {/* One wrapping box so the switcher and Refresh drop to a second line beside a docked panel instead of running off the edge (#401). */}
@@ -733,7 +703,7 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
 
     </div>
       {selected && (
-        <ClipDrawer clip={selected} medianAll={medianAll} related={related} onClose={closeDrawer} onOpenInEditor={onOpenInEditor} onSelect={setSelectedId} repostIndex={repostIndex} onOpenTrackerAt={onOpenTrackerAt} />
+        <ClipDrawer clip={selected} size={panel} medianAll={medianAll} related={related} onClose={closeDrawer} onOpenInEditor={onOpenInEditor} onSelect={setSelectedId} repostIndex={repostIndex} onOpenTrackerAt={onOpenTrackerAt} />
       )}
     </div>
   );

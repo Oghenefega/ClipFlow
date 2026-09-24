@@ -3,6 +3,7 @@ import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
 import PostPill from "../components/PostPill";
 import { toFileUrl } from "../components/shared";
+import ClipSidePanel, { usePaneBox, sidePanelSize, usePanelKeys, PanelVideo, PanelPoster, PANEL_GAP } from "../components/ClipSidePanel";
 import {
   ledgerTotal, rankForXp, weekEntries, computeRecap, localISO, addDaysISO, weekStartISO,
   XP_PER_CLIP,
@@ -83,6 +84,10 @@ const cleanTitle = (t) => (t || "").replace(/\s*#[A-Za-z0-9_]+/g, "").trim() || 
 const sortTemplateByTime = (tmpl) => sortTemplateByTimeShared(tmpl, parseTimeToMinutes);
 
 const fmtNum = (n) => n.toLocaleString("en-US");
+const fmtViews = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}K` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : String(n));
+// One identity for a week-log card across renders (posted entries carry an id,
+// scheduled clips a clipId).
+const entryKey = (e) => (e ? e.id || e.clipId || `${e.date}|${e.time}|${e.game}` : "");
 
 export default function TrackerView({
   mainGame, setMainGame, mainGameTag, gamesDb,
@@ -103,6 +108,8 @@ export default function TrackerView({
   onRepostClip,
   repostIndex,
   focusEntry,
+  active,
+  onOpenAnalyticsAt,
 }) {
   // #276: the Calendar sub-view folded into week navigation — one view, offset in
   // weeks from today. 0 = live current week, negative = frozen past, positive = preview.
@@ -360,7 +367,7 @@ export default function TrackerView({
     try {
       const res = await onRepostClip?.(projectId, clipId);
       if (res?.error) { setRepostErr(res.error); return; }
-      closePopover();
+      closeDetail();
       onOpenQueue?.();
     } catch (e) {
       setRepostErr(e.message || "Repost failed");
@@ -369,7 +376,6 @@ export default function TrackerView({
     }
   };
 
-  useEffect(() => { setRepostErr(null); }, [popover]);
 
   useEffect(() => {
     if (!popover) return;
@@ -414,7 +420,18 @@ export default function TrackerView({
   };
   // One popover for both card kinds; `isSched` swaps the source line and the footer
   // action (Remove makes no sense for something that hasn't posted yet).
-  const openDetailPopover = (entry, isSched, rect) => setPopover({ type: "detail", entry, isSched, rect });
+  // #466: a posted or scheduled clip opens in the side panel (the Analytics
+  // pattern), not a popover. The empty-slot "Log a clip" popover stays one.
+  // A programmatic click (jump to a post) always opens; a real one toggles.
+  const [detail, setDetail] = useState(null); // { entry, isSched }
+  const [detailPlaying, setDetailPlaying] = useState(false);
+  const openDetail = (entry, isSched, keepOpen = false) => {
+    closePopover();
+    setDetailPlaying(false);
+    setDetail((cur) => (cur && !keepOpen && entryKey(cur.entry) === entryKey(entry) ? null : { entry, isSched }));
+  };
+  const closeDetail = () => { setDetail(null); setDetailPlaying(false); };
+  useEffect(() => { setRepostErr(null); }, [detail]);
 
   const togglePlatform = (key) => {
     setLogSelectedPlatforms((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
@@ -449,7 +466,7 @@ export default function TrackerView({
 
   const removeEntry = (entry) => {
     setTrackerData((prev) => prev.filter((e) => (e.id ? e.id !== entry.id : !(e.date === entry.date && e.time === entry.time && e.game === entry.game))));
-    closePopover();
+    closeDetail();
     toast("Clip removed");
   };
 
@@ -697,6 +714,7 @@ export default function TrackerView({
   const goWeek = (delta) => {
     setWeekOffset((o) => o + delta);
     closePopover();
+    closeDetail();
     setPickerOpen(false);
     setShowTemplateEditor(false);
   };
@@ -737,6 +755,68 @@ export default function TrackerView({
   const edgeTimerRef = useRef(null);
   const lastEdgeMoveRef = useRef(0);
   const logCardRef = useRef(null);
+
+  // #466: overall views per posted clip, from the store the Analytics tab reads.
+  // Re-read whenever the tab is opened (the boot-time pull lands after launch).
+  const [viewsByClip, setViewsByClip] = useState(() => new Map());
+  useEffect(() => {
+    if (!active) return;
+    window.clipflow?.analyticsGet?.().then((r) => {
+      const clips = r?.data?.clips;
+      if (!Array.isArray(clips)) return;
+      setViewsByClip(new Map(clips.filter((c) => c.fetchedAt && Number.isFinite(c.total)).map((c) => [c.clipId, c.total])));
+    }).catch(() => {});
+  }, [active]);
+
+  const dayModels = wd.map((d, di) => {
+    const dayEntries = thisWeekEntries.filter((e) => e.date === d.iso);
+    // #218: clips scheduled from the Queue. They live on the clip as `scheduledAt`
+    // and never reach trackerData until the scheduler fires, so this list is the
+    // ONLY way the week log can show what's coming.
+    const daySched = schedByDate.get(d.iso) || [];
+    const dayRetry = retryByDate.get(d.iso) || [];
+    // #161: an OFF day has no slots to fill. Empty → a slim strip; with posts on
+    // it anyway → a dim column that still shows them (nothing ever vanishes).
+    const isOff = !activeDaySet.has(d.dayName);
+    const dayItems = [
+      ...dayEntries.map((e) => ({ kind: "entry", time: e.time, ref: e })),
+      ...daySched.map((sc) => ({ kind: "sched", time: sc.time, ref: sc })),
+      ...dayRetry.map((r) => ({ kind: "retry", time: r.time, ref: r })),
+    ];
+    const daySlots = isOff ? [] : (effectiveTemplate.timeSlots || []);
+    // A post at 2:31 fills the 2:30 slot, and a slot whose time has passed with
+    // nothing near it draws nothing — the day reads like a past week (s240).
+    const dayRows = buildDayRows({ slots: daySlots, items: dayItems, dayIso: d.iso, now, viewMode });
+    const showRetroLog = !isOff && retroLogVisible({ dayIso: d.iso, todayIso, viewMode });
+    return { d, di, dayEntries, daySched, dayRetry, isOff, dayItems, daySlots, dayRows, showRetroLog };
+  });
+  // #466: the page and the clip panel side by side, and a week log that fills the
+  // height left under the stats instead of stopping halfway down the window.
+  const wrapRef = useRef(null);
+  const box = usePaneBox(wrapRef);
+  const logBox = usePaneBox(logCardRef);
+  const panelSize = detail ? sidePanelSize(box) : null;
+  // Every card and open slot shares one height, sized so the busiest day fills
+  // the week log down to the bottom of the pane. Header, footer, day label, the
+  // "Upcoming" line and the retro "Log a post" row are fixed chrome.
+  const busiestDay = Math.max(1, ...dayModels.map((m) => m.dayRows.length));
+  const logRowsH = logBox.paneH - logBox.top - 32 - (41 + 33 + 11 + 24 + 18 + 26);
+  const rowH = logBox.paneH > 0 ? Math.max(24, Math.min(120, Math.floor(logRowsH / busiestDay) - 3)) : null;
+
+  // ← → walk the viewed week's posted and scheduled clips in calendar order.
+  const weekOrder = useMemo(() => wd.flatMap((d) => [
+    ...thisWeekEntries.filter((e) => e.date === d.iso).map((e) => ({ entry: e, isSched: false })),
+    ...(schedByDate.get(d.iso) || []).map((e) => ({ entry: e, isSched: true })),
+  ].sort((a, b) => parseTimeToMinutes(a.entry.time || "12:00 AM") - parseTimeToMinutes(b.entry.time || "12:00 AM"))), [wd, thisWeekEntries, schedByDate]);
+  const stepDetail = (dir) => {
+    const i = weekOrder.findIndex((x) => entryKey(x.entry) === entryKey(detail?.entry));
+    const next = weekOrder[i + dir];
+    if (i < 0 || !next) return;
+    setDetailPlaying(false);
+    setDetail(next);
+    requestAnimationFrame(() => document.querySelector(`[data-tracker-key="${CSS.escape(entryKey(next.entry))}"]`)?.scrollIntoView({ block: "nearest" }));
+  };
+  usePanelKeys({ open: !!detail, onClose: closeDetail, onPrev: () => stepDetail(-1), onNext: () => stepDetail(1) });
 
   const stopEdgeTimer = () => { clearTimeout(edgeTimerRef.current); edgeTimerRef.current = null; };
 
@@ -844,7 +924,8 @@ export default function TrackerView({
   const tickHidden = expFrac <= 0 || expFrac >= 1;
 
   return (
-    <div style={{ fontFamily: T.font, color: T.text }}>
+    <div ref={wrapRef} style={{ fontFamily: T.font, color: T.text, display: "flex", gap: PANEL_GAP, alignItems: "flex-start" }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       {/* Header row — #281: the week nav moved onto the week-log card (it steers the
           calendar, so it belongs on it) and the "NOW PLAYING <game>" echo is gone —
           the Now Playing card directly below says the same thing, larger, with art. */}
@@ -887,7 +968,7 @@ export default function TrackerView({
 
       {/* Top row — #279: Now Playing + Weekly goal + Rank share ONE row so the week
           log (the main content) fits without scrolling even on short windows */}
-      <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1.15fr 0.95fr", gap: 14, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: detail ? "repeat(auto-fit, minmax(240px, 1fr))" : "0.95fr 1.15fr 0.95fr", gap: 14, marginBottom: 12 }}>
       {/* Now Playing card — #281: an album-cover card. The poster is the card's left
           edge at full height (was a 54x72 tile) and the two pills it used to carry are
           gone: the rank pill duplicated the Rank card one column over, and "N posted
@@ -1119,7 +1200,7 @@ export default function TrackerView({
           #281: the week nav lives on this card now (it steers this grid) and the legend
           moved to the footer — the old header tried to carry the section label, three
           legend keys, a hint line, Edit slots AND the Custom chip on one row. */}
-      <div ref={logCardRef} onDragOver={onLogDragOver} onDragLeave={onLogDragLeave} style={{ position: "relative", background: PANEL_BG, border: `1px solid ${T.border}`, borderRadius: T.radius.lg }}>
+      <div ref={logCardRef} onDragOver={onLogDragOver} onDragLeave={onLogDragLeave} style={{ position: "relative", background: PANEL_BG, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, display: "flex", flexDirection: "column", minHeight: logBox.paneH > 0 ? Math.max(0, logBox.paneH - logBox.top - 32) : undefined }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px 7px", borderBottom: `1px solid ${T.border}`, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
@@ -1140,30 +1221,15 @@ export default function TrackerView({
             outer columns would swallow clicks on Sunday's and Saturday's own slots.
             #282's drag-to-travel still works through them: `dragover` bubbles up to
             logCardRef, which is what arms the edge timer. */}
-        <div style={{ display: "flex", alignItems: "stretch" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "stretch" }}>
           <WeekRail dir={-1} onClick={() => goWeek(-1)} />
           {/* #161: seven columns; an OFF day with nothing on it collapses to a slim strip
               so the posting days keep their width. */}
           <div style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: wd.map((d) => (!activeDaySet.has(d.dayName) && !thisWeekEntries.some((e) => e.date === d.iso) && !(schedByDate.get(d.iso) || []).length && !(retryByDate.get(d.iso) || []).length) ? "28px" : "minmax(0,1fr)").join(" "), gap: 0, padding: "5px 0 6px" }}>
-          {wd.map((d, di) => {
+          {dayModels.map(({ d, di, dayEntries, daySched, dayRetry, isOff, dayItems, daySlots, dayRows, showRetroLog }) => {
             const isToday = di === todayIdx;
             // #276: every day of a future week is upcoming; past weeks have no future days.
             const isFuture = viewMode === "future" ? true : (todayIdx >= 0 ? di > todayIdx : false);
-            const dayEntries = thisWeekEntries.filter((e) => e.date === d.iso);
-            // #218: clips scheduled from the Queue. They live on the clip as `scheduledAt`
-            // and never reach trackerData until the scheduler fires, so this list is the
-            // ONLY way the week log can show what's coming.
-            const daySched = schedByDate.get(d.iso) || [];
-            const dayRetry = retryByDate.get(d.iso) || [];
-            // #161: an OFF day has no slots to fill. Empty → a slim strip; with posts on
-            // it anyway → a dim column that still shows them (nothing ever vanishes).
-            const isOff = !activeDaySet.has(d.dayName);
-            const dayItems = [
-              ...dayEntries.map((e) => ({ kind: "entry", time: e.time, ref: e })),
-              ...daySched.map((sc) => ({ kind: "sched", time: sc.time, ref: sc })),
-              ...dayRetry.map((r) => ({ kind: "retry", time: r.time, ref: r })),
-            ];
-            const daySlots = isOff ? [] : (effectiveTemplate.timeSlots || []);
             if (isOff && dayItems.length === 0) {
               return (
                 <div key={d.iso} title="Off day — switch it on in Edit slots" style={{ borderRight: di < wd.length - 1 ? `1px solid ${T.border}` : "none", minHeight: 100, display: "flex", justifyContent: "center", paddingTop: 6 }}>
@@ -1171,11 +1237,6 @@ export default function TrackerView({
                 </div>
               );
             }
-            // A post at 2:31 fills the 2:30 slot, and a slot whose time has passed with
-            // nothing near it draws nothing — the day reads like a past week (s240).
-            const dayRows = buildDayRows({ slots: daySlots, items: dayItems, dayIso: d.iso, now, viewMode });
-            const showRetroLog = !isOff && retroLogVisible({ dayIso: d.iso, todayIso, viewMode });
-
             return (
               <div key={d.iso} style={{
                 padding: "0 8px", borderRight: di < wd.length - 1 ? `1px solid ${T.border}` : "none", minHeight: 100,
@@ -1214,27 +1275,45 @@ export default function TrackerView({
                     const movable = isSched && !!item.clipId && !!item.projectId && !!onRescheduleClip;
                     // #461: this post was reposted since — outlined, where a repost's own mark is filled.
                     const reposts = item.clipId ? repostIndex?.byOriginal?.get(item.clipId) : null;
+                    // #466: the clip's picture and its overall views, when the row is tall enough.
+                    const link = isSched || isRetry ? item : (item.clipId ? clipIndex?.get(item.clipId) : null);
+                    const views = !isSched && !isRetry && item.clipId ? viewsByClip.get(item.clipId) : undefined;
+                    // Each line only when the row can hold it: picture 40px, views line 58px,
+                    // a second title line 72px, a third 86px.
+                    const roomy = rowH != null && rowH >= 40;
+                    const showViews = rowH != null && rowH >= 58;
+                    const titleLines = rowH == null ? 2 : rowH >= 86 ? 3 : rowH >= 72 ? 2 : 1;
+                    const isOpen = !!detail && entryKey(detail.entry) === entryKey(item);
                     const retryTitle = isRetry
                       ? `${item.title || "Clip"} — went out on ${item.postedCount} platform${item.postedCount === 1 ? "" : "s"}, ${item.failedCount} still failing. Click to retry in the Queue.`
                       : null;
                     return (
                       <div key={(isSched ? "s" : isRetry ? "r" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
                         data-tracker-clip={item.clipId || undefined}
+                        data-tracker-key={entryKey(item)}
                         title={retryTitle || (movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || ""))}
                         draggable={movable}
                         onDragStart={movable ? (e) => startClipDrag(item, e) : undefined}
-                        onClick={(e) => (isRetry ? onOpenQueue?.() : openDetailPopover(item, isSched, e.currentTarget.getBoundingClientRect()))}
+                        onClick={(e) => (isRetry ? onOpenQueue?.() : openDetail(item, isSched, !e.isTrusted))}
                         style={{
-                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 3,
+                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "row", alignItems: "stretch", gap: 7,
+                          height: rowH ?? undefined, boxSizing: "border-box",
                           background: isRetry ? T.redDim : rgba(gd.color, isSched ? 0.05 : 0.09),
-                          border: `1px ${isSched ? "dashed" : "solid"} ${ring}`,
-                          borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: movable ? "grab" : "pointer",
-                          opacity: isSched ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
+                          border: `1px ${isSched ? "dashed" : "solid"} ${isOpen ? T.accent : ring}`,
+                          boxShadow: isOpen ? `0 0 0 1px ${T.accent}` : "none",
+                          borderRadius: 6, padding: roomy ? 4 : "4px 6px", marginBottom: 3, cursor: movable ? "grab" : "pointer",
+                          opacity: isSched && !isOpen ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
                         }}
-                        onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = isRetry ? T.red : rgba(gd.color, 0.5); }}
-                        onMouseLeave={(ev) => { ev.currentTarget.style.opacity = isSched ? 0.62 : 1; ev.currentTarget.style.borderColor = ring; }}
+                        onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = isRetry ? T.red : isOpen ? T.accent : rgba(gd.color, 0.5); }}
+                        onMouseLeave={(ev) => { ev.currentTarget.style.opacity = isSched && !isOpen ? 0.62 : 1; ev.currentTarget.style.borderColor = isOpen ? T.accent : ring; }}
                       >
                         <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(90px 50px at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
+                        {roomy && (
+                          <div style={{ position: "relative", height: "100%", aspectRatio: "9 / 16", flexShrink: 0, borderRadius: 4, overflow: "hidden", background: rgba(gd.color, 0.22) }}>
+                            {link?.thumbnailPath && <img src={toFileUrl(link.thumbnailPath)} alt="" loading="lazy" draggable={false} onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                          </div>
+                        )}
+                        <div style={{ position: "relative", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3 }}>
                         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
                           {/* #378: the tag is the ONLY thing on this row allowed to shrink.
                               A day column is a seventh of the card, and with a badge beside
@@ -1259,7 +1338,7 @@ export default function TrackerView({
                         {item.title && (
                           <div style={{
                             position: "relative", fontSize: 10, lineHeight: 1.35, fontWeight: 500,
-                            color: "rgba(var(--lift),0.78)", display: "-webkit-box", WebkitLineClamp: 2,
+                            color: "rgba(var(--lift),0.78)", display: "-webkit-box", WebkitLineClamp: titleLines,
                             WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word",
                           }}>
                             {/* #461: in the title, not the top row — beside a 4-letter game tag
@@ -1270,6 +1349,12 @@ export default function TrackerView({
                             {cleanTitle(item.title)}
                           </div>
                         )}
+                        {showViews && (views != null || isSched) && (
+                          <div style={{ position: "relative", fontSize: 9.5, fontWeight: 600, color: T.textTertiary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {views != null ? <><b style={{ color: T.text, fontWeight: 700 }}>{fmtViews(views)}</b> views</> : "Scheduled"}
+                          </div>
+                        )}
+                        </div>
                       </div>
                     );
                   }
@@ -1299,7 +1384,7 @@ export default function TrackerView({
                       } : undefined}
                       onDragLeave={droppable ? (ev) => resetSlot(ev.currentTarget) : undefined}
                       onDrop={droppable ? (ev) => { ev.preventDefault(); resetSlot(ev.currentTarget); dropOnSlot(d.iso, d.dayName, row.time); } : undefined}
-                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(var(--lift),0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22 }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(var(--lift),0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22, height: rowH ?? undefined, boxSizing: "border-box" }}
                       onMouseEnter={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; } : undefined}
                       onMouseLeave={slotInteractive ? (ev) => resetSlot(ev.currentTarget) : undefined}
                     >
@@ -1375,14 +1460,14 @@ export default function TrackerView({
 
 
       {/* ---- Log / Detail popover ---- */}
-      {popover && (
+      {popover && popover.type === "log" && (
         <div ref={popoverRef} onClick={(e) => e.stopPropagation()} style={{
           position: "fixed", left: popPos ? popPos.left : -9999, top: popPos ? popPos.top : -9999,
           // #456: the detail popover is wider so the whole 9:16 frame fits beside the details.
-          visibility: popPos ? "visible" : "hidden", width: popover.type === "log" ? 248 : 300, zIndex: 2000,
+          visibility: popPos ? "visible" : "hidden", width: 248, zIndex: 2000,
           background: T.surface, borderRadius: T.radius.lg, padding: 14, border: `1px solid ${T.borderHover}`, boxShadow: "0 20px 60px rgba(var(--shade),calc(0.7 * var(--shadeK)))",
         }}>
-          {popover.type === "log" ? (
+          {(
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 11 }}>
                 <span>Log a clip {"·"} {DAY_SHORT[wd.findIndex((d) => d.iso === popover.dayIso)]}</span>
@@ -1423,150 +1508,6 @@ export default function TrackerView({
                 })}
               </div>
             </>
-          ) : (
-            (() => {
-              const entry = popover.entry;
-              const isSched = !!popover.isSched;
-              const gd = resolveGameDisplay(entry.game);
-              const isAuto = !isSched && entry.source === "clipflow";
-              const srcLabel = isSched
-                ? "Scheduled — not posted yet"
-                : (isAuto ? (entry.scheduled ? "Scheduled via Corva" : "Published via Corva") : "Logged manually");
-              // A scheduled clip carries its own paths; a posted one is looked up by the
-              // clipId logPost stored. Either can come back empty — the project may be
-              // deleted or the clip drive unplugged — so every clip action is optional.
-              const link = isSched ? entry : (entry.clipId ? clipIndex?.get(entry.clipId) : null);
-              return (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: `${gd.color}33`, color: gd.color, fontSize: 11, fontWeight: 800, fontFamily: T.mono }}>{gd.tag}</div>
-                    <div>
-                      <div style={{ color: T.text, fontSize: 14, fontWeight: 700 }}>{gd.name}</div>
-                      <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono }}>{DAY_SHORT[wd.findIndex((d) => d.iso === entry.date)] || entry.day} {"·"} {entry.time}</div>
-                    </div>
-                  </div>
-                  {/* #456: the whole 9:16 frame beside the details. A wide strip cropped to
-                      the middle third of the frame, which was usually the caption band. */}
-                  <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                    {link?.thumbnailPath && (
-                      // Fixed-size box, NOT a bare <img>: the popover measures itself in a
-                      // layout effect to decide whether to flip above the card, and an image
-                      // that only gains height once decoded made it grow off the bottom of
-                      // the window after positioning. The box also doubles as the fallback —
-                      // the clip library is on an external drive, so when it's unplugged the
-                      // frame is simply a tinted block instead of a broken-image glyph.
-                      <div style={{ width: 90, height: 160, flexShrink: 0, borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden", background: rgba(gd.color, 0.16) }}>
-                        <img
-                          src={toFileUrl(link.thumbnailPath)} alt=""
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                        />
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-                      {entry.title && (
-                        <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, marginTop: 2 }}>{cleanTitle(entry.title)}</div>
-                      )}
-                      {entry.platformResults && entry.platformResults.length > 0 ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          {entry.platformResults.map((row, i) => {
-                            const label = PLATFORM_LABELS[row.platform] || row.platform;
-                            return row.url ? (
-                              <span key={i} onClick={() => window.clipflow?.openExternal?.(row.url)} title={`${label} · view post`} style={{
-                                position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
-                                width: 30, height: 30, borderRadius: 8, cursor: "pointer",
-                                background: T.accentDim, border: `1px solid ${T.accentBorder}`,
-                              }}>
-                                <PlatformIcon platform={row.platform} size={16} />
-                                <span style={{ position: "absolute", bottom: -3, right: -3, width: 12, height: 12, borderRadius: "50%", background: T.surface, color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
-                              </span>
-                            ) : (
-                              <span key={i} title={label} style={{
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                width: 30, height: 30, borderRadius: 8, opacity: 0.6,
-                                background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`,
-                              }}>
-                                <PlatformIcon platform={row.platform} size={16} />
-                              </span>
-                            );
-                          })}
-                        </div>
-                      ) : entry.platforms ? (
-                        <div style={{ color: T.textTertiary, fontSize: 11 }}>{entry.platforms}</div>
-                      ) : null}
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` : "0 0 5px rgba(var(--lift),0.2)") }} />
-                        <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
-                      </div>
-                      {/* #461: the other days this post went out, both ways. */}
-                      {(() => {
-                        const reposts = entry.clipId ? repostIndex?.byOriginal?.get(entry.clipId) : null;
-                        const original = entry.clipId ? repostIndex?.originalOf?.get(entry.clipId) : null;
-                        if (!reposts?.length && !original) return null;
-                        return (
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, marginRight: 1 }}>{original ? "Repost of" : "Reposted"}</span>
-                            {(original ? [original] : reposts).map((p) => (
-                              <PostPill key={p.clipId} post={p} onGo={() => goToPost(p.clipId, p.date)} onQueue={() => { closePopover(); onOpenQueue?.(); }} />
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  {(link?.projectId || link?.renderPath) && (
-                    <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                      {link.projectId && (
-                        <button onClick={() => { closePopover(); onOpenInEditor?.(link.projectId, entry.clipId); }} style={popBtn(T.accentBorder, T.accentDim, T.accentLight)}>
-                          Open in editor
-                        </button>
-                      )}
-                      {link.renderPath && (
-                        <button title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder?.(link.renderPath)} style={{ ...popBtn(T.border, "rgba(var(--lift),0.04)", T.textSecondary), flex: "0 0 34px", padding: "8px 0" }}>
-                          {"📁"}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {isSched ? (
-                    <>
-                      <button onClick={() => { closePopover(); onOpenQueue?.(); }} style={popBtn(T.yellowBorder, T.yellowDim, T.yellow)}>Manage in Queue</button>
-                      {/* #282: the drag is an accelerator, not the only way to move a
-                          clip — the Queue button above is still the full control. */}
-                      <div style={{ fontSize: 10, color: T.textTertiary, textAlign: "center", marginTop: 7 }}>or drag the card to another slot</div>
-                    </>
-                  ) : (
-                    <>
-                      {/* #306: Repost creates a fresh copy of the clip and hands off to
-                          the Queue — the Tracker still grows no scheduling actions
-                          (tasks/specs/tracker-now-playing.md). Offered on frozen weeks
-                          too: reposting older content is the point, and it never touches
-                          the published record. */}
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {link?.projectId && link?.renderPath && (
-                          <button
-                            onClick={() => doRepost(link.projectId, entry.clipId)}
-                            disabled={reposting}
-                            title="Copy this clip back into the queue to post again"
-                            style={{ ...popBtn(T.accentBorder, T.accentDim, T.accentLight), cursor: reposting ? "default" : "pointer" }}
-                          >{reposting ? "Reposting…" : "Repost"}</button>
-                        )}
-                        {/* #276: frozen weeks are read-only — no removing history */}
-                        {viewMode === "current" && (
-                          <button onClick={() => removeEntry(entry)} style={popBtn(T.redBorder, T.redDim, T.red)}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
-                          >Remove</button>
-                        )}
-                      </div>
-                      {repostErr && (
-                        <div style={{ marginTop: 7, fontSize: 11, color: T.red, textAlign: "center", lineHeight: 1.35 }}>{repostErr}</div>
-                      )}
-                    </>
-                  )}
-                </>
-              );
-            })()
           )}
         </div>
       )}
@@ -1748,6 +1689,147 @@ export default function TrackerView({
 
       <style>{`@keyframes tp-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } }`}</style>
     </div>
+      {detail && (() => {
+        const entry = detail.entry;
+        const isSched = !!detail.isSched;
+        const gd = resolveGameDisplay(entry.game);
+        const isAuto = !isSched && entry.source === "clipflow";
+        const srcLabel = isSched
+          ? "Scheduled — not posted yet"
+          : (isAuto ? (entry.scheduled ? "Scheduled via Corva" : "Published via Corva") : "Logged manually");
+        // A scheduled clip carries its own paths; a posted one is looked up by the
+        // clipId logPost stored. Either can come back empty — the project may be
+        // deleted or the clip drive unplugged — so every clip action is optional.
+        const link = isSched ? entry : (entry.clipId ? clipIndex?.get(entry.clipId) : null);
+        const views = !isSched && entry.clipId ? viewsByClip.get(entry.clipId) : undefined;
+        const reposts = entry.clipId ? repostIndex?.byOriginal?.get(entry.clipId) : null;
+        const original = entry.clipId ? repostIndex?.originalOf?.get(entry.clipId) : null;
+        const thumb = link?.thumbnailPath ? toFileUrl(link.thumbnailPath) : null;
+        const chip = (content) => (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 9px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, background: "rgba(var(--lift),0.05)", border: `1px solid ${T.border}`, color: T.textSecondary }}>{content}</span>
+        );
+        const btn = (border, bg, color) => ({ ...popBtn(border, bg, color), padding: "9px 0", fontSize: 12.5 });
+        return (
+          <ClipSidePanel
+            size={panelSize}
+            onClose={closeDetail}
+            preview={detailPlaying && link?.renderPath
+              ? <PanelVideo key={entryKey(entry)} src={toFileUrl(link.renderPath)} poster={thumb || undefined} />
+              : <PanelPoster src={thumb} canPlay={!!link?.renderPath} onPlay={() => setDetailPlaying(true)} tint={rgba(gd.color, 0.16)} />}
+          >
+            <h2 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.2px", margin: 0, paddingRight: 36, color: T.text, wordBreak: "break-word" }}>{cleanTitle(entry.title) || gd.name}</h2>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "12px 0" }}>
+              {chip(<><span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 5, background: rgba(gd.color, 0.2), color: gd.color }}>{gd.tag}</span>{gd.name}</>)}
+              {chip(`${DAY_SHORT[wd.findIndex((d) => d.iso === entry.date)] || entry.day} · ${entry.time}`)}
+            </div>
+            {!isSched && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: views != null ? T.text : T.textTertiary }}>
+                  {views != null ? fmtNum(views) : "—"}
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: T.textTertiary, letterSpacing: 0, marginLeft: 8 }}>views, all platforms</span>
+                </div>
+                {views == null && (
+                  <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 5 }}>
+                    {entry.clipId ? "Counts arrive with the next Analytics refresh." : "Logged by hand, so Corva has no view counts for it."}
+                  </div>
+                )}
+                {entry.clipId && onOpenAnalyticsAt && (
+                  <button onClick={() => onOpenAnalyticsAt(entry.clipId)} style={{ marginTop: 8, padding: 0, background: "none", border: "none", color: T.accentLight, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>
+                    See the breakdown in Analytics {"→"}
+                  </button>
+                )}
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(var(--lift),0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px color-mix(in srgb, ${T.cyan} 53%, transparent)` : "0 0 5px rgba(var(--lift),0.2)") }} />
+              <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 12, fontWeight: 600 }}>{srcLabel}</span>
+            </div>
+            {entry.platformResults && entry.platformResults.length > 0 ? (
+              <>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: T.textTertiary, margin: "16px 0 7px" }}>Posted on</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  {entry.platformResults.map((row, i) => {
+                    const label = PLATFORM_LABELS[row.platform] || row.platform;
+                    return row.url ? (
+                      <span key={i} onClick={() => window.clipflow?.openExternal?.(row.url)} title={`${label} · view post`} style={{
+                        position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 34, height: 34, borderRadius: 9, cursor: "pointer",
+                        background: T.accentDim, border: `1px solid ${T.accentBorder}`,
+                      }}>
+                        <PlatformIcon platform={row.platform} size={17} />
+                        <span style={{ position: "absolute", bottom: -3, right: -3, width: 13, height: 13, borderRadius: "50%", background: T.surface, color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
+                      </span>
+                    ) : (
+                      <span key={i} title={label} style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 34, height: 34, borderRadius: 9, opacity: 0.6,
+                        background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`,
+                      }}>
+                        <PlatformIcon platform={row.platform} size={17} />
+                      </span>
+                    );
+                  })}
+                </div>
+              </>
+            ) : entry.platforms ? (
+              <div style={{ color: T.textTertiary, fontSize: 11.5, marginTop: 10 }}>{entry.platforms}</div>
+            ) : null}
+            {/* #461: the other days this post went out, both ways. */}
+            {(reposts?.length > 0 || original) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 14 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textTertiary, marginRight: 1 }}>{original ? "Repost of" : "Reposted"}</span>
+                {(original ? [original] : reposts).map((p) => (
+                  <PostPill key={p.clipId} post={p} onGo={() => goToPost(p.clipId, p.date)} onQueue={() => { closeDetail(); onOpenQueue?.(); }} />
+                ))}
+              </div>
+            )}
+            {(link?.projectId || link?.renderPath) && (
+              <div style={{ display: "flex", gap: 6, marginTop: 18 }}>
+                {link.projectId && (
+                  <button onClick={() => { closeDetail(); onOpenInEditor?.(link.projectId, entry.clipId); }} style={btn("transparent", T.accent, "#fff")}>Open in editor</button>
+                )}
+                {link.renderPath && (
+                  <button onClick={() => window.clipflow?.revealInFolder?.(link.renderPath)} style={btn(T.border, "rgba(var(--lift),0.04)", T.text)}>Show in folder</button>
+                )}
+              </div>
+            )}
+            {isSched ? (
+              <>
+                <button onClick={() => { closeDetail(); onOpenQueue?.(); }} style={{ ...btn(T.yellowBorder, T.yellowDim, T.yellow), marginTop: 6 }}>Manage in Queue</button>
+                {/* #282: the drag is an accelerator, not the only way to move a
+                    clip — the Queue button above is still the full control. */}
+                <div style={{ fontSize: 10.5, color: T.textTertiary, marginTop: 7 }}>or drag the card to another slot</div>
+              </>
+            ) : (
+              <>
+                {/* #306: Repost creates a fresh copy of the clip and hands off to
+                    the Queue — the Tracker still grows no scheduling actions
+                    (tasks/specs/tracker-now-playing.md). Offered on frozen weeks
+                    too: reposting older content is the point, and it never touches
+                    the published record. */}
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  {link?.projectId && link?.renderPath && (
+                    <button
+                      onClick={() => doRepost(link.projectId, entry.clipId)}
+                      disabled={reposting}
+                      title="Copy this clip back into the queue to post again"
+                      style={{ ...btn(T.accentBorder, T.accentDim, T.accentLight), cursor: reposting ? "default" : "pointer" }}
+                    >{reposting ? "Reposting…" : "Repost"}</button>
+                  )}
+                  {/* #276: frozen weeks are read-only — no removing history */}
+                  {viewMode === "current" && (
+                    <button onClick={() => removeEntry(entry)} style={btn(T.redBorder, T.redDim, T.red)}>Remove</button>
+                  )}
+                </div>
+                {repostErr && (
+                  <div style={{ marginTop: 7, fontSize: 11, color: T.red, lineHeight: 1.35 }}>{repostErr}</div>
+                )}
+              </>
+            )}
+          </ClipSidePanel>
+        );
+      })()}
+    </div>
   );
 }
 
@@ -1902,7 +1984,7 @@ function WeekRail({ dir, onClick }) {
   );
 }
 
-// Footer buttons in the clip-detail popover (#218). width covers the standalone
+// Footer buttons in the clip-detail panel (#218, #466). width covers the standalone
 // buttons (Remove / Manage in Queue); flex-basis 0 wins over it inside the action row.
 const popBtn = (border, bg, color) => ({
   flex: 1, width: "100%", padding: "8px 0", borderRadius: 8, border: `1px solid ${border}`, background: bg,
