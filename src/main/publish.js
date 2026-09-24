@@ -44,6 +44,10 @@ const {
 
 const TICK_MS = 60_000;
 const PREFLIGHT_WINDOW_MS = 60 * 60_000;
+/** #463: how late the oldest due clip must be before the missed slots get respaced. */
+const LATE_GRACE_MS = 5 * 60_000;
+/** #463: the most room a not-yet-due clip is pushed to keep from the clip before it. */
+const MIN_GAP_MS = 60 * 60_000;
 
 let deps = null;
 let timer = null;
@@ -108,11 +112,11 @@ function connectedAccounts() {
 }
 
 /**
- * Every clip that is due, across every project, with its project id and testMode
- * attached. Mirrors the Queue's `approved` filter minus the UI-only knockouts —
- * the claim is what actually decides, this is only a pre-filter.
+ * Every scheduled clip, across every project, with its project id attached, oldest slot
+ * first. Mirrors the Queue's `approved` filter minus the UI-only knockouts — the claim
+ * is what actually decides, this is only a pre-filter.
  */
-function dueClips(now) {
+function scheduledClips() {
   const { projects: list } = deps.projects.listProjects(deps.libraryRoot());
   const out = [];
   for (const proj of list || []) {
@@ -120,7 +124,6 @@ function dueClips(now) {
     for (const clip of proj.clips || []) {
       if (clip.status !== "approved" && clip.status !== "ready") continue;
       if (!clip.scheduledAt) continue;
-      if (new Date(clip.scheduledAt).getTime() > now) continue;
       if (testMode) continue; // #60: test projects never publish
       if (inFlight.has(clip.id)) continue;
       out.push({
@@ -131,6 +134,66 @@ function dueClips(now) {
     }
   }
   return out.sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+}
+
+function dueClips(now) {
+  return scheduledClips().filter((c) => new Date(c.scheduledAt).getTime() <= now);
+}
+
+/** The Queue's own `scheduledAt` shape: local wall-clock time, no zone suffix. */
+function localSlot(ms) {
+  const d = new Date(ms);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;
+}
+
+/**
+ * #463: Corva was closed (or the PC off) through one or more slots. Without this, every
+ * missed clip went out in the same tick, seconds apart. Now the oldest posts now and the
+ * rest slide later by the same amount, keeping the gaps Fega scheduled. A clip that isn't
+ * due yet only moves when it would land within an hour of the previous one (or its own
+ * tighter booked gap); the first clip with room stops the push, so tomorrow's slots are
+ * untouched.
+ *
+ * Runs only when the oldest due clip is past LATE_GRACE_MS — an on-time tick is up to
+ * 60s late and must never move anything.
+ */
+function respaceMissed(now) {
+  const all = scheduledClips();
+  if (all.length === 0) return;
+  const firstOrig = new Date(all[0].scheduledAt).getTime();
+  if (now - firstOrig <= LATE_GRACE_MS) return;
+
+  let prevOrig = firstOrig;
+  let prevNew = Math.ceil(now / 60_000) * 60_000; // whole minutes, like the Queue's slots
+  const moved = [];
+  for (const clip of all.slice(1)) {
+    const orig = new Date(clip.scheduledAt).getTime();
+    // Missed clips keep their full gap. A clip still ahead only needs MIN_GAP_MS of room
+    // (or less, if it was booked tighter) — keeping its whole gap would push every slot
+    // after it, tomorrow's included, by the same amount forever.
+    const gap = orig <= now ? orig - prevOrig : Math.min(orig - prevOrig, MIN_GAP_MS);
+    const next = Math.max(orig, prevNew + gap);
+    if (next === orig) break;
+    const slot = localSlot(next);
+    const res = deps.projects.updateClip(deps.libraryRoot(), clip._projectId, clip.id, { scheduledAt: slot });
+    if (res?.error) {
+      log("warn", `Scheduler: couldn't move "${clip.title}" to ${slot}: ${res.error}`);
+      break; // leave the rest as they were rather than squeeze them against it
+    }
+    deps.onClipChanged?.(clip._projectId, clip.id);
+    log("info", `Scheduler: missed-slot respace moved "${clip.title}" from ${clip.scheduledAt} to ${slot}`);
+    moved.push(next);
+    prevOrig = orig;
+    prevNew = next;
+  }
+  if (moved.length === 0) return;
+
+  const at = new Date(moved[0]).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  deps.notify({
+    title: "Scheduled clips spaced out",
+    body: `Corva was closed through your posting times. One clip is going out now and ${moved.length} ${moved.length === 1 ? "has" : "have"} been moved later — the next posts at ${at}.`,
+  });
 }
 
 /**
@@ -332,6 +395,7 @@ async function tickOnce() {
     // app.log. Inside the try: a throw here must not leave `running` stuck true,
     // which would silently kill every future tick until the app restarts.
     deps.onTick?.();
+    respaceMissed(now);
     for (const clip of dueClips(now)) {
       // #438: dueClips already skipped held clips, but this pass awaits every upload,
       // so the Queue can take a later clip while an earlier one is still going out.
