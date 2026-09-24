@@ -15,7 +15,7 @@ description: >-
 ```
 1. BASELINE    → Measure the specific metric (render time, IPC round-trip, startup, memory)
 2. PROFILE     → Identify the actual hotspot (not the assumed one)
-3. SCORE       → Opportunity matrix — only implement Score >= 2.0
+3. RANK        → Order candidates by measured impact vs effort; skip what the profile doesn't support
 4. IMPLEMENT   → One lever per commit, no unrelated changes
 5. VERIFY      → App builds, launches, feature works, no regressions
 6. REPEAT      → Re-profile (bottlenecks shift after each fix)
@@ -27,22 +27,6 @@ description: >-
 - Assume where the bottleneck is
 - Refactor "while we're here"
 - Skip build + launch verification
-
----
-
-## Opportunity Matrix
-
-| Hotspot | Impact (1-5) | Confidence (1-5) | Effort (1-5) | Score |
-|---------|--------------|-------------------|--------------|-------|
-| *component:issue* | x | x | / | Impact x Conf / Effort |
-
-```
-Impact:     5 = 50%+ improvement, 4 = 25-50%, 3 = 10-25%, 2 = 5-10%, 1 = <5%
-Confidence: 5 = profiler confirms, 3 = likely, 1 = speculative
-Effort:     5 = >1 day, 3 = hours, 1 = minutes
-```
-
-**Rule:** Only implement Score >= 2.0. Log all opportunities, implement in score order.
 
 ---
 
@@ -233,9 +217,6 @@ rg '\.includes\(' --type js src/renderer/ -c | sort -t: -k2 -rn
 # Chained array operations
 rg '\.(map|filter|reduce)\(.*\)\.(map|filter|reduce)' --type js src/
 
-# Console.log left in production code
-rg 'console\.(log|info|warn|error)' --type js src/renderer/ -c | sort -t: -k2 -rn
-
 # Regex created inside loops
 rg 'new RegExp' --type js src/
 
@@ -281,7 +262,7 @@ After each optimization:
 1. **Note the metric** — what did you measure, what was the result?
 2. **Add to lessons** — append to `tasks/lessons.md` what you found and fixed
 3. **Watch for shifts** — fixing one bottleneck often reveals the next one
-4. **Don't over-optimize** — stop when Score < 2.0 for all remaining opportunities
+4. **Don't over-optimize** — stop when the remaining candidates are small next to their effort
 
 ---
 

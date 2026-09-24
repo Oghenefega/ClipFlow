@@ -52,10 +52,8 @@ frame the render produces at that moment.
 
 ### Pipeline
 1. Extract WAV from source video (16kHz mono)
-2. Run BetterWhisperX (Python venv at `D:\whisper\betterwhisperx-venv\`)
-3. whisperx transcribes → wav2vec2 aligns → word-level timestamps
-4. Post-process timestamps with audio energy analysis (`transcribe.py`)
-5. Return segments with `.text` (correct words) and `.words` (subword tokens with timestamps)
+2. `src/main/whisper.js` is a facade over the active provider (default `src/main/ai/transcription/stable-ts.js`), which runs `tools/transcribe.py` in the engine's Python runtime as a typed-argv child process (no shell string) — read it for the current timing stages
+3. Return segments with `.text` (correct words) and `.words` (subword tokens with timestamps)
 
 ### Word Timestamp Post-Processing (transcribe.py)
 - Compute RMS energy in 20ms frames
@@ -72,24 +70,6 @@ Whisper returns subword tokens. Merge using segment `.text` as ground truth — 
 - Per-second loudness levels via FFmpeg
 - Used for highlight detection scoring
 - Combined with sentiment + keywords + pacing for highlight ranking
-
-## Windows Native Binary Rules
-
-### DLL Loading
-Node.js `execFile` does NOT propagate PATH to Windows DLL loader. Use:
-```javascript
-exec(`cmd /c "set "PATH=${dllDir};%PATH%" && "${binary}" ${args}"`)
-```
-
-### CUDA DLLs
-- cublas64, cudart64 live in `CUDA\vX.X\bin\x64\` NOT `bin\`
-- Always check BOTH `bin\` and `bin\x64\` when auto-discovering
-
-### whisper.cpp JSON Parsing
-- `timestamps` field = STRINGS ("HH:MM:SS,mmm") — truthy but not numeric
-- `offsets` field = INTEGER milliseconds — use this
-- NEVER chain with `||` when first value could be truthy non-numeric
-- Use: `toMs(seg.offsets?.from) || toMs(seg.timestamps?.from)`
 
 ## Timeouts
 

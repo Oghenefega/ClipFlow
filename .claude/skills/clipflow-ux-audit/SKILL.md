@@ -223,8 +223,6 @@ User wants to → hits edge case → system handles gracefully → user not conf
 
 ---
 
-## Quick Scan (5 min)
-
 ## Before proposing ANY new design (session 254)
 
 Passing a ban list is not having a point of view. A redesign that cleared every banned
@@ -244,6 +242,8 @@ Stripe defaults poured into the holes the checklist opened.
   while the screens where the work happens abstract 18 videos into 18 grey pips.
 - Pair with [[feedback_ui_density_aesthetic]] (mock in HTML first, no AI-cliché colour bars)
   and the trace-verify rule on pinning which build a "before" depicts.
+
+## Quick Scan (5 min)
 
 For fast assessments when reviewing a screenshot or a single view:
 

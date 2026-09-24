@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-23 (session 276) — Claude Code skills and rules corrected after a prompt audit
+
+### Fixed
+- **Stale facts in the repo's Claude Code skills and `CLAUDE.md` now match the code.** The UI-debug skill told every CSS fix to add a `dark` class and hard-code dark colours, which the nine-theme system forbids. It now points at `[data-theme]` and the semantic classes. The code-review skill said a plain `npm start` posts to the real accounts, which hasn't been true since #376. The release skill and `CLAUDE.md` now agree that the release commit is `package.json`, `CHANGELOG.md` and `src/main/release-notes.js`. The FFmpeg skill loses the `cmd /c` DLL pattern the code dropped on purpose and the BetterWhisperX pipeline, and now names stable-ts. Also fixed: Electron 28, "four themes", "no tray", `npm run dev` switching to dev-server mode, old line numbers, the "ClipFlow v" label, the CRA build command, and the session-end anchor on "close-out" commits.
+
+### Changed
+- **Dated prompting patterns in the skills rewritten at normal volume.** The UI-debug screenshot steps ("study for 10 seconds", "mentally simulate") are now a plain describe-then-map rule. The code-review ban on fallbacks now bans silent ones and allows the logged, named fallback the title path uses. The performance skill no longer makes the model compute an Impact × Confidence ÷ Effort score, and its console.log sweep is gone because it contradicted the keep-debug-logs rule. The version and session-title rules keep their substance without the session backstory. `CLAUDE.md`'s close-behaviour rule now states only current behaviour. The duplicate asar rule was dropped from code-review (it lives in electron-ipc), and two headings cut off from their content by later inserts were reattached. The full audit and the proposed app-prompt patch were delivered separately and not applied. The app-side accounting gap is #464.
+
 ## [Unreleased] — 2026-09-23 (session 275) — 0.5.0-alpha.13 on the feed; missed scheduled clips are spaced out instead of posting all at once
 
 ### Changed

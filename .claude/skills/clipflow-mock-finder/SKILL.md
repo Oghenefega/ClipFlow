@@ -196,7 +196,7 @@ rg -n "TODO|FIXME|HACK|XXX|STUB|PLACEHOLDER|MOCK|DUMMY|FAKE" \
   --type js -g '!node_modules/' -g '!build/' src/
 
 # Build and launch
-npx react-scripts build && npm start
+npm run build:renderer && npm start
 
 # Confirm: zero new console errors, all features work
 ```

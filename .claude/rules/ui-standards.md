@@ -5,8 +5,8 @@ paths:
 
 # Visual Design Standards
 
-Four themes since #328 — Midnight (dark, default), Daylight (light), Neon Rose
-(dark pink), Blush (light pink). Tokens: `src/renderer/styles/theme.js` for the
+Several dark and light themes (Midnight is the default; the list is the
+`[data-theme]` blocks in `themes.css`). Tokens: `src/renderer/styles/theme.js` for the
 `T` object, whose values are CSS variables resolved from
 `src/renderer/styles/themes.css`. Never hardcode a colour that means "surface",
 "border" or "text" — use `T`, or `rgba(var(--lift), a)` for a subtle tint, which

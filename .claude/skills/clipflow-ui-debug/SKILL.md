@@ -5,21 +5,18 @@ description: Use when fixing ANY UI/CSS bug, layout issue, or visual problem in 
 
 # ClipFlow UI Debug Skill
 
-You are fixing a UI bug in ClipFlow, an Electron + React desktop app with Tailwind CSS 3 + shadcn/ui on a dark theme.
+You are fixing a UI bug in ClipFlow, an Electron + React desktop app: main views use inline styles from the `T` theme object, the editor uses Tailwind + shadcn/ui, and every surface must work in both dark and light themes.
 
-## MANDATORY: Screenshot Analysis Protocol
+## Screenshot Analysis
 
-When the user sends a screenshot of a UI bug, you MUST follow this exact sequence:
-
-1. **STOP and study the screenshot for 10 seconds.** Describe what you see wrong in concrete visual terms (e.g., "the input is stretching to fill the full container width" NOT "the input has too much padding").
-2. **Ask: what CSS property causes THIS exact visual behavior?** Map the visual symptom to the correct CSS property:
+When the user sends a screenshot of a UI bug, first describe what is wrong in concrete visual terms ("the input stretches to fill the container width", not "the input has too much padding"), then map that symptom to the property that produces it:
    - Element fills container width → `flex-1`, `flex-grow`, `width: 100%`, `flex: 1 1 0%`
    - Element overflows container → `overflow` not set, missing `min-w-0` on flex child
    - Element is too tall/short → `h-*` or `min-h-*`, NOT padding
    - Element has wrong spacing → margin/gap, NOT padding (unless internal)
    - Text is unreadable → `text-*` size class, NOT opacity
-3. **If a fix doesn't work on the first try, the diagnosis is WRONG.** Do NOT tweak the same property. Re-examine the screenshot. Re-diagnose from scratch with a different property.
-4. **Mentally simulate the fix before applying.** Will changing this property actually address what the screenshot shows?
+
+If the first fix doesn't change what the screenshot shows, the diagnosis is wrong: re-diagnose with a different property instead of tweaking the same one again.
 
 ## Layout Debugging Checklist
 
@@ -30,12 +27,11 @@ Before touching `padding` or `margin`, always check these first:
 - [ ] Is `min-w-0` missing on a flex child that should shrink?
 - [ ] Is `overflow: hidden` on the outer container?
 
-## Dark Theme Rules
+## Theme Rules
 
-- Background: `#0a0b10` (app), `#111218` (cards/surfaces)
-- All Radix portal-rendered content (Popover, Dialog, Select) renders OUTSIDE the `dark` class ancestor
-- Fix: Add `className="dark"` directly on every `PopoverContent`, `DialogContent`, `SelectContent`
-- Also hardcode dark HSL values: `bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]`
+- The theme is `[data-theme]` on `<html>` (palettes in `src/renderer/styles/themes.css`); Radix portals inherit it through `<body>`, so portal content needs no extra class.
+- Use semantic classes (`bg-popover`, `border-border`) or `T` tokens — never a `dark` class or hardcoded neutral HSL, which break the light themes.
+- Check any colour change in a light theme as well as a dark one.
 
 ## Radix/shadcn Component Rules
 

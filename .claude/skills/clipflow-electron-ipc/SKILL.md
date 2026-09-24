@@ -5,7 +5,7 @@ description: Use when working with Electron main process, IPC handlers, preload 
 
 # ClipFlow Electron & IPC Patterns
 
-ClipFlow is an Electron 28 app. Main process in `src/main/`, renderer in `src/renderer/`.
+ClipFlow is an Electron app (version: `package.json`). Main process in `src/main/`, renderer in `src/renderer/`.
 
 ## IPC Response Unwrapping — CRITICAL
 
@@ -101,7 +101,7 @@ const toggle = (key) => {
 
 ## Window Management
 
-- Close = quit. No minimize-to-tray.
+- Close = quit by default. With Settings → Publishing → "Keep publishing while I stream" on, closing leaves the main process running with a tray icon so scheduled posts still fire; "Quit Corva" on the tray is then the full exit.
 - Windows-only build (NTFS paths, Windows file behavior)
 - `isDev = false` in main.js — loads from `build/` folder
 - For hot reload: set `isDev = true` and run React dev server on port 3000

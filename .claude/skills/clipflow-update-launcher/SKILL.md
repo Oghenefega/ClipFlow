@@ -30,14 +30,11 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
 
 ## Version bump policy (default)
 
-1. Read the current version from `package.json` line 3 (the ONLY place it lives — the renderer
+1. Read the current version from the `version` field of `package.json` (the ONLY place it lives — the renderer
    reads it live via `app.getVersion()`, there are no hardcoded version strings in the UI).
-2. **ALWAYS tick the alpha counter. NEVER move the minor number on your own judgment**
-   (session 129 — Fega reversed the session-103 delegation after two features in a row were
-   cut as 0.4.0 and 0.5.0: "We're meant to stay on v3 until a very huge change worthy of going
-   to v4 is made"). The default is the only default: `0.3.0-alpha.14` → `0.3.0-alpha.15` →
-   `0.3.0-alpha.16`, forever, regardless of how big the feature is. The counter has no ceiling —
-   `-alpha.40` is fine.
+2. **Tick the alpha counter; never move the minor number on your own judgment.** Fega moves the
+   minor version only for a change he judges very large, and has reversed self-made minor bumps
+   before. `X.Y.Z-alpha.N` → `X.Y.Z-alpha.N+1`, however big the feature; the counter has no ceiling.
    - If a build genuinely feels milestone-sized, **propose** the minor bump in chat and wait for
      Fega to agree. Do not bump and explain afterwards.
    - Do not justify a bump in the changelog. If you're writing a paragraph arguing why the
@@ -48,7 +45,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
 
 ## The steps
 
-1. **Bump `package.json`** version (line 3) — the only file to touch for the version.
+1. **Bump the `version` field in `package.json`** — the only file to touch for the version.
 2. **Add a CHANGELOG.md entry** at the top (above the newest existing entry). Match the existing
    `## [Unreleased] — YYYY-MM-DD (session N) — <summary>` format. One `### Changed` bullet noting
    the version bump and what the build promotes. To summarize what's shipping, look at
@@ -87,7 +84,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
    installer) and **prunes older versions from the feed** (R2 free-tier hygiene — the manifest only
    ever names the newest, so old feed files serve no one). Verify its final "Feed:" line, or
    `curl -s https://engine.flowve.app/updates/alpha.yml | head -1`.
-6. **Commit ONLY `package.json` + `CHANGELOG.md`**, then push to master. See the hard rule below.
+6. **Commit ONLY `package.json`, `CHANGELOG.md` and `src/main/release-notes.js`**, then push to master. See the hard rule below.
 7. **Tell Fega to relaunch** (see "What Fega does" below).
 
 ## CRITICAL — what to commit
@@ -100,11 +97,11 @@ git push origin master
 ```
 
 **NEVER stage `data/clipflow.db` or `data/game_profiles.json`** — they are always dirty (runtime
-churn) and must never be committed. Stage the two files explicitly; never `git add -A` / `git add .`.
+churn) and must never be committed. Stage the three files explicitly; never `git add -A` / `git add .`.
 
 ## How the install actually reaches Fega
 
-On launch, the installed app's `update:check` handler (`src/main/main.js`, ~line 4463, search
+On launch, the installed app's `update:check` handler (`src/main/main.js`, search
 `Auto-update (#250`) asks the feed (`engine.flowve.app/updates/alpha.yml`) whether a newer version
 exists. If so, the **"Update available"** banner renders; **Install** downloads with a live
 percentage (`update:install` → `electron-updater.downloadUpdate()`), then silently reinstalls and
@@ -120,10 +117,10 @@ manual copying.
 
 ## What Fega does (tell him this)
 
-> Relaunch ClipFlow → banner: "Update available — <version>" → click **Install** → it downloads,
+> Relaunch Corva → banner: "Update available — <version>" → click **Install** → it downloads,
 > restarts itself on the new version. Real data in `%APPDATA%\Corva\` is preserved.
 
-After it relaunches, **Settings → bottom** reads **ClipFlow v<version>** — that confirms the
+After it relaunches, **Settings → bottom** reads **Corva v<version>** — that confirms the
 promotion took.
 
 ## Gotchas

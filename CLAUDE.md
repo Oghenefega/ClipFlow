@@ -64,7 +64,7 @@ npm run build                # Build installer → dist/ClipFlow Setup *.exe
 npm run dev:seed             # Copy prod data → dev profile (--force to overwrite)
 ```
 
-`isDev` in `src/main/main.js` is `false` — Electron loads from `build/`. `npm run dev` starts Vite on http://localhost:3000 and flips the renderer to dev-server mode.
+`isDev` in `src/main/main.js` is a hard-coded `false`, so Electron always loads the renderer from `build/` — including under `npm run dev`, which starts Vite on http://localhost:3000 but still shows the last `build:renderer` output in the Electron window.
 
 **After ANY code change:** build + `npm start` to visually verify. Non-negotiable.
 
@@ -86,7 +86,7 @@ Two isolated profiles via `CLIPFLOW_PROFILE` env var so dev experiments never to
 
 The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path — and since #376 it does not auto-publish, so it is a viewing/verification backup, not a substitute for the installed app on a day with scheduled clips.
 
-**Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json` + `CHANGELOG.md` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\Corva\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
+**Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json`, `CHANGELOG.md` and `src/main/release-notes.js` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\Corva\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
 
 **Sentry** caches `userData` at `require()` time (getsentry/sentry-electron#796) — `app.setPath('userData')` MUST happen at the top of `main.js` BEFORE `require('@sentry/electron/main')`. Don't reorder.
 
@@ -106,11 +106,10 @@ The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow 
 ## Key Design Decisions
 
 1. Files are NEVER auto-renamed — user must review and click Rename
-2. Close = quit **by default**. Amended by #329: with Settings → Publishing → "Keep
-   publishing while I stream" turned ON, closing the window destroys the renderer and
-   leaves the main process resident with a tray icon, so the publish scheduler keeps
-   its slots. "Quit Corva" on the tray is then the only full exit. With the setting
-   OFF — the default, and every existing install — close still quits, teardown and all.
+2. Close = quit **by default**. With Settings → Publishing → "Keep publishing while I
+   stream" turned ON, closing the window destroys the renderer and leaves the main
+   process resident with a tray icon, so the publish scheduler keeps its slots; "Quit
+   Corva" on the tray is then the only full exit. The setting is OFF by default.
 3. Windows-only (NTFS paths, Windows file behavior)
 4. Fully local pipeline — no cloud deps except Anthropic API for AI generation
 5. Checkbox component is purely visual — parent handles clicks (prevents double-toggle)
