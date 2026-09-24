@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-23 (s274) -- Session 274: one lesson (Fega-corrected). I claimed the YouTube thumbnail showed in search, home and subscriptions without loading any of those pages -> clipflow-trace-verify: load the surface and grep the image URL it uses before saying where a platform shows something; memory project_youtube_shorts_thumbnail_api corrected. Everything below the NEXT-UNDISTILLED marker dated 2026-09-23 or earlier is distilled. -->
+> <!-- DISTILLED-THROUGH: 2026-09-23 (s275) -- Session 275: one lesson (Fega-corrected). I respaced missed scheduled clips from now and lost the minute past the hour Fega posts at -> clipflow-code-review: when code moves a user-chosen time, decide on every property of it (order, gap, time of day, minute past the hour, weekday) before building. Everything below the NEXT-UNDISTILLED marker dated 2026-09-23 or earlier is distilled. -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
