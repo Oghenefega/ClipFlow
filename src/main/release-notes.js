@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.13",
+    date: "2026-09-23",
     added: [
       "Re-transcribe just one part of a clip. Right-click a section on the timeline and choose \"Re-transcribe this section\", or open the menu on the Re-transcribe button at the top of the editor and pick a section. Only the subtitles in that part are redone. Every other line you fixed, hid, moved or styled stays exactly as it was, and Ctrl+Z undoes it. A part where nobody is talking tells you \"No speech found\" and is left as it was.",
       "You can now see when a clip has been reposted. In the Tracker, a post you've reposted starts its title with a small ↻ and a count. Click it and the popup lists every repost by day and time: solid if it's posted, dashed yellow if it's scheduled, \"In Queue\" if it's still waiting. Press a date and the Tracker jumps to that week with that post open. A repost's popup says which day the original went out and takes you back to it. The same dates are on the Queue's Published list and in a clip's Analytics panel.",
@@ -27,6 +27,7 @@ module.exports = [
     ],
     fixed: [
       "Re-transcribing a clip from an older recording no longer fills it with nonsense words. When a recording's audio tracks don't match your current setup, Corva now says it can't tell which track is your mic and leaves your subtitles alone.",
+      "Clips that missed their time while Corva was closed or your PC was off no longer all post at once when you open it. They move later together, by whole hours, so they keep both their spacing and the minute you picked. Clips set for 1:30, 2:30 and 3:30 that you open at 5:00 go out at 5:30, 6:30 and 7:30. A later clip that would now be too close moves back too. The Queue shows the new times and you can still change them.",
     ],
   },
   {

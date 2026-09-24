@@ -4,7 +4,10 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-09-23 (session 275) — Missed scheduled clips are spaced out instead of posting all at once
+## [Unreleased] — 2026-09-23 (session 275) — 0.5.0-alpha.13 on the feed; missed scheduled clips are spaced out instead of posting all at once
+
+### Changed
+- **Version bumped to 0.5.0-alpha.13 and the installer published to the update feed.** This build ships everything since alpha.12: re-transcribing one section and approvals that follow your edits (#459, #458), no more thumbnail sent to YouTube (#460), repost tags, links and the repost record (#461), and missed scheduled clips moving by whole hours (#463). The What’s New entry was stamped with this version.
 
 ### Fixed
 - **Clips missed while Corva was closed no longer all post at once (#463).** Before, if the PC was off through the 1:30, 2:30 and 3:30 slots, opening Corva at 5:00 posted all three within seconds. Now missed clips move later by a whole number of hours, the fewest that bring them back to now. That keeps both the gaps between them and the minute past the hour they were booked for: 5:00 gives 5:30, 6:30 and 7:30. The first one posts right away if its minute has just passed (within 5 minutes). A clip that wasn’t missed but would now land within an hour of a moved one gets pushed too, also by whole hours, so a 5:30 clip goes to 8:30. A 45-minute cadence keeps its 45-minute gaps the same way. The first clip with enough room stops the push, so tomorrow’s slots stay where they are. The new times are saved on the clips, so the Queue shows them and they can still be edited. One notification says how many clips moved and when the first one posts. Nothing moves unless the oldest due clip is more than 5 minutes late, so posts that go out on time behave exactly as before. The logic is in `src/main/publish.js`, with tests in `publishRespace.test.js`.
