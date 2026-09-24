@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-23 (s275) -- Session 275: one lesson (Fega-corrected). I respaced missed scheduled clips from now and lost the minute past the hour Fega posts at -> clipflow-code-review: when code moves a user-chosen time, decide on every property of it (order, gap, time of day, minute past the hour, weekday) before building. Everything below the NEXT-UNDISTILLED marker dated 2026-09-23 or earlier is distilled. -->
+> <!-- DISTILLED-THROUGH: 2026-09-23 (s276) -- Session 276: one lesson (self-caught). Two prompt-audit hunks (newer web search tool, dropping the no-preamble guard) looked right on paper and failed on the first live call -> clipflow-code-review: a change to what the model is sent ships only after one live call on the real path has been read and timed. Everything below the NEXT-UNDISTILLED marker dated 2026-09-23 or earlier is distilled. -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
@@ -2177,3 +2177,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I treated a posting time as nothing more than an order plus a gap. My questions covered spacing and collisions but never "what about the clock time you picked?", so the one property he cared about was never on the table.
 
 **Rule:** when code moves a time the user chose, list every property of that time (order, gap, time of day, minute past the hour, weekday) and decide on each one out loud before building. By default, keep the minute past the hour.
+
+## Session 276 (2026-09-23) — two of my own prompt-audit fixes were wrong, and only a live call showed it (self-caught)
+
+**What happened:** The prompt audit proposed moving game research to the newer `web_search_20260209` tool, on the grounds that it was more precise and used fewer tokens. It also proposed deleting the "no preamble" rule and its text scrubber as cruft. Both hunks applied cleanly, the tests passed and the app booted. Live, the new tool took about 2 minutes (past the call's 120 s timeout) and about 10x the tokens on a well-known game. Opus 4.6 also still wrote "Based on my research, here is the game note:" once the rule was gone. Separately, I predicted the cold-start examples pushed long clips. Eight replays showed a median of 29 s either way.
+
+**Why:** I judged the changes from docs and pattern tables, not from what the model actually produced on the real call path.
+
+**Rule:** a change to what the model is sent (a removed guard, a newer tool version, a reworded example) is a hypothesis until one live call on the real path has been read and timed. Tests, a clean apply and a boot say nothing about the model's output.

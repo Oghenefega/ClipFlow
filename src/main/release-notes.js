@@ -12,6 +12,16 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    changed: [
+      "Looking up a game now counts toward your AI spend. When you add a game, Corva researches it once in the background, and that lookup (including its web searches) now shows in Settings → Pipeline Logs as its own \"game research\" entry and is added to the \"This month\" total. Before, it cost money but never appeared anywhere.",
+    ],
+    fixed: [
+      "The game description Corva writes when you add a game now comes back as one clean paragraph. Before, it could arrive broken into a dozen pieces split mid-sentence, sometimes starting with a line like \"I'll look this up\". You can see it under \"Game Knowledge (AI-Researched)\" when you edit a game in Settings, and clip detection reads it for every recording of that game.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.13",
     date: "2026-09-23",
     added: [
