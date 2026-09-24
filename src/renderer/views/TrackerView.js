@@ -85,6 +85,55 @@ const cleanTitle = (t) => (t || "").replace(/\s*#[A-Za-z0-9_]+/g, "").trim() || 
 const sortTemplateByTime = (tmpl) => sortTemplateByTimeShared(tmpl, parseTimeToMinutes);
 
 const fmtNum = (n) => n.toLocaleString("en-US");
+
+// #470: each rank's metal, brightest to darkest. Literal on purpose, like the
+// --tier* tokens: a material, not theme chrome, so it reads the same in every theme.
+const TIER_METAL = {
+  Bronze: ["#ffd9b8", "#e39a62", "#cd7f44", "#8a4a22", "#3d1f0d"],
+  Silver: ["#ffffff", "#e3e9ef", "#c4cdd6", "#7d8793", "#2c3139"],
+  Gold: ["#fff7cf", "#ffe07a", "#f5c542", "#b8860b", "#4a3402"],
+  Platinum: ["#effffc", "#aef5ea", "#6fe3d2", "#2a9d8f", "#0b3d37"],
+  Diamond: ["#f2f9ff", "#b9e0ff", "#7cc4ff", "#3a7bd5", "#10284d"],
+};
+const metalLin = (m, deg = 135) => `linear-gradient(${deg}deg, ${m[0]} 0%, ${m[2]} 28%, ${m[3]} 52%, ${m[1]} 70%, ${m[2]} 86%, ${m[3]} 100%)`;
+// Polished-metal lettering. Light themes get the dark end of the metal (deep gold,
+// steel) — the pale top would vanish into a light card. The plate is dark in every
+// theme, so it always gets the full metal. (backgroundImage, not background: the
+// shorthand would reset the text clip.)
+const metalText = (m, dark) => ({
+  backgroundImage: dark
+    ? `linear-gradient(180deg, ${m[0]} 0%, ${m[1]} 35%, ${m[2]} 60%, ${m[3]} 100%)`
+    : `linear-gradient(180deg, ${m[3]} 0%, ${m[3]} 45%, ${m[4]} 100%)`,
+  WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+  filter: dark ? `drop-shadow(0 1px 0 rgba(0,0,0,.45)) drop-shadow(0 0 10px ${m[2]}55)` : "none",
+});
+// Light themes flip --lift dark. A theme switch only rewrites <html data-theme>
+// (no React state changes), so watch the attribute to re-render with it.
+const isLightTheme = () => parseInt(getComputedStyle(document.documentElement).getPropertyValue("--lift"), 10) < 128;
+function useLightTheme() {
+  const [light, setLight] = useState(isLightTheme);
+  useEffect(() => {
+    const mo = new MutationObserver(() => setLight(isLightTheme()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
+  return light;
+}
+// A band of light that crosses its parent every few seconds (parent clips it).
+const Sweep = ({ strength = 0.55 }) => (
+  <span style={{ position: "absolute", inset: "-40% -60%", pointerEvents: "none", background: `linear-gradient(105deg, transparent 42%, rgba(255,255,255,${strength}) 50%, transparent 58%)`, animation: "tp-sweep 4.5s ease-in-out infinite", transform: "translateX(-100%)" }} />
+);
+// Two-layer faceted metal badge.
+const RankBadge = ({ m, size = 40 }) => (
+  <div style={{
+    position: "relative", width: size, height: size, flexShrink: 0, overflow: "hidden", borderRadius: size * 0.22, transform: "rotate(45deg)",
+    background: metalLin(m, 160),
+    boxShadow: `0 0 0 1px ${m[4]}aa, inset 0 1px 1px rgba(255,255,255,.8), inset 0 -2px 3px ${m[4]}cc, 0 6px 18px ${m[2]}55, 0 0 26px ${m[2]}33`,
+  }}>
+    <div style={{ position: "absolute", inset: "22%", borderRadius: size * 0.12, background: metalLin(m, 340), boxShadow: `inset 0 1px 1px rgba(255,255,255,.7), inset 0 -1px 2px ${m[4]}aa` }} />
+    <Sweep />
+  </div>
+);
 const fmtViews = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}K` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : String(n));
 // One identity for a week-log card across renders (posted entries carry an id,
 // scheduled clips a clipId).
@@ -291,6 +340,17 @@ export default function TrackerView({
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [ringCount, target, totalXp, viewMode]);
+
+  // ---------- rank card style (#470) ----------
+  // Glass is the default; the brushed-metal plate is the alternative, picked from
+  // the card's hover control and remembered.
+  const [rankStyle, setRankStyle] = useState("glass");
+  const [rkHover, setRkHover] = useState(false);
+  const lightTheme = useLightTheme();
+  useEffect(() => {
+    window.clipflow?.storeGet?.("trackerRankStyle").then((v) => { if (v === "plate" || v === "glass") setRankStyle(v); }).catch(() => {});
+  }, []);
+  const pickRankStyle = (v) => { setRankStyle(v); window.clipflow?.storeSet?.("trackerRankStyle", v); };
 
   // ---------- game switcher popover ----------
   // #281: the Now Playing card's Switch button only appears on hover, so the card
@@ -1157,43 +1217,79 @@ export default function TrackerView({
           </div>
         </div>
 
-        {/* Rank card */}
-        <div style={{ background: PANEL_BG, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "absolute", top: -50, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(circle, ${T.tiers[rank.tier]}29, transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, position: "relative" }}>
-            <SectionLbl>Rank</SectionLbl>
-            <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ color: T.green, fontSize: 11 }}>{"▲"}</span> All-time {"·"} only climbs
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, position: "relative" }}>
-            <div style={{ width: 38, height: 38, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <span style={{ position: "absolute", inset: 0, borderRadius: 10, border: `1px solid ${T.tiers[rank.tier]}`, opacity: 0.35 }} />
-              <span style={{ width: 24, height: 24, borderRadius: 6, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(var(--shade),calc(0.4 * var(--shadeK)))", background: T.tiers[rank.tier] }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: T.tiers[rank.tier] }}>{rank.name}</div>
-              <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, marginTop: 4 }}>
-                <b style={{ color: T.text, fontWeight: 600, fontFamily: T.mono }}>{fmtNum(animXp)}</b> XP earned all-time
+        {/* Rank card — #470: metallic glass (default) or a brushed-metal plate */}
+        {(() => {
+          const m = TIER_METAL[rank.tier] || TIER_METAL.Silver;
+          const plate = rankStyle === "plate";
+          const onPlate = (a) => `${m[1]}${a}`; // text on the plate is the metal's light end in every theme
+          return (
+            <div
+              onMouseEnter={() => setRkHover(true)}
+              onMouseLeave={() => setRkHover(false)}
+              style={{
+                borderRadius: T.radius.lg, padding: 14, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", isolation: "isolate",
+                ...(plate ? {
+                  background: `linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 42%, rgba(0,0,0,0) 43%, rgba(0,0,0,.18) 100%), repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, rgba(0,0,0,.03) 1px 3px), linear-gradient(135deg, ${m[3]}66 0%, ${m[4]} 45%, ${m[4]} 60%, ${m[3]}55 100%), #0c0d12`,
+                  border: `1px solid ${m[3]}88`,
+                  boxShadow: `inset 0 1px 0 ${m[1]}99, inset 0 -1px 0 rgba(0,0,0,.6), 0 18px 40px -20px ${m[2]}66`,
+                } : {
+                  background: `radial-gradient(120% 90% at 100% 0%, ${m[2]}2e 0%, transparent 55%), linear-gradient(160deg, rgba(var(--lift),0.07) 0%, rgba(var(--lift),0.015) 40%, rgba(var(--lift),0) 60%), ${PANEL_BG}`,
+                  border: `1px solid ${m[2]}33`,
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,.12), 0 18px 40px -22px ${m[2]}55`,
+                }),
+              }}>
+              {plate
+                ? <Sweep strength={0.14} />
+                : (
+                  // The glass edge: a metal gradient on the border that catches light top-left and bottom-right.
+                  <span style={{ position: "absolute", inset: 0, borderRadius: "inherit", padding: 1, pointerEvents: "none", background: `linear-gradient(135deg, ${m[1]}aa, transparent 30%, transparent 70%, ${m[2]}88)`, WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude" }} />
+                )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, position: "relative", zIndex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: plate ? onPlate("aa") : T.textTertiary, fontWeight: 600 }}>Rank</span>
+                  {/* Style picker — hover-reveal, like Now Playing's Switch */}
+                  <span style={{ display: "inline-flex", gap: 2, padding: 2, borderRadius: 999, background: "rgba(var(--bgRgb),0.55)", border: `1px solid ${T.borderHover}`, opacity: rkHover ? 1 : 0, transition: "opacity .15s ease", pointerEvents: rkHover ? "auto" : "none" }}>
+                    {[["glass", "Glass"], ["plate", "Metal"]].map(([v, label]) => (
+                      <button key={v} onClick={() => pickRankStyle(v)} title={v === "glass" ? "Glass card with metal trim" : "Brushed-metal plate"} style={{
+                        padding: "2px 8px", borderRadius: 999, border: "none", cursor: "pointer", fontFamily: T.font, fontSize: 9.5, fontWeight: 700,
+                        background: rankStyle === v ? T.accentDim : "transparent", color: rankStyle === v ? T.accentLight : T.textSecondary,
+                      }}>{label}</button>
+                    ))}
+                  </span>
+                </div>
+                <span style={{ fontSize: 10, color: plate ? onPlate("aa") : T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: T.green, fontSize: 11 }}>{"▲"}</span> All-time {"·"} only climbs
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, position: "relative", zIndex: 1 }}>
+                <RankBadge m={m} size={plate ? 40 : 38} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: plate ? 21 : 20, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.05, ...metalText(m, plate || !lightTheme) }}>{rank.name}</div>
+                  <div style={{ fontSize: 11, color: plate ? onPlate("bb") : T.textSecondary, fontWeight: 500, marginTop: 4 }}>
+                    <b style={{ color: plate ? "#fff" : T.text, fontWeight: 600, fontFamily: T.mono }}>{fmtNum(animXp)}</b> XP earned all-time
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginTop: "auto", position: "relative", zIndex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                  <span style={{ fontSize: 10, color: plate ? onPlate("99") : T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>To next tier</span>
+                  <span style={{ fontSize: 11, color: plate ? onPlate("cc") : T.textSecondary, fontWeight: 500, fontFamily: T.mono }}>{rank.top ? "Top tier reached" : `${fmtNum(rank.toNextXp)} XP to ${rank.nextName}`}</span>
+                </div>
+                <div style={{ height: 7, borderRadius: 4, background: plate ? "rgba(0,0,0,0.35)" : "rgba(var(--lift),0.06)", overflow: "hidden", boxShadow: "inset 0 1px 2px rgba(0,0,0,.45)" }}>
+                  <div style={{ position: "relative", overflow: "hidden", height: "100%", borderRadius: 4, background: metalLin(m, 90), boxShadow: `0 0 12px ${m[2]}66, inset 0 1px 0 rgba(255,255,255,.55)`, width: ringReady ? `${Math.round(rank.frac * 100)}%` : "0%", transition: "width 0.8s cubic-bezier(.4,0,.2,1)" }}>
+                    {!plate && <Sweep />}
+                  </div>
+                </div>
+                {viewMode !== "future" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, fontSize: 11, fontWeight: 600, color: plate ? m[0] : T.accentLight }}>
+                    <span style={{ fontFamily: T.mono }}>+{weekXp} XP {viewMode === "past" ? "earned that week" : "this week"}</span>
+                    {viewMode === "current" && <span style={{ color: plate ? onPlate("88") : T.textTertiary, fontWeight: 500 }}>{"·"} {goalReached ? "goal bonus locks in at week's end" : "feeds your rank"}</span>}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-          <div style={{ marginTop: "auto", position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
-              <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>To next tier</span>
-              <span style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, fontFamily: T.mono }}>{rank.top ? "Top tier reached" : `${fmtNum(rank.toNextXp)} XP to ${rank.nextName}`}</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 4, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
-              <div style={{ height: "100%", borderRadius: 4, background: T.tiers[rank.tier], width: ringReady ? `${Math.round(rank.frac * 100)}%` : "0%", transition: "width 0.8s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
-            </div>
-            {viewMode !== "future" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
-                <span style={{ fontFamily: T.mono }}>+{weekXp} XP {viewMode === "past" ? "earned that week" : "this week"}</span>
-                {viewMode === "current" && <span style={{ color: T.textTertiary, fontWeight: 500 }}>{"·"} {goalReached ? "goal bonus locks in at week's end" : "feeds your rank"}</span>}
-              </div>
-            )}
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Stakes bar (live week) / frozen-outcome or preview bar (#276) */}
@@ -1686,7 +1782,7 @@ export default function TrackerView({
         <span>{toastMsg}</span>
       </div>
 
-      <style>{`@keyframes tp-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } } @keyframes tp-blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }`}</style>
+      <style>{`@keyframes tp-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } } @keyframes tp-blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } } @keyframes tp-sweep { 0%, 55% { transform: translateX(-100%); } 85%, 100% { transform: translateX(100%); } }`}</style>
     </div>
       {detail && (() => {
         const entry = detail.entry;
