@@ -1,5 +1,5 @@
 {
-  "_comment": "Static few-shot examples for cold-start clip detection. These teach STRUCTURE (timestamps, narrative arc, JSON format, confidence scoring), NOT personality. The archetype determines the TYPE of moments shown. Real approved clips replace these as they accumulate.",
+  "_comment": "Static few-shot examples for cold-start clip detection. Only peak_quote, energy_level and why reach the prompt (formatStaticExample): they teach the KIND of moment, not personality. Timestamps, titles and confidence stay out because every example here runs 50-75s at 0.80-0.95 and the model copies what it sees. The archetype determines the TYPE of moments shown. Real approved clips replace these as they accumulate.",
   "hype": [
     {
       "clip_number": 1,
@@ -39,7 +39,7 @@
       "start": "01:03:20",
       "end": "01:04:15",
       "title": "They Did Not See That Coming",
-      "why": "Surprise play that catches everyone off guard. The gap between expectation and outcome drives the energy spike. Clean start at a natural speech boundary.",
+      "why": "Surprise play that catches everyone off guard. The gap between expectation and outcome drives the energy spike.",
       "peak_quote": "Bro WHAT — how did that even work?!",
       "energy_level": "HIGH",
       "has_frame": false,
@@ -85,7 +85,7 @@
       "start": "00:41:55",
       "end": "00:43:00",
       "title": "Down Bad to Comeback King",
-      "why": "Comeback from a significant deficit. The low point establishes stakes, the turning point creates tension, and the finish delivers the payoff. Duration captures the full arc.",
+      "why": "Comeback from a significant deficit. The low point establishes stakes, the turning point creates tension, and the finish delivers the payoff.",
       "peak_quote": "We're not out yet — we are NOT out yet",
       "energy_level": "EXPLOSIVE",
       "has_frame": true,
@@ -96,7 +96,7 @@
       "start": "00:58:05",
       "end": "00:59:10",
       "title": "Perfect Timing on That Play",
-      "why": "Mechanically precise moment with tight execution window. Clean timestamp boundaries capture the approach, the key moment, and the immediate aftermath.",
+      "why": "Mechanically precise moment with tight execution window: the approach, the key moment, and the immediate aftermath.",
       "peak_quote": "That timing — you cannot teach that",
       "energy_level": "MED",
       "has_frame": false,
@@ -153,7 +153,7 @@
       "start": "01:08:30",
       "end": "01:09:40",
       "title": "Story Time Mid-Game",
-      "why": "Natural storytelling moment that flows from gameplay context. The anecdote has a clear beginning, middle, and punchline. Clip boundaries capture the full story without cutting off.",
+      "why": "Natural storytelling moment that flows from gameplay context. The anecdote has a clear beginning, middle, and punchline.",
       "peak_quote": "So what happened was — and this is the best part",
       "energy_level": "MED",
       "has_frame": false,

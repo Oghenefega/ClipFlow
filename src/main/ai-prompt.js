@@ -314,7 +314,7 @@ function buildFewShotSection(approvedClips, archetype) {
     if (staticExamples.length === 0) return null;
     let section = `# EXAMPLE CLIPS (Reference Format)
 
-These examples show the expected output format, timestamp boundaries, and narrative arc structure. Use them as a structural reference.\n`;
+This creator hasn't approved any clips yet, so these are illustrative moments for their kind of content: what was being said at the peak, and why the moment works. They come from no real video. Use them for the kind of moment to look for; clip length comes from the boundary rules, not from these.\n`;
     for (const ex of staticExamples) {
       section += formatStaticExample(ex);
     }
@@ -331,7 +331,7 @@ These examples show the expected output format, timestamp boundaries, and narrat
 
   // Pad with static examples if needed
   if (staticToUse.length > 0) {
-    section += `\n\n## Additional Reference Examples (structural format guides)\n`;
+    section += `\n\n## Additional Reference Examples (illustrative moments, not from this creator)\n`;
     for (const ex of staticToUse) {
       section += formatStaticExample(ex);
     }
@@ -419,10 +419,9 @@ The quotes show the KIND of moment to skip, NOT words to avoid. This creator's c
  * Format a single static archetype example for the prompt.
  */
 function formatStaticExample(ex) {
-  let s = `\n- Timestamp: ${ex.start} > ${ex.end}`;
-  s += `\n  Title: ${ex.title}`;
+  let s = `\n- "${ex.peak_quote}"`;
   s += `\n  Energy: ${ex.energy_level}`;
-  s += `\n  Confidence: ${ex.confidence}`;
+  s += `\n  Why it works: ${ex.why}`;
   return s;
 }
 

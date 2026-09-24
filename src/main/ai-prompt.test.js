@@ -151,7 +151,8 @@ console.log("\nbuildFewShotSection tiers:");
 test("Tier 1 (0 approved): static archetype examples with format reference", () => {
   const section = buildFewShotSection([], "variety");
   expect(section).toContain("# EXAMPLE CLIPS (Reference Format)");
-  expect(section).toContain("Timestamp:"); // static structural refs keep timestamps
+  expect(section).toContain("Why it works:");
+  expect(section).notToContain("Timestamp:"); // fabricated positions and lengths anchor picks
 });
 
 test("Tier 1: null approvedClips treated as empty", () => {

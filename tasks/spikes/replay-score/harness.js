@@ -38,10 +38,11 @@ const os = require("os");
 const fs = require("fs");
 
 // ── Electron stub (must precede any src/main require) ──
-// CLIPFLOW_PROFILE=dev + userData=%APPDATA%\clipflow makes game-profiles.js
-// resolve DATA_DIR to the PROD data dir (repo data/ is stale).
+// CLIPFLOW_PROFILE=dev + userData=%APPDATA%\Corva makes game-profiles.js
+// resolve DATA_DIR to the PROD data dir (repo data/ is stale). Prod moved
+// from %APPDATA%\clipflow to %APPDATA%\Corva with alpha.24 (#268/#288).
 process.env.CLIPFLOW_PROFILE = "dev";
-const USER_DATA = path.join(process.env.APPDATA, "clipflow");
+const USER_DATA = path.join(process.env.APPDATA, "Corva");
 const Module = require("module");
 const origLoad = Module._load;
 Module._load = function (request, parent, isMain) {

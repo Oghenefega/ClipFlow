@@ -134,11 +134,23 @@ function anthropicRequest(apiKey, body, opts = {}) {
  * Extract text from Anthropic content blocks.
  * Handles responses with mixed content types (text, tool_use, etc.)
  *
+ * A web search answer arrives as narration, then search results, then the
+ * answer split into cited text blocks mid-sentence. Only the text after the
+ * last search result is the answer, and its blocks are one run of prose.
+ *
  * @param {Array} content - Anthropic response content array
  * @returns {string} Concatenated text from all text blocks
  */
 function extractText(content) {
   if (!content || content.length === 0) return "";
+  const lastSearch = content.map((c) => c.type).lastIndexOf("web_search_tool_result");
+  if (lastSearch !== -1) {
+    return content
+      .slice(lastSearch + 1)
+      .filter((c) => c.type === "text")
+      .map((c) => c.text)
+      .join("");
+  }
   return content
     .filter((c) => c.type === "text")
     .map((c) => c.text)

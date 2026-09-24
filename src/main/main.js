@@ -4728,27 +4728,23 @@ ipcMain.handle("anthropic:researchGame", async (_, gameName) => {
     const provider = llmProvider.getProvider();
     const { text } = await provider.chat({
       model: "claude-opus-4-6",
-      system: `You are a gaming research assistant. Your ONLY job is to describe what it's like to PLAY a specific game — the gameplay experience, not corporate info.
+      system: `You write the game note that a clip-picking model reads before it scans a creator's recording of this game. It needs to know what playing the game is like: how a session goes, the modes and player count, the energy, and the funny or chaotic situations that tend to happen, which are the moments worth clipping. Developer, publisher, release dates, platforms, system requirements and review scores don't help it pick clips, so leave them out.
 
-RULES:
-- Focus ONLY on: what the gameplay is like, how people play it, game modes, player count, the vibe/energy of playing
-- Include: funny situations that happen, chaotic moments, what makes it entertaining to watch
-- Do NOT include: developer names, publishers, release dates, corporate history, platform availability, system requirements, review scores
-- Do NOT include any preamble like "I'll research..." or "Here is the context for..."
-- Start directly with the game description
-- Keep it to 3-5 sentences max — concise and punchy
-- Write as plain description text, no bullet points or headers`,
+Your reply is saved as-is and inserted into that model's prompt, which cuts it off at 1,500 characters. Write one short paragraph of plain prose, 3-5 sentences, with no headings or bullets, and begin with the description itself, not a line about your research.`,
       messages: [{
         role: "user",
         content: `Describe the gameplay experience of "${gameName}". What is it like to play? How do people play it? What makes it fun, chaotic, or entertaining to watch?`,
       }],
       maxTokens: 1500,
+      // Not web_search_20260209: measured 2026-09-23 it took ~2 min (past the
+      // 120 s timeout) and ~10x the tokens on a well-known game; this one ~10 s.
       tools: [{ type: "web_search_20250305", name: "web_search" }],
     });
 
     if (!text) return { error: "Empty response from LLM provider" };
 
-    // Strip any AI preamble that slipped through
+    // Backstop for a lead-in line ("Based on my research, …") that Opus 4.6
+    // still writes inside the answer block now and then (seen 2026-09-23).
     let summary = text.replace(/^(I'll research|Here is|Here's|Let me|Based on my research)[^\n]*\n+/i, "").trim();
 
     if (!summary) return { error: "No text summary in research response" };
