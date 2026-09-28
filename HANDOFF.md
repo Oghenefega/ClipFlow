@@ -1,57 +1,46 @@
-# HANDOFF — Session 277 (2026-09-24)
+# HANDOFF — Session 278 (2026-09-24)
 
 ## Current State
 
-**0.5.0-alpha.14 is on the update feed.** It ships everything in session 277, plus session 276's game-research cost tracking:
-- **Projects:** the clip grid (#467).
-- **All three tabs:** one full-height clip panel for Projects, Tracker and Analytics (#466).
-- **Tracker:** full width, views on posted clips, weekly goal chips (#468), the Switch fix (#469), and the metallic-glass Rank card with a Metal alternative (#470).
-- **Import clips:** the AI title / original name switch (#465).
+**0.5.0-alpha.15 is on the update feed.** It adds one thing over alpha.14: imported clips link back to their original file, and removing an import no longer strands it (#471).
+- **Queue:** imported clips show "from <original file>" under the title, plus a Show original button. There is now one "Remove import" option.
+- **Tracker:** the clip panel shows "Imported from" and a Show original button, and no longer offers "Open in editor" for imports.
+- **Boot repair:** stuck imports are cleaned up at launch.
 
-Issues #465–#470 are closed and labelled `status: untested`. Fega hasn't run alpha.14 yet.
+#471 is closed and labelled `status: untested`. Fega's desktop has run alpha.15 (`lastSeenVersion`, 2026-09-28). Its first boot repaired both real stuck imports, "A brazilian hopped in my chat" and "What are these Arc Raiders Outfits?!", and cleared their memory entries (prod `app.log`, 00:24:44). He hasn't confirmed anything in chat yet.
 
 ## Key Decisions
 
-- **One shared clip panel** (`src/renderer/components/ClipSidePanel.js`). It docks beside the page, never over it, and runs the tab's full height, with a 9:16 preview sized from that height and capped so the page keeps 40% of the width. Fega chose consistency across the three tabs over a smaller Tracker viewer.
-- **Projects tiles are sized from the window,** with the whole project's clip count fitted to the visible height. They keep that size when the panel opens: the grid drops columns and scrolls. This replaces the s89 one-card-per-clip Review Rail, which is now overridden by Fega's ask.
-- **Approving the open clip on Pending moves the panel to the next clip.** This was added unasked and flagged to Fega in chat; he hasn't objected.
-- **Tracker cards keep their original look:** corner glow and thin game-colour border. A thumbnail-on-card pass was rejected ("a huge let down") and reverted the same session. The glow is now sized in % of the card, rows share a minimum height of 24–60 px, and there is a views line under the title.
-- **Weekly goal = option A chips,** one per post in its game's colour, with a pulsing pace chip. The mock is at the scratchpad `mock/weekly-goal.html`.
-- **Rank card = option A (Glass) by default, with option B (Metal plate) pickable** from a hover switch, stored as `trackerRankStyle`. Metal colours are literals (`TIER_METAL`). Light themes get the dark end of the metal via a `data-theme` MutationObserver, because a theme switch doesn't re-render React.
+- **Imports keep being copied into `ClipFlow Imports`** (Fega: "keep copying as is"). The link back to the original file comes from the `importedFrom` path already on each clip, not from changing how files are stored.
+- **Imports get one "Remove import"** (Fega's pick). It deletes the copy and the clip record and forgets the file in `importMemory`, so the original can be imported again.
+  - A **repost** of an import is never forgotten, because its content has already been posted. Forgetting it would reopen the double-post hole this work exists to close.
+- **The boot repair (`repairStuckImports`) never deletes files.** It only clears memory and drops `dequeued` import records. A leftover copy might be the last copy of the clip.
+- **The Queue row wording is short:** "from <name>" and "original missing". The title column is about 135 px at 1280×860, and the full path is on hover.
 
 ## Next Steps
 
-1. **Ask Fega to test alpha.14:**
-   > "Did the update come through? Open a project and approve and reject a few clips, from the tiles and from the panel on the right. That's the one part I couldn't test on your real clips. Then on the Tracker, hover the Rank card and flip Glass/Metal, try Switch on Now Playing, and click a posted clip and use 'See the breakdown in Analytics'. Anything off?"
+1. **Ask Fega to test alpha.15:**
+   > "Did the update to alpha.15 come through? In the Queue, your imported clips now say 'from <file name>' under the title. Hover one and click the new page-with-arrow button, and Explorer should open on your original. Your 2 stuck imports ('A brazilian hopped in my chat' and the Arc Raiders outfits one) were cleaned up on launch, so dropping those originals on Import clips should work again. Anything off?"
 
-   Each yes closes the loop on #465–#470: remove `status: untested` from each he confirms.
-2. **Ask about the auto-advance:**
-   > "When you approve the clip that's open in the panel on the Pending tab, the panel jumps to the next clip, so a run of approvals is ✓ ✓ ✓. Keep that, or would you rather it stayed on the clip you just approved? I'd keep it."
-3. **Carried from s275/s276, still unasked:**
-   - #463 missed-clips check.
-   - #461 repost popup check.
-   - The ↻ mark on 4-letter game tags. Note: the week log was restyled this session, so re-check how it looks first.
-   - #464 research cost, which is now in alpha.14, so ask it with #1.
-   - The Sonnet 5 detection-model test.
-   - The s273/s274 checks (#454/#456/#457, the #459 in-app run, feedback rows #3/#29).
-   The exact wording for each is in git: `git show 6a28ef3:HANDOFF.md`.
-4. **Fable review** of this session's commits: 81c282e, 2a30779, 8ef8f16, c07732d, a187918. Plus the s276 list (e0d3cdd, 92f0972, fe8a8dc, 3479a87, 46ca0e9, 59970bf, 351f090, 9c74bf1).
-5. **#456 (Tracker popup sizing) is superseded by #466.** Close it if Fega agrees the panel covers it.
-6. **#462 (repost payoff analysis)** waits for a few days of `clip_metrics_history` per repost.
+   A yes removes `status: untested` from #471.
+2. **Everything from the s277 handoff is still unasked.** That's the alpha.14 test script (Projects approve/reject, Rank Glass/Metal, Switch, Analytics link), the auto-advance question, and the carried s273–s276 checks. The exact wording is in `git show 37b238f:HANDOFF.md` (Next Steps 1–3).
+3. **Fable review** of e46f65d (#471), plus the s277 and s276 lists in `37b238f:HANDOFF.md`.
+4. **#456 superseded by #466** (close it if Fega agrees). **#462** is still waiting for repost metrics history.
 
 ## Watch Out For
 
-- **The dev profile reads Fega's REAL projects root (W:\…).** Approve/reject/rename in the Projects panel writes real project.json files. This session only viewed and clicked through. Use a fixture projectsRoot before testing decisions.
-- **`usePaneBox` measures the view's parent padding box plus the tab's scroll pane.** A view mounted in a new container (different padding, no scroll ancestor) needs a check that the panel height and tile sizing still come out right.
-- **Projects is now full width.** The ClipBrowser pane lost its 860 px cap, and so did the Tracker's 960 px cap, in App.js. Anything added to those views should size from the window, not assume a narrow column.
-- **Headless/CDP screenshots of the mocks sometimes miss posters that load after a re-render.** The pages themselves are fine.
-- **The `trackerRankStyle` store key is new and optional** (read with a fallback, so there's no migration).
+- **The dev profile reads Fega's REAL library (W:\…).** Any dev boot now runs `repairStuckImports` against it, which drops `dequeued` import records from the REAL project.json files. The dev `importMemory` is separate, though, so the prod entries for those files would then never be cleared.
+  - For any dev-profile run, repoint `projectsRoot`, `outputFolder` and `testWatchFolder` to a fixture first. This session did: the dev settings were backed up, pointed at the scratchpad `fx/`, and restored afterwards.
+  - Prod already repaired its 2 on 2026-09-28, so the prod library has no `dequeued` imports left.
+- **Only new imports carry `importFingerprint`.** Older ones are matched by fingerprinting the copy, then the original, then the file name. If both files are gone and two memory entries share a name, the entry stays and the clip is still deleted.
+- **The Bash tool ate backslashes again.** Inline `node -e` scripts collapsed `\\n` and `\\u00B7`. Patches with backslashes go through the Edit tool or a script written to a file (memory `feedback_bash_backslash_collapse`).
 
 ## Logs/Debugging
 
-- **Mock and verification helpers in the session scratchpad:**
-  - `shot-at.js`: emulates a W×H window, runs expressions and takes a screenshot in ONE CDP session. Emulation resets when the socket closes.
-  - `switch-probe.js`: a real-mouse click on Switch plus a containing-block probe.
-  - `undef-check.js`: Babel-based undefined/unused names check, since the repo has no ESLint.
-  - `cdp-call.js`.
-- **#469 root cause, for any future fixed popover:** a `transform` on an ancestor makes it the containing block. `getBoundingClientRect()` on the popover showed x = −789. Check that with `document.elementFromPoint`.
+- **Log lines** (`app.log`, module `system`):
+  - `Repaired stuck imported clip {clipId,title,importedFrom,forgotten}` and `Repaired N stuck imported clip(s)`, at boot.
+  - `Removed imported clip {clipId,title,importedFrom,repost,forgotten}`.
+- **Scratchpad for this session:**
+  - `build-fixture.js` builds an import project, dev settings pointed at a fixture, and tracker rows.
+  - `hover.js` sends a CDP mouseMoved event to reveal row hover actions.
+  - The repo's own `scripts/dev/cdp.js`, `cdp-click.js` and `cdp-shot.js` did the rest.
