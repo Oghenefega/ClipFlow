@@ -2201,3 +2201,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** "Fill the space" was about the calendar's size. I read it as permission to redesign the card inside it, and never compared my card against the current one side by side before shipping.
 
 **Rule:** when a layout change resizes existing elements, keep their visual treatment (gradient, border, colour, type) exactly as it is unless Fega asked to change it. Before showing it, put a screenshot of the old element next to the new one and check nothing about its look changed.
+
+## Session 279 (2026-09-28) — I offered "hide it" as a fix when Fega wanted to clip the file
+
+**What happened:** Fega's two recordings couldn't be renamed without breaking his Resolve projects. I offered "hide them on the Rename tab" as one of two options. He pointed out that he wanted to clip those recordings, and in Corva only a renamed file reaches Recordings and clip generation. Hiding a file means giving up on it.
+
+**Why:** I answered "how do I stop the rename from hurting me" and forgot what the file was for. I didn't trace what each option would leave him able to do next in the pipeline.
+
+**Rule:** before offering a workaround, check it against what the user wants to do with the thing next. If an option drops the item out of the pipeline, either leave it out or name that cost up front ("you won't be able to clip it").
