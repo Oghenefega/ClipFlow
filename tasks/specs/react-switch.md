@@ -26,7 +26,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
 
 ## 2. Build pieces (v1)
 
-1. **Link field.** Add `reactsTo` (game tag) to gamesDb entries, with a store migration. Link the existing entries once: GTA6 Reacts → `GTA6`, Rocket League Reacts → `RL`, Valorant Champions Tour → `Val` (default), 100T Valorant Reacts → `Val` (decision 1).
+1. **Link field.** Add `reactsTo` (game tag) to gamesDb entries, with a store migration. Link the existing entries once: GTA6 Reacts → `GTA6`, Rocket League Reacts → `RL`, Valorant Champions Tour → `Val`, 100T Valorant Reacts → `Val` (default; decisions 1 and 3).
 2. **Switch in the pickers.**
    - Rename tab: the per-session picker (`RenameView.js:1872`) and the bulk "Set Game" menu (`:2154-2170`). Both write through `setGameForRows` (`:805-815`).
    - Recordings drop modal (`UploadView.js:948-964`).
@@ -77,7 +77,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
 | 15 | A new reaction entry has no learning | Accepted for v1. Later idea: reaction-style lessons shared across all reaction entries ("reaction added nothing" patterns aren't game-specific). Needs a detection-science check before shipping (#231 rules). |
 | 16 | Title voice examples | Matched by tag, hashtag or name (`main.js:4248-4252`). A shared hashtag lets gameplay titles steer reaction titles and the other way round. Match by tag only for linked entries. |
 | 17 | Hashtag resolution in `captionResolve.js:36-39` | Auto-posted clips carry the tag and resolve correctly. Only legacy title-hashtag fallbacks (`:24`) hit the collision, so it's acceptable. #477 fixes the Tracker side. |
-| 18 | Main/variety share in the Tracker | Reactions count as variety (decision 6). #477 stores the tag, so this holds for manual logs too. |
+| 18 | Main/variety share in the Tracker | Reactions count as **main** (decision 6). `TrackerView.js:235-240` mainCount must also match every entry whose `reactsTo` is the main game's tag. |
 | 19 | Settings list | Show linked reaction entries nested under their game in Content Types, so the list doesn't turn into a wall of "X Reacts". |
 
 ## 5. Not in v1
@@ -90,7 +90,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
 
 1. **Links.** Rocket League Reacts → Rocket League, GTA6 Reacts → GTA 6, **and both Valorant Champions Tour and 100T Valorant Reacts → Valorant.** Robot Olympics Reacts and Just Chatting stay standalone.
 2. **Colour.** A reaction keeps **its own colour**, as today. An auto-created entry gets a distinct colour, not the game's.
-3. **Several reaction shows on one game.** **One default** per game, used when the switch is flipped. The others sit behind a small ▾ on the switch. Valorant's default is VCT.
+3. **Several reaction shows on one game.** **One default** per game, used when the switch is flipped. The others sit behind a small ▾ on the switch. **Valorant's default is 100T Valorant Reacts** (Fega changed this from VCT the same day).
 4. **Next-row default after a reaction.** **Back to the game** with the switch off. The switch never carries over from the last rename.
 5. **Retag learning.** When a clip moves between gameplay and reaction, **its approve/reject rows move with it** (feedback `game_tag` follows the clip).
-6. **Tracker main share.** Reactions to the main game count as **variety**. "Main" means playing the main game. #477 already makes this true for manual logs.
+6. **Tracker main share.** Reactions to the main game count as **main** (Fega changed this from variety the same day). The main-game share counts the main game's tag **plus every reaction entry linked to it**. That needs the `reactsTo` link, so it lands with the switch. Until then, reaction rows (auto-posts, and manual logs since #477) count as variety.
