@@ -46,7 +46,7 @@ export const GamePill = ({ tag, color, size = "md", variant }) => {
     );
   }
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py}px ${s.px}px`, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 6, fontSize: s.fs, fontWeight: 700, color, fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py}px ${s.px}px`, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 6, fontSize: s.fs, fontWeight: 700, color, fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1, whiteSpace: "nowrap", flexShrink: 0 }}>
       {tag}
     </span>
   );

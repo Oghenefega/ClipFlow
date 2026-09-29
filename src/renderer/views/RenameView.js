@@ -387,6 +387,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   // Remember last renamed game for auto-selecting on new files
   const lastRenamedGame = useRef(null);
+  // #474: every split part in this rename batch labelled with another entry
+  // than its row, so each part's Day counts the batch's other dates for that
+  // entry, whatever order the rows are renamed in.
+  const batchSegRows = useRef([]);
 
   const isElectron = typeof window !== "undefined" && window.clipflow;
 
@@ -1227,9 +1231,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       const segGame = gamesDb.find((g) => g.tag === seg.gameTag);
       // #474: a part labelled with another entry (a reaction after gameplay)
       // takes that entry's own Day, not this row's.
-      const segDay = segGame && segGame.tag !== r.tag
-        ? detectForGame(segGame, r.fileName, pendingRenames.filter((p) => p.id !== r.id)).day
-        : r.day;
+      let segDay = r.day;
+      if (segGame && segGame.tag !== r.tag) {
+        const others = [...pendingRenames, ...batchSegRows.current].filter((p) => p.id !== r.id);
+        segDay = detectForGame(segGame, r.fileName, others).day;
+      }
 
       // Check if this segment itself needs auto-splitting
       const tailLength = segDuration % thresholdSec;
@@ -1398,6 +1404,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const renameFiles = async (list) => {
     if (renaming || !list || list.length === 0) return;
     setRenaming(true);
+    batchSegRows.current = list.flatMap((row) => {
+      const tags = new Set((scrubberMarkers[row.id] || []).flatMap((m) => [m.gameBefore, m.gameAfter]));
+      return [...tags].filter((t) => t && t !== row.tag).map((tag) => ({ id: row.id, tag, fileName: row.fileName, part: null }));
+    });
     const sorted = [...list].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
     const corrected = [];

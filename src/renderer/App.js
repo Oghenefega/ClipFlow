@@ -26,7 +26,7 @@ import { evaluateRollover, localISO } from "./utils/trackerEngine";
 import { normalizeTemplate } from "./utils/trackerTemplate";
 import { buildStarterYtDescription } from "../shared/ytDescriptionTemplate";
 import { rewriteSettingsForIdentity } from "../shared/entryIdentity";
-import { defaultReactionFor, findSimilarUnlinked, setReactsTo, setDefaultReaction, buildReactionEntry, buildReactionYtDescription } from "../shared/reactions";
+import { defaultReactionFor, findSimilarUnlinked, setReactsTo, setDefaultReaction, dropLinksTo, buildReactionEntry, buildReactionYtDescription } from "../shared/reactions";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
@@ -786,7 +786,11 @@ export default function App() {
     }
     const rw = (slices) => rewriteSettingsForIdentity(slices, change, u);
     if (prevMainGame.current === change.oldName) prevMainGame.current = change.newName; // not a main-game switch
-    setGamesDb((p) => oneDefault(rw({ gamesDb: p }).gamesDb, change.newName));
+    // #474: a game that becomes a content type can't be reacted to — its reactions lose the link.
+    setGamesDb((p) => {
+      const next = oneDefault(rw({ gamesDb: p }).gamesDb, change.newName);
+      return change.oldType !== "content" && change.newType === "content" ? dropLinksTo(next, change.newTag) : next;
+    });
     setYtDescriptions((p) => rw({ ytDescriptions: p }).ytDescriptions);
     setMainGame((p) => rw({ mainGame: p }).mainGame);
     setMainPool((p) => rw({ mainPool: p }).mainPool);
