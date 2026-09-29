@@ -6,19 +6,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-09-29 (session 279)
 
+### Added
+- **Games and content types can be renamed, retagged and switched between game and content type, and their history moves with them (#475).** The Edit window in Settings → Games has a Name box and a Game / Content type switch next to the Tag. If any of the three changes, Save first shows what will move, e.g. "7 recordings, 43 approve/reject decisions, 2 projects, 10 title history rows, the game art". Then "Move everything" carries it all over, after a backup to `data/backup-<date>-entry-<tag>-…`.
+  - **What moves:**
+    - database rows (recordings, approve/reject history, rename labels, reposts, title history, and the rename-undo records, so Undo can't bring the old tag back)
+    - the detection profile, project and media-library tags, and the art file
+    - the YouTube description, main game, Tracker rows, week history, media folders, rename history and waiting Rename rows
+  - **What stays:** recording files and project names are never renamed. An entry remembers its old tags (`previousTags`, backfilled at boot), so the Recordings scan still recognises `… MC Day2 Pt1.mp4` after a retag.
+  - **Safety checks:** the move is refused while clips are generating or rendering, or if the new name or tag clashes with another entry (case-insensitively).
+  - **If a file step fails** (a locked project file, art in use) after the database has moved, the rest still moves and the settings still update. The message names what didn't move and where the backup is. The Edit window stays open until the move finishes.
+  - **Day counter:** a switch keeps it when the entry has recordings, and restarts it otherwise.
+  - **Checked end to end on the dev profile against a copied project folder:** retag MC→MCH with a rename, then MCH→MCX as a content type, then back. Every count matched the database, and the Recordings tab updated without a restart.
+- **React switch design (#474, `tasks/specs/react-switch.md`, with a clickable mockup).** Lists every picker the switch touches, the rules for auto-creating a reaction entry, how detection fits, and 19 edge cases. Fega's six decisions are recorded, including 100T as Valorant's default and reactions counting toward the main game. No code yet.
+
+### Changed
+- **For a content type, clip detection now reads your own note first (#475).** It used to prefer any leftover AI game research, which is how a game switched to a content type (VCT) would have ignored its note. Switching an entry to a content type now requires the note.
+- **Name and tag duplicate checks in the Edit window ignore case (#475),** so "val" can no longer sit next to "Val". The play-style update threshold is now saved under the entry's new tag.
+- **Two library entries fixed by hand before #475 existed (settings data, Corva closed, backups in `%APPDATA%\Corva\data\backup-2026-09-29-*`).**
+  - "RL Sub Reacts" became **Rocket League Reacts**, with a broader AI note and YouTube description. It had never been used.
+  - **Valorant Champions Tour** moved from game to content type. Its first recording is now Day 1, it has a reaction note, and the Valorant game research that would have overridden that note is removed.
+
 ### Fixed
 - **Recordings whose tag has a hyphen are readable again (#476).** The filename parsers in `reconcile.js` and `file-migration.js` only accepted letters, digits and "_" in a tag, so files like `2026-09-21 RL-R Day1 Pt1.mp4` and the GTA6-R recordings were invisible to the Recordings reconcile. If the database lost track of one, Corva would never find it again. Tags now also accept "-", up to 8 characters, and must contain at least one letter, which keeps a raw OBS time like `18-23-40` from reading as a tag. On the dev profile, the RL-R recording was adopted on first load.
 - **Tag inputs only accept a shape the file name can carry (#476).** The Add and Edit game/content windows strip anything but letters, digits and "-", cap the tag at 8, and refuse a tag with no letter.
 - **Hand-logged reactions no longer count as their game in the Tracker (#477).** Manual logs and Tracker imports stored the hashtag, which a reaction entry shares with its game (Rocket League Reacts and Rocket League are both #rocketleague). So a hand-logged reaction showed as the game and counted toward the main-game share. They now store the lowercased tag, like auto-posts, and the Tracker and Analytics lookups prefer a tag match over a hashtag match. Only one existing row used a shared hashtag, a March Rocket League gameplay clip, and it still resolves to Rocket League.
-
-### Changed
-- **Two library entries fixed by hand (settings data, Corva closed, backups in `%APPDATA%\Corva\data\backup-2026-09-29-*`).**
-  - "RL Sub Reacts" became **Rocket League Reacts**, with a broader AI note and YouTube description. It had never been used.
-  - **Valorant Champions Tour** moved from game to content type. Its first recording is now Day 1, it has a reaction note, and the Valorant game research that would have overridden that note is removed.
-  - Settings has no way to do either yet. That's tracked in #475.
-
-### Added
-- **React switch design (#474, `tasks/specs/react-switch.md`).** Lists every picker the switch touches, the rules for auto-creating a reaction entry, how detection fits, 19 edge cases and 6 open questions. No code yet.
 
 ## [Unreleased] — 2026-09-24 (session 278) — 0.5.0-alpha.15 on the feed
 

@@ -8,6 +8,23 @@ import { GamePill, Card, SectionLabel, ColorPicker, toFileUrl } from "./shared";
 const cleanTag = (v) => v.replace(/[^A-Za-z0-9-]/g, "").slice(0, 8);
 const tagValid = (v) => /[A-Za-z]/.test(v);
 
+// #475: "41 recordings, 312 approve/reject decisions, …" for the move confirm.
+const moveSummary = (c = {}) => {
+  const n = (k, one, many) => (c[k] > 0 ? [`${c[k]} ${c[k] === 1 ? one : many}`] : []);
+  const parts = [
+    ...n("recordings", "recording", "recordings"),
+    ...n("feedback", "approve/reject decision", "approve/reject decisions"),
+    ...n("projects", "project", "projects"),
+    ...n("labels", "label", "labels"),
+    ...n("titleRounds", "title history row", "title history rows"),
+    ...n("reposts", "repost", "reposts"),
+    ...n("assets", "media item", "media items"),
+    ...(c.profile ? ["the detection profile"] : []),
+    ...(c.art ? ["the game art"] : []),
+  ];
+  return parts.length ? parts.join(", ") : "only the entry itself (nothing else is filed under it yet)";
+};
+
 // ============ ADD GAME MODAL ============
 export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore, aiReady = false }) => {
   const isContent = entryType === "content";
@@ -136,7 +153,13 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
 
 // ============ GAME EDIT MODAL ============
 export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = false }) => {
-  const isContentEntry = game.entryType === "content";
+  // #475: name and type are editable; a change to name, tag or type carries the
+  // entry's history over (confirmed below with a preview of what moves).
+  const [name, setName] = useState(game.name);
+  const [entryType, setEntryType] = useState(game.entryType === "content" ? "content" : "game");
+  const isContentEntry = entryType === "content";
+  const [confirm, setConfirm] = useState(null); // preview result while the move is being confirmed
+  const [confirmBusy, setConfirmBusy] = useState(false);
   const [tag, setTag] = useState(game.tag);
   const [hashtag, setHashtag] = useState(game.hashtag || "");
   const [color, setColor] = useState(game.color);
@@ -229,6 +252,13 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
     }
   };
 
+  const lcs = (v) => String(v || "").toLowerCase();
+  const nameDup = !!name.trim() && gamesDb.some((g) => g.name !== game.name && lcs(g.name) === lcs(name.trim()));
+  const tagDup = !!tag && gamesDb.some((g) => g.name !== game.name && lcs(g.tag) === lcs(tag));
+  const identityChanged = name.trim() !== game.name || tag !== game.tag || entryType !== (game.entryType === "content" ? "content" : "game");
+  const noteMissing = isContentEntry && game.entryType !== "content" && !aiPlayStyle.trim();
+  const invalid = !name.trim() || nameDup || tagDup || !tagValid(tag) || noteMissing;
+
   return (
     // #367: a desktop-width dialog — header / scrolling body / pinned footer
     // (ui-standards: outer hidden, inner auto), two columns: identity + art +
@@ -250,13 +280,29 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px 6px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", columnGap: 36 }}>
         <div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 14, marginBottom: 16 }}>
+          <div>
+            <SectionLabel>Name</SectionLabel>
+            <input value={name} onChange={(e) => { setName(e.target.value); setConfirm(null); }} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${nameDup || !name.trim() ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 600, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
+            {nameDup && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Another entry already has this name</div>}
+          </div>
+          <div>
+            <SectionLabel>Type</SectionLabel>
+            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+              {[["game", "Game"], ["content", "Content type"]].map(([v, label]) => (
+                <button key={v} onClick={() => { setEntryType(v); setConfirm(null); }} style={{ padding: "11px 14px", borderRadius: T.radius.md, border: `1px solid ${entryType === v ? T.accentBorder : T.border}`, background: entryType === v ? T.accentDim : "transparent", color: entryType === v ? T.accentLight : T.textTertiary, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>{label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
           <div>
             <SectionLabel>Tag</SectionLabel>
-            {(() => { const dup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name); return (<>
-              <input value={tag} onChange={(e) => setTag(cleanTag(e.target.value))} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+            {(() => { const dup = tagDup; return (<>
+              <input value={tag} onChange={(e) => { setTag(cleanTag(e.target.value)); setConfirm(null); }} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
               {dup && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Tag already in use by another entry</div>}
               {!tagValid(tag) && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Tag needs at least one letter</div>}
+              {tag !== game.tag && !dup && tagValid(tag) && <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>History moves with it. Recording files keep their names.</div>}
             </>); })()}
           </div>
           <div>
@@ -360,7 +406,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                     : "How do you play this game?\ne.g. \"I'm grinding ranked, trying to hit Diamond. Very competitive but I rage in a funny way.\""}
                   style={{ width: "100%", minHeight: 80, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
                 />
-                <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>{isContentEntry ? "Included in AI clip detection and title/caption generation for this content type" : "Included in AI title/caption generation for this game"}</div>
+                <div style={{ color: noteMissing ? T.red : T.textTertiary, fontSize: 11, marginTop: 4 }}>{noteMissing ? "A content type needs this note: it's what clip detection reads" : isContentEntry ? "Included in AI clip detection and title/caption generation for this content type" : "Included in AI title/caption generation for this game"}</div>
               </div>
 
               {/* Auto-researched context */}
@@ -435,17 +481,31 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
         </div>
         </div>
 
+        {confirm && (
+          <div style={{ padding: "12px 28px", borderTop: `1px solid ${T.border}`, background: T.accentDim, flexShrink: 0, fontSize: 12.5, color: T.textSecondary }}>
+            {confirm.refused
+              ? <span style={{ color: T.red, fontWeight: 600 }}>{confirm.refused}</span>
+              : <><b style={{ color: T.text }}>This moves </b>{moveSummary(confirm.counts)}<b style={{ color: T.text }}>.</b> Recording files keep their names. Corva backs everything up first.</>}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 18px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ padding: "12px 22px", borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-          <button onClick={() => {
-            const tagDup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name);
-            if (tagDup || !tagValid(tag)) return;
-            // Save threshold to game profiles backend
-            if (window.clipflow.gameProfilesSetThreshold) {
-              window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);
+          <button onClick={confirm ? () => setConfirm(null) : onClose} style={{ padding: "12px 22px", borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{confirm ? "Back" : "Cancel"}</button>
+          <button disabled={invalid || confirmBusy || !!confirm?.refused} onClick={async () => {
+            if (invalid) return;
+            const updated = { ...game, name: name.trim(), tag, entryType, hashtag, color, dayCount, active, exe: exeList, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt };
+            const change = { oldName: game.name, newName: name.trim(), oldTag: game.tag, newTag: tag, oldType: game.entryType === "content" ? "content" : "game", newType: entryType };
+            if (!identityChanged) { onSave(updated, { threshold: updateThreshold }); return; }
+            if (!confirm) {
+              setConfirmBusy(true);
+              const p = await window.clipflow.entryIdentityPreview?.(change);
+              setConfirmBusy(false);
+              setConfirm(p?.error ? { refused: `Couldn't check what would move: ${p.error}` } : p || { refused: "Couldn't check what would move." });
+              return;
             }
-            onSave({ ...game, tag, hashtag, color, dayCount, active, exe: exeList, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
-          }} style={{ padding: "12px 32px", borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(var(--lift),0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
+            // Stays open and busy until the move finishes — the parent closes it.
+            setConfirmBusy(true);
+            onSave(updated, { threshold: updateThreshold, change: { ...change, hasRecordings: (confirm.counts?.recordings || 0) > 0 } });
+          }} style={{ padding: "12px 32px", borderRadius: T.radius.md, border: "none", background: invalid || confirm?.refused ? "rgba(var(--lift),0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: invalid || confirm?.refused ? "not-allowed" : "pointer", fontFamily: T.font, opacity: confirmBusy ? 0.6 : 1 }}>{confirm && !confirm.refused ? "Move everything" : "Save Changes"}</button>
         </div>
       </div>
     </div>

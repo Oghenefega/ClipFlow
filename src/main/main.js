@@ -136,6 +136,7 @@ const renderCollisionRepair = require("./render-collision-repair");
 const gameProfiles = require("./game-profiles");
 const gameDetect = require("./game-detect");
 const gameArt = require("./game-art");
+const entryIdentity = require("./entry-identity");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
 const tiktokOAuth = require("./oauth/tiktok");
@@ -714,6 +715,13 @@ function runStoreMigrations(store) {
   if (Array.isArray(gamesDbForTags) && gamesDbForTags.some((g) => g && g.captionTags === undefined)) {
     store.set("gamesDb", gamesDbForTags.map((g) => (g && g.captionTags === undefined ? { ...g, captionTags: "" } : g)));
     logger.info(logger.MODULES.system, "Backfilled captionTags on gamesDb records (#346)");
+  }
+  // #475: tags an entry used before a tag change — recordings keep their file
+  // names, so reconcile still maps an old-tag file to the entry.
+  const gamesDbForPrev = store.get("gamesDb");
+  if (Array.isArray(gamesDbForPrev) && gamesDbForPrev.some((g) => g && !Array.isArray(g.previousTags))) {
+    store.set("gamesDb", gamesDbForPrev.map((g) => (g && !Array.isArray(g.previousTags) ? { ...g, previousTags: [] } : g)));
+    logger.info(logger.MODULES.system, "Backfilled previousTags on gamesDb records (#475)");
   }
 
   // ── #263: sweep detection stamps for files that left the disk ──
@@ -3491,7 +3499,18 @@ ipcMain.handle("pipeline:degradeAnswer", async (_, requestId, answer) => {
   return { ok: true };
 });
 
+// #475: tags with clip generation in flight — an identity change waits for them.
+const pipelineTagsInFlight = [];
 ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
+  pipelineTagsInFlight.push(gameData?.gameTag || "");
+  try {
+    return await generateClips(sourceFile, gameData);
+  } finally {
+    pipelineTagsInFlight.splice(pipelineTagsInFlight.indexOf(gameData?.gameTag || ""), 1);
+  }
+});
+
+async function generateClips(sourceFile, gameData) {
   // #251: refuse before any work if a dependency is missing — a plain message
   // now beats a confusing failure 40% into a run.
   // #407: only BLOCKING issues refuse. An unset output folder is surfaced by
@@ -3535,6 +3554,65 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
     feedbackReport.recordAppError("pipeline", result.error, mainWindow?.webContents);
   }
   return result;
+}
+
+// ============ ENTRY IDENTITY (#475) ============
+// Rename / retag / switch type of a game or content type, carrying its history.
+function entryIdentityCtx(oldTag) {
+  const d = new Date(); // local calendar day, never toISOString (UTC skews it)
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const safeTag = String(oldTag || "entry").replace(/[^\w-]/g, "");
+  return {
+    db: database.getDb(),
+    saveDb: () => database.save(),
+    dbPath: database.DB_PATH,
+    settingsPath: store.path,
+    profilesPath: gameProfiles.PROFILES_PATH,
+    artDir: gameArt.ART_DIR,
+    slug: gameArt.slug,
+    libraryRoot: libraryRoot(),
+    backupDir: path.join(path.dirname(database.DB_PATH), `backup-${day}-entry-${safeTag}-${Date.now().toString(36)}`),
+  };
+}
+
+function entryIdentityRefusal(change) {
+  if (renderCurrentJob || renderQueue.length > 0) return "Corva is rendering clips. Try again when the renders finish.";
+  return entryIdentity.refusal(store.get("gamesDb") || [], change, pipelineTagsInFlight);
+}
+
+ipcMain.handle("entry:identityPreview", async (_, change) => {
+  try {
+    if (!database.isReady()) return { error: "The database isn't ready yet." };
+    const refused = entryIdentityRefusal(change);
+    return { refused, ...entryIdentity.preview(entryIdentityCtx(change.oldTag), change) };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("entry:identityApply", async (_, change) => {
+  try {
+    if (!database.isReady()) return { error: "The database isn't ready yet." };
+    const refused = entryIdentityRefusal(change);
+    if (refused) return { refused };
+    const result = entryIdentity.apply(entryIdentityCtx(change.oldTag), change);
+    // detectedGames is main-owned (path → { game: name }) — a waiting recording's
+    // detected game must follow a rename.
+    if (result.flags.nameChanged) {
+      const detected = store.get("detectedGames") || {};
+      let touched = false;
+      for (const v of Object.values(detected)) {
+        if (v && v.game === change.oldName) { v.game = change.newName; touched = true; }
+      }
+      if (touched) store.set("detectedGames", detected);
+    }
+    logger.info(logger.MODULES.system, `Entry identity changed (#475): ${change.oldName} [${change.oldTag}] → ${change.newName} [${change.newTag}] ${change.newType || ""}`, result.moved);
+    if (result.moved.art) mainWindow?.webContents.send("gameArt:changed");
+    return result;
+  } catch (err) {
+    logger.error(logger.MODULES.system, "Entry identity change failed (#475)", { error: err.message });
+    return { error: err.message };
+  }
 });
 
 // ============ FEEDBACK DATABASE ============

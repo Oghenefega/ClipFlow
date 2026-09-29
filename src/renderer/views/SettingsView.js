@@ -2123,7 +2123,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {/* Dev Dashboard — hidden behind version click counter */}
       <DevDashboard />
 
-      {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} aiReady={anthropicConfigured} />}
+      {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={async (g, meta) => { await onEditGame(g, meta); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} aiReady={anthropicConfigured} />}
       {showHistory && <ReleaseHistoryModal onClose={() => setShowHistory(false)} />}
     </div>
   );

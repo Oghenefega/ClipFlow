@@ -358,6 +358,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   gameProfilesGet: (gameTag) => ipcRenderer.invoke("gameProfiles:get", gameTag),
   gameProfilesUpdatePlayStyle: (gameTag, playStyle, gameName) => ipcRenderer.invoke("gameProfiles:updatePlayStyle", gameTag, playStyle, gameName),
   gameProfilesSetThreshold: (gameTag, threshold) => ipcRenderer.invoke("gameProfiles:setThreshold", gameTag, threshold),
+  // #475: rename / retag / switch type of a game or content type, carrying its history
+  entryIdentityPreview: (change) => ipcRenderer.invoke("entry:identityPreview", change),
+  entryIdentityApply: (change) => ipcRenderer.invoke("entry:identityApply", change),
   gameProfilesResetCount: (gameTag) => ipcRenderer.invoke("gameProfiles:resetCount", gameTag),
   gameProfilesGenerateUpdate: (gameTag) => ipcRenderer.invoke("gameProfiles:generateUpdate", gameTag),
   gameArtList: () => ipcRenderer.invoke("gameArt:list"),

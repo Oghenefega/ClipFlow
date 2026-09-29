@@ -155,4 +155,4 @@ async function fetchMissing(games) {
   return changed;
 }
 
-module.exports = { artPathFor, listArt, fetchSteamArt, setArtFromFile, clearArt, fetchMissing };
+module.exports = { artPathFor, listArt, fetchSteamArt, setArtFromFile, clearArt, fetchMissing, slug, ART_DIR };

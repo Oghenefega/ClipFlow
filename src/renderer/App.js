@@ -25,6 +25,7 @@ import OnboardingView from "./views/OnboardingView";
 import { evaluateRollover, localISO } from "./utils/trackerEngine";
 import { normalizeTemplate } from "./utils/trackerTemplate";
 import { buildStarterYtDescription } from "../shared/ytDescriptionTemplate";
+import { rewriteSettingsForIdentity } from "../shared/entryIdentity";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
@@ -744,7 +745,62 @@ export default function App() {
       window.clipflow.gameArtFetch?.(gd.name)?.catch?.(() => {});
     }
   };
-  const handleEditGame = (u) => setGamesDb((p) => p.map((g) => (g.name === u.name ? u : g)));
+  // #475: meta.change is set when the name, tag or type changed. The main process
+  // moves the database / files first; then each settings slice this component
+  // owns is rewritten through its updater, so its persist effect saves the new
+  // values (main never writes these keys — this state would save over them).
+  const handleEditGame = async (u, meta = {}) => {
+    const change = meta.change;
+    if (!change) {
+      setGamesDb((p) => p.map((g) => (g.name === u.name ? u : g)));
+      if (meta.threshold) window.clipflow.gameProfilesSetThreshold?.(u.tag, meta.threshold);
+      return;
+    }
+    const res = await window.clipflow.entryIdentityApply?.(change);
+    if (!res || res.error || res.refused) {
+      setToast(`Couldn't change ${change.oldName}: ${res?.refused || res?.error || "no response"}`);
+      return;
+    }
+    const rw = (slices) => rewriteSettingsForIdentity(slices, change, u);
+    if (prevMainGame.current === change.oldName) prevMainGame.current = change.newName; // not a main-game switch
+    setGamesDb((p) => rw({ gamesDb: p }).gamesDb);
+    setYtDescriptions((p) => rw({ ytDescriptions: p }).ytDescriptions);
+    setMainGame((p) => rw({ mainGame: p }).mainGame);
+    setMainPool((p) => rw({ mainPool: p }).mainPool);
+    setTrackerData((p) => rw({ trackerData: p }).trackerData);
+    setWeekMeta((p) => rw({ weekMeta: p }).weekMeta);
+    setMediaFolders((p) => rw({ mediaFolders: p }).mediaFolders);
+    setRenameHistory((p) => rw({ renameHistory: p }).renameHistory);
+    setPendingRenames((p) => rw({ pendingRenames: p }).pendingRenames);
+    setMainGameHistory((p) => rw({ mainGameHistory: p }).mainGameHistory);
+    window.clipflow.projectList?.().then((list) => { if (list?.projects) setLocalProjects(list.projects); }).catch(() => {});
+    setRecordingsRefreshKey((k) => k + 1); // the Recordings list holds file rows read before the move
+    if (meta.threshold) window.clipflow.gameProfilesSetThreshold?.(change.newTag, meta.threshold);
+    // Content → game: the research and art a new game gets.
+    if (change.oldType === "content" && change.newType === "game") {
+      if (aiReady && !u.aiContextAuto) {
+        window.clipflow.anthropicResearchGame(change.newName).then((result) => {
+          if (result?.success && result.data) {
+            setGamesDb((prev) => prev.map((g) => (g.name === change.newName ? { ...g, aiContextAuto: result.data, aiResearchedAt: new Date().toISOString() } : g)));
+          }
+        }).catch(() => {});
+      }
+      window.clipflow.gameArtFetch?.(change.newName)?.catch?.(() => {});
+    }
+    const m = res.moved || {};
+    const bits = [
+      m.recordings ? `${m.recordings} recording${m.recordings === 1 ? "" : "s"}` : null,
+      m.feedback ? `${m.feedback} approve/reject decision${m.feedback === 1 ? "" : "s"}` : null,
+      m.projects ? `${m.projects} project${m.projects === 1 ? "" : "s"}` : null,
+    ].filter(Boolean);
+    // A file step that failed after the database moved (locked project, art
+    // in use) is named, with where the backup is.
+    if (m.problems?.length) {
+      setToast(`${change.newName} updated, but ${m.problems.length} part${m.problems.length === 1 ? "" : "s"} didn't move (${m.problems[0]}). Backup: ${m.backupDir}`);
+      return;
+    }
+    setToast(`${change.newName} updated${bits.length ? ` · moved ${bits.join(", ")}` : ""}`);
+  };
 
   // #246: gamesDb side of the play-style write-through for saves that happen
   // inside ProfileDiffModal (which only writes game_profiles.json itself).

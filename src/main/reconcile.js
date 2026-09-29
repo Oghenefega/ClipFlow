@@ -153,6 +153,10 @@ async function run({ store, roots, ffmpegProbe }) {
   // ── Pass 2: adopt untracked renamed files ──
   const gamesDb = store.get("gamesDb") || [];
   const tagToGame = {};
+  // #475: a file still named with a tag the entry used before a tag change
+  // belongs to that entry (and is adopted under its current tag). Current tags
+  // are set last so they win over any old one.
+  for (const g of gamesDb) for (const t of g.previousTags || []) tagToGame[String(t).toUpperCase()] = g;
   for (const g of gamesDb) tagToGame[g.tag.toUpperCase()] = g;
 
   // Never adopt out of test folders — those rows carry is_test and are

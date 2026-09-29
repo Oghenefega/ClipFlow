@@ -52,6 +52,10 @@ async function runFileMigration(watchFolder, store, ffmpegProbe) {
 
   // Build a tag→game lookup
   const tagToGame = {};
+  // #475: old tags (before a tag change) still resolve; current tags win.
+  for (const g of gamesDb) {
+    for (const t of g.previousTags || []) tagToGame[String(t).toUpperCase()] = g;
+  }
   for (const g of gamesDb) {
     tagToGame[g.tag.toUpperCase()] = g;
   }
