@@ -4,6 +4,22 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-09-29 (session 279)
+
+### Fixed
+- **Recordings whose tag has a hyphen are readable again (#476).** The filename parsers in `reconcile.js` and `file-migration.js` only accepted letters, digits and "_" in a tag, so files like `2026-09-21 RL-R Day1 Pt1.mp4` and the GTA6-R recordings were invisible to the Recordings reconcile. If the database lost track of one, Corva would never find it again. Tags now also accept "-", up to 8 characters, and must contain at least one letter, which keeps a raw OBS time like `18-23-40` from reading as a tag. On the dev profile, the RL-R recording was adopted on first load.
+- **Tag inputs only accept a shape the file name can carry (#476).** The Add and Edit game/content windows strip anything but letters, digits and "-", cap the tag at 8, and refuse a tag with no letter.
+- **Hand-logged reactions no longer count as their game in the Tracker (#477).** Manual logs and Tracker imports stored the hashtag, which a reaction entry shares with its game (Rocket League Reacts and Rocket League are both #rocketleague). So a hand-logged reaction showed as the game and counted toward the main-game share. They now store the lowercased tag, like auto-posts, and the Tracker and Analytics lookups prefer a tag match over a hashtag match. Only one existing row used a shared hashtag, a March Rocket League gameplay clip, and it still resolves to Rocket League.
+
+### Changed
+- **Two library entries fixed by hand (settings data, Corva closed, backups in `%APPDATA%\Corva\data\backup-2026-09-29-*`).**
+  - "RL Sub Reacts" became **Rocket League Reacts**, with a broader AI note and YouTube description. It had never been used.
+  - **Valorant Champions Tour** moved from game to content type. Its first recording is now Day 1, it has a reaction note, and the Valorant game research that would have overridden that note is removed.
+  - Settings has no way to do either yet. That's tracked in #475.
+
+### Added
+- **React switch design (#474, `tasks/specs/react-switch.md`).** Lists every picker the switch touches, the rules for auto-creating a reaction entry, how detection fits, 19 edge cases and 6 open questions. No code yet.
+
 ## [Unreleased] — 2026-09-24 (session 278) — 0.5.0-alpha.15 on the feed
 
 ### Changed

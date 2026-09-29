@@ -2,12 +2,18 @@ import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
 import { GamePill, Card, SectionLabel, ColorPicker, toFileUrl } from "./shared";
 
+// #476: a tag lands in the file name ("2026-09-29 RL-R Day1 Pt1.mp4") and the
+// filename parsers read it back as letters, digits and "-", up to 8, with at
+// least one letter. Inputs hold the tag to that shape so it always parses.
+const cleanTag = (v) => v.replace(/[^A-Za-z0-9-]/g, "").slice(0, 8);
+const tagValid = (v) => /[A-Za-z]/.test(v);
+
 // ============ ADD GAME MODAL ============
 export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore, aiReady = false }) => {
   const isContent = entryType === "content";
   const rawName = exe ? exe.replace(/\.exe$/i, "").replace(/[-_]/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/Win64.*|Shipping.*/i, "").trim() : "";
   const [gameName, setGameName] = useState(rawName);
-  const [tag, setTag] = useState(rawName ? rawName.split(" ").map((w) => w[0] || "").join("") : "");
+  const [tag, setTag] = useState(rawName ? cleanTag(rawName.split(" ").map((w) => w[0] || "").join("")) : "");
   const [hashtag, setHashtag] = useState(rawName ? rawName.replace(/\s+/g, "").toLowerCase() : "");
   const [color, setColor] = useState(isContent ? "#9b5de5" : "#8b5cf6");
   // #246: playStyle is collected on its own wizard step (games only) and lands
@@ -51,7 +57,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
                 <div>
                   <SectionLabel>Tag</SectionLabel>
-                  <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+                  <input value={tag} onChange={(e) => setTag(cleanTag(e.target.value))} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
                 </div>
                 <div>
                   <SectionLabel>Hashtag</SectionLabel>
@@ -80,7 +86,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
                   <button onClick={() => onIgnore(exe)} style={{ padding: "14px 16px", borderRadius: T.radius.md, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Ignore</button>
                 )}
                 <button onClick={onDismiss} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                <button onClick={() => { if (isContent) advance(); else setStep(2); }} disabled={!gameName.trim() || !tag.trim()} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (!gameName.trim() || !tag.trim()) ? 0.4 : 1 }}>{isContent ? "Confirm & Generate" : "Continue"}</button>
+                <button onClick={() => { if (isContent) advance(); else setStep(2); }} disabled={!gameName.trim() || !tagValid(tag)} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (!gameName.trim() || !tagValid(tag)) ? 0.4 : 1 }}>{isContent ? "Confirm & Generate" : "Continue"}</button>
               </div>
             </>
           )}
@@ -248,8 +254,9 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
           <div>
             <SectionLabel>Tag</SectionLabel>
             {(() => { const dup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name); return (<>
-              <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+              <input value={tag} onChange={(e) => setTag(cleanTag(e.target.value))} style={{ width: "100%", background: "rgba(var(--lift),0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
               {dup && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Tag already in use by another entry</div>}
+              {!tagValid(tag) && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Tag needs at least one letter</div>}
             </>); })()}
           </div>
           <div>
@@ -432,7 +439,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
           <button onClick={onClose} style={{ padding: "12px 22px", borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
           <button onClick={() => {
             const tagDup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name);
-            if (tagDup) return;
+            if (tagDup || !tagValid(tag)) return;
             // Save threshold to game profiles backend
             if (window.clipflow.gameProfilesSetThreshold) {
               window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);

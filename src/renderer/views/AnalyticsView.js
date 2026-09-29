@@ -374,11 +374,13 @@ export default function AnalyticsView({ gamesDb = [], active, localProjects = []
     setRefreshing(false);
   };
 
-  // Same lookup the Tracker uses: entry.game is the lowercased tag for auto-posts
-  // and the hashtag for manual logs; fall back to the raw tag, uppercased.
+  // Same lookup the Tracker uses: entry.game is the lowercased tag (the hashtag on
+  // manual logs made before #477); a tag match wins, since a reaction shares its
+  // game's hashtag. Fall back to the raw tag, uppercased.
   const gameOf = useCallback((raw) => {
     const key = (raw || "").toLowerCase();
-    const g = gamesDb.find((x) => [x.hashtag, x.tag, x.name].some((v) => (v || "").toLowerCase() === key));
+    const g = gamesDb.find((x) => (x.tag || "").toLowerCase() === key)
+      || gamesDb.find((x) => [x.hashtag, x.name].some((v) => (v || "").toLowerCase() === key));
     return g ? { name: g.name, color: g.color } : { name: (raw || "?").toUpperCase(), color: "#8a9bb8" };
   }, [gamesDb]);
 

@@ -230,8 +230,8 @@ export default function TrackerView({
   }), [weekStart, weekMeta, entriesByDate, schedByDate, streakMap, curWeekStart, streakState]);
   // Main vs variety is computed live against the current Now Playing game (not the
   // stored write-time `type`), so switching games mid-week re-buckets the whole week.
-  // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
-  // ("rocketleague") for manual logs — match either.
+  // entry.game holds the lowercased short tag ("rl"). Manual logs and imports made
+  // before #477 hold the hashtag ("rocketleague") — match either.
   const mainTagLc = (currentGame?.tag || "").toLowerCase();
   const mainHashtagLc = (currentGame?.hashtag || "").toLowerCase();
   const mainCount = thisWeekEntries.filter((e) => {
@@ -510,7 +510,7 @@ export default function TrackerView({
       day: popover.dayName,
       time: logTime,
       title: "Manual entry",
-      game: game.hashtag,
+      game: game.tag.toLowerCase(), // #477: the tag, like auto-posts — a reaction shares its game's hashtag
       type: game.tag === mainGameTag ? "main" : "other",
       platforms: "Manual",
       platformResults: logSelectedPlatforms.map((k) => ({ platform: k, accountId: null })),
@@ -529,12 +529,14 @@ export default function TrackerView({
     toast("Clip removed");
   };
 
-  // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
-  // ("rocketleague") for manual logs — match either, case-insensitively, like the
-  // mainCount calculation above. Fallback tag is uppercased for display.
+  // entry.game holds the lowercased short tag ("rl"); manual logs and imports made
+  // before #477 hold the hashtag ("rocketleague"). A tag match wins over a hashtag
+  // match, because a reaction entry shares its game's hashtag. Fallback tag is
+  // uppercased for display.
   const resolveGameDisplay = (raw) => {
     const key = (raw || "").toLowerCase();
-    const g = gamesDb.find((x) => [x.hashtag, x.tag, x.name].some((v) => (v || "").toLowerCase() === key));
+    const g = gamesDb.find((x) => (x.tag || "").toLowerCase() === key)
+      || gamesDb.find((x) => [x.hashtag, x.name].some((v) => (v || "").toLowerCase() === key));
     return g ? { name: g.name, color: g.color, tag: g.tag } : { name: raw, color: T.textMuted, tag: (raw || "?").toUpperCase() };
   };
 
@@ -698,8 +700,8 @@ export default function TrackerView({
         let platformResults = [];
         try { platformResults = JSON.parse(col(row, "platformresults") || "[]"); } catch (err) { platformResults = []; }
         if (!Array.isArray(platformResults)) platformResults = [];
-        // New-layout Game holds the display name; store the hashtag key the
-        // per-game math matches on. Legacy tags resolve through the same lookup.
+        // New-layout Game holds the display name; store the lowercased tag the
+        // per-game math matches on (#477). Legacy tags resolve through the same lookup.
         const rawGame = col(row, "game");
         const g = gamesDb.find((x) => [x.name, x.hashtag, x.tag].some((v) => (v || "").toLowerCase() === rawGame.toLowerCase()));
         const rawType = col(row, "type").toLowerCase();
@@ -707,7 +709,7 @@ export default function TrackerView({
         const entry = {
           id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
           date: col(row, "date"), day: col(row, "day"), time: col(row, "time"), title: col(row, "title"),
-          game: g ? (g.hashtag || g.tag) : rawGame,
+          game: g ? g.tag.toLowerCase() : rawGame,
           type: rawType === "variety" ? "other" : (rawType || "other"),
           platforms: col(row, "platforms") || platformResults.map((x) => (x.platform || "").replace(/^./, (c0) => c0.toUpperCase())).filter(Boolean).join(", "),
           mainGameAtTime: col(row, "maingame"),

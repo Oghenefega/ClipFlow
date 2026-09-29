@@ -14,9 +14,10 @@ const fs = require("fs");
 const log = require("electron-log/main").scope("migration");
 const database = require("./database");
 const { uuid } = require("./uuid");
+const { TAG_SOURCE } = require("./reconcile");
 
-// Pattern: "2026-03-03 AR Day25 Pt1.mp4" or "2026-03-03 AR Day25 Pt1.mkv"
-const RENAMED_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)([a-z]+)?\.(mp4|mkv)$/i;
+// Pattern: "2026-03-03 AR Day25 Pt1.mp4" or "2026-03-03 GTA6-R Day1 Pt1.mkv"
+const RENAMED_FILE_PATTERN = new RegExp(`^(\\d{4}-\\d{2}-\\d{2})\\s+(${TAG_SOURCE})\\s+Day(\\d+)\\s+Pt(\\d+)([a-z]+)?\\.(mp4|mkv)$`, "i");
 
 // Month folder pattern: "2026-03"
 const MONTH_FOLDER_PATTERN = /^\d{4}-\d{2}$/;
@@ -279,4 +280,5 @@ function migrateStoreData(store) {
 module.exports = {
   runFileMigration,
   migrateStoreData,
+  RENAMED_FILE_PATTERN,
 };

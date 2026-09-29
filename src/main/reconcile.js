@@ -28,13 +28,18 @@ const log = require("electron-log/main").scope("reconcile");
 const database = require("./database");
 const { uuid } = require("./uuid");
 
+// A tag: letters, digits, "_" and "-", up to 8, with at least one letter (#476).
+// The hyphen admits content tags like "GTA6-R"; the letter keeps a raw OBS
+// time ("18-23-40") from reading as a tag.
+const TAG_SOURCE = "(?=[\\w-]*[A-Za-z])[\\w-]{1,8}";
+
 // Current date-first shapes: "2026-03-02 RL Day6 Pt1.mp4", "2026-03-15 AR.mp4",
 // "2026-03-15 AR Pt2.mp4" (collision part). This is the app-wide convention
 // (restored session 115 — the preset engine briefly emitted tag-first).
-const DATE_FIRST_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w{1,8})(?:\s+Day(\d+))?(?:\s+Pt(\d+)([a-z]+)?)?\.(mp4|mkv)$/i;
+const DATE_FIRST_PATTERN = new RegExp(`^(\\d{4}-\\d{2}-\\d{2})\\s+(${TAG_SOURCE})(?:\\s+Day(\\d+))?(?:\\s+Pt(\\d+)([a-z]+)?)?\\.(mp4|mkv)$`, "i");
 // Legacy tag-first shapes from the 0.2.x drift era: "RL 2026-03-04 Day7 Pt1.mp4",
 // "RL 2026-03-04.mp4", "RL 2026-03-04 Pt2.mp4"
-const TAG_FIRST_PATTERN = /^(\w{1,8})\s+(\d{4}-\d{2}-\d{2})(?:\s+Day(\d+))?(?:\s+Pt(\d+)([a-z]+)?)?\.(mp4|mkv)$/i;
+const TAG_FIRST_PATTERN = new RegExp(`^(${TAG_SOURCE})\\s+(\\d{4}-\\d{2}-\\d{2})(?:\\s+Day(\\d+))?(?:\\s+Pt(\\d+)([a-z]+)?)?\\.(mp4|mkv)$`, "i");
 
 const MONTH_DIR = /^\d{4}-\d{2}$/;
 
@@ -304,4 +309,4 @@ function removeMissing(ids) {
   return { removed };
 }
 
-module.exports = { run, removeMissing, parseRenamedFilename };
+module.exports = { run, removeMissing, parseRenamedFilename, TAG_SOURCE };
