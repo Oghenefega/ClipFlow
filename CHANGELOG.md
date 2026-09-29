@@ -30,6 +30,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - **Em dashes removed** from the rest of the library too: the AI "Game Knowledge" research for 11 games, and the Arc Raiders and Egging On detection-profile play styles. None are left in `gamesDb` or `game_profiles.json`.
     - A dash pair around an aside became brackets, a dash before "and", "but", "so" or "which" became a comma, and any other dash became a colon.
     - Every changed sentence was read before writing. Backup in `data/backup-2026-09-29-no-dashes-research`.
+  - **Arc Raiders and Egging On play styles synced.** The Edit-window copy, which titles and captions read, was empty for both. It now holds the detection-profile play style, so title and caption generation sees it too. Every entry's two copies now match.
 
 ### Fixed
 - **Recordings whose tag has a hyphen are readable again (#476).** The filename parsers in `reconcile.js` and `file-migration.js` only accepted letters, digits and "_" in a tag, so files like `2026-09-21 RL-R Day1 Pt1.mp4` and the GTA6-R recordings were invisible to the Recordings reconcile. If the database lost track of one, Corva would never find it again. Tags now also accept "-", up to 8 characters, and must contain at least one letter, which keeps a raw OBS time like `18-23-40` from reading as a tag. On the dev profile, the RL-R recording was adopted on first load.
