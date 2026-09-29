@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-09-29 (session 280): 0.5.0-alpha.16 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.16 and the installer published to the update feed.** This build ships everything since alpha.15 (`48375ce..HEAD`): the React switch and its follow-ups (#474), renaming, retagging and switching games and content types with their history (#475), the Recordings-tab drop that can no longer wipe a recording (#472), hyphenated tags (#476) and hand-logged reactions keeping their own tag in the Tracker (#477). The What's New entry was stamped with this version.
+
 ## [Unreleased] 2026-09-29 (session 280): React switch
 
 ### Added

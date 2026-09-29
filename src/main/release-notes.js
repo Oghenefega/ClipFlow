@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.16",
+    date: "2026-09-29",
     added: [
       "A Playing / Reacting switch sits next to the game wherever you pick one: the Rename tab, the Recordings drop window, a clip's game menu in Projects, and each part of a split recording. Flip it to Reacting and the recording is labelled as that game's reaction show, with its own Day count and its own approve and reject history, while clip detection and titles still know the game you're watching. The first time you react to a game, Corva makes \"<Game> Reacts\" for you. A game with several reaction shows has a small ▾ to pick another one. In Settings → Games, reaction shows sit under their game, and a content type's Edit window has a Reacts to list to link, unlink or relink it and a Make default button.",
       "You can now rename a game or content type, change its tag, or switch it between a game and a content type, and everything filed under it comes along. Open it in Settings → Games and press Edit. There's a Name box and a Game / Content type switch next to the Tag. When you save, Corva first shows what will move (your recordings, approve and reject history, projects, detection profile and game art), then moves it all in one go after taking a backup. Your recording files keep their names, and Corva still recognises files named with the old tag.",
