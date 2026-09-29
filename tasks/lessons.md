@@ -2209,3 +2209,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I answered "how do I stop the rename from hurting me" and forgot what the file was for. I didn't trace what each option would leave him able to do next in the pipeline.
 
 **Rule:** before offering a workaround, check it against what the user wants to do with the thing next. If an option drops the item out of the pipeline, either leave it out or name that cost up front ("you won't be able to clip it").
+
+## Session 279 (2026-09-29) — I wrote Corva's settings file while Corva was still running
+
+**What happened:** Fega said he'd quit Corva. I ran the "is Corva running" check and the settings edit in one command. The check printed 5 Corva processes, including an open Corva window, and the edit went ahead anyway. The running app still held the old games list in memory, so its next save could silently undo the change.
+
+**Why:** I treated the check as something to print, not as a gate. And I took "I quit Corva" as proof, when an earlier check the same day had already shown Corva still in the tray after he thought he'd closed it.
+
+**Rule:** any external write to Corva's stores (settings JSON, clipflow.db, project JSONs) runs in its own command *after* a check that returned 0 Corva processes. Or, in one script, make it abort: `tasklist | grep -c Corva` must be 0, or `exit 1`. Never chain the check and the write without a hard stop.
