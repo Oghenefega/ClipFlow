@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>React switch mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0b10;--surface:#111218;--surfaceHover:#16171f;--lift:255,255,255;
+  --border:rgba(255,255,255,.06);--borderHover:rgba(255,255,255,.12);
+  --text:#edeef2;--t2:rgba(255,255,255,.55);--t3:rgba(255,255,255,.35);--muted:rgba(255,255,255,.22);
+  --accent:#8b5cf6;--accentL:#a78bfa;--accentDim:rgba(139,92,246,.12);--accentB:rgba(139,92,246,.25);
+  --green:#34d399;--greenDim:rgba(52,211,153,.10);--greenB:rgba(52,211,153,.22);
+  --yellow:#fbbf24;--yellowDim:rgba(251,191,36,.10);--yellowB:rgba(251,191,36,.22);
+  --red:#f87171;--redDim:rgba(248,113,113,.08);--redB:rgba(248,113,113,.18);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;font-size:13px;line-height:1.45}
+.page{max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+h1{font-size:22px;font-weight:800;margin:0 0 4px}
+.sub{color:var(--t2);font-size:13.5px;margin-bottom:26px;max-width:820px}
+h2{font-size:15px;font-weight:800;margin:0 0 3px;display:flex;align-items:center;gap:10px}
+h2 .n{width:22px;height:22px;border-radius:6px;background:var(--accentDim);border:1px solid var(--accentB);color:var(--accentL);font-size:11.5px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.lede{color:var(--t2);font-size:12.5px;margin:0 0 12px 32px;max-width:900px}
+section{margin-bottom:38px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.col-h{font-size:10px;font-weight:800;letter-spacing:1.3px;color:var(--t3);margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.col-h.now{color:var(--t3)} .col-h.new{color:var(--green)}
+.dot{width:7px;height:7px;border-radius:50%;box-shadow:0 0 6px currentColor;background:currentColor}
+.card{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+.shead{display:flex;align-items:center;gap:9px;padding:10px 12px;background:rgba(var(--lift),.02);border-bottom:1px solid var(--border);flex-wrap:nowrap}
+.date{font-size:13px;font-weight:800;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;justify-content:center;padding:3px 6px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:1px;line-height:1;white-space:nowrap}
+.select{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:9px;background:rgba(var(--lift),.04);border:1px solid;font-weight:600;font-size:12.5px;white-space:nowrap;cursor:default}
+.select .car{color:var(--t3);font-size:9px;margin-left:2px}
+.spin{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(var(--lift),.04);border:1px solid var(--border);font-size:12px;white-space:nowrap}
+.spin b{font-weight:700} .spin span{color:var(--t3);font-size:11px}
+.meta{margin-left:auto;color:var(--t3);font-size:11.5px;white-space:nowrap}
+.row{display:flex;align-items:center;gap:10px;padding:8px 12px}
+.thumb{width:52px;height:30px;border-radius:5px;background:linear-gradient(135deg,#1b2a3a,#0e1620);flex-shrink:0;position:relative;overflow:hidden}
+.thumb:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 60%,rgba(0,180,216,.35),transparent 55%)}
+.orig{color:var(--t3);font-size:11.5px;white-space:nowrap}
+.arrow{color:var(--muted);font-size:11px}
+.newname{font-size:12px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap;transition:all .2s}
+.dur{margin-left:auto;color:var(--t3);font-size:11.5px}
+/* switch */
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:rgba(var(--lift),.03);flex-shrink:0}
+.seg button{all:unset;cursor:pointer;padding:4px 9px;font-size:11.5px;font-weight:700;color:var(--t3);display:inline-flex;gap:5px;align-items:center}
+.seg button.on{background:var(--accentDim);color:var(--accentL)}
+.seg button.on.react{background:rgba(247,148,29,.14);color:#f7a64a}
+.hint{font-size:11px;color:var(--t3);padding:7px 12px 9px;border-top:1px solid var(--border);background:rgba(var(--lift),.015)}
+.toast{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;border-radius:10px;background:var(--greenDim);border:1px solid var(--greenB);color:var(--green);font-size:12px;font-weight:600;opacity:0;transform:translateY(-4px);transition:all .25s}
+.toast.show{opacity:1;transform:none}
+.try{display:inline-block;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:1px;color:var(--yellow);background:var(--yellowDim);border:1px solid var(--yellowB);border-radius:5px;padding:1px 6px;vertical-align:2px}
+/* steps */
+.steps{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.step{flex:1;min-width:150px;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:10px 11px}
+.step .k{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--t3);margin-bottom:5px}
+.step .v{font-size:12px;color:var(--t2)}
+.step .v b{color:var(--text)}
+.stepArrow{align-self:center;color:var(--muted)}
+.bad{color:var(--red);font-weight:700}
+/* dropdown */
+.dd{width:290px;border:1px solid var(--borderHover);border-radius:12px;background:#15161d;padding:6px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.dd .g{font-size:9.5px;font-weight:800;letter-spacing:1.2px;color:var(--t3);padding:8px 8px 4px}
+.dd .o{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;font-weight:600;font-size:12.5px}
+.dd .o.child{padding-left:26px;color:var(--t2);font-weight:500;font-size:12px}
+.dd .o.child:before{content:"";width:8px;height:8px;border-left:1px solid var(--muted);border-bottom:1px solid var(--muted);border-bottom-left-radius:3px;margin-left:-13px;margin-top:-6px;flex-shrink:0}
+.dd .o.hl{background:rgba(var(--lift),.05)}
+.dd .o .x{margin-left:auto;font-size:10px;color:var(--t3)}
+.gone{text-decoration:line-through;opacity:.35}
+/* diagram */
+.diag{display:grid;grid-template-columns:1fr 150px 1fr;gap:0;align-items:stretch}
+.ent{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px}
+.ent .hd{display:flex;align-items:center;gap:9px;font-weight:800;font-size:14px;margin-bottom:10px}
+.ent .kind{font-size:9.5px;font-weight:800;letter-spacing:1.2px;color:var(--t3);margin-left:auto}
+.li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--border);font-size:12px;color:var(--t2)}
+.li:first-of-type{border-top:none}
+.li b{color:var(--text);font-weight:700;min-width:118px}
+.link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--t3);font-size:11px;text-align:center;padding:0 8px}
+.link .line{width:100%;height:2px;background:linear-gradient(90deg,#00b4d8,#f7941d);border-radius:2px;position:relative}
+.link .line:after{content:"";position:absolute;right:-2px;top:-4px;border:5px solid transparent;border-left:7px solid #f7941d}
+.shared{margin-top:12px;border:1px dashed var(--borderHover);border-radius:12px;padding:11px 14px;display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--t2)}
+.shared b{color:var(--text)}
+.tagk{font-size:10px;font-weight:800;letter-spacing:1px;padding:2px 6px;border-radius:5px}
+.sep{background:var(--greenDim);color:var(--green);border:1px solid var(--greenB)}
+.shr{background:var(--accentDim);color:var(--accentL);border:1px solid var(--accentB)}
+/* mini screens */
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mini{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px}
+.mini .t{font-size:12px;font-weight:800;margin-bottom:2px}
+.mini .d{font-size:11.5px;color:var(--t3);margin-bottom:10px}
+.modal{border:1px solid var(--borderHover);border-radius:10px;background:#15161d;padding:10px}
+.modal .lbl{font-size:9.5px;font-weight:800;letter-spacing:1.1px;color:var(--t3);margin-bottom:5px}
+.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;margin-top:6px}
+.tl{position:relative;height:34px;border-radius:6px;background:linear-gradient(90deg,#15202b,#1c2733 50%,#23303c);overflow:hidden;margin-top:4px}
+.tl .seg1{position:absolute;top:0;bottom:0;left:0;width:58%;border-right:2px solid #fff;background:rgba(0,180,216,.15)}
+.tl .seg2{position:absolute;top:0;bottom:0;left:58%;right:0;background:rgba(247,148,29,.15)}
+.tl .lb{position:absolute;top:8px;font-size:10px}
+/* questions */
+.qs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.q{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px}
+.q .qt{font-weight:800;font-size:13.5px;margin-bottom:3px;display:flex;gap:8px}
+.q .qt .qn{color:var(--accentL)}
+.q .qd{color:var(--t2);font-size:12px;margin-bottom:11px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;background:rgba(var(--lift),.02);transition:border-color .15s,background .15s}
+.opt:hover{border-color:var(--borderHover)}
+.opt.sel{border-color:var(--accent);background:var(--accentDim)}
+.opt .ol{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--t3);margin-bottom:6px}
+.opt .ob{font-size:12px;color:var(--t2)}
+.opt .ob b{color:var(--text)}
+.rec{font-size:9.5px;font-weight:800;letter-spacing:.8px;color:var(--green);margin-left:6px}
+.mapl{display:flex;flex-direction:column;gap:5px}
+.mapr{display:flex;align-items:center;gap:7px;font-size:12px}
+.mapr .to{color:var(--muted)}
+.mapr .st{margin-left:auto;font-size:10.5px;font-weight:700}
+.answers{margin-top:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px 14px;font-size:12px;color:var(--t2)}
+.answers code{font-family:inherit;color:var(--text)}
+.notv1{display:flex;gap:10px;flex-wrap:wrap}
+.notv1 div{border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--t2);background:var(--surface);flex:1;min-width:220px}
+.notv1 b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>React switch: what it would look like</h1>
+<div class="sub">This mockup uses Corva's real Midnight colours and the Rename tab's real layout. The <span class="try">TRY IT</span> parts can be clicked. Nothing here is built yet. It shows what the switch changes, where it appears, and the 6 decisions it needs from you.</div>
+
+<!-- 1 -->
+<section>
+  <h2><span class="n">1</span>The Rename tab: today vs with the switch</h2>
+  <p class="lede">A new recording from tonight. Corva guesses Rocket League (you were watching the new RL trailer full-screen).</p>
+  <div class="cols">
+    <div>
+      <div class="col-h now"><span class="dot" style="color:var(--t3)"></span>TODAY</div>
+      <div class="card">
+        <div class="shead">
+          <span class="date">Mon, Sep 29</span>
+          <span class="select" style="border-color:#00b4d844"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span>Rocket League<span class="car">▼</span></span>
+          <span class="spin"><span>Day</span><b>21</b></span>
+          <span class="meta">1 part · 41:12</span>
+        </div>
+        <div class="row">
+          <div class="thumb"></div>
+          <span class="orig">2026-09-29 20-14-03.mp4</span><span class="arrow">→</span>
+          <span class="newname" style="color:#00b4d8;background:#00b4d814;border:1px solid #00b4d833">2026-09-29 RL Day21 Pt1.mp4</span>
+          <span class="dur">41:12</span>
+        </div>
+        <div class="hint"><span class="bad">Wrong:</span> this counts as Rocket League <b>gameplay</b> Day 21, and the AI looks for gameplay moments.</div>
+      </div>
+      <div style="margin-top:12px" class="col-h now">TO LABEL IT AS A REACTION TODAY, YOU DETOUR:</div>
+      <div class="steps">
+        <div class="step"><div class="k">1 · LEAVE</div><div class="v">Go to <b>Settings</b></div></div><span class="stepArrow">›</span>
+        <div class="step"><div class="k">2 · ADD</div><div class="v"><b>Content Types → + Add</b></div></div><span class="stepArrow">›</span>
+        <div class="step"><div class="k">3 · FILL IN</div><div class="v">Name, tag, hashtag, colour, <b>AI note</b></div></div><span class="stepArrow">›</span>
+        <div class="step"><div class="k">4 · COME BACK</div><div class="v">Rename tab → pick it from the list</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="col-h new"><span class="dot" style="color:var(--green)"></span>WITH THE SWITCH <span class="try">TRY IT</span></div>
+      <div class="card">
+        <div class="shead">
+          <span class="date">Mon, Sep 29</span>
+          <span class="select" id="sel" style="border-color:#00b4d844"><span class="pill" id="selPill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span><span id="selName">Rocket League</span><span class="car">▼</span></span>
+          <span class="seg" id="seg">
+            <button class="on" data-m="play">🎮 Playing</button>
+            <button data-m="react">🎙 Reacting</button>
+          </span>
+          <span class="spin"><span>Day</span><b id="day">21</b></span>
+          <span class="meta">41:12</span>
+        </div>
+        <div class="row">
+          <div class="thumb"></div>
+          <span class="orig">2026-09-29 20-14-03.mp4</span><span class="arrow">→</span>
+          <span class="newname" id="nn" style="color:#00b4d8;background:#00b4d814;border:1px solid #00b4d833">2026-09-29 RL Day21 Pt1.mp4</span>
+          <span class="dur">41:12</span>
+        </div>
+        <div class="hint" id="hint">The game stays picked. Flip <b>Reacting</b> and everything below changes with it.</div>
+      </div>
+      <div class="toast" id="toast">✓ Labelled as <b style="margin:0 3px">Rocket League Reacts</b>. The first time for a game, Corva creates this entry for you.</div>
+      <div style="margin-top:12px" class="col-h new">WHAT FLIPPING IT CHANGES, ALL AT ONCE:</div>
+      <div class="steps">
+        <div class="step"><div class="k">FILE NAME</div><div class="v"><b>RL</b> → <b style="color:#f7a64a">RL-R</b></div></div>
+        <div class="step"><div class="k">DAY COUNT</div><div class="v">Its own: <b>Day 2</b>, not gameplay Day 21</div></div>
+        <div class="step"><div class="k">AI</div><div class="v">Looks for <b>reaction</b> moments, and still knows Rocket League</div></div>
+        <div class="step"><div class="k">LEARNING</div><div class="v">Your approvals/rejections stay <b>separate</b> from gameplay</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section>
+  <h2><span class="n">2</span>The game list in the picker</h2>
+  <p class="lede">Today every reaction show is a separate line under Content Types (your screenshot). With the switch, the ones linked to a game tuck in under that game. You still see them and can still pick them directly.</p>
+  <div class="cols">
+    <div>
+      <div class="col-h now"><span class="dot" style="color:var(--t3)"></span>TODAY</div>
+      <div class="dd">
+        <div class="g">GAMES</div>
+        <div class="o"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span>Rocket League</div>
+        <div class="o"><span class="pill" style="background:#ff465518;border:1px solid #ff465544;color:#ff4655">VAL</span>Valorant</div>
+        <div class="o"><span class="pill" style="background:#e830df18;border:1px solid #e830df44;color:#e830df">GTA6</span>GTA 6</div>
+        <div class="o"><span class="pill" style="background:#ff6b3518;border:1px solid #ff6b3544;color:#ff6b35">AR</span>Arc Raiders</div>
+        <div class="g">CONTENT TYPES</div>
+        <div class="o"><span class="pill" style="background:#9b5de518;border:1px solid #9b5de544;color:#9b5de5">JC</span>Just Chatting</div>
+        <div class="o"><span class="pill" style="background:#ea333318;border:1px solid #ea333344;color:#ea3333">100T</span>100T Valorant Reacts</div>
+        <div class="o"><span class="pill" style="background:#8a9bb818;border:1px solid #8a9bb844;color:#8a9bb8">ROBOT</span>Robot Olympics Reacts</div>
+        <div class="o"><span class="pill" style="background:#f042a018;border:1px solid #f042a044;color:#f042a0">GTA6-R</span>GTA6 Reacts</div>
+        <div class="o"><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span>Rocket League Reacts</div>
+        <div class="o"><span class="pill" style="background:#fca31118;border:1px solid #fca31144;color:#fca311">VCT</span>Valorant Champions Tour</div>
+      </div>
+    </div>
+    <div>
+      <div class="col-h new"><span class="dot" style="color:var(--green)"></span>WITH THE SWITCH</div>
+      <div class="dd">
+        <div class="g">GAMES</div>
+        <div class="o"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span>Rocket League</div>
+        <div class="o child"><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span>Rocket League Reacts</div>
+        <div class="o"><span class="pill" style="background:#ff465518;border:1px solid #ff465544;color:#ff4655">VAL</span>Valorant</div>
+        <div class="o child"><span class="pill" style="background:#fca31118;border:1px solid #fca31144;color:#fca311">VCT</span>Valorant Champions Tour<span class="x">default</span></div>
+        <div class="o child"><span class="pill" style="background:#ea333318;border:1px solid #ea333344;color:#ea3333">100T</span>100T Valorant Reacts</div>
+        <div class="o"><span class="pill" style="background:#e830df18;border:1px solid #e830df44;color:#e830df">GTA6</span>GTA 6</div>
+        <div class="o child"><span class="pill" style="background:#f042a018;border:1px solid #f042a044;color:#f042a0">GTA6-R</span>GTA6 Reacts</div>
+        <div class="o"><span class="pill" style="background:#ff6b3518;border:1px solid #ff6b3544;color:#ff6b35">AR</span>Arc Raiders<span class="x">no reaction yet</span></div>
+        <div class="g">CONTENT TYPES (not about one game)</div>
+        <div class="o"><span class="pill" style="background:#9b5de518;border:1px solid #9b5de544;color:#9b5de5">JC</span>Just Chatting</div>
+        <div class="o"><span class="pill" style="background:#8a9bb818;border:1px solid #8a9bb844;color:#8a9bb8">ROBOT</span>Robot Olympics Reacts</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--t3);margin-top:8px;max-width:290px">Arc Raiders has no reaction entry yet. The first time you flip Reacting on an Arc Raiders recording, "Arc Raiders Reacts" is created and appears here.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section>
+  <h2><span class="n">3</span>What's behind it: two entries with a link</h2>
+  <p class="lede">A reaction stays its own entry, just as today. The only new thing is a link that says which game it reacts to. That link is what lets the switch find it, and lets the AI borrow the game's knowledge.</p>
+  <div class="diag">
+    <div class="ent">
+      <div class="hd"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span>Rocket League<span class="kind">GAME</span></div>
+      <div class="li"><b>Day count</b>Day 20 → 21…</div>
+      <div class="li"><b>AI looks for</b>Goals, saves, fails, your play</div>
+      <div class="li"><b>Learning</b>Your gameplay approvals and rejections</div>
+      <div class="li"><b>YouTube text</b>Gameplay description and tags</div>
+    </div>
+    <div class="link"><span>reacts to</span><div class="line"></div><span style="font-size:10.5px">new: one link</span></div>
+    <div class="ent" style="border-color:#f7941d44">
+      <div class="hd"><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span>Rocket League Reacts<span class="kind">REACTION</span></div>
+      <div class="li"><b>Day count</b>Its own: Day 1 → 2…</div>
+      <div class="li"><b>AI looks for</b>Your reactions: hype, breakdowns, roasts</div>
+      <div class="li"><b>Learning</b>Its own approvals and rejections, plus "Reaction added nothing"</div>
+      <div class="li"><b>YouTube text</b>Its own description ("Reacting to Rocket League news…")</div>
+    </div>
+  </div>
+  <div class="shared">
+    <span><span class="tagk sep">KEPT SEPARATE</span> Day count · learning · YouTube text · reject reasons</span>
+    <span><span class="tagk shr">BORROWED FROM THE GAME</span> <b>What the AI knows about Rocket League</b> (mechanics, lingo) · game art · #rocketleague</span>
+  </div>
+</section>
+
+<!-- 4 -->
+<section>
+  <h2><span class="n">4</span>The other places the switch shows up</h2>
+  <p class="lede">Anywhere you choose a game for footage today.</p>
+  <div class="minis">
+    <div class="mini">
+      <div class="t">Recordings tab: dropping a file in</div>
+      <div class="d">The "which game?" window that opens when you drag a video in.</div>
+      <div class="modal">
+        <div class="lbl">WHICH GAME IS THIS?</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="select" style="border-color:#e830df44"><span class="pill" style="background:#e830df18;border:1px solid #e830df44;color:#e830df">GTA6</span>GTA 6<span class="car">▼</span></span>
+          <span class="seg"><button>🎮 Playing</button><button class="on react">🎙 Reacting</button></span>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:8px">→ GTA6 Reacts</div>
+      </div>
+    </div>
+    <div class="mini">
+      <div class="t">Projects: changing a clip's game</div>
+      <div class="d">For when a clip was labelled wrong after the fact.</div>
+      <div class="modal">
+        <div class="lbl">MOVE CLIP TO</div>
+        <div class="o" style="display:flex;gap:8px;align-items:center;padding:4px 0"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span>Rocket League
+          <span class="seg" style="margin-left:auto"><button>🎮</button><button class="on react">🎙</button></span></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px">Clip moves to Rocket League Reacts. <b style="color:var(--yellow)">See question 5.</b></div>
+      </div>
+    </div>
+    <div class="mini">
+      <div class="t">Split markers: one recording, two halves</div>
+      <div class="d">You played, then watched the trailer, in one recording.</div>
+      <div class="tl"><div class="seg1"></div><div class="seg2"></div>
+        <span class="lb" style="left:8px"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span> playing</span>
+        <span class="lb" style="left:61%"><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span> reacting</span>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-top:8px">→ <b style="color:var(--t2)">RL Day21 Pt1a</b> + <b style="color:var(--t2)">RL-R Day2 Pt1b</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2><span class="n">5</span>The 6 decisions <span class="try">CLICK YOUR PICKS</span></h2>
+  <p class="lede">Click an option in each card. Your picks gather at the bottom so you can copy them back to me or Wick. Where I have a lean, the option is marked <span class="rec">MY PICK</span>.</p>
+  <div class="qs">
+
+    <div class="q" data-q="1">
+      <div class="qt"><span class="qn">1</span>Which reaction entries link to a game?</div>
+      <div class="qd">Linked ones tuck under their game and borrow its AI knowledge. Unlinked ones stay standalone.</div>
+      <div class="mapl" style="margin-bottom:10px">
+        <div class="mapr"><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span>Rocket League Reacts<span class="to">→</span>Rocket League<span class="st" style="color:var(--green)">clear</span></div>
+        <div class="mapr"><span class="pill" style="background:#f042a018;border:1px solid #f042a044;color:#f042a0">GTA6-R</span>GTA6 Reacts<span class="to">→</span>GTA 6<span class="st" style="color:var(--green)">clear</span></div>
+        <div class="mapr"><span class="pill" style="background:#fca31118;border:1px solid #fca31144;color:#fca311">VCT</span>Valorant Champions Tour<span class="to">→</span>Valorant<span class="st" style="color:var(--yellow)">you decide</span></div>
+        <div class="mapr"><span class="pill" style="background:#ea333318;border:1px solid #ea333344;color:#ea3333">100T</span>100T Valorant Reacts<span class="to">→</span>Valorant<span class="st" style="color:var(--yellow)">you decide</span></div>
+        <div class="mapr"><span class="pill" style="background:#8a9bb818;border:1px solid #8a9bb844;color:#8a9bb8">ROBOT</span>Robot Olympics Reacts<span class="to">→</span><span style="color:var(--t3)">no game</span><span class="st" style="color:var(--t3)">stays standalone</span></div>
+      </div>
+      <div class="opts">
+        <div class="opt" data-v="Link VCT and 100T to Valorant"><div class="ol">A <span class="rec">MY PICK</span></div><div class="ob"><b>Link both</b> to Valorant. They're about Valorant pro play, so the AI knowing Valorant helps.</div></div>
+        <div class="opt" data-v="Keep VCT and 100T standalone"><div class="ol">B</div><div class="ob"><b>Keep them standalone.</b> They're shows first, Valorant second.</div></div>
+      </div>
+    </div>
+
+    <div class="q" data-q="2">
+      <div class="qt"><span class="qn">2</span>What colour is a reaction?</div>
+      <div class="qd">This is how it looks in the picker, the Tracker calendar and the Recordings list.</div>
+      <div class="opts">
+        <div class="opt" data-v="Same colour as the game + REACT mark"><div class="ol">A · SAME COLOUR + MARK</div><div class="ob">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span><span class="pill" style="background:#00b4d818;border:1px dashed #00b4d866;color:#00b4d8">RL-R 🎙</span></div>
+          Reads as "still Rocket League" at a glance.</div></div>
+        <div class="opt" data-v="Own colour (like today)"><div class="ol">B · OWN COLOUR <span class="rec">MY PICK</span></div><div class="ob">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span></div>
+          What you have now. In the Tracker you can tell gameplay from reactions at a glance.</div></div>
+      </div>
+    </div>
+
+    <div class="q" data-q="3">
+      <div class="qt"><span class="qn">3</span>A game with two reaction shows: what does the switch pick?</div>
+      <div class="qd">Valorant would have VCT and 100T Valorant Reacts.</div>
+      <div class="opts">
+        <div class="opt" data-v="One default, others behind a small menu"><div class="ol">A <span class="rec">MY PICK</span></div><div class="ob">
+          <div class="dd" style="width:auto;padding:4px;margin-bottom:6px"><div class="o hl" style="font-size:11.5px"><span class="pill" style="background:#fca31118;border:1px solid #fca31144;color:#fca311">VCT</span>VCT<span class="x">default</span></div><div class="o" style="font-size:11.5px"><span class="pill" style="background:#ea333318;border:1px solid #ea333344;color:#ea3333">100T</span>100T Reacts</div></div>
+          Flipping Reacting uses the default. A tiny ▾ on the switch lists the rest.</div></div>
+        <div class="opt" data-v="Always ask which one"><div class="ol">B</div><div class="ob"><b>Always ask</b> which show when a game has more than one. It's one extra click every time, but you never get the wrong show.</div></div>
+      </div>
+    </div>
+
+    <div class="q" data-q="4">
+      <div class="qt"><span class="qn">4</span>After a reaction, what does the next recording default to?</div>
+      <div class="qd">Corva pre-fills the last thing you renamed when it can't detect the game.</div>
+      <div class="opts">
+        <div class="opt" data-v="Default back to the game"><div class="ol">A <span class="rec">MY PICK</span></div><div class="ob"><span class="pill" style="background:#00b4d818;border:1px solid #00b4d844;color:#00b4d8">RL</span> <b>Back to the game</b>, switch off. Reactions are the exception, so you only flip it when you mean it.</div></div>
+        <div class="opt" data-v="Stay on the reaction"><div class="ol">B</div><div class="ob"><span class="pill" style="background:#f7941d18;border:1px solid #f7941d44;color:#f7941d">RL-R</span> <b>Stay on the reaction.</b> Good when you batch a whole night of reactions.</div></div>
+      </div>
+    </div>
+
+    <div class="q" data-q="5">
+      <div class="qt"><span class="qn">5</span>Moving a clip between gameplay and reaction: does its history move?</div>
+      <div class="qd">Its approve/reject record is what teaches the AI what you like.</div>
+      <div class="opts">
+        <div class="opt" data-v="History moves with the clip"><div class="ol">A <span class="rec">MY PICK</span></div><div class="ob"><b>Moves with it.</b> A clip that was mislabelled shouldn't keep teaching the wrong bucket.</div></div>
+        <div class="opt" data-v="History stays where it was"><div class="ol">B</div><div class="ob"><b>Stays where it was.</b> Simpler, but the gameplay AI keeps learning from a reaction clip.</div></div>
+      </div>
+    </div>
+
+    <div class="q" data-q="6">
+      <div class="qt"><span class="qn">6</span>Tracker: do reactions to your main game count as "main"?</div>
+      <div class="qd">An example week with Rocket League as your main game: 4 gameplay clips, 2 RL reactions, 2 other games.</div>
+      <div class="opts">
+        <div class="opt" data-v="Reactions count as variety"><div class="ol">A · VARIETY <span class="rec">MY PICK</span></div><div class="ob">
+          <div class="bar"><div style="flex:4;background:#00b4d8"></div><div style="flex:4;background:rgba(255,255,255,.14)"></div></div>
+          <div style="margin-top:5px">Main <b>4</b> · Variety <b>4</b>. "Main" means you actually playing it.</div></div></div>
+        <div class="opt" data-v="Reactions count as main"><div class="ol">B · MAIN</div><div class="ob">
+          <div class="bar"><div style="flex:4;background:#00b4d8"></div><div style="flex:2;background:#f7941d"></div><div style="flex:2;background:rgba(255,255,255,.14)"></div></div>
+          <div style="margin-top:5px">Main <b>6</b> · Variety <b>2</b>. "Main" means anything about the game.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="answers" id="answers">Your picks: <span style="color:var(--t3)">none yet. Click an option in each card.</span></div>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2><span class="n">6</span>Not in the first version</h2>
+  <div class="notv1">
+    <div><b>Corva guessing "watching" vs "playing" on its own.</b> In the first version you flip the switch yourself. Teaching the game-guess to tell a trailer from real play comes later, once it's been tested for accuracy.</div>
+    <div><b>Reacting to a game you don't have in your library.</b> There's no game to put a switch on, so it stays a content type. Adding one straight from the Rename tab (#337) covers that.</div>
+    <div><b>Reactions teaching each other.</b> A new reaction entry starts with no learning history. Sharing "what makes a good reaction clip" across games is a later idea.</div>
+  </div>
+</section>
+
+</div>
+<script>
+(function(){
+  const seg = document.getElementById("seg"), nn = document.getElementById("nn"), day = document.getElementById("day");
+  const pill = document.getElementById("selPill"), name = document.getElementById("selName"), sel = document.getElementById("sel");
+  const hint = document.getElementById("hint"), toast = document.getElementById("toast");
+  const set = (m) => {
+    [...seg.children].forEach((b) => { b.className = b.dataset.m === m ? ("on" + (m === "react" ? " react" : "")) : ""; });
+    const r = m === "react", c = r ? "#f7941d" : "#00b4d8";
+    pill.textContent = r ? "RL-R" : "RL";
+    pill.style.cssText = `background:${c}18;border:1px solid ${c}44;color:${c}`;
+    name.textContent = r ? "Rocket League Reacts" : "Rocket League";
+    sel.style.borderColor = c + "44";
+    day.textContent = r ? "2" : "21";
+    nn.textContent = r ? "2026-09-29 RL-R Day2 Pt1.mp4" : "2026-09-29 RL Day21 Pt1.mp4";
+    nn.style.cssText = `color:${c};background:${c}14;border:1px solid ${c}33`;
+    hint.innerHTML = r
+      ? "<b style='color:#f7a64a'>Reaction.</b> Its own Day count, the AI looks for reaction moments, and learning stays apart from gameplay."
+      : "The game stays picked. Flip <b>Reacting</b> and everything below changes with it.";
+    toast.classList.toggle("show", r);
+  };
+  seg.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) set(b.dataset.m); });
+
+  const picks = {};
+  document.querySelectorAll(".q").forEach((q) => {
+    q.querySelectorAll(".opt").forEach((o) => o.addEventListener("click", () => {
+      q.querySelectorAll(".opt").forEach((x) => x.classList.remove("sel"));
+      o.classList.add("sel");
+      picks[q.dataset.q] = o.dataset.v;
+      const keys = Object.keys(picks).sort();
+      document.getElementById("answers").innerHTML = "Your picks: " + keys.map((k) => `<code>Q${k}: ${picks[k]}</code>`).join(" · ");
+    }));
+  });
+})();
+</script>
+</body>
+</html>

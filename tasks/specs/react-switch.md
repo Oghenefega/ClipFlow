@@ -1,6 +1,6 @@
 # React switch: design, touchpoints and edge cases (#474)
 
-Status: **design draft (s279, 2026-09-29), not approved.** For Fega and Wick to decide the open questions in section 6 before any build.
+Status: **design agreed (s279, 2026-09-29).** Fega answered all six questions (section 6). Not built yet. Blocked on #475.
 
 ## 1. What it is
 
@@ -26,7 +26,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
 
 ## 2. Build pieces (v1)
 
-1. **Link field.** Add `reactsTo` (game tag) to gamesDb entries, with a store migration. Link the existing entries once: GTA6 Reacts → `GTA6`, Rocket League Reacts → `RL`. Ask Fega about 100T Valorant Reacts → `Val`, since it's a named show.
+1. **Link field.** Add `reactsTo` (game tag) to gamesDb entries, with a store migration. Link the existing entries once: GTA6 Reacts → `GTA6`, Rocket League Reacts → `RL`, Valorant Champions Tour → `Val` (default), 100T Valorant Reacts → `Val` (decision 1).
 2. **Switch in the pickers.**
    - Rename tab: the per-session picker (`RenameView.js:1872`) and the bulk "Set Game" menu (`:2154-2170`). Both write through `setGameForRows` (`:805-815`).
    - Recordings drop modal (`UploadView.js:948-964`).
@@ -35,7 +35,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
    - Leave alone: the Queue import modal (flat list by name, `ImportReviewModal.js:165-170`) and the editor's title-steer select (`RightPanelNew.js:855`). Reaction entries already appear there by name.
 3. **Auto-create.** Must replicate `handleNewGame` (`App.js:710-746`) for content:
    - `dayCount: 0`, no research, no art fetch.
-   - Name `<Game> Reacts`; inherit hashtag and colour (see Q2).
+   - Name `<Game> Reacts`; inherit the hashtag. Pick a colour distinct from the game's (decision 2).
    - A starter note: "I react to <game> content: news, trailers, esports and clips."
    - A YouTube description seeded from **the game's own** description and tags, with a reaction first line and "reaction" tags added. Don't use `ytDescriptionTemplate.js`, which is gameplay-flavoured.
    - A free tag, `<TAG>-R`. Nothing checks uniqueness today (`modals.js:83`, `handleNewGame`), so auto-create must check both tag and name case-insensitively.
@@ -60,7 +60,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
 
 | # | Case | Handling |
 |---|---|---|
-| 1 | Game has two linked reaction entries (a default bucket + a named show) | The switch uses the default. A small arrow on the switch lists the others. One entry per game is marked default (Q3). |
+| 1 | Game has two linked reaction entries (a default bucket + a named show) | The switch uses the default. A small arrow on the switch lists the others. One entry per game is marked default (decision 3). |
 | 2 | Auto-create finds an unlinked entry with a similar name ("GTA6 Reacts" vs "GTA 6 Reacts") | Offer "Use GTA6 Reacts?" before creating. Never make a silent duplicate. |
 | 3 | The tag `<TAG>-R` is taken | Try `<TAG>-R2`, and so on. Show the tag in the confirm toast. |
 | 4 | Game tag near the reconcile cap (8 characters) | `SCoG-R` is 6 characters, fine. Raise the cap in #476 to cover the longest tag plus 2. |
@@ -68,8 +68,8 @@ A flag on the recording would have to thread through all five. Reusing the conte
 | 6 | A roundup covering several games | A general content type (Just Chatting or a news show). Out of scope. |
 | 7 | One recording: plays, then reacts | Split markers get the switch (piece 2). Each part gets its own entry and Day. |
 | 8 | Gameplay and a reaction on the same day | Independent Day counters: `RL Day21 Pt1` and `RL-R Day1 Pt1`. Nothing collides. |
-| 9 | Last-renamed default after a reaction | The next row would default to the reaction entry. Q4 decides whether it should fall back to the game. |
-| 10 | Retagging a clip from gameplay to reaction in Projects | Retag writes `gameTag` (`ProjectsView.js:910`). Its feedback rows keep the old tag. Decide whether a retag moves the clip's learning rows (Q5). |
+| 9 | Last-renamed default after a reaction | The next row defaults to the linked **game** with the switch off, never the reaction entry (decision 4). |
+| 10 | Retagging a clip from gameplay to reaction in Projects | Retag writes `gameTag` (`ProjectsView.js:910`). Today its feedback rows keep the old tag. The retag must move them to the new tag (decision 5). |
 | 11 | The game is renamed, retagged or deleted | Link by tag. #475's migration updates `reactsTo`. If the game is deleted, the reaction entry stays as a plain content type with the link dropped. |
 | 12 | The game is set inactive | `active` isn't filtered in pickers today (Rename, Upload, Projects), so the switch still works. Fine as is. |
 | 13 | The reaction entry is edited in Settings | It's an ordinary content type: note, description and colour are editable. Show "Reacts to: Rocket League" read-only, with an Unlink option. |
@@ -77,7 +77,7 @@ A flag on the recording would have to thread through all five. Reusing the conte
 | 15 | A new reaction entry has no learning | Accepted for v1. Later idea: reaction-style lessons shared across all reaction entries ("reaction added nothing" patterns aren't game-specific). Needs a detection-science check before shipping (#231 rules). |
 | 16 | Title voice examples | Matched by tag, hashtag or name (`main.js:4248-4252`). A shared hashtag lets gameplay titles steer reaction titles and the other way round. Match by tag only for linked entries. |
 | 17 | Hashtag resolution in `captionResolve.js:36-39` | Auto-posted clips carry the tag and resolve correctly. Only legacy title-hashtag fallbacks (`:24`) hit the collision, so it's acceptable. #477 fixes the Tracker side. |
-| 18 | Main/variety share in the Tracker | Do reactions to the main game count as main? (Q6) |
+| 18 | Main/variety share in the Tracker | Reactions count as variety (decision 6). #477 stores the tag, so this holds for manual logs too. |
 | 19 | Settings list | Show linked reaction entries nested under their game in Content Types, so the list doesn't turn into a wall of "X Reacts". |
 
 ## 5. Not in v1
@@ -86,11 +86,11 @@ A flag on the recording would have to thread through all five. Reusing the conte
 - Shared reaction learning (edge case 15).
 - A switch in the Queue import modal and the editor's title-steer select.
 
-## 6. Open questions (Fega / Wick)
+## 6. Decisions (Fega, 2026-09-29, from the clickable mockup `tasks/specs/react-switch-mockup.html`)
 
-1. **Which reaction entries link to a game?** GTA6 Reacts → GTA 6 and Rocket League Reacts → Rocket League are clear. 100T Valorant Reacts → Valorant?
-2. **Colour.** Same colour as the game plus a small "React" badge (reads as "still Rocket League"), or its own colour (as the existing ones have)?
-3. **One default per game?** One default reaction bucket per game, with named shows as extras behind the arrow?
-4. **Next-row default after a reaction.** Stay on the reaction, or go back to the game?
-5. **Retag learning.** When a clip is retagged between gameplay and reaction, should its approve/reject history move with it?
-6. **Main-game share.** In the Tracker, do reactions to your main game count toward the main-game share?
+1. **Links.** Rocket League Reacts → Rocket League, GTA6 Reacts → GTA 6, **and both Valorant Champions Tour and 100T Valorant Reacts → Valorant.** Robot Olympics Reacts and Just Chatting stay standalone.
+2. **Colour.** A reaction keeps **its own colour**, as today. An auto-created entry gets a distinct colour, not the game's.
+3. **Several reaction shows on one game.** **One default** per game, used when the switch is flipped. The others sit behind a small ▾ on the switch. Valorant's default is VCT.
+4. **Next-row default after a reaction.** **Back to the game** with the switch off. The switch never carries over from the last rename.
+5. **Retag learning.** When a clip moves between gameplay and reaction, **its approve/reject rows move with it** (feedback `game_tag` follows the clip).
+6. **Tracker main share.** Reactions to the main game count as **variety**. "Main" means playing the main game. #477 already makes this true for manual logs.
