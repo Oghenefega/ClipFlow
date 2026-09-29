@@ -363,9 +363,10 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={artFetch} disabled={artBusy} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, opacity: artBusy ? 0.6 : 1, whiteSpace: "nowrap" }}>
+                {/* Steam only has games; a content type can still take a chosen image. */}
+                {!isContentEntry && <button onClick={artFetch} disabled={artBusy} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, opacity: artBusy ? 0.6 : 1, whiteSpace: "nowrap" }}>
                   {artBusy ? "Searching..." : artPath ? "Refresh from Steam" : "Find on Steam"}
-                </button>
+                </button>}
                 <button onClick={artChoose} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>
                   Choose image…
                 </button>
@@ -474,8 +475,8 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                 )}
               </div>
 
-              {/* Auto-update threshold stepper */}
-              <div style={{ marginBottom: 14, background: "rgba(var(--lift),0.02)", borderRadius: T.radius.md, padding: "14px 16px" }}>
+              {/* Auto-update threshold stepper. Content types have no play-style profile to update. */}
+              {!isContentEntry && <div style={{ marginBottom: 14, background: "rgba(var(--lift),0.02)", borderRadius: T.radius.md, padding: "14px 16px" }}>
                 <SectionLabel>Play Style Auto-Update</SectionLabel>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
                   <span style={{ color: T.textSecondary, fontSize: 12, whiteSpace: "nowrap" }}>Update after every</span>
@@ -505,7 +506,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
                 <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>
                   AI will analyze recent transcripts and suggest play style updates after {updateThreshold} pipeline runs
                 </div>
-              </div>
+              </div>}
             </div>
           )}
         </div>

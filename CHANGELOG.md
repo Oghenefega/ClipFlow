@@ -26,6 +26,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **A content type no longer adds to the play-style profile session counter** (`incrementSessionCount` ran for every entry type).
 - **Split parts in one batch rename count each other (review of a371e7a).** Two recordings on different dates, each split with a Rocket League Reacts part and renamed together, both came out `RL-R Day1`: each part only saw the pending rows, and the batch renames in recording order. Every split part in the batch is now collected before renaming, so the parts take consecutive Days whatever the order (checked in the dev app: Sep 25 and Sep 26 parts came out `RL-R Day2` and `RL-R Day3`, with the Sep 26 file renamed first). A whole reaction row and a reaction split part on different dates in the same batch can still share a Day, because the Rename list's numbering doesn't look inside split markers.
 - **Switching a game to a content type drops its reactions' links,** so they don't point at an entry that can no longer be reacted to.
+- **A content type's Edit window no longer shows Find on Steam or Play Style Auto-Update** (Fega, s280). Steam only has games, and content types have no play-style profile. Research Game stays, since a reaction can exist before its game is in the library (GTA6 Reacts came before GTA 6), and Choose image stays.
 - **Game tags never wrap inside a pill** (`RL-R` broke onto two lines in a split part's picker and the Projects clip menu, which is now also wider).
 
 ### Verified
