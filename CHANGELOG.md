@@ -27,6 +27,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - **Valorant Champions Tour** moved from game to content type. Its first recording is now Day 1, it has a reaction note, and the Valorant game research that would have overridden that note is removed.
   - **Valorant Reacts** (`Val-R`) added as a content type for Valorant news: agents, maps, seasons, patch notes and trailers. Its YouTube description copies Rocket League Reacts' layout.
   - **Em dashes removed** from the five reaction notes, and from the Rocket League and Meccha Chameleon play-style notes. The play-style notes were changed in both copies, settings and `game_profiles.json`, so they stay identical.
+  - **Em dashes removed** from the rest of the library too: the AI "Game Knowledge" research for 11 games, and the Arc Raiders and Egging On detection-profile play styles. None are left in `gamesDb` or `game_profiles.json`.
+    - A dash pair around an aside became brackets, a dash before "and", "but", "so" or "which" became a comma, and any other dash became a colon.
+    - Every changed sentence was read before writing. Backup in `data/backup-2026-09-29-no-dashes-research`.
 
 ### Fixed
 - **Recordings whose tag has a hyphen are readable again (#476).** The filename parsers in `reconcile.js` and `file-migration.js` only accepted letters, digits and "_" in a tag, so files like `2026-09-21 RL-R Day1 Pt1.mp4` and the GTA6-R recordings were invisible to the Recordings reconcile. If the database lost track of one, Corva would never find it again. Tags now also accept "-", up to 8 characters, and must contain at least one letter, which keeps a raw OBS time like `18-23-40` from reading as a tag. On the dev profile, the RL-R recording was adopted on first load.
