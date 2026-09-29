@@ -2217,3 +2217,11 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** I treated the check as something to print, not as a gate. And I took "I quit Corva" as proof, when an earlier check the same day had already shown Corva still in the tray after he thought he'd closed it.
 
 **Rule:** any external write to Corva's stores (settings JSON, clipflow.db, project JSONs) runs in its own command *after* a check that returned 0 Corva processes. Or, in one script, make it abort: `tasklist | grep -c Corva` must be 0, or `exit 1`. Never chain the check and the write without a hard stop.
+
+## Session 279 (2026-09-29) — The AI notes I wrote for Fega's reaction entries were full of em dashes
+
+**What happened:** I wrote the AI notes for Rocket League Reacts, VCT and Valorant Reacts (and earlier, 100T and GTA6 Reacts) with em dashes in every sentence. Fega asked for them rewritten without.
+
+**Why:** Those notes speak in Fega's voice ("I react to…"). Em dashes read as machine-written, and I defaulted to them without thinking about whose voice the text was in.
+
+**Rule:** no em dashes in anything written for Fega: entry notes, YouTube descriptions, captions, titles, specs and chat replies. Use a colon to lead into a list, and a comma or a new sentence for an aside.
