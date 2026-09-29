@@ -4,6 +4,30 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-09-29 (session 280): React switch
+
+### Added
+- **Playing / Reacting switch (#474, spec `tasks/specs/react-switch.md`).** A reaction entry is still an ordinary content type; it gains `reactsTo: "<game tag>"`, and one per game carries `reactsDefault`. The shared logic lives in `src/shared/reactions.js` (tests: `src/main/__tests__/reactions.test.js`, run against a copy of Fega's library).
+  - **Where the switch is:** the Rename session picker (a tight version that spells out only the active side), the Rename bulk "Set Game" menu (a Reacting checkbox at the top), the Recordings drop window, a clip's game menu in Projects, and each split-marker part. Linked reactions list under their game in every picker; Content Types keeps only the ones not about a game.
+  - **▾ on the switch** lists the game's other reaction shows (decision 3). In the crowded Rename header it appears only while Reacting is on.
+  - **Auto-create:** the first flip for a game makes `<Game> Reacts` with tag `<TAG>-R` (then `-R2`…, old tags counted as taken), the game's hashtag and social tags, a palette colour no entry uses (decision 2), a starter note, and a YouTube description and tags built from the game's own. If an unlinked content type looks like the same bucket ("GTA 6 Reaction"), Corva asks to link it first.
+  - **Next file defaults back to the game** with the switch off (decision 4): the last-renamed memory stores a reaction's game.
+  - **Settings:** reactions show grouped under their game in Content Types. A content type's Edit window has a Reacts to list (link, unlink, relink) and Make default; saving a default clears it from the game's other reactions. Deleting a game keeps its reactions as plain content types with the link dropped.
+  - **Projects:** a linked reaction's project tile shows its game's art. A clip moved between gameplay and reaction takes its approve/reject rows along (this already worked, #197; checked on a rejected clip).
+- **Boot link (`_migrated_reactsTo_v1`, runs once):** Rocket League Reacts to Rocket League, GTA6 Reacts to GTA 6, and 100T Valorant Reacts (default), Valorant Champions Tour and Valorant Reacts to Valorant. It only links to a game that exists, never overwrites a link, and never runs again, so a later Unlink stays.
+
+### Changed
+- **Clip detection for a linked reaction also gets the watched game's research** ("The game being watched: …", its `aiContextAuto`) after the entry's own note, and Whisper's vocabulary gets the game's name and hashtag. It never reads the game's play-style profile or gameplay learning.
+- **Titles and captions:** a content entry's note is labelled "What this content is" instead of "Play Style", a linked reaction adds the watched game's research, and voice examples resolve a stored tag before a hashtag, so a reaction row (`rl-r`) no longer reads as its game.
+- **Tracker main-game share counts reactions linked to the main game** (decision 6).
+
+### Fixed
+- **Split parts labelled with another entry get that entry's own Day.** The "mark where games change" split stamped every part with the row's Day, and the counter update then pushed the other entry's Day count up to it (seen in testing: a first Arc Raiders reaction came out `AR-R Day34` and set Arc Raiders Reacts' counter to 34). Now `AR Day34` + `AR-R Day1`.
+- **A content type no longer adds to the play-style profile session counter** (`incrementSessionCount` ran for every entry type).
+
+### Verified
+- Dev profile pointed at scratch folders with Fega's real library copied in: boot link log, the switch and ▾ in the Rename tab, auto-create of Arc Raiders Reacts, the next-file default, a split into gameplay + reaction, the Recordings drop window, a rejected clip moved to its reaction in Projects (feedback row moved), Settings grouping, default, unlink, relink and delete, and the Tracker count (Valorant 2, Variety 1 from gameplay + VCT + RL-R rows). The dev profile was restored from backup afterwards.
+
 ## [Unreleased] — 2026-09-29 (session 279)
 
 ### Added

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
-import { GamePill, Card, SectionLabel, ColorPicker, toFileUrl } from "./shared";
+import { GamePill, Card, SectionLabel, ColorPicker, Select, toFileUrl } from "./shared";
 
 // #476: a tag lands in the file name ("2026-09-29 RL-R Day1 Pt1.mp4") and the
 // filename parsers read it back as letters, digits and "-", up to 8, with at
@@ -178,6 +178,12 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
   const [artError, setArtError] = useState("");
   // #263: exe(s) this game runs as — drives auto-detection on new recordings
   const [exeList, setExeList] = useState(game.exe || []);
+  // #474: the game a content type reacts to ("" = none), and whether it is the
+  // one the React switch picks for that game.
+  const [reactsTo, setReactsTo] = useState(game.reactsTo || "");
+  const [reactsDefault, setReactsDefault] = useState(!!game.reactsDefault);
+  const linkableGames = gamesDb.filter((g) => (g.entryType || "game") !== "content" && g.name !== game.name);
+  const otherDefault = (t) => gamesDb.find((g) => g.name !== game.name && g.reactsDefault && String(g.reactsTo || "").toLowerCase() === String(t).toLowerCase());
   const [pickerApps, setPickerApps] = useState(null);
   const [pickerBusy, setPickerBusy] = useState(false);
 
@@ -311,6 +317,31 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
             <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Next file = Day {(dayCount || 0) + 1}</div>
           </div>
         </div>
+        {isContentEntry && (
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Reacts to</SectionLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+              <Select
+                value={reactsTo}
+                onChange={(v) => { setReactsTo(v); setReactsDefault(!!v && !otherDefault(v)); }}
+                options={[{ value: "", label: "No game" }, ...linkableGames.map((g) => ({ value: g.tag, label: g.name, tag: g.tag, color: g.color }))]}
+                renderSelected={(o) => <>{o.tag && <GamePill tag={o.tag} color={o.color} size="sm" />}{o.label}</>}
+                renderOption={(o) => <>{o.tag && <GamePill tag={o.tag} color={o.color} size="sm" />}{o.label}</>}
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              {reactsTo && (
+                <button onClick={() => setReactsDefault((v) => !v)} title="The entry the Reacting switch picks for this game" style={{ padding: "8px 12px", borderRadius: T.radius.md, border: `1px solid ${reactsDefault ? T.accentBorder : T.border}`, background: reactsDefault ? T.accentDim : "transparent", color: reactsDefault ? T.accentLight : T.textTertiary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>{reactsDefault ? "Default" : "Make default"}</button>
+              )}
+            </div>
+            <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>
+              {reactsTo
+                ? (reactsDefault
+                  ? "The Reacting switch on this game picks this entry. It also knows the game's research."
+                  : `Listed under the game. The switch picks ${otherDefault(reactsTo)?.name || "another entry"}.`)
+                : "Link it to a game to put it behind that game's Reacting switch."}
+            </div>
+          </div>
+        )}
         <div style={{ marginBottom: 16 }}>
           <SectionLabel>Hashtag</SectionLabel>
           <div style={{ display: "flex", alignItems: "center", background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, marginTop: 8, overflow: "hidden" }}>
@@ -493,6 +524,9 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
           <button disabled={invalid || confirmBusy || !!confirm?.refused} onClick={async () => {
             if (invalid) return;
             const updated = { ...game, name: name.trim(), tag, entryType, hashtag, color, dayCount, active, exe: exeList, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt };
+            // #474: the link only exists on a content type.
+            delete updated.reactsTo; delete updated.reactsDefault;
+            if (entryType === "content" && reactsTo) { updated.reactsTo = reactsTo; if (reactsDefault) updated.reactsDefault = true; }
             const change = { oldName: game.name, newName: name.trim(), oldTag: game.tag, newTag: tag, oldType: game.entryType === "content" ? "content" : "game", newType: entryType };
             if (!identityChanged) { onSave(updated, { threshold: updateThreshold }); return; }
             if (!confirm) {

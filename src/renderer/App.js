@@ -26,6 +26,7 @@ import { evaluateRollover, localISO } from "./utils/trackerEngine";
 import { normalizeTemplate } from "./utils/trackerTemplate";
 import { buildStarterYtDescription } from "../shared/ytDescriptionTemplate";
 import { rewriteSettingsForIdentity } from "../shared/entryIdentity";
+import { defaultReactionFor, findSimilarUnlinked, setReactsTo, setDefaultReaction, buildReactionEntry, buildReactionYtDescription } from "../shared/reactions";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
@@ -745,14 +746,36 @@ export default function App() {
       window.clipflow.gameArtFetch?.(gd.name)?.catch?.(() => {});
     }
   };
+  // #474: the entry the React switch labels footage with — the game's default
+  // linked reaction; else a similar unlinked content type, if the user agrees to
+  // link it; else a new "<Game> Reacts". Returned at once so callers can label
+  // rows with it (gamesDb catches up on the next render); null if none could be made.
+  const handleReactionFor = (game) => {
+    const existing = defaultReactionFor(game, gamesDb);
+    if (existing) return existing;
+    const similar = findSimilarUnlinked(game, gamesDb);
+    if (similar && window.confirm(`Use ${similar.name} for ${game.name} reactions?\n\nOK links it to ${game.name}. Cancel makes a new "${game.name} Reacts" instead.`)) {
+      setGamesDb((p) => setReactsTo(p, similar.name, game.tag));
+      return { ...similar, reactsTo: game.tag, reactsDefault: true };
+    }
+    const entry = buildReactionEntry(game, gamesDb);
+    if (!entry.name || !entry.tag) return null;
+    setGamesDb((p) => [...p, entry]);
+    setYtDescriptions((p) => ({ ...p, [entry.name]: buildReactionYtDescription(game, p[game.name]) }));
+    setToast(`Created ${entry.name} (tag ${entry.tag}). Edit it in Settings, Game Library.`);
+    return entry;
+  };
+
   // #475: meta.change is set when the name, tag or type changed. The main process
   // moves the database / files first; then each settings slice this component
   // owns is rewritten through its updater, so its persist effect saves the new
   // values (main never writes these keys — this state would save over them).
   const handleEditGame = async (u, meta = {}) => {
     const change = meta.change;
+    // #474: one default reaction per game — saving one as default clears its siblings.
+    const oneDefault = (list, name) => (u.reactsDefault ? setDefaultReaction(list, name) : list);
     if (!change) {
-      setGamesDb((p) => p.map((g) => (g.name === u.name ? u : g)));
+      setGamesDb((p) => oneDefault(p.map((g) => (g.name === u.name ? u : g)), u.name));
       if (meta.threshold) window.clipflow.gameProfilesSetThreshold?.(u.tag, meta.threshold);
       return;
     }
@@ -763,7 +786,7 @@ export default function App() {
     }
     const rw = (slices) => rewriteSettingsForIdentity(slices, change, u);
     if (prevMainGame.current === change.oldName) prevMainGame.current = change.newName; // not a main-game switch
-    setGamesDb((p) => rw({ gamesDb: p }).gamesDb);
+    setGamesDb((p) => oneDefault(rw({ gamesDb: p }).gamesDb, change.newName));
     setYtDescriptions((p) => rw({ ytDescriptions: p }).ytDescriptions);
     setMainGame((p) => rw({ mainGame: p }).mainGame);
     setMainPool((p) => rw({ mainPool: p }).mainPool);
@@ -1147,6 +1170,7 @@ export default function App() {
         onEditClipTitle={handleEditClipTitle}
         onOpenInEditor={handleOpenInEditor}
         gamesDb={gamesDb}
+        onReactionFor={handleReactionFor}
         onBatchRender={async (projectId) => {
           try {
             const full = await window.clipflow.projectLoad(projectId);
@@ -1226,6 +1250,7 @@ export default function App() {
               setRenameHistory={setRenameHistory}
               onAddGame={(entryType) => setShowAddGame(typeof entryType === "string" ? entryType : "game")}
               onGameDayUpdate={handleGameDayUpdate}
+              onReactionFor={handleReactionFor}
               watchFolder={watchFolder}
               testWatchFolder={testWatchFolder}
               onFilesRenamed={() => setRecordingsRefreshKey((k) => k + 1)}
@@ -1237,6 +1262,7 @@ export default function App() {
           <div style={{ padding: "32px 40px", margin: "0 auto" }}>
             <RecordingsView
               gamesDb={gamesDb}
+              onReactionFor={handleReactionFor}
               localProjects={localProjects}
               testWatchFolder={testWatchFolder}
               refreshKey={recordingsRefreshKey}

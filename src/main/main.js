@@ -154,6 +154,7 @@ const publishLog = require("./publish-log");
 // Chromium timer throttling on a hidden window.
 const publishScheduler = require("./publish");
 const { buildTrackerRow } = require("../shared/trackerRow");
+const { linkLegacyReactions, linkedGame } = require("../shared/reactions");
 const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
 if (userDataMigration && userDataMigration.outcome !== "noop") {
@@ -723,6 +724,14 @@ function runStoreMigrations(store) {
   if (Array.isArray(gamesDbForPrev) && gamesDbForPrev.some((g) => g && !Array.isArray(g.previousTags))) {
     store.set("gamesDb", gamesDbForPrev.map((g) => (g && !Array.isArray(g.previousTags) ? { ...g, previousTags: [] } : g)));
     logger.info(logger.MODULES.system, "Backfilled previousTags on gamesDb records (#475)");
+  }
+  // #474: link the reaction entries that predate the React switch to their
+  // games, once — an Unlink (or relink) made in Settings afterwards stays.
+  if (!store.get("_migrated_reactsTo_v1")) {
+    const res = linkLegacyReactions(store.get("gamesDb"));
+    if (res.linked.length) store.set("gamesDb", res.gamesDb);
+    store.set("_migrated_reactsTo_v1", true);
+    logger.info(logger.MODULES.system, `Reaction entries linked to their games (#474): ${res.linked.join(", ") || "none"}`);
   }
 
   // ── #263: sweep detection stamps for files that left the disk ──
@@ -4318,23 +4327,37 @@ function buildTitleCaptionStoreContext(params = {}) {
     });
   }
 
+  const gamesDb = store.get("gamesDb") || [];
+  // #474: a content entry's note is what the content is, not a play style; a
+  // reaction linked to a game also gets that game's research, as the game being watched.
+  const entry = gamesDb.find((g) => g.name === params.gameName);
+  const isContent = entry?.entryType === "content";
+  const watched = linkedGame(entry, gamesDb);
+
   let gameContext = "";
   if (params.gameContextAuto) gameContext += `\n\n## Game Knowledge (auto-researched):\n${params.gameContextAuto}`;
-  if (params.gameContextUser) gameContext += `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
+  if (params.gameContextUser) {
+    gameContext += isContent
+      ? `\n\n## What this content is (${params.gameName}):\n${params.gameContextUser}`
+      : `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
+  }
+  if (watched) {
+    gameContext += `\n\n## The game being watched: ${watched.name}${watched.aiContextAuto ? `\n${watched.aiContextAuto}` : ""}`;
+  }
 
   // The few-shot voice set — real published copy, best-performing first.
   // Rows store whatever the publish path had to hand, which for backfilled
   // ones is the lowercase tracker tag ("rl"). Resolve to the display name so
-  // the prompt reads "[Rocket League]" instead of "[rl]".
-  const gamesDb = store.get("gamesDb") || [];
+  // the prompt reads "[Rocket League]" instead of "[rl]". #474: a tag match
+  // wins — a reaction shares its game's hashtag, so "rl-r" must not read as the game.
   const resolveGameName = (g) => {
     if (!g) return "";
     const needle = String(g).toLowerCase();
-    const hit = gamesDb.find((entry) =>
-      (entry.tag || "").toLowerCase() === needle ||
-      (entry.hashtag || "").toLowerCase() === needle ||
-      (entry.name || "").toLowerCase() === needle
-    );
+    const hit = gamesDb.find((e) => (e.tag || "").toLowerCase() === needle)
+      || gamesDb.find((e) =>
+        (e.hashtag || "").toLowerCase() === needle ||
+        (e.name || "").toLowerCase() === needle
+      );
     return hit?.name || g;
   };
   const voiceExamples = titleCaptionLog

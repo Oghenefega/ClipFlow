@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import T, { THEMES, applyTheme } from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot, Select } from "../components/shared";
 import { GameEditModal } from "../components/modals";
+import { reactionsFor, dropLinksTo } from "../../shared/reactions";
 import AudioCalibrationModal from "../components/AudioCalibrationModal";
 import { ReleaseHistoryModal } from "../components/WhatsNewModal";
 import { trackLabelText } from "../audioTrackLabels";
@@ -364,8 +365,20 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   };
 
   const rmMain = (name) => setMainPool((p) => p.filter((n) => n !== name));
-  const delGame = (name) => { setGamesDb((p) => p.filter((g) => g.name !== name)); setMainPool((p) => p.filter((n) => n !== name)); };
+  // #474: a deleted game's reactions stay, as plain content types with the link dropped.
+  const delGame = (name) => {
+    setGamesDb((p) => {
+      const gone = p.find((g) => g.name === name);
+      const rest = p.filter((g) => g.name !== name);
+      return gone && gone.entryType !== "content" ? dropLinksTo(rest, gone.tag) : rest;
+    });
+    setMainPool((p) => p.filter((n) => n !== name));
+  };
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
+  const reactionGroups = gamesDb.filter((g) => g.entryType !== "content")
+    .map((game) => ({ game, reactions: reactionsFor(game, gamesDb) }))
+    .filter((x) => x.reactions.length > 0);
+  const linkedNames = new Set(reactionGroups.flatMap((x) => x.reactions.map((g) => g.name)));
 
   // #301: the gateway is live when a URL is set and SOME token exists — the
   // user's own, or the one this build carries (which the renderer only ever
@@ -1080,7 +1093,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <button onClick={() => onAddGame("content")} style={{ background: T.accentDim, border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "4px 10px", color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Content Type</button>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {gamesDb.filter((g) => g.entryType === "content").map((g) => {
+          {gamesDb.filter((g) => g.entryType === "content" && !linkedNames.has(g.name)).map((g) => {
             const isSel = selGameLib === g.name;
             return (
               <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(var(--lift),0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
@@ -1095,6 +1108,29 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             <div style={{ color: T.textTertiary, fontSize: 12, fontStyle: "italic" }}>No content types added yet</div>
           )}
         </div>
+        {/* #474: reactions linked to a game, grouped under it */}
+        {reactionGroups.map(({ game, reactions }) => (
+          <div key={game.name} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.textTertiary, fontSize: 12, fontWeight: 600, width: 200, flexShrink: 0, paddingTop: 9 }}>
+              <GamePill tag={game.tag} color={game.color} size="sm" />
+              <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={`${game.name} reactions`}>{game.name} reactions</span>
+            </span>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {reactions.map((g) => {
+              const isSel = selGameLib === g.name;
+              return (
+                <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(var(--lift),0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
+                  <GamePill tag={g.tag} color={g.color} size="sm" />
+                  <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
+                  {g === reactions[0] && reactions.length > 1 && <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 600 }}>default</span>}
+                  {g.active === false && <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 600, fontStyle: "italic" }}>inactive</span>}
+                  <button onClick={(e) => { e.stopPropagation(); delGame(g.name); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "0 0 0 2px" }}>{"✕"}</button>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+        ))}
       </Card>
 
       {/* Naming Preset */}

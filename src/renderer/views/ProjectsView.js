@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import * as Sentry from "@sentry/electron/renderer";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl } from "../components/shared";
+import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl, ReactSwitch } from "../components/shared";
+import { reactionsFor, linkedGame } from "../../shared/reactions";
 import TestChip from "../components/TestChip";
 import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { fixTextCasing } from "../editor/utils/subtitleCasing";
@@ -891,7 +892,7 @@ const fmtScheduledAt = (iso) => {
 // ── #197: clip content tag control — the game badge opens a menu of library
 // entries. Retagging changes what the CLIP is about (learning + hashtags
 // follow it); the project keeps its session tag.
-function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpen, onUpdateClipFields }) {
+function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpen, onUpdateClipFields, onReactionFor }) {
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -902,7 +903,10 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
   }, [open, setOpen]);
 
   const games = (gamesDb || []).filter((g) => (g.entryType || "game") !== "content");
-  const content = (gamesDb || []).filter((g) => g.entryType === "content");
+  // #474: a game's linked reactions are listed under it, not in Content.
+  const linked = new Set(games.flatMap((g) => reactionsFor(g, gamesDb).map((x) => x.name)));
+  const content = (gamesDb || []).filter((g) => g.entryType === "content" && !linked.has(g.name));
+  const current = (gamesDb || []).find((g) => (g.tag || "").toUpperCase() === effectiveTag);
 
   const pick = (g) => {
     setOpen(false);
@@ -910,7 +914,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
     onUpdateClipFields?.(project.id, clip.id, { gameTag: g.tag, gameName: g.name });
   };
 
-  const renderItem = (g) => {
+  const renderItem = (g, nested) => {
     const sel = (g.tag || "").toUpperCase() === effectiveTag;
     return (
       <div
@@ -918,7 +922,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
         onClick={() => pick(g)}
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-          padding: "6px 9px", borderRadius: 7, fontSize: 12.5, fontFamily: T.font, cursor: "pointer",
+          padding: nested ? "6px 9px 6px 21px" : "6px 9px", borderRadius: 7, fontSize: 12.5, fontFamily: T.font, cursor: "pointer",
           color: sel ? T.accentLight : T.text,
           background: sel ? T.accentDim : "transparent",
         }}
@@ -926,7 +930,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
         onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}
       >
         <span>{g.name}</span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: sel ? T.accentLight : T.textTertiary }}>{(g.tag || "").toUpperCase()}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: sel ? T.accentLight : T.textTertiary, whiteSpace: "nowrap" }}>{(g.tag || "").toUpperCase()}</span>
       </div>
     );
   };
@@ -951,14 +955,19 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
       </span>
       {open && (
         <div style={{
-          position: "absolute", left: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 190,
+          position: "absolute", left: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 250,
           background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: 10,
           boxShadow: "0 12px 34px -8px rgba(var(--shade),calc(0.8 * var(--shadeK)))", padding: 5,
         }}>
+          {current && (
+            <div style={{ padding: "3px 4px 7px", marginBottom: 3, borderBottom: `1px solid ${T.border}` }}>
+              <ReactSwitch compact showOthers={false} entry={current} gamesDb={gamesDb} onPick={pick} onReactionFor={onReactionFor} />
+            </div>
+          )}
           {games.length > 0 && groupLabel("Games")}
-          {games.map(renderItem)}
+          {games.map((g) => [renderItem(g), ...reactionsFor(g, gamesDb).map((x) => renderItem(x, true))])}
           {content.length > 0 && groupLabel("Content")}
-          {content.map(renderItem)}
+          {content.map((g) => renderItem(g))}
         </div>
       )}
     </span>
@@ -967,7 +976,7 @@ function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpe
 
 // #467: the side panel's details column for one clip — what the full-width
 // card used to carry beside its preview.
-function ClipDetails({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, pub, momentPriorities }) {
+function ClipDetails({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, onReactionFor, pub, momentPriorities }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1096,6 +1105,7 @@ function ClipDetails({ clip, project, onUpdateClip, onUpdateClipFields, onEditCl
             gamesDb={gamesDb}
             color={clipGameColor}
             effectiveTag={clipGameTag}
+            onReactionFor={onReactionFor}
             open={tagMenuOpen}
             setOpen={setTagMenuOpen}
             onUpdateClipFields={onUpdateClipFields}
@@ -1820,7 +1830,8 @@ export function ProjectsListView({
 
                 {/* game poster — real key art when cached, game-hue + tag fallback */}
                 {(() => {
-                  const art = gameArt[p.game];
+                  // #474: a reaction linked to a game shows that game's art.
+                  const art = gameArt[p.game] || gameArt[linkedGame(gamesDb.find((g) => g.name === p.game), gamesDb)?.name];
                   return (
                     <div style={{ position: "relative", flexShrink: 0, width: 60, height: 80, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
                       {art ? (
@@ -2298,7 +2309,7 @@ function pickClipTab(clips, remembered, returnClipId) {
   return count.pending > 0 ? "pending" : count.approved > 0 ? "approved" : "all";
 }
 
-export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId, initialFilter, onFilterChange, trackerData = [] }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, onReactionFor, scrollToClipId, initialFilter, onFilterChange, trackerData = [] }) {
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   const [filter, setFilter] = useState(() => pickClipTab(project.clips || [], initialFilter, scrollToClipId));
   // Report the auto-picked tab too, not just clicks — it is the working tab.
@@ -2538,6 +2549,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
             onOpenInEditor={onOpenInEditor}
             onDeleteClip={onDeleteClip}
             gamesDb={gamesDb}
+            onReactionFor={onReactionFor}
             momentPriorities={momentPriorities}
           />
         </ClipSidePanel>

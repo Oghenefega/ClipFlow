@@ -13,6 +13,7 @@ const database = require("./database");
 const signals = require("./signals");
 const geminiWatch = require("./gemini-watch");
 const { PipelineLogger } = require("./pipeline-logger");
+const { linkedGame } = require("../shared/reactions");
 const { getProvider } = require("./ai/llm-provider");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
 // so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
@@ -634,11 +635,16 @@ async function runAIPipeline({
     const gamesDb = store.get("gamesDb") || [];
     const gameEntry = (Array.isArray(gamesDb) ? gamesDb : Object.values(gamesDb)).find((g) => g.tag === gameData.gameTag);
     const entryType = gameEntry?.entryType || "game";
+    // #474: the game a reaction entry is linked to — the game being watched.
+    const watchedGame = linkedGame(gameEntry, Array.isArray(gamesDb) ? gamesDb : Object.values(gamesDb));
     let gameVocab = "";
     if (entryType === "game" && gameData.game) {
       // Include game name + hashtag as vocabulary hints
       gameVocab = `, ${gameData.game}`;
       if (gameEntry?.hashtag) gameVocab += `, ${gameEntry.hashtag}`;
+    } else if (watchedGame) {
+      gameVocab = `, ${watchedGame.name}`;
+      if (watchedGame.hashtag) gameVocab += `, ${watchedGame.hashtag}`;
     }
 
     const whisperOpts = {
@@ -819,6 +825,7 @@ async function runAIPipeline({
       gameName: gameData.game,
       gameContext,
       entryType,
+      watchedGame,
       approvedClips,
       rejectedClips,
       creatorProfile,
@@ -1123,7 +1130,9 @@ async function runAIPipeline({
     if (gameWavPath) { try { fs.unlinkSync(gameWavPath); } catch (e) { /* ignore */ } }
 
     // Increment game session count (for profile auto-update)
-    const thresholdReached = gameProfiles.incrementSessionCount(gameData.gameTag);
+    // Content types have no play-style profile to count toward (#474: nor may
+    // a reaction count toward its game's).
+    const thresholdReached = entryType === "game" ? gameProfiles.incrementSessionCount(gameData.gameTag) : false;
 
     // Mark file as done in SQLite + apply any queued retroactive renames
     updateFileStatus(fileMetadataId, "done");

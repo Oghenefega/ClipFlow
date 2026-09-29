@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import T from "../styles/theme";
 import { parseTags } from "../utils/ytTags";
+import { switchState, reactionsFor } from "../../shared/reactions";
 
 // ============ UTILITIES ============
 // #329: defined in src/shared/captionResolve.js so the main process can require()
@@ -455,6 +456,78 @@ export const Select = ({ value, onChange, options, style: x, renderOption, rende
         </span>
         <span style={{ color: T.textMuted, fontSize: 10, transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>{"\u25BC"}</span>
       </button>
+      {menu}
+    </div>
+  );
+};
+
+// #474: a game-picker row; a reaction linked to a game (nested) sits indented under it.
+export const renderEntryOption = (o) => (
+  <>
+    {o.nested && <span style={{ width: 10, flexShrink: 0 }} />}
+    <GamePill tag={o.tag} color={o.color} size="sm" />{o.label}
+  </>
+);
+
+// #474: Playing | Reacting beside a game picker. `entry` is the picked entry; on
+// a game or a game's linked reaction it shows the switch, on anything else
+// (Just Chatting) nothing. Reacting asks onReactionFor(game) for the entry
+// (App finds, links or creates it); ▾ lists the game's other reaction shows
+// (showOthers false inside a menu that already lists them). `tight` (a crowded
+// row) spells out only the active choice; the other is its icon, named on hover,
+// and ▾ shows only while reacting.
+export const ReactSwitch = ({ entry, gamesDb, onPick, onReactionFor, compact, tight, showOthers = true }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [rect, setRect] = useState(null);
+  const caretRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    if (caretRef.current) setRect(caretRef.current.getBoundingClientRect());
+    const close = (e) => {
+      if (caretRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menuOpen]);
+
+  const { game, reacting } = switchState(entry, gamesDb);
+  if (!game) return null;
+  const reactions = reactionsFor(game, gamesDb);
+
+  const seg = (on) => ({ display: "inline-flex", alignItems: "center", gap: 5, height: compact ? 24 : 30, padding: compact ? "0 8px" : "0 11px", border: "none", borderRadius: T.radius.sm, background: on ? T.accentDim : "transparent", color: on ? T.accentLight : T.textTertiary, fontSize: compact ? 11.5 : 12.5, fontWeight: 600, fontFamily: T.font, cursor: "pointer", whiteSpace: "nowrap" });
+  const react = () => {
+    if (reacting) return;
+    const r = onReactionFor?.(game);
+    if (r) onPick(r);
+  };
+
+  const menu = menuOpen && rect ? createPortal(
+    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: 220, background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 10000, padding: 4 }}>
+      <div style={{ padding: "7px 10px 3px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{game.name} reactions</div>
+      {reactions.map((r) => (
+        <div key={r.name} onClick={() => { onPick(r); setMenuOpen(false); }} onMouseEnter={(e) => e.currentTarget.style.background = "rgba(var(--lift),0.06)"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6, cursor: "pointer", fontSize: 12.5, fontFamily: T.font, color: entry?.name === r.name ? T.accentLight : T.text, fontWeight: entry?.name === r.name ? 600 : 400 }}>
+          <GamePill tag={r.tag} color={r.color} size="sm" />{r.name}
+          {r.reactsDefault && <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.textTertiary }}>default</span>}
+        </div>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: 2, border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: T.surface, flexShrink: 0 }}>
+      <button onClick={() => { if (reacting) onPick(game); }} style={seg(!reacting)} title={`Playing: label as ${game.name} gameplay`}>{tight && reacting ? "🎮" : "🎮 Playing"}</button>
+      <button onClick={react} style={seg(reacting)} title={reacting ? `Labelled as ${entry.name}` : `Reacting: label as a ${game.name} reaction`}>{tight && !reacting ? "🎙" : "🎙 Reacting"}</button>
+      {showOthers && reactions.length > 1 && (!tight || reacting) && (
+        <button ref={caretRef} onClick={() => setMenuOpen((v) => !v)} style={{ ...seg(false), padding: "0 6px" }} title={`Other ${game.name} reaction shows`}>{"▾"}</button>
+      )}
       {menu}
     </div>
   );

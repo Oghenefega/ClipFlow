@@ -33,7 +33,7 @@ const DEFAULT_CREATOR_PROFILE = {
  * @param {number} [opts.sourceDuration] - Recording length in seconds (#200: lets the model calibrate clip count)
  * @returns {string} Full system prompt
  */
-function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, approvedClips, rejectedClips, creatorProfile, sourceDuration }) {
+function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, watchedGame, approvedClips, rejectedClips, creatorProfile, sourceDuration }) {
   const creator = creatorProfile || DEFAULT_CREATOR_PROFILE;
   const sections = [];
 
@@ -96,6 +96,12 @@ Content archetype: ${archetype}`;
 ${typeLabel}: ${gameName || gameTag}`;
   if (gameContext) {
     gameSection += `\n\nAbout this ${isContent ? "content type" : "game"}:\n${capGameContext(gameContext)}`;
+  }
+  // #474: a reaction linked to a game also knows that game. Its research only,
+  // never its play-style profile — the creator is watching, not playing.
+  if (isContent && watchedGame && watchedGame.name) {
+    gameSection += `\n\nThe game being watched: ${watchedGame.name}`;
+    if (watchedGame.aiContextAuto) gameSection += `\n${capGameContext(watchedGame.aiContextAuto)}`;
   }
   if (profile && profile.playStyle) {
     gameSection += `\n\nHow this creator plays ${gameName || gameTag}:\n${profile.playStyle}`;

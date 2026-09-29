@@ -4,6 +4,7 @@ import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
 import PostPill from "../components/PostPill";
 import { toFileUrl } from "../components/shared";
+import { reactionsFor } from "../../shared/reactions";
 import ClipSidePanel, { usePaneBox, sidePanelSize, usePanelKeys, PanelVideo, PanelPoster, PANEL_GAP } from "../components/ClipSidePanel";
 import {
   ledgerTotal, rankForXp, weekEntries, computeRecap, localISO, addDaysISO, weekStartISO,
@@ -234,9 +235,11 @@ export default function TrackerView({
   // before #477 hold the hashtag ("rocketleague") — match either.
   const mainTagLc = (currentGame?.tag || "").toLowerCase();
   const mainHashtagLc = (currentGame?.hashtag || "").toLowerCase();
+  // #474: reactions linked to the main game count as main (decision 6).
+  const mainReactionTagsLc = new Set(reactionsFor(currentGame, gamesDb).map((r) => (r.tag || "").toLowerCase()));
   const mainCount = thisWeekEntries.filter((e) => {
     const g = (e.game || "").toLowerCase();
-    return g && (g === mainTagLc || g === mainHashtagLc);
+    return g && (g === mainTagLc || g === mainHashtagLc || mainReactionTagsLc.has(g));
   }).length;
   const varietyCount = posted - mainCount;
 

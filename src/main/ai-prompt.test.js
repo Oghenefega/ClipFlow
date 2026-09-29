@@ -768,6 +768,29 @@ test("buildUserContent timeline section shows a signal mix, not one signal (#237
   expect(section).toContain("max 10 per signal");
 });
 
+// ── #474: a linked reaction knows the game being watched ──
+
+test("#474: reaction prompt adds the watched game's research, never a play style", () => {
+  const prompt = buildSystemPrompt({
+    gameTag: "RL-R", gameName: "Rocket League Reacts", entryType: "content",
+    gameContext: "I react to Rocket League content: news, trailers, esports and clips.",
+    watchedGame: { name: "Rocket League", aiContextAuto: "Car soccer. Aerials, flip resets, ranked." },
+    approvedClips: [], rejectedClips: [],
+  });
+  expect(prompt).toContain("# CONTENT CONTEXT");
+  expect(prompt).toContain("I react to Rocket League content");
+  expect(prompt).toContain("The game being watched: Rocket League");
+  expect(prompt).toContain("Aerials, flip resets");
+  expect(prompt.includes("How this creator plays")).toBe(false);
+});
+
+test("#474: gameplay and unlinked content prompts carry no watched-game line", () => {
+  const game = buildSystemPrompt({ gameTag: "RL", gameName: "Rocket League", entryType: "game", gameContext: "Car soccer.", approvedClips: [], rejectedClips: [] });
+  const jc = buildSystemPrompt({ gameTag: "JC", gameName: "Just Chatting", entryType: "content", gameContext: "Talking.", approvedClips: [], rejectedClips: [] });
+  expect(game.includes("The game being watched")).toBe(false);
+  expect(jc.includes("The game being watched")).toBe(false);
+});
+
 // ── Summary ──
 
 console.log(`\n${passed} passed, ${failed} failed (${passed + failed} total)`);

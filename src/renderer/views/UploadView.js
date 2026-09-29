@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, GamePill, PageHeader, SectionLabel, Badge, Select, formatDuration } from "../components/shared";
+import { Card, GamePill, PageHeader, SectionLabel, Badge, Select, formatDuration, ReactSwitch } from "../components/shared";
+import { groupedEntryOptions } from "../../shared/reactions";
 import { ProfileDiffModal } from "../components/modals";
 import AudioCalibrationModal from "../components/AudioCalibrationModal";
 import TestChip from "../components/TestChip";
@@ -189,7 +190,7 @@ const CLUSTER_SHELL = {
   animation: "clipflowClusterUp 0.18s ease-out",
 };
 
-export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, onOpenSourcePreview, onPlayStyleSaved, testWatchFolder = "", refreshKey = 0, isActive = false }) {
+export default function RecordingsView({ gamesDb = [], onReactionFor, localProjects = [], onProjectCreated, onOpenSourcePreview, onPlayStyleSaved, testWatchFolder = "", refreshKey = 0, isActive = false }) {
   const [files, setFiles] = useState([]);
   // Rows that appeared since the user last looked at this tab wear a NEW chip.
   // Session-only; cleared when the tab is left. knownIdsRef is the id set from
@@ -944,24 +945,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     } catch (_) {}
   };
 
-  // Quick-import game options (grouped)
-  const getGroupedGameOptions = () => {
-    const games = gamesDb.filter((g) => !g.entryType || g.entryType === "game");
-    const contentTypes = gamesDb.filter((g) => g.entryType === "content");
-    const options = [];
-    if (games.length > 0) {
-      options.push({ value: "__header_games__", label: "Games", isHeader: true });
-      games.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
-    }
-    if (contentTypes.length > 0) {
-      options.push({ value: "__header_content__", label: "Content Types", isHeader: true });
-      contentTypes.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
-    }
-    if (options.length === 0) {
-      gamesDb.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
-    }
-    return options;
-  };
+  // Quick-import game options (grouped); #474: linked reactions nest under their game.
+  const getGroupedGameOptions = () => groupedEntryOptions(gamesDb, "name");
 
   // Disk-reconcile notices: deleted-outside-ClipFlow cleanup + adoption toast.
   // Rendered in both the normal list and the empty state (deleting every file
@@ -1098,11 +1083,22 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                   <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", pointerEvents: "none" }}>{o.label}</span>
                 ) : (
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {o.nested && <span style={{ width: 10, flexShrink: 0 }} />}
                     {o.tag && <GamePill tag={o.tag} color={o.color} size="sm" />}
                     {o.label}
                   </span>
                 )}
               />
+              {quickImportGame && (
+                <div style={{ marginTop: -6, marginBottom: 16 }}>
+                  <ReactSwitch
+                    entry={gamesDb.find((g) => g.name === quickImportGame)}
+                    gamesDb={gamesDb}
+                    onPick={(e) => setQuickImportGame(e.name)}
+                    onReactionFor={onReactionFor}
+                  />
+                </div>
+              )}
               <button
                 onClick={() => {
                   if (!quickImportGame) return;

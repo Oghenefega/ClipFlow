@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import T from "../styles/theme";
-import { GamePill, Select } from "./shared";
+import { GamePill, Select, ReactSwitch, renderEntryOption } from "./shared";
+import { groupedEntryOptions } from "../../shared/reactions";
 
 /**
  * Format seconds to MM:SS or HH:MM:SS display.
@@ -30,7 +31,7 @@ const MIN_SEGMENT_SECONDS = 60; // 1-minute minimum segment
  *   loading: boolean
  *   defaultGameTag: string — default game tag for new segments
  */
-export default function ThumbnailScrubber({ thumbnails, duration, games, markers, onMarkersChange, loading, defaultGameTag }) {
+export default function ThumbnailScrubber({ thumbnails, duration, games, markers, onMarkersChange, loading, defaultGameTag, onReactionFor }) {
   const stripRef = useRef(null);
   const [hoveredMarker, setHoveredMarker] = useState(null); // index of hovered marker
   const [hoverTime, setHoverTime] = useState(null); // time preview on hover
@@ -42,24 +43,8 @@ export default function ThumbnailScrubber({ thumbnails, duration, games, markers
   // Reset hover on markers change
   useEffect(() => { setHoveredMarker(null); }, [markers]);
 
-  // Build grouped game options (same pattern as RenameView)
-  const getGameOptions = () => {
-    const gamesList = games.filter((g) => !g.entryType || g.entryType === "game");
-    const contentTypes = games.filter((g) => g.entryType === "content");
-    const options = [];
-    if (gamesList.length > 0) {
-      options.push({ value: "__header_games__", label: "Games", isHeader: true });
-      gamesList.forEach((g) => options.push({ value: g.tag, label: g.name, tag: g.tag, color: g.color }));
-    }
-    if (contentTypes.length > 0) {
-      options.push({ value: "__header_content__", label: "Content Types", isHeader: true });
-      contentTypes.forEach((g) => options.push({ value: g.tag, label: g.name, tag: g.tag, color: g.color }));
-    }
-    if (gamesList.length === 0 && contentTypes.length === 0) {
-      games.forEach((g) => options.push({ value: g.tag, label: g.name, tag: g.tag, color: g.color }));
-    }
-    return options;
-  };
+  // Grouped game options keyed by tag; #474: linked reactions nest under their game.
+  const getGameOptions = () => groupedEntryOptions(games, "tag");
 
   // Get segments from markers
   const getSegments = () => {
@@ -409,10 +394,16 @@ export default function ThumbnailScrubber({ thumbnails, duration, games, markers
                     <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", pointerEvents: "none" }}>{o.label}</span>
                   ) : (
                     <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <GamePill tag={o.tag} color={o.color} size="sm" />
-                      {o.label}
+                      {renderEntryOption(o)}
                     </span>
                   )}
+                />
+                <ReactSwitch
+                  compact
+                  entry={game}
+                  gamesDb={games}
+                  onPick={(e) => updateSegmentGame(i, e.tag)}
+                  onReactionFor={onReactionFor}
                 />
 
                 {/* Color indicator */}

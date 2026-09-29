@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import T from "../styles/theme";
-import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, TabBar, Select, MiniSpinbox, Checkbox, formatDuration, toFileUrl } from "../components/shared";
+import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, TabBar, Select, MiniSpinbox, Checkbox, formatDuration, toFileUrl, ReactSwitch, renderEntryOption } from "../components/shared";
+import { groupedEntryOptions, linkedGame } from "../../shared/reactions";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
 
 // ── Preset metadata (mirrored from naming-presets.js for UI rendering) ──
@@ -321,7 +322,7 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
   );
 }
 
-export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder, testWatchFolder, onFilesRenamed, onNavigate }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, onReactionFor, watchFolder, testWatchFolder, onFilesRenamed, onNavigate }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -379,6 +380,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   // #172: session-ledger selection state
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [gameMenuOpen, setGameMenuOpen] = useState(false);
+  const [bulkReacting, setBulkReacting] = useState(false);
   const lastClickedRef = useRef(null); // anchor for shift-click range select
   const gameMenuRef = useRef(null);
   const rootRef = useRef(null);
@@ -802,8 +804,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   // #172: assign a game to a set of rows (session header picker or the batch
   // bar's Set Game). The renumber pass then re-derives day/part in recording
   // order — rows leaving a game free up parts, rows joining take the next ones.
-  const setGameForRows = (ids, gameName) => {
-    const g = gamesDb.find((x) => x.name === gameName);
+  // #474: `entry` is passed when the React switch just created it (not in gamesDb yet).
+  const setGameForRows = (ids, gameName, entry) => {
+    const g = entry || gamesDb.find((x) => x.name === gameName);
     if (!g) return;
     const idSet = new Set(ids);
     // #263: a hand-picked game must never be overwritten by a late AI result.
@@ -1222,6 +1225,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     for (const seg of segments) {
       const segDuration = seg.endSeconds - seg.startSeconds;
       const segGame = gamesDb.find((g) => g.tag === seg.gameTag);
+      // #474: a part labelled with another entry (a reaction after gameplay)
+      // takes that entry's own Day, not this row's.
+      const segDay = segGame && segGame.tag !== r.tag
+        ? detectForGame(segGame, r.fileName, pendingRenames.filter((p) => p.id !== r.id)).day
+        : r.day;
 
       // Check if this segment itself needs auto-splitting
       const tailLength = segDuration % thresholdSec;
@@ -1236,6 +1244,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             startSeconds: subStart,
             endSeconds: subEnd,
             tag: seg.gameTag,
+            day: segDay,
             entryType: segGame?.entryType || "game",
             partNumber: subCount > 1 ? (j + 1) : null,
           });
@@ -1245,6 +1254,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           startSeconds: seg.startSeconds,
           endSeconds: seg.endSeconds,
           tag: seg.gameTag,
+          day: segDay,
           entryType: segGame?.entryType || "game",
           partNumber: null,
         });
@@ -1270,7 +1280,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       const childMeta = {
         tag: sp.tag,
         date: fileDate,
-        dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+        dayNumber: PRESETS_USING_DAY.has(preset) ? sp.day : null,
         partNumber: sp.partNumber,
         customLabel: r.customLabel || null,
         originalFilename: r.fileName,
@@ -1290,7 +1300,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         current_path: childNewPath,
         tag: sp.tag,
         part_number: sp.partNumber,
-        day_number: PRESETS_USING_DAY.has(preset) ? r.day : null,
+        day_number: PRESETS_USING_DAY.has(preset) ? sp.day : null,
       });
 
       const segGame = gamesDb.find((g) => g.tag === sp.tag);
@@ -1298,6 +1308,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         newName: childNewName,
         partNumber: sp.partNumber,
         tag: sp.tag,
+        day: sp.day,
         color: segGame?.color || r.color,
         game: segGame?.name || r.game,
       });
@@ -1413,7 +1424,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           for (const c of children) {
             corrected.push({
               id: `h-${Date.now()}-${r.id}-${c.tag}-${c.partNumber}`, oldName: r.fileName, newName: c.newName,
-              game: c.game || r.game, tag: c.tag || r.tag, color: c.color || r.color, day: r.day,
+              game: c.game || r.game, tag: c.tag || r.tag, color: c.color || r.color, day: c.day ?? r.day,
               part: c.partNumber, time, undone: false, isTest: !!r.isTest,
             });
           }
@@ -1479,7 +1490,12 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
     // Remember the last renamed game for auto-selecting on future files
     for (let i = sorted.length - 1; i >= 0; i--) {
-      if (renamedIds.has(sorted[i].id)) { lastRenamedGame.current = sorted[i].game; break; }
+      if (renamedIds.has(sorted[i].id)) {
+        // #474: after a reaction, the next file defaults back to its game (switch off).
+        const e = gamesDb.find((g) => g.name === sorted[i].game);
+        lastRenamedGame.current = linkedGame(e, gamesDb)?.name || sorted[i].game;
+        break;
+      }
     }
 
     setRenaming(false);
@@ -1568,31 +1584,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   };
 
   // ============ GROUPED DROPDOWN OPTIONS ============
-  const getGroupedGameOptions = () => {
-    const games = gamesDb.filter((g) => !g.entryType || g.entryType === "game");
-    const contentTypes = gamesDb.filter((g) => g.entryType === "content");
-
-    const options = [];
-
-    // Games header
-    if (games.length > 0) {
-      options.push({ value: "__header_games__", label: "Games", isHeader: true });
-      games.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
-    }
-
-    // Content Types header
-    if (contentTypes.length > 0) {
-      options.push({ value: "__header_content__", label: "Content Types", isHeader: true });
-      contentTypes.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
-    }
-
-    // If no entryType set yet (pre-migration), show all as flat list
-    if (games.length === 0 && contentTypes.length === 0) {
-      gamesDb.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
-    }
-
-    return options;
-  };
+  // #474: a game's linked reactions are listed under it; Content Types keeps the rest.
+  const getGroupedGameOptions = () => groupedEntryOptions(gamesDb, "name");
 
   // ============ DRAG-AND-DROP IMPORT ============
   const handleDrop = async (e) => {
@@ -1866,7 +1859,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                   return (
                     <div key={grp.key} style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.lg, background: T.surface, overflow: "hidden" }}>
                       {/* session header — owns everything the parts share */}
-                      <div className="cfr-shead" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
+                      <div className="cfr-shead" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
                         <span className="cfr-check"><LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" /></span>
                         <span style={{ fontSize: 13.5, fontWeight: 800, color: T.text, whiteSpace: "nowrap" }}>{fmtSessionDate(grp.date)}</span>
                         <GroupedSelect
@@ -1874,9 +1867,17 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                           onChange={(v) => setGameForRows(rowIds, v)}
                           options={gameOptions}
                           renderSelected={(o) => <><GamePill tag={o.tag || grp.tag} color={o.color || grp.rows[0].color} size="sm" />{o.label}</>}
-                          renderOption={(o) => <><GamePill tag={o.tag} color={o.color} size="sm" />{o.label}</>}
+                          renderOption={renderEntryOption}
                           style={{ minWidth: 150 }}
                           borderColor={`${grp.rows[0].color}44`}
+                        />
+                        <ReactSwitch
+                          compact
+                          tight
+                          entry={gamesDb.find((g) => g.name === grp.rows[0].game)}
+                          gamesDb={gamesDb}
+                          onPick={(e) => setGameForRows(rowIds, e.name, e)}
+                          onReactionFor={onReactionFor}
                         />
                         <MiniSpinbox compact label="Day" value={grp.rows[0].day} onChange={(v) => setDayForRows(rowIds, v)} />
                         <SessionPresetPicker presetId={headPreset} onChange={(v) => setPresetForRows(rowIds, v)} />
@@ -2001,6 +2002,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                                     onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
                                     loading={!!scrubberLoading[r.id]}
                                     defaultGameTag={r.tag}
+                                    onReactionFor={onReactionFor}
                                   />
                                 </div>
                               )}
@@ -2152,20 +2154,32 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             <>
               <span style={{ fontSize: 12.5, color: T.textSecondary, padding: "0 4px", whiteSpace: "nowrap", fontFamily: T.font }}><b style={{ color: T.text }}>{selectedIds.size}</b> selected</span>
               <div ref={gameMenuRef} style={{ position: "relative" }}>
-                <button onClick={() => setGameMenuOpen((v) => !v)} disabled={renaming} style={{ ...BAR_BTN, background: gameMenuOpen ? T.surfaceHover : "transparent", borderColor: T.border, color: T.textSecondary }}>Set Game ▾</button>
+                <button onClick={() => { setGameMenuOpen((v) => !v); setBulkReacting(false); }} disabled={renaming} style={{ ...BAR_BTN, background: gameMenuOpen ? T.surfaceHover : "transparent", borderColor: T.border, color: T.textSecondary }}>Set Game ▾</button>
                 {gameMenuOpen && (
                   <div style={{ position: "absolute", bottom: "calc(100% + 10px)", left: "50%", transform: "translateX(-50%)", background: "rgba(22,23,31,0.97)", border: `1px solid ${T.borderHover}`, borderRadius: 12, boxShadow: "0 10px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: 5, minWidth: 210, maxHeight: 320, overflowY: "auto" }}>
+                    {/* #474: with Reacting on, a picked game labels the files as its reaction. */}
+                    <div
+                      onClick={() => setBulkReacting((v) => !v)}
+                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", margin: "0 0 4px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, color: bulkReacting ? T.accentLight : T.textSecondary, background: bulkReacting ? T.accentDim : "transparent", borderBottom: `1px solid ${T.border}` }}
+                    >
+                      <Checkbox checked={bulkReacting} size={14} />🎙 Reacting
+                    </div>
                     {gameOptions.map((o) => o.isHeader ? (
                       <div key={o.value} style={{ padding: "7px 12px 3px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{o.label}</div>
                     ) : (
                       <div
                         key={o.value}
-                        onClick={() => { setGameForRows(selectedIds, o.value); setGameMenuOpen(false); clearSelection(); }}
+                        onClick={() => {
+                          const g = gamesDb.find((x) => x.name === o.value);
+                          const target = bulkReacting && g && (!g.entryType || g.entryType === "game") ? onReactionFor?.(g) : g;
+                          if (target) setGameForRows(selectedIds, target.name, target);
+                          setGameMenuOpen(false); clearSelection();
+                        }}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: T.text, whiteSpace: "nowrap", fontFamily: T.font }}
                         onMouseEnter={(e) => e.currentTarget.style.background = T.surfaceHover}
                         onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                       >
-                        <GamePill tag={o.tag} color={o.color} size="sm" />{o.label}
+                        {renderEntryOption(o)}
                       </div>
                     ))}
                   </div>
