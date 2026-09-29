@@ -1,67 +1,57 @@
-# HANDOFF — Session 279 (2026-09-28 → 29)
+# HANDOFF — Session 280 (2026-09-29)
 
 ## Current State
 
-No installer this session. Fega decided to hold the cut. Four fixes are committed but **unreleased** (the What's New "unreleased" entry is written):
-- #472: a Recordings-tab drop can no longer wipe a watch-folder recording
-- #475: rename, retag and game ↔ content switch, carrying the entry's history
-- #476: hyphenated tags parse
-- #477: manual Tracker logs store the tag
+**0.5.0-alpha.16 is on the update feed, and Fega installed it.** It carries:
+- the React switch (#474)
+- rename/retag/type switch with history (#475)
+- fixes #472, #476, #477
 
-All four are closed with `status: untested`, pending Fega on the installed app.
+**One change is committed but unreleased:** new games and reaction shows copy Fega's own YouTube layout and channel tags. Its What's New line is written under "unreleased".
 
-Fega's real library (`%APPDATA%\Corva`) was hand-edited with Corva closed, with backups in `data\backup-2026-09-29-*`:
-- RL Sub Reacts is now **Rocket League Reacts** (`RL-R`).
-- **VCT** is a content type.
-- **Valorant Reacts** (`Val-R`) was added.
-- Every em dash is gone from `gamesDb` and `game_profiles.json`.
-- Arc Raiders and Egging On play styles are synced from the detection profile. Their Edit-window copies were empty.
+**Fega's library was edited by hand this session**, with Corva closed:
+- Fall Guys (`FG`) and Fall Guys Reacts (`FG-R`) were added by Fega.
+- I rebuilt their YouTube descriptions and tags from his layout. Backup: `%APPDATA%\Corva\data\backup-2026-09-29-fallguys-yt.json`.
 
-The dev profile was restored from backup after the #475 end-to-end runs.
+**Status of the issues:**
+- #472, #474, #475, #476 and #477 are closed with `status: untested`. Remove the label once Fega confirms.
+- #478 is filed: game-change split parts land in the recordings folder root, with no Pt number, and the original is kept.
 
 ## Key Decisions
 
-- **React switch (#474) design is agreed.** The spec is `tasks/specs/react-switch.md` and the clickable mockup is `tasks/specs/react-switch-mockup.html`. Fega's picks:
-  1. VCT and 100T link to Valorant.
-  2. Reactions keep their own colour.
-  3. One default reaction entry per game. **Valorant's default is 100T**, and Fega confirmed it again after Valorant Reacts existed.
-  4. After renaming a reaction, the next row defaults back to the game.
-  5. A retag moves the clip's feedback rows.
-  6. **Reactions to the main game count as MAIN** in the Tracker. Fega changed this from variety.
-- **Reaction taxonomy:** one general reaction bucket per game plus named shows. No per-agent, map or season types, because thin buckets starve learning. Valorant now has 100T (default), VCT (other teams' pro matches) and Valorant Reacts (news).
-- **A tag change carries everything over.** Recording files and project names are never renamed (Resolve links, and `feedback.video_id` is the project name). Old tags live in `previousTags`.
-- **No em dashes** in anything written for Fega. This is a memory rule.
+- **Reacting switch UI:**
+  - The Rename session header uses a "tight" switch that spells out only the active side. The full switch overflowed the header.
+  - The header wraps rather than clipping text.
+  - In the tight switch, ▾ shows only while Reacting is on.
+- **Links are editable in Settings:** a content type's Edit window has a "Reacts to" list (link, unlink, relink) and Make default. The boot link (`_migrated_reactsTo_v1`) runs once, so later edits stick.
+- **Content-type Edit window:** Research Game stays (GTA6 Reacts existed before GTA 6). Find on Steam and Play Style Auto-Update are hidden for content types.
+- **Starter YouTube text copies the user's layout.** The source is the main game's description: its first paragraph is swapped for the new blurb and its hashtag for the new one. New entries also get the "channel tags" found on at least half of the user's entries. A user with no descriptions still gets the generic starter, so no one inherits another person's links (#262 holds).
+- **Fall Guys taxonomy:** a reaction to Fega's own old Fall Guys stream goes under Fall Guys Reacts, not Just Chatting. An old gameplay clip imported to post goes under Fall Guys.
 
 ## Next Steps
 
-1. **Build the React switch (#474).** This is Fega's pick for next session. Plan it in plan mode against the spec. Its prerequisites #475, #476 and #477 are done.
-   - It adds a `reactsTo` field on content entries, with a migration.
-   - The switch goes in the Rename per-session and bulk pickers, the Recordings drop modal, the Projects retag menu and the split markers.
-   - It auto-creates a `<Game> Reacts` entry with the `<TAG>-R` tag, and links the existing entries (RL-R → RL, GTA6-R → GTA6, VCT and 100T → Val, with 100T as the default).
-   - Detection and titles get the linked game's `aiContextAuto` as "game being watched".
-   - The Tracker main-count also counts linked reactions (`TrackerView.js` ~235).
-2. **Keep original file name (#473), explanation first, no plan yet.** Fega asked me to explain it in plain words before any planning. Ask him roughly this:
-   > "When a recording is already in a Resolve project, Corva could label it (game, Day, Part) and send it to clipping **without** renaming the file. That keeps Resolve's links working. My recommendation: a one-click 'Keep file name' on the Rename row, and nothing else. No global setting, and no automatic Resolve detection (you already said no to that). Splitting a long recording still works, because it writes new files. Want that?"
-3. **Cut an installer when Fega asks.** It carries #472, #475, #476 and #477, plus the library edits' behaviour. It's the only way he can try #475 in Settings.
-4. **Dropped:** reconnecting the Resolve project for the Rocket League reaction video. **Dizzy handles it.** Don't raise it again.
+1. **Ask Fega whether the React switch works on his installed app.** Suggested wording:
+   > "Did flipping Reacting on a real reaction recording give the right name and Day, and do your reaction shows sit under their games in Settings? If yes, I'll clear the untested flags on #472 and #474-#477."
+2. **Keep original file name (#473):** still waiting for the plain-words explanation. Ask him the question from the s279 handoff, roughly:
+   > "One click 'Keep file name' on the Rename row sends a recording to clipping without renaming it, so Resolve's links keep working. Want that?"
+3. **#478 (split quirks):** a code fix with no question for Fega. Plan it when there's room: month folder, Pt numbering, and what to do with the original.
+4. **Next installer:** ship when about 10 changes have piled up or Fega asks. The only change waiting right now is the YouTube layout starter.
 
 ## Watch Out For
 
-- **Corva lives in the tray.** Closing the window can leave `Corva.exe` running ("Keep publishing while I stream"). Any external store write must abort in-script if `tasklist` finds Corva. I wrote once while it was running this session. The rule is now in the `clipflow-electron-ipc` skill.
-- **#475 renderer/main split.** Main moves the DB, files and `detectedGames`. The renderer rewrites its own persisted slices through `src/shared/entryIdentity.js`. Don't move settings-key writes into main: the renderer would save its stale copy over them.
-- **`handleEditGame` is async now.** SettingsView awaits it before closing the modal.
-- **Tags:** `[A-Za-z0-9-]`, 1-8 characters, with at least one letter (`cleanTag`/`tagValid` in `modals.js`). The parsers share `TAG_SOURCE` from `reconcile.js`.
-- **Leftovers on disk:**
-  - four `backup-2026-09-29-entry-*` folders in `%APPDATA%\clipflow-dev\data\`, from the #475 test runs. They're harmless; the delete was blocked.
-  - the scratch fixture and `devbackup` in this session's scratchpad.
-- **Not exercised end to end:** Undo after a retag (unit-tested only), and the next recording's proposed Day after a retag in the live Rename tab (only the counter carry-over was checked).
+- **The Day counter reuses the current Day for dates on or before `lastDayDate`.** When testing numbering, use dates after the entry's last Day. This is lesson s280; I nearly "fixed" correct code twice.
+- **A rare Day collision remains:** a whole reaction row plus a split reaction part for the same entry on different dates, renamed in one batch, can share a Day. `renumberRows` doesn't look inside scrubber markers. It's noted in the changelog.
+- **The game-change split** (`gameSwitchSplitAndRename`) gives each part its own entry's Day and collects the batch's parts up front (`batchSegRows`). Keep both if you touch #478.
+- **`src/shared/reactions.js` now requires `./ytDescriptionTemplate`.** That's fine for the renderer: `trackerRow.js` and `resolveSubtitles.js` do the same.
+- **The Bash tool eats backslashes** in heredoc JS patches. `/\s+/` became `/s+/` once this session (CaptionsView, fixed). Use the Edit tool for regex lines, and grep the diff for `/s+/`.
 
 ## Logs / Debugging
 
-- An identity change logs `Entry identity changed (#475): <old> [<tag>] → <new> [<tag>] <type> {moved…}` in `app.log` (system). A partial file-step failure shows in `moved.problems` and in the toast, with the backup path.
-- Import refusals (#472) come back as `{ error }` from `import:externalFile`. The Recordings tab shows "Import failed: …" for 8 seconds.
-- CDP driving on this machine:
-  - The first `json` target can be the splash window. Wait until `typeof window.clipflow?.importExternalFile === "function"`.
-  - Set React inputs through the native value setter plus an `input` event.
-  - Scripts: `cdp.js`, `ui.js` and `fill.js` in this session's scratchpad.
-- Headless Edge screenshots: `--user-data-dir` needs a real path. A mangled `"\edgeprof"` popped an error dialog on Fega's screen.
+- The boot link logs `Reaction entries linked to their games (#474): …` (system module) once per profile.
+- **Dev-profile test setup:**
+  - Scripts live in this session's scratchpad: `setup*.js` points the dev profile at scratch folders with Fega's library copied in, and `devbackup/` holds the pristine dev settings, tokens and DB.
+  - **The dev profile has been restored from `devbackup`.**
+  - Scratch `watch*`/`lib*` folders are left behind; they're harmless.
+- **Driving the app over CDP:**
+  - `cdp.js raw '["Input.dispatchDragEvent", …]'` simulates a file drop. Build the JSON in node (see `drop.js`); inline Windows paths lose their backslashes.
+  - Quit the dev app with `window.close()` over CDP. `taskkill` was blocked.

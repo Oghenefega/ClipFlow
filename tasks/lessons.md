@@ -2,7 +2,7 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-09-29 (s279: three lessons. "Hide it" offered when Fega wanted to clip the file -> memory feedback_workaround_vs_goal. Wrote Corva settings while Corva ran -> clipflow-electron-ipc: gate external store writes on zero Corva processes inside the script, plus the #475 rule that main never writes a renderer-persisted settings key. Em dashes in text written for Fega -> memory feedback_no_em_dashes. Everything below the NEXT-UNDISTILLED marker dated 2026-09-29 or earlier is distilled.) -- s278: no new lessons. s277: two lessons into clipflow-ui-debug (fill the window; resizing keeps the visual treatment). -->
+> <!-- DISTILLED-THROUGH: 2026-09-29 (s280: one lesson. Split-Day fix nearly called broken twice because the fixture dates sat before RL-R's last Day -> clipflow-trace-verify: print the fixture's counter state and hand-derive the expected result before calling a numbering fix failed.) -- (s279: three lessons. "Hide it" offered when Fega wanted to clip the file -> memory feedback_workaround_vs_goal. Wrote Corva settings while Corva ran -> clipflow-electron-ipc: gate external store writes on zero Corva processes inside the script, plus the #475 rule that main never writes a renderer-persisted settings key. Em dashes in text written for Fega -> memory feedback_no_em_dashes. Everything below the NEXT-UNDISTILLED marker dated 2026-09-29 or earlier is distilled.) -- s278: no new lessons. s277: two lessons into clipflow-ui-debug (fill the window; resizing keeps the visual treatment). -->
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
@@ -2225,3 +2225,8 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 **Why:** Those notes speak in Fega's voice ("I react to…"). Em dashes read as machine-written, and I defaulted to them without thinking about whose voice the text was in.
 
 **Rule:** no em dashes in anything written for Fega: entry notes, YouTube descriptions, captions, titles, specs and chat replies. Use a colon to lead into a list, and a comma or a new sentence for an aside.
+
+## Session 280 (2026-09-29) — I nearly called a correct fix broken twice, because the test dates sat before the entry's last Day (self-caught)
+**What happened:** testing the #474 split Day fix, two Rocket League Reacts split parts dated Sep 20 and 21 both came out `RL-R Day1`. I blamed rename order and patched a second time; the rerun gave the same result. The copied library already had `RL-R` at Day 1 on Sep 21. The counter's rule gives the same day that Day and any older date the current Day, so Day 1 twice was correct. With Sep 25 and 26 the parts came out Day 2 and Day 3.
+**Why it happened:** I built the fixture without reading the entry's existing `dayCount`/`lastDayDate`, then read the "wrong" output as a code failure.
+**Rule:** before calling a counter or numbering fix failed, print the fixture's starting state (`dayCount`, `lastDayDate`, existing parts) and work out by hand what the code's own rules should give. A test needs dates after the entry's last Day unless the back-dated rule is what's being tested.
