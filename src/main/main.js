@@ -137,6 +137,7 @@ const gameProfiles = require("./game-profiles");
 const gameDetect = require("./game-detect");
 const gameArt = require("./game-art");
 const entryIdentity = require("./entry-identity");
+const { importTargetProblem } = require("./import-guard");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
 const tiktokOAuth = require("./oauth/tiktok");
@@ -2746,8 +2747,14 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, tes
       monthFolder = `${bucketDate.getFullYear()}-${String(bucketDate.getMonth() + 1).padStart(2, "0")}`;
     }
     const targetDir = path.join(importRoot, monthFolder);
-    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const targetPath = path.join(targetDir, filename);
+    // #472: never write over the source or an existing file — the copy below
+    // truncates its target first. An MKV also writes a converted .mp4.
+    const writes = [targetPath];
+    if (convertToMp4 && ext !== ".mp4") writes.push(path.join(targetDir, `${path.basename(filename, ext)}.mp4`));
+    const problem = importTargetProblem(sourcePath, writes);
+    if (problem) return { error: problem };
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
 
     // Get source file size for pendingImports suppression
     const srcStat = fs.statSync(sourcePath);
