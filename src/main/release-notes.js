@@ -12,6 +12,22 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    added: [
+      "You can now rename a game or content type, change its tag, or switch it between a game and a content type, and everything filed under it comes along. Open it in Settings → Games and press Edit. There's a Name box and a Game / Content type switch next to the Tag. When you save, Corva first shows what will move (your recordings, approve and reject history, projects, detection profile and game art), then moves it all in one go after taking a backup. Your recording files keep their names, and Corva still recognises files named with the old tag.",
+    ],
+    changed: [
+      "For a content type, clip detection now reads the note you wrote about it first, even if it was once a game with AI research attached. Switching a game to a content type asks you for that note.",
+      "Tags can only use letters, numbers and a dash (like RL-R), up to 8 characters, with at least one letter, so every tag fits in a file name and reads back correctly. Name and tag duplicates are caught regardless of capital letters.",
+    ],
+    fixed: [
+      "Dragging a recording onto the Recordings tab can no longer destroy it. If the file was already in your recordings folder, Corva used to copy it onto itself and leave it empty. Now it stops and says the recording is already there, and it never overwrites a file that already exists.",
+      "Recordings whose tag has a dash, like GTA6-R or RL-R, are recognised again when Corva scans your recordings folder.",
+      "A clip you log by hand in the Tracker for a reaction show now counts under that show, not under the game it reacts to.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.15",
     date: "2026-09-24",
     added: [
