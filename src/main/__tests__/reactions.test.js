@@ -95,14 +95,19 @@ describe("auto-create", () => {
     expect(R.findSimilarUnlinked(byName(linkedLib(), "Rocket League"), linkedLib())).toBeNull();
   });
 
-  test("YouTube text: a reaction first line in place of the game's, reaction tags first", () => {
+  test("YouTube text: the main game's layout with a reaction first line; reaction, game and channel tags", () => {
+    const ytDescriptions = {
+      Valorant: { desc: "Valorant ranked.\n\n{schedule}\n\nSUBSCRIBE link\n\n#valorant #gamingshorts #Fega", tags: ["valorant", "Fega", "gaming shorts"] },
+      "Rocket League": { desc: "Rocket League ranked.\n\n{schedule}\n\nSUBSCRIBE link\n\n#rocketleague #gamingshorts #Fega", tags: ["rocket league", "Fega", "gaming shorts"] },
+    };
     const yt = R.buildReactionYtDescription(
       { name: "Rocket League", hashtag: "rocketleague" },
-      { desc: "Rocket League ranked and chaos.\n\nSUBSCRIBE link", tags: ["rocket league", "gaming shorts"] });
-    expect(yt.desc).toBe("Reacting to Rocket League news, trailers and clips\n\nSUBSCRIBE link");
+      { layoutEntry: { name: "Valorant", hashtag: "valorant" }, ytDescriptions });
+    expect(yt.desc).toBe("Reacting to Rocket League news, trailers and clips\n\n{schedule}\n\nSUBSCRIBE link\n\n#rocketleague #gamingshorts #Fega");
     expect(yt.tags[0]).toBe("rocket league reaction");
-    expect(yt.tags).toContain("gaming shorts");
-    expect(R.buildReactionYtDescription({ name: "Arc Raiders", hashtag: "arcraiders" }, undefined).desc)
+    expect(yt.tags).toEqual(expect.arrayContaining(["rocket league", "Fega", "gaming shorts"]));
+    // A new user with no descriptions gets a short generic one, never anyone's links.
+    expect(R.buildReactionYtDescription({ name: "Arc Raiders", hashtag: "arcraiders" }).desc)
       .toBe("Reacting to Arc Raiders news, trailers and clips\n\n#arcraiders #reaction");
   });
 });

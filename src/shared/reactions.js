@@ -8,6 +8,7 @@
  * imports named ESM bindings (Vite handles the interop, same as captionResolve).
  */
 const lc = (s) => String(s || "").toLowerCase();
+const { buildYtFromLayout } = require("./ytDescriptionTemplate");
 const isGame = (g) => !!g && (!g.entryType || g.entryType === "game");
 
 /** The game a linked reaction entry reacts to, or null (unlinked, or the game is gone). */
@@ -101,19 +102,22 @@ function buildReactionEntry(game, gamesDb) {
 }
 
 /**
- * A reaction's YouTube description and tags ({ desc, tags }), built from the
- * game's own saved ones (not the gameplay-flavoured starter template): a
- * reaction first line in place of the game's, and reaction tags ahead of the game's.
+ * A reaction's YouTube description and tags ({ desc, tags }). s280: built from
+ * the user's own layout (the main game's description, see buildYtFromLayout)
+ * with a reaction first line; reaction tags, then the game's, then the user's
+ * channel tags. With no layout to copy, a short generic one.
+ * layoutEntry: { name, hashtag } of the main game.
  */
-function buildReactionYtDescription(game, gameYt) {
+function buildReactionYtDescription(game, { layoutEntry, ytDescriptions } = {}) {
   const hashtag = game.hashtag || lc(game.name).replace(/\s+/g, "");
-  const rest = String(gameYt?.desc || "").split("\n").slice(1).join("\n").trim();
-  const desc = [`Reacting to ${game.name} news, trailers and clips`, rest || `#${hashtag} #reaction`]
-    .join("\n\n");
+  const blurb = `Reacting to ${game.name} news, trailers and clips`;
+  const gameTags = Array.isArray(ytDescriptions?.[game.name]?.tags) ? ytDescriptions[game.name].tags : [];
   const own = [`${lc(game.name)} reaction`, `${hashtag} reaction`, `${lc(game.name)} news`, `${lc(game.name)} trailer reaction`, "gaming reaction"];
-  const gameTags = Array.isArray(gameYt?.tags) ? gameYt.tags : [];
-  const tags = [...own, ...gameTags].filter((t, i, a) => a.findIndex((u) => lc(u) === lc(t)) === i);
-  return { desc, tags };
+  return buildYtFromLayout({
+    name: `${game.name} Reacts`, hashtag, blurb, layoutEntry, ytDescriptions,
+    tags: [...own, ...gameTags],
+    fallbackDesc: `${blurb}\n\n#${hashtag} #reaction`,
+  });
 }
 
 /** Mark one reaction as its game's default; its siblings lose the flag. */

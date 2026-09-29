@@ -3,7 +3,7 @@ import T from "../styles/theme";
 import PLATFORM_BRAND from "../styles/platformBrand";
 import { CopyIconButton, GamePill, TagInput } from "../components/shared";
 import PlatformIcon from "../components/PlatformIcon";
-import { buildStarterYtDescription } from "../../shared/ytDescriptionTemplate";
+import { buildGameStarterYt } from "../../shared/ytDescriptionTemplate";
 import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 
 const PLATFORMS = [
@@ -37,7 +37,7 @@ const FIELD = { width: "100%", background: "rgba(var(--lift),0.05)", border: `1p
  *
  * This component only ever renders inside QueueView — it is not a route.
  */
-export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [], setGamesDb, scopeGame = null }) {
+export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [], setGamesDb, scopeGame = null, mainGameTag = "" }) {
   // A game opened by hand from the "Other games" list. The selected clip always
   // wins, so this clears the moment the scoped game changes underneath it.
   const [pinned, setPinned] = useState(null);
@@ -127,7 +127,10 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   // game that never received one.
   const starterDesc = () => {
     const hashtag = gameRecord?.hashtag || (activeGame || "").toLowerCase().replace(/\s+/g, "");
-    return buildStarterYtDescription(activeGame, hashtag);
+    // s280: the user's own layout (the main game's description) when there is one.
+    const main = gamesDb.find((g) => (g.tag || "").toLowerCase() === mainGameTag.toLowerCase());
+    const layoutEntry = main ? { name: main.name, hashtag: main.hashtag || main.name.toLowerCase().replace(/\s+/g, "") } : null;
+    return buildGameStarterYt({ name: activeGame, hashtag, layoutEntry, ytDescriptions }).desc;
   };
   // Seeds the starter into the OPEN editor rather than writing it — blur saves,
   // Escape backs out, so regenerating over a real description stays undoable.

@@ -3642,6 +3642,7 @@ export default function QueueView({
           gamesDb={gamesDb}
           setGamesDb={setGamesDb}
           scopeGame={scopeGame}
+          mainGameTag={mainGameTag}
         />
       </div>{/* /queue grid */}
       <div style={{ height: 24 }} />

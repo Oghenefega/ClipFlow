@@ -24,7 +24,7 @@ import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
 import { evaluateRollover, localISO } from "./utils/trackerEngine";
 import { normalizeTemplate } from "./utils/trackerTemplate";
-import { buildStarterYtDescription } from "../shared/ytDescriptionTemplate";
+import { buildGameStarterYt } from "../shared/ytDescriptionTemplate";
 import { rewriteSettingsForIdentity } from "../shared/entryIdentity";
 import { defaultReactionFor, findSimilarUnlinked, setReactsTo, setDefaultReaction, dropLinksTo, buildReactionEntry, buildReactionYtDescription } from "../shared/reactions";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
@@ -709,15 +709,19 @@ export default function App() {
   }, [toast]);
 
   // ============ HANDLERS ============
+  // s280: the entry whose YouTube description a new entry copies its layout from.
+  const mainLayoutEntry = () => {
+    const g = gamesDb.find((x) => x.name === mainGame);
+    return g ? { name: g.name, hashtag: g.hashtag || g.name.toLowerCase().replace(/\s+/g, "") } : null;
+  };
   const handleNewGame = (gd) => {
     setGamesDb((p) => [...p, { ...gd, entryType: gd.entryType || showAddGame || "game", dayCount: gd.entryType === "content" || showAddGame === "content" ? 0 : 1 }]);
-    // #262: starter YouTube description — generic; the user makes it theirs in
-    // the Captions tab (no baked-in channel links or personal hashtags).
-    // #284: shared with CaptionsView's Regenerate button — one generator only.
+    // #262: never anyone else's links baked in. s280: built from the user's OWN
+    // layout (the main game's description and channel tags) when there is one,
+    // else the generic starter. #284: shared with CaptionsView's Regenerate.
     const gameName = gd.name;
     const hashtag = gd.hashtag || gameName.toLowerCase().replace(/\s+/g, "");
-    const ytDesc = buildStarterYtDescription(gameName, hashtag);
-    setYtDescriptions((p) => ({ ...p, [gameName]: { desc: ytDesc } }));
+    setYtDescriptions((p) => ({ ...p, [gameName]: buildGameStarterYt({ name: gameName, hashtag, layoutEntry: mainLayoutEntry(), ytDescriptions: p }) }));
     setNewGameExe(null);
     setShowAddGame(false);
     const entryType = gd.entryType || showAddGame || "game";
@@ -761,7 +765,7 @@ export default function App() {
     const entry = buildReactionEntry(game, gamesDb);
     if (!entry.name || !entry.tag) return null;
     setGamesDb((p) => [...p, entry]);
-    setYtDescriptions((p) => ({ ...p, [entry.name]: buildReactionYtDescription(game, p[game.name]) }));
+    setYtDescriptions((p) => ({ ...p, [entry.name]: buildReactionYtDescription(game, { layoutEntry: mainLayoutEntry(), ytDescriptions: p }) }));
     setToast(`Created ${entry.name} (tag ${entry.tag}). Edit it in Settings, Game Library.`);
     return entry;
   };

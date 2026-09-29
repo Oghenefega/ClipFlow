@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "",
+    changed: [
+      "When you add a game, or Corva makes a reaction show for you, its YouTube description now copies the layout of your main game's description (your schedule, links and everything else) with the new game's name and hashtag, and it gets the tags you use on every game. Regenerate in Captions & Descriptions does the same.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.16",
     date: "2026-09-29",
     added: [

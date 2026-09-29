@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-09-29 (session 280): new entries copy your YouTube layout
+
+### Changed
+- **A new game or reaction entry's YouTube description copies your own layout, and it gets your channel tags.** Fega added Fall Guys and imported an old clip; its description was the generic starter (one line and keywords) with none of his links, and it had no tags. Add Game, the Reacting switch's auto-create and the Captions tab's Regenerate now build from the main game's saved description: the first paragraph becomes the new blurb, the main game's #hashtag becomes the new one, and everything else (`{schedule}`, links, the Best Videos list) carries over. Tags are the game's own plus the ones on at least half your entries (`gaming shorts`, `Fega`, `FegaAbsolute`, `fega gaming`). A user with no descriptions yet still gets the generic starter, so nobody gets anyone else's links (#262). Code: `buildYtFromLayout` / `buildGameStarterYt` / `sharedYtTags` in `src/shared/ytDescriptionTemplate.js`, tests in `ytDescriptionTemplate.test.js`. Checked in the dev app: a new "Subway Surfers" got the 38-line layout with #subwaysurfers and the four channel tags.
+- **Fall Guys and Fall Guys Reacts rebuilt from that layout in the real library** (Corva closed; backup `data/backup-2026-09-29-fallguys-yt.json`). Existing tags kept, new ones added; Fall Guys Reacts' first line says it covers rewatching old streams. The imported Fall Guys clip resolves to the new text and 17 tags.
+
 ## [Unreleased] 2026-09-29 (session 280): 0.5.0-alpha.16 on the feed
 
 ### Changed
