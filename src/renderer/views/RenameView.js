@@ -333,6 +333,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [batchAction, setBatchAction] = useState(null);
   const [batchValue, setBatchValue] = useState("");
   const [retroNotification, setRetroNotification] = useState(null);
+  // #473: relink tip for recordings already in an editor project. Hidden until
+  // the store says it wasn't dismissed, so it never flashes on load.
+  const [relinkTipDismissed, setRelinkTipDismissed] = useState(true);
+  const [relinkTipOpen, setRelinkTipOpen] = useState(false);
 
   // #153: the strip used to render green WATCHING unconditionally. Three real
   // states now: "watching" | "unset" (no folder picked) | "missing" (gone/unreadable).
@@ -413,6 +417,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       if (v) setDefaultPreset(v);
     });
   }, [isElectron]);
+
+  useEffect(() => {
+    if (!isElectron) return;
+    window.clipflow.storeGet("relinkTipDismissed").then((v) => setRelinkTipDismissed(!!v));
+  }, [isElectron]);
+
+  const dismissRelinkTip = () => {
+    setRelinkTipDismissed(true);
+    window.clipflow?.storeSet?.("relinkTipDismissed", true);
+  };
 
   // File watcher integration
   useEffect(() => {
@@ -1856,6 +1870,24 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         {/* PENDING TAB — #172 session ledger */}
         {subTab === "pending" && (
           <>
+            {/* #473: renaming a file an editor project already uses knocks it
+                offline there. The steps to relink, until the full feature is built. */}
+            {pendingRenames.length > 0 && !relinkTipDismissed && (
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: "rgba(var(--lift),0.02)", marginBottom: 10, padding: "8px 12px", fontSize: 12, color: T.textSecondary }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.accent, boxShadow: `0 0 6px ${T.accent}`, flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Already editing a recording in Resolve or Premiere? Renaming it shows as media offline there.</span>
+                  <button onClick={() => setRelinkTipOpen((o) => !o)} style={{ flexShrink: 0, background: "none", border: "none", padding: 0, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{relinkTipOpen ? "Hide steps" : "How to relink"}</button>
+                  <button onClick={dismissRelinkTip} title="Don't show this again" style={{ marginLeft: "auto", flexShrink: 0, background: "none", border: "none", color: T.textMuted, fontSize: 16, lineHeight: 1, cursor: "pointer", padding: "0 4px" }}>×</button>
+                </div>
+                {relinkTipOpen && (
+                  <div style={{ marginTop: 8, paddingLeft: 17, display: "flex", flexDirection: "column", gap: 5, lineHeight: 1.45 }}>
+                    <div><b style={{ color: T.text }}>Resolve:</b> in the Media Pool, right-click the offline clip, choose Replace Selected Clip, and pick the renamed file. Every cut that uses it comes back.</div>
+                    <div><b style={{ color: T.text }}>Premiere:</b> right-click the offline clip, choose Link Media, untick File Name under "Match File Properties", and pick the renamed file.</div>
+                  </div>
+                )}
+              </div>
+            )}
             {pendingRenames.length > 0 ? (
               <div className={selectedIds.size > 0 ? "cfr-selecting" : ""} style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 90 }}>
                 {sessionGroups.map((grp) => {

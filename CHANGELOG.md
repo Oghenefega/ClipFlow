@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-09-29: relink tip on the Rename tab
+
+### Added
+- **The Rename tab explains how to relink a renamed recording in Resolve or Premiere (#473).** Renaming a file that an editor project already uses shows as media offline there. While files are waiting, a one-line strip over the list says so, and "How to relink" opens the steps: Resolve's Replace Selected Clip, and Premiere's Link Media with File Name matching unticked. The × hides it for good (store key `relinkTipDismissed`). Neither menu path has been clicked through yet: Fega's own projects were relinked by his editing agent with a Resolve `ReplaceClip` script. The full "Keep original file name" feature stays parked in #473 until testers need it. Checked in the dev app: the strip shows with one pending file, opens, and stays hidden after closing and restarting.
+
 ## [Unreleased] 2026-09-29 (session 280): new entries copy your YouTube layout
 
 ### Changed

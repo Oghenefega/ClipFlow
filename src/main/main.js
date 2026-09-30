@@ -468,6 +468,8 @@ const STORE_DEFAULTS = {
   // #164 B4: "WxH" strings the user answered "Not for this format" to —
   // the editor's first-recording auto-offer never re-shows for these dims.
   reframeOfferDismissed: [],
+  // #473: the Rename tab's "how to relink in Resolve/Premiere" tip was closed.
+  relinkTipDismissed: false,
   // Analytics
   deviceId: "",
   analyticsEnabled: true,
