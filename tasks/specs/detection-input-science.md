@@ -366,6 +366,31 @@ line IS in the selection; gemini displaced only junk lines) — recorded as a
 within a 1.00 tie block the capped picks are the earliest distinct windows
 (video-start lean; baseline had the same bias on all 50 lines).
 
+## Step 6: Sonnet 5.5 vs Sonnet 4.6 · NO SHIP as-is (#480, session 282, 2026-10-01)
+
+Same six recordings, today's prompt, `--frames 10`, 3 passes per arm (labels `m55-*` = pass 1,
+`m55b-*` = passes 2-3). Truth is now 30 approved rows (RL Day9 4, RL Day8 4, RL Day10 1,
+EO Day3 9, EO Day4 7, DD Day2 5). Harness gained `--model` / `--effort`, per-model rates and
+`stop_reason` checking; summary by `tasks/spikes/replay-score/_summ480.js` (coverage = mean best
+overlap share of each matched approved row, from a copy of the prod feedback table).
+
+| Arm | Recall (pooled, 18 runs) | Rejected-hit | Coverage | Picks/run | $/run | s/run |
+|---|---|---|---|---|---|---|
+| Sonnet 4.6 (today) | **83/90 = 92%** | 147/287 = 51% | 83% | 15.9 | $0.100 | ~14 |
+| Sonnet 5.5 @low | 76/90 = 84% | 131/241 = 54% | 78% | 13.4 | $0.070 | ~6 |
+| Sonnet 5.5 @medium | 74/90 = 82% | 138/252 = 55% | 78% | 14.0 | $0.071 | ~6 |
+
+Reading: 5.5 is ~30% cheaper and twice as fast, but loses 7-9 approved clips per 90 and is LESS
+precise (higher rejected-hit while picking fewer), so it is not just the pick budget: its taste
+reads further from Fega's on this prompt. Effort barely matters. Input tokens are ~15% higher on
+the 5.5 tokenizer (EO Day4: 38.8k vs 33.8k). Every 5.5 run ended `end_turn` (no refusals, no
+cut-offs at 16k max_tokens). Fails the gate (recall below today's fresh baseline and below 26/29
+equivalent). Kept on Sonnet 4.6.
+
+Possible re-test, not scheduled: the prompt was tuned on 4.6 over #183/#238/#245; newer models
+read instructions more literally. A 5.5-specific prompt cell (pick budget wording first) would be
+the next thing to try, scored the same way.
+
 ## Decisions locked (do not re-litigate without flagging Fega)
 
 - Engine variants are judged by replay scores against Fega's history, not vibes.

@@ -185,9 +185,12 @@ const provider = {
    * @param {number} params.maxTokens - Max output tokens
    * @param {Array} [params.tools] - Tool definitions (passed through as-is)
    * @param {number} [params.timeout=120000] - Request timeout in ms
-   * @returns {Promise<{ text: string, toolCalls: Array|null, usage: { inputTokens: number, outputTokens: number } }>}
+   * @param {string} [params.effort] - #480: "low" | "medium" | "high", sent as output_config.effort.
+   *   On Sonnet 5.5 thinking is always on and effort is its only control; thinking counts
+   *   toward maxTokens, so size it for both.
+   * @returns {Promise<{ text: string, toolCalls: Array|null, stopReason: string|null, usage: { inputTokens: number, outputTokens: number } }>}
    */
-  async chat({ model, system, messages, maxTokens, tools, timeout }) {
+  async chat({ model, system, messages, maxTokens, tools, timeout, effort }) {
     const store = getStore();
     const apiKey = store ? store.get("anthropicApiKey") : null;
 
@@ -215,6 +218,7 @@ const provider = {
     if (tools && tools.length > 0) {
       body.tools = tools;
     }
+    if (effort) body.output_config = { effort };
 
     const result = await anthropicRequest(apiKey, body, { timeout: timeout || DEFAULT_TIMEOUT, gateway });
 
@@ -225,6 +229,7 @@ const provider = {
     return {
       text,
       toolCalls,
+      stopReason: result.stop_reason || null, // #480: "refusal" / "max_tokens" are not parse errors
       usage: {
         inputTokens: usage.input_tokens || 0,
         outputTokens: usage.output_tokens || 0,

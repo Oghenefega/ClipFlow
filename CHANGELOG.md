@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 282): Sonnet 5.5 tested for clip-finding, not adopted
+
+### Changed
+- **Clip-finding stays on Claude Sonnet 4.6 after a side-by-side test against Sonnet 5.5 (#480).** The replay test re-ran only the clip-picking step on the six standard recordings, 3 passes each, scored against Fega's approve/reject decisions (30 approved clips). Sonnet 4.6 found 83 of 90, Sonnet 5.5 found 76 (low effort) and 74 (medium), with a higher share of picks landing on rejected clips (54-55% vs 51%) and looser start/end overlap (78% vs 83%). 5.5 was about 30% cheaper ($0.07 vs $0.10 per recording) and twice as fast, but that doesn't make up for the misses. Full table in `tasks/specs/detection-input-science.md` Step 6; a prompt tuned for the newer model is the possible re-test.
+- **The replay test kit takes `--model` and `--effort`** (`tasks/spikes/replay-score/harness.js`), prices each model separately, records model, seconds and stop reason in each result, and fails a run that was cut off or refused instead of reporting a JSON parse error. Parallel runs no longer share one temporary database copy (they read each other's half-written files). The Anthropic provider passes an optional `effort` through as `output_config.effort` and returns the stop reason; no app call uses either yet.
+
 ## [Unreleased] 2026-10-01 (session 282): how much each AI clip gets edited
 
 ### Added

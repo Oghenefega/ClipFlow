@@ -25,6 +25,7 @@
  * Usage:
  *   node harness.js "<videoName>" [--frames N] [--no-rejected] [--no-approved]
  *                   [--no-playstyle] [--no-gamecontext] [--runs N] [--label name] [--dry]
+ *                   [--model claude-sonnet-5-5] [--effort low|medium|high]   (#480)
  *
  * Scoring (per run):
  *   approved recall  — approved rows matched by any pick / approved rows
@@ -65,9 +66,11 @@ const DB_PATH = path.join(USER_DATA, "data", "clipflow.db");
 const TMP_DIR = path.join(__dirname, "_tmp");
 const RESULTS_DIR = path.join(__dirname, "results");
 
-// Sonnet 4.6 rates used by pipeline-logger (matches logged $ figures)
-const RATE_IN = 3.0 / 1e6;
-const RATE_OUT = 15.0 / 1e6;
+// $ per token by model (#480). Sonnet 4.6 matches the pipeline-logger figures.
+const RATES = {
+  "claude-sonnet-4-6": { in: 3.0 / 1e6, out: 15.0 / 1e6 },
+  "claude-sonnet-5-5": { in: 2.0 / 1e6, out: 10.0 / 1e6 },
+};
 
 // ── args ──
 const argv = process.argv.slice(2);
@@ -88,6 +91,8 @@ const variant = {
   playstyle: !flag("no-playstyle"),
   gamecontext: !flag("no-gamecontext"), // #245: researched game context injection
   gemini: flag("gemini"), // #235 variant D: merge gemini-watch.js visual events
+  model: opt("model", null), // #480: null = the provider's default model
+  effort: opt("effort", null), // #480: output_config.effort (Sonnet 5.5's thinking control)
 };
 const runs = parseInt(opt("runs", "1"), 10);
 const label = opt("label", [
@@ -165,9 +170,11 @@ async function loadFeedback(vid, gameTag) {
   const initSqlJs = require(path.join(REPO, "node_modules", "sql.js"));
   const SQL = await initSqlJs();
   fs.mkdirSync(TMP_DIR, { recursive: true });
-  const copyPath = path.join(TMP_DIR, "clipflow-copy.db");
+  // One copy per process: parallel runs shared one file and read each other's half-copies (#480).
+  const copyPath = path.join(TMP_DIR, `clipflow-copy-${process.pid}.db`);
   fs.copyFileSync(DB_PATH, copyPath);
   const db = new SQL.Database(fs.readFileSync(copyPath));
+  fs.unlinkSync(copyPath);
   const query = (sql, params) => {
     const stmt = db.prepare(sql);
     stmt.bind(params);
@@ -310,21 +317,30 @@ function score(picks, truth) {
   fs.mkdirSync(RESULTS_DIR, { recursive: true });
   const provider = llmProvider.getProvider();
 
+  const model = variant.model || provider.defaultModel;
+  const rate = RATES[model];
+  if (!rate) throw new Error(`no price for ${model}: add it to RATES`);
+  // Thinking (Sonnet 5.5) counts toward max_tokens and adds time, so it gets more of both.
+  const thinks = model !== "claude-sonnet-4-6";
+
   for (let run = 1; run <= runs; run++) {
     const t0 = Date.now();
-    const { text, usage } = await provider.chat({
-      model: provider.defaultModel,
+    const { text, usage, stopReason } = await provider.chat({
+      model,
       system: systemPrompt,
       messages: [{ role: "user", content: userContent }],
-      maxTokens: 8192,
-      timeout: 120000,
+      maxTokens: thinks ? 16000 : 8192,
+      timeout: thinks ? 240000 : 120000,
+      ...(variant.effort ? { effort: variant.effort } : {}),
     });
+    const seconds = (Date.now() - t0) / 1000;
+    if (stopReason !== "end_turn") throw new Error(`run ${run} stopped with ${stopReason} after ${usage.outputTokens} output tokens`);
     const picks = aiPrompt.extractJSON(text, "array");
     const s = score(picks, truth);
-    const cost = usage.inputTokens * RATE_IN + usage.outputTokens * RATE_OUT;
+    const cost = usage.inputTokens * rate.in + usage.outputTokens * rate.out;
 
     const recallStr = s.approvedRecall === null ? "n/a (0 approved)" : `${s.approvedMatched}/${s.approvedTotal} = ${(s.approvedRecall * 100).toFixed(0)}%`;
-    console.log(`\nrun ${run}/${runs}: ${picks.length} picks | in ${usage.inputTokens} tok, out ${usage.outputTokens} tok, $${cost.toFixed(3)} | ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`\nrun ${run}/${runs}: ${model}${variant.effort ? ` @${variant.effort}` : ""} | ${picks.length} picks | in ${usage.inputTokens} tok, out ${usage.outputTokens} tok, $${cost.toFixed(3)} | ${seconds.toFixed(1)}s`);
     console.log(`  approved recall : ${recallStr}`);
     console.log(`  rejected hits   : ${s.rejectedHits}/${s.perPick.length} picks (${s.rejectedHitRate === null ? "n/a" : (s.rejectedHitRate * 100).toFixed(0) + "%"})`);
     console.log(`  unreviewed picks: ${s.unreviewed}`);
@@ -336,7 +352,7 @@ function score(picks, truth) {
     fs.writeFileSync(outPath, JSON.stringify({
       videoName, gameTag, label, variant, geminiActors, run,
       promptChars: systemPrompt.length, transcriptChars: claudeReadyText.length, frameCount: frames.length,
-      usage, cost, picks, score: s,
+      model, usage, cost, seconds, stopReason, picks, score: s,
       scoredAt: new Date().toISOString(),
     }, null, 2));
     console.log(`  saved ${path.relative(REPO, outPath)}`);
