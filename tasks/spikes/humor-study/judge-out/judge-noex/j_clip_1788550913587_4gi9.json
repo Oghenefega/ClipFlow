@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_4gi9",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2169,
+  "outputTokens": 835,
+  "thoughtTokens": 682
+ },
+ "cost": 0.009516,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator intensely watches a 100 Thieves Valorant clutch and jumps out of his chair yelling 'I think I'm rooting for the wrong person... LET'S GO!' when they win the round.",
+  "keep_score": 88,
+  "payoff_t": 16,
+  "reaction_end_t": 18.5,
+  "dead_air": [
+   [
+    4.5,
+    10.5
+   ]
+  ],
+  "reason": "Delivers genuine hype and a loud, animated reaction with high energy and a great line as 100T closes out the round clutch."
+ }
+}

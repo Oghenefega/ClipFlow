@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784787294769_obif",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4606,
+  "outputTokens": 941,
+  "thoughtTokens": 787
+ },
+ "cost": 0.0139665,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hypes up his teammate for scoring a goal in Rocket League, shouting 'Oh yes Jickel! Let's go buddy, come on!'",
+  "keep_score": 20,
+  "payoff_t": 17,
+  "reaction_end_t": 29,
+  "dead_air": [
+   [
+    0,
+    16
+   ]
+  ],
+  "reason": "This is standard gameplay commentary without any comedy setup, subverted expectation, or punchline. Cheering for a teammate's goal is normal stream banter rather than a funny clip moment."
+ }
+}

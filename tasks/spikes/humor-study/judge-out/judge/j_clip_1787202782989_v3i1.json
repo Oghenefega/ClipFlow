@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202782989_v3i1",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3113,
+  "outputTokens": 1077,
+  "thoughtTokens": 949
+ },
+ "cost": 0.012747,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rewinds a clip to watch the coaches and casters react wildly to an absurd clutch defuse, key line: 'I got to watch that again.'",
+  "keep_score": 40,
+  "payoff_t": 9.5,
+  "reaction_end_t": 13.5,
+  "dead_air": [],
+  "reason": "The broadast hype and coach celebration are entertaining, but the creator's own reaction is quite passive and mostly limited to chuckling while watching."
+ }
+}

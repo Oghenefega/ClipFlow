@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501780_yg0x",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1926,
+  "outputTokens": 656,
+  "thoughtTokens": 532
+ },
+ "cost": 0.007809,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly predicts a 13-3 victory for 100 Thieves during the early setup phase of a round.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15.2
+   ]
+  ],
+  "reason": "There is no major pro play on screen and the creator is simply giving calm commentary and score predictions."
+ }
+}

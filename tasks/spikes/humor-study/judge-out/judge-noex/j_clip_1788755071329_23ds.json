@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_23ds",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2898,
+  "outputTokens": 536,
+  "thoughtTokens": 438
+ },
+ "cost": 0.008367,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator uses hand gestures to explain high-low setups and positioning tactics while watching gameplay footage.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is a calm tactical breakdown and explanation rather than a hype reaction to an exciting pro play or clutch."
+ }
+}

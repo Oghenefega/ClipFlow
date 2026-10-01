@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1787974608296_c8l2",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4869,
+  "outputTokens": 761,
+  "thoughtTokens": 588
+ },
+ "cost": 0.013011,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer watches a Valorant match round as a player gets a single kill with an ultimate before being traded, shouting \"Ayy yo, get him out of there!\"",
+  "keep_score": 35,
+  "payoff_t": 22,
+  "reaction_end_t": 26.5,
+  "dead_air": [
+   [
+    0,
+    20
+   ],
+   [
+    27,
+    36
+   ]
+  ],
+  "reason": "The play on screen is a standard single-kill trade rather than an impressive multi-kill or clutch, and the creator's reaction quickly turns into calm narration."
+ }
+}

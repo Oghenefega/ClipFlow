@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1786068952330_vomx",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4389,
+  "outputTokens": 684,
+  "thoughtTokens": 549
+ },
+ "cost": 0.011713499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator looks at the post-match scoreboard and argues he is the better player because of his shot-to-goal ratio despite losing badly.",
+  "keep_score": 25,
+  "payoff_t": 14,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    18,
+    44
+   ]
+  ],
+  "reason": "It is mostly post-game menu banter and copium talk without a dynamic gameplay moment or visual payoff."
+ }
+}

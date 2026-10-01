@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784085005038_88ed",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1542,
+  "outputTokens": 588,
+  "thoughtTokens": 466
+ },
+ "cost": 0.006723,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks on the main menu screen of Egging On, declaring it 'literally the best game in the world' before pressing continue.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    9
+   ]
+  ],
+  "reason": "This is purely menu screen setup and commentary with no actual gameplay, failure, or comedic payoff."
+ }
+}

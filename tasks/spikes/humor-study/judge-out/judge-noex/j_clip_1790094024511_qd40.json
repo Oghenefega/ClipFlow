@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790094024511_qd40",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4593,
+  "outputTokens": 616,
+  "thoughtTokens": 480
+ },
+ "cost": 0.011509499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer loses the round as time expires and discovers the final player was hidden inside the frame of a shelf, shouting 'How is someone supposed to find that?'",
+  "keep_score": 75,
+  "payoff_t": 30,
+  "reaction_end_t": 47,
+  "dead_air": [
+   [
+    9,
+    26
+   ]
+  ],
+  "reason": "The reveal of an impossibly hidden player clipped inside a shelf frame right after time runs out delivers a solid funny payoff."
+ }
+}

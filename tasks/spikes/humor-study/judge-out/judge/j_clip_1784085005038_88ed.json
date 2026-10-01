@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784085005038_88ed",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2827,
+  "outputTokens": 542,
+  "thoughtTokens": 436
+ },
+ "cost": 0.0083055,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer starts up Egging On while expressing his excitement on the main menu, saying 'It's literally the best game in the world.'",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip ends on the game's start screen without any gameplay, joke, or comedic payoff."
+ }
+}

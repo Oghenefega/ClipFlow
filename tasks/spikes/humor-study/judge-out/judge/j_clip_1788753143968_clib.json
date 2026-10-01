@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143968_clib",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4237,
+  "outputTokens": 680,
+  "thoughtTokens": 554
+ },
+ "cost": 0.0114555,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately hypes up a 100 Thieves Valorant round win, screaming 'GET HIM OUT OF THERE!' as the team secures the final kill.",
+  "keep_score": 85,
+  "payoff_t": 22.5,
+  "reaction_end_t": 27,
+  "dead_air": [],
+  "reason": "Solid hype reaction featuring real pro gameplay with a clutch play, paired with the creator shouting his signature catchphrase right as the round finishes."
+ }
+}

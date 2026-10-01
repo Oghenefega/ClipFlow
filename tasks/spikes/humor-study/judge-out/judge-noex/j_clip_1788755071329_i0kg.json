@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_i0kg",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3546,
+  "outputTokens": 698,
+  "thoughtTokens": 555
+ },
+ "cost": 0.010554000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up a 100 Thieves round win, shouting 'Look at these people hiding inside the generator like a Trojan horse... GET HIM OUT OF HERE!'",
+  "keep_score": 85,
+  "payoff_t": 21,
+  "reaction_end_t": 32,
+  "dead_air": [
+   [
+    4,
+    20
+   ]
+  ],
+  "reason": "High energy with great quotable commentary on the replay setup, though the middle gap during the caster transition needs to be edited out."
+ }
+}

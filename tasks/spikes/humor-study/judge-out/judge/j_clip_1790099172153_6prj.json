@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790099172153_6prj",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6912,
+  "outputTokens": 804,
+  "thoughtTokens": 659
+ },
+ "cost": 0.016398,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while watching humanoid robots run a track race with absurd, erratic movement, exclaiming, 'Look at this dude, man!'",
+  "keep_score": 85,
+  "payoff_t": 41.5,
+  "reaction_end_t": 57,
+  "dead_air": [
+   [
+    0,
+    8
+   ]
+  ],
+  "reason": "An absurd reaction to hilarious non-esports footage where the robots' weird flailing running style provides a strong visual punchline that brings out genuine, contagious laughter from the creator."
+ }
+}

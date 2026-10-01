@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_ffe4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2781,
+  "outputTokens": 404,
+  "thoughtTokens": 281
+ },
+ "cost": 0.0072015,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer runs across the map while casually observing that the water treatment area is very open and not his favorite place.",
+  "keep_score": 8,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    8.5
+   ]
+  ],
+  "reason": "Nothing happens in this clip; the streamer just narrates his thoughts on the map layout with no joke, action, or comedic payoff."
+ }
+}

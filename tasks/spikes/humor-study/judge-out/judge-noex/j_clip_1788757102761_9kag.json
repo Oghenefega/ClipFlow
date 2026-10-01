@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788757102761_9kag",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3465,
+  "outputTokens": 772,
+  "thoughtTokens": 603
+ },
+ "cost": 0.0109875,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with hype during a tight VCT round, shouting 'Let's go! Oh my goodness!' as 100 Thieves secures critical kills.",
+  "keep_score": 70,
+  "payoff_t": 31,
+  "reaction_end_t": 35,
+  "dead_air": [
+   [
+    0,
+    11
+   ],
+   [
+    14,
+    30
+   ]
+  ],
+  "reason": "Features genuine esports tension with a energetic hype reaction ('Let's go! Oh my goodness!'), though the clip has some quiet downtime before the payoff."
+ }
+}

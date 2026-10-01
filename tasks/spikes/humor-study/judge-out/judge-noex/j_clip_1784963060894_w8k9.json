@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784963060894_w8k9",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2088,
+  "outputTokens": 577,
+  "thoughtTokens": 471
+ },
+ "cost": 0.007459500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains about advice to climb a cinder block while carefully rolling his egg across a wooden beam, saying 'Use your brain bro.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "Nothing funny happens during the clip and there is no failure, surprise, or comedic payoff to his commentary."
+ }
+}

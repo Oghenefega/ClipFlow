@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_tqqr",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3060,
+  "outputTokens": 741,
+  "thoughtTokens": 632
+ },
+ "cost": 0.0101475,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with loud disbelief to an incredible pro play, shouting 'HOW DOES HE DO THAT?!'",
+  "keep_score": 85,
+  "payoff_t": 20.5,
+  "reaction_end_t": 26,
+  "dead_air": [
+   [
+    0,
+    19.5
+   ]
+  ],
+  "reason": "Features a strong pro match kill accompanied by a big, quotable reaction from the creator with genuine shock."
+ }
+}

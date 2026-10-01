@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1781810072345_mt9p",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4610,
+  "outputTokens": 436,
+  "thoughtTokens": 320
+ },
+ "cost": 0.010185000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reviews his successful loot and checks the map to plan his extraction route, saying 'This has been a phenomenal raid. Now I have a reason to live, guys.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "Nothing funny happens in this clip. It is purely calm gameplay narration and map planning with no subverted expectation or payoff."
+ }
+}

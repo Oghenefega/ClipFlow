@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785908333797_i3qf",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5298,
+  "outputTokens": 1045,
+  "thoughtTokens": 890
+ },
+ "cost": 0.0157845,
+ "judged": {
+  "kind": "comedy",
+  "what": "While Fega claims he surely won't have to climb a path, the egg suddenly starts rolling away on its own, making him scream 'Hey! No! No!'.",
+  "keep_score": 50,
+  "payoff_t": 23.5,
+  "reaction_end_t": 30,
+  "dead_air": [
+   [
+    0,
+    18
+   ]
+  ],
+  "reason": "The clip takes a long time to get going while he rambles at the egg, but the sudden slip right as he makes his statement provides a clean comedic timing payoff."
+ }
+}

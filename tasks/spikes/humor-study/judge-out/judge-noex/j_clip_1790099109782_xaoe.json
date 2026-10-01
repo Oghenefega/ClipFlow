@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099109782_xaoe",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 9566,
+  "outputTokens": 615,
+  "thoughtTokens": 484
+ },
+ "cost": 0.0189615,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loses his mind laughing as a malfunctioning cheerleading robot spazzes out on the floor and gets tackled by staff, comparing it to 'the cockroach in my house trying to stand up'.",
+  "keep_score": 90,
+  "payoff_t": 74,
+  "reaction_end_t": 105,
+  "dead_air": [],
+  "reason": "Extremely funny reaction to absurd footage with continuous genuine laughter and great line delivery when handlers have to physically subdue the malfunctioning robot."
+ }
+}

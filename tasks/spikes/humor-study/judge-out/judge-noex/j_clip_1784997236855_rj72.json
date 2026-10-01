@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1784997236855_rj72",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3963,
+  "outputTokens": 794,
+  "thoughtTokens": 632
+ },
+ "cost": 0.0118995,
+ "judged": {
+  "kind": "comedy",
+  "what": "While cautiously guiding the egg across cushions and telling himself to relax, the streamer slips off the edge and tumbles down a long drop, uttering 'That's crazy'.",
+  "keep_score": 75,
+  "payoff_t": 30,
+  "reaction_end_t": 39,
+  "dead_air": [
+   [
+    2,
+    9
+   ],
+   [
+    13,
+    18
+   ]
+  ],
+  "reason": "A good gaming fail moment where careful, anxious setup leads to a sudden precipitous fall, though the setup drags slightly beforehand."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202782989_v3i1",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1845,
+  "outputTokens": 701,
+  "thoughtTokens": 566
+ },
+ "cost": 0.008025000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rewinds to rewatch a insane Valorant defuse clutch, hyping up as the casters scream 'NO WAY!'",
+  "keep_score": 85,
+  "payoff_t": 9,
+  "reaction_end_t": 13,
+  "dead_air": [
+   [
+    0,
+    2.5
+   ]
+  ],
+  "reason": "Features an absurdly close pro Valorant clutch with huge caster hype and a great, genuine reaction from the creator."
+ }
+}

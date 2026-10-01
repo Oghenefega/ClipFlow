@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_omqt",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6919,
+  "outputTokens": 705,
+  "thoughtTokens": 582
+ },
+ "cost": 0.015666,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while watching humanoid robots awkwardly flail and run out of their lanes in a track race, shouting, \"Look at this dude, man!\"",
+  "keep_score": 85,
+  "payoff_t": 41.5,
+  "reaction_end_t": 48,
+  "dead_air": [],
+  "reason": "The clip features visually absurd footage of humanoid robots running erratically, paired with the creator's genuine and infectious laughing reaction."
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1784997236855_lr06",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2262,
+  "outputTokens": 836,
+  "thoughtTokens": 684
+ },
+ "cost": 0.009663000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator carefully counts down to time a precise egg bounce, screaming 'Let's freaking go! That was clean baby!' when it lands perfectly.",
+  "keep_score": 70,
+  "payoff_t": 9,
+  "reaction_end_t": 15.5,
+  "dead_air": [
+   [
+    0,
+    7.5
+   ],
+   [
+    16,
+    18.2
+   ]
+  ],
+  "reason": "The intense counting setup pays off with a smooth trick land and a genuine, energetic celebration from the streamer."
+ }
+}

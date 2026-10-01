@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755772242_ntfi",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3870,
+  "outputTokens": 1013,
+  "thoughtTokens": 881
+ },
+ "cost": 0.013402500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in excitement during a 100 Thieves round win, grabbing his head and shouting, 'I want to cry! Tears of joy! 'Cause we're about to lift the trophy!'",
+  "keep_score": 75,
+  "payoff_t": 6,
+  "reaction_end_t": 33,
+  "dead_air": [],
+  "reason": "A high-energy, emotional reaction to a big round win with huge yelling and memorable lines about winning the tournament trophy."
+ }
+}

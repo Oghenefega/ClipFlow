@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788433695048_at8s",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3032,
+  "outputTokens": 579,
+  "thoughtTokens": 450
+ },
+ "cost": 0.008890499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a teammate getting found in a hide-and-seek game and reacts mildly, saying 'He just found you? That is crazy.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    3,
+    12
+   ]
+  ],
+  "reason": "The clip consists of mild spectating commentary without a comedic subversion, visual joke, or noticeable payoff."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552826516_at16",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2904,
+  "outputTokens": 758,
+  "thoughtTokens": 644
+ },
+ "cost": 0.010041,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps out of his seat with intense hype when 100T closes out the round, shouting 'Get him out of there!'",
+  "keep_score": 85,
+  "payoff_t": 6.5,
+  "reaction_end_t": 12,
+  "dead_air": [],
+  "reason": "Features a big pro esports round win combined with a passionate, iconic yell and energetic physical reaction."
+ }
+}

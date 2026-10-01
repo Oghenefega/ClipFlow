@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1786068340477_4oxr",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2769,
+  "outputTokens": 490,
+  "thoughtTokens": 371
+ },
+ "cost": 0.0078285,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chats about how neither player is playing well in Rocket League before calling a shot his 'bread and butter' and scoring.",
+  "keep_score": 25,
+  "payoff_t": 15.5,
+  "reaction_end_t": 20,
+  "dead_air": [],
+  "reason": "Standard gameplay clip with mild self-commentary where he scores after calling the play, lacking a funny contrast, fail, or strong comedic payoff."
+ }
+}

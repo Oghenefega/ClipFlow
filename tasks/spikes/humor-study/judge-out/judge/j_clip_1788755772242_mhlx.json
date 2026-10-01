@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_mhlx",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4372,
+  "outputTokens": 792,
+  "thoughtTokens": 648
+ },
+ "cost": 0.012497999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately hypes up a clutch round win by 100T to tie the match, jumping out of his seat and shouting 'LET'S GO!'",
+  "keep_score": 88,
+  "payoff_t": 17.5,
+  "reaction_end_t": 29,
+  "dead_air": [
+   [
+    3.5,
+    9.5
+   ]
+  ],
+  "reason": "High energy hype reaction with a huge physical payout (jumping out of chair) on an intense pro Valorant round clutch."
+ }
+}

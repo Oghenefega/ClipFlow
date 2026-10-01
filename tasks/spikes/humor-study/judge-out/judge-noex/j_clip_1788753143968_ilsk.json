@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143968_ilsk",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1602,
+  "outputTokens": 692,
+  "thoughtTokens": 580
+ },
+ "cost": 0.007593,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly comments on the team during round setup with no gameplay action occurring.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    11.5
+   ]
+  ],
+  "reason": "Rejection rule applies: this is calm narration and talk about the team between rounds with no pro play on screen."
+ }
+}

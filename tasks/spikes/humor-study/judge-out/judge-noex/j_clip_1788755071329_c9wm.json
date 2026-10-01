@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_c9wm",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2331,
+  "outputTokens": 638,
+  "thoughtTokens": 516
+ },
+ "cost": 0.0082815,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to a map end by encouraging the team and pleading for them to buy Sheriffs on the pistol round: 'We need to get Sheriffs on the pistol round.'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is talk between rounds and strategy advice rather than a reaction to a live hype play, which falls under rejected content for hype reactions."
+ }
+}

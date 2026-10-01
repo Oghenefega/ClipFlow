@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785455230241_6u4x",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3906,
+  "outputTokens": 996,
+  "thoughtTokens": 871
+ },
+ "cost": 0.013329,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer confidently repeats 'I got it' right before driving off a cliff into the trees, tumbling wildly, and somehow completing the finish line with a chaotic finish.",
+  "keep_score": 85,
+  "payoff_t": 17.5,
+  "reaction_end_t": 37,
+  "dead_air": [],
+  "reason": "A great comedy moment featuring a confident claim immediately followed by driving off a cliff into total chaos, capped with genuine disbelief at his accidental win."
+ }
+}

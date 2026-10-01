@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788755071329_gsl2",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3789,
+  "outputTokens": 962,
+  "thoughtTokens": 806
+ },
+ "cost": 0.0128985,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with hilarious disbelief and mock outrage to an absurd slide kill on Cryo, yelling 'Something is not right, you cannot be doing that!'",
+  "keep_score": 88,
+  "payoff_t": 15,
+  "reaction_end_t": 25.5,
+  "dead_air": [
+   [
+    4,
+    13.5
+   ],
+   [
+    26.5,
+    38
+   ]
+  ],
+  "reason": "The clip showcases an insane enemy outplay paired with a big, animated mock-outrage reaction from the creator with great facial expressions and quotes."
+ }
+}

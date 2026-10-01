@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099949324_5ava",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1709,
+  "outputTokens": 489,
+  "thoughtTokens": 368
+ },
+ "cost": 0.0062309999999999996,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at a malfunctioning humanoid robot flailing on the floor, joking, \"The cockroach in my house trying to stand up.\"",
+  "keep_score": 85,
+  "payoff_t": 1.5,
+  "reaction_end_t": 11.5,
+  "dead_air": [],
+  "reason": "The creator makes a hilarious comparison to a twitching cockroach as technicians try to restrain the robot, delivering a strong self-contained comedy moment."
+ }
+}

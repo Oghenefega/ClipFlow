@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787975841626_1woy",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5397,
+  "outputTokens": 613,
+  "thoughtTokens": 479
+ },
+ "cost": 0.012693,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer laughs and comments on the dramatic VCT timeout transition graphic during a match break, saying 'The way this guy slams that timeout is so funny bro!'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This moment takes place entirely during a tactical timeout break with no gameplay or pro play happening on screen. Hype reaction clips require an actual play like a clutch, multi-kill, or outplay to be kept."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753729568_qi0p",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5004,
+  "outputTokens": 821,
+  "thoughtTokens": 691
+ },
+ "cost": 0.013663499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately reacts to a series of hype Valorant plays, shouting 'GET HIM OUT OF HERE!' and 'That's what I'm talking about!'.",
+  "keep_score": 95,
+  "payoff_t": 7,
+  "reaction_end_t": 50,
+  "dead_air": [],
+  "reason": "The clip is packed with high-energy hype reactions to major pro plays, complete with loud yelling, great physical reactions, and quotable lines throughout."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_c4s2",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2767,
+  "outputTokens": 476,
+  "thoughtTokens": 357
+ },
+ "cost": 0.0077205,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer opens a door while quietly asking 'That's it?' with no significant gameplay event or reaction following.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    8.5
+   ]
+  ],
+  "reason": "Nothing happens in this brief clip beyond opening doors, lacking any joke, punchline, or gameplay payoff."
+ }
+}

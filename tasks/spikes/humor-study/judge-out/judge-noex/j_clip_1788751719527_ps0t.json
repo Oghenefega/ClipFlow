@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719527_ps0t",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3951,
+  "outputTokens": 617,
+  "thoughtTokens": 515
+ },
+ "cost": 0.010554000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives background commentary on 100 Thieves player Asuna while pre-game broadcast footage plays on screen.",
+  "keep_score": 0,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is pre-match talk about the team with no pro gameplay or hype moments happening on screen."
+ }
+}

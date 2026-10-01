@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1784997236855_oa49",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5128,
+  "outputTokens": 800,
+  "thoughtTokens": 647
+ },
+ "cost": 0.013692,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer falls all the way down into the grass in Egging On and quietly asks his chat 'Are y'all seeing this nonsense?'",
+  "keep_score": 20,
+  "payoff_t": 28,
+  "reaction_end_t": 38,
+  "dead_air": [
+   [
+    21.5,
+    25
+   ],
+   [
+    30,
+    33
+   ]
+  ],
+  "reason": "The reaction to losing progress is low energy and flat, without a strong comedic setup or punchline."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202782990_5qob",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5043,
+  "outputTokens": 790,
+  "thoughtTokens": 624
+ },
+ "cost": 0.0134895,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly watches 100 Thieves win a Valorant map and laughs at Asuna's post-match walkout, key line: \"Asuna always doing like this is crazy!\"",
+  "keep_score": 15,
+  "payoff_t": 35,
+  "reaction_end_t": 38,
+  "dead_air": [
+   [
+    0,
+    34
+   ]
+  ],
+  "reason": "The clip features mostly quiet, flat commentary during the round and ends with a casual observation about a player walking off stage. It lacks a big, explosive in-game play with a hyped reaction."
+ }
+}

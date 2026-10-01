@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277084_kmgo",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4415,
+  "outputTokens": 607,
+  "thoughtTokens": 474
+ },
+ "cost": 0.011175000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer panics in hide-and-seek as an enemy seeker methodically shoots paintings with a shotgun right next to his disguised hiding spot, key line: \"He's literally with the shotgun right here!\"",
+  "keep_score": 75,
+  "payoff_t": 23,
+  "reaction_end_t": 29,
+  "dead_air": [],
+  "reason": "Funny prop hunt tension where the seeker methodically blasts adjacent artwork with a shotgun while completely missing the streamer hiding in plain sight."
+ }
+}

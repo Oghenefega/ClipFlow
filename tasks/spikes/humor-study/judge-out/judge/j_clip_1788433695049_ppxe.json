@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788433695049_ppxe",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3832,
+  "outputTokens": 950,
+  "thoughtTokens": 813
+ },
+ "cost": 0.012872999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a teammate hidden as a pipe high on a wall and laughs while asking 'What is this, bro?'",
+  "keep_score": 25,
+  "payoff_t": 15,
+  "reaction_end_t": 23,
+  "dead_air": [
+   [
+    0,
+    12
+   ]
+  ],
+  "reason": "The clip consists of casual spectating and internal match banter without a strong visual payoff or subverted expectation that works for a general audience."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143968_6b55",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2493,
+  "outputTokens": 585,
+  "thoughtTokens": 485
+ },
+ "cost": 0.008126999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly comments on the crowd giving away a position while watching a replay of the round.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is calm commentary and round analysis without a big play on screen or a hyped, loud reaction from the creator."
+ }
+}

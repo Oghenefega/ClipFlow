@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_udn4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5415,
+  "outputTokens": 922,
+  "thoughtTokens": 760
+ },
+ "cost": 0.015037499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator criticizes a fighting robot for being bad right as it gets instantly knocked down, but the clip continues into a second video of a jumping robot with no payoff, ending on 'nothing special'.",
+  "keep_score": 25,
+  "payoff_t": 11.5,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    19,
+    41
+   ]
+  ],
+  "reason": "While the initial robot getting knocked down right as he calls it bad is mildly funny, the clip drags on into an unrelated second video that ends with flat commentary and no comedic payoff."
+ }
+}

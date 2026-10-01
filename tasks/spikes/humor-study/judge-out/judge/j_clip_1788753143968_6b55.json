@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143968_6b55",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3750,
+  "outputTokens": 466,
+  "thoughtTokens": 349
+ },
+ "cost": 0.00912,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly comments on a Valorant match replay, noting that the crowd gave away a positioning angle with the key line: 'Damn it bro, the crowd gave that away.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is calm narration and post-round commentary without a big hype reaction or explosive play to justify keeping it."
+ }
+}

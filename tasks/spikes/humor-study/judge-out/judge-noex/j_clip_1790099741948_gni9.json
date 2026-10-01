@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790099741948_gni9",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6164,
+  "outputTokens": 554,
+  "thoughtTokens": 419
+ },
+ "cost": 0.013401,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as a robot gets 'distracted' watching female robot cheerleaders and tumbles headfirst off a platform.",
+  "keep_score": 85,
+  "payoff_t": 38,
+  "reaction_end_t": 53,
+  "dead_air": [
+   [
+    0,
+    4
+   ]
+  ],
+  "reason": "Great comedy reaction to absurd viral footage, featuring hilarious commentary on the robot getting distracted by cheerleaders before falling off the stage."
+ }
+}

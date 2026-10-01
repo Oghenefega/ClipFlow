@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784788710056_ualf",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5061,
+  "outputTokens": 826,
+  "thoughtTokens": 697
+ },
+ "cost": 0.0137865,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega calls out his opponent's fake excuses after getting scored on, ranting 'Once they start telling you about how they haven't played in some minutes, just know that they're good.'",
+  "keep_score": 85,
+  "payoff_t": 3.5,
+  "reaction_end_t": 15,
+  "dead_air": [],
+  "reason": "A funny and relatable rant mocking classic gamer pre-game excuses right after getting scored on by a supposedly rusty opponent."
+ }
+}

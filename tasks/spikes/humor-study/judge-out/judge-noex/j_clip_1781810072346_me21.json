@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072346_me21",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3085,
+  "outputTokens": 551,
+  "thoughtTokens": 431
+ },
+ "cost": 0.00876,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks to himself about forgetting his pickaxe keybind before opening his map and running toward his objective.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    26
+   ]
+  ],
+  "reason": "Nothing funny happens in this clip; it is just routine gameplay navigation and minor commentary with no payoff or punchline."
+ }
+}

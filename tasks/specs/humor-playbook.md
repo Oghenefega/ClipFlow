@@ -135,7 +135,7 @@ reactions; hubris alone in 68% of EO).
 
 ## What this means for the next steps
 
-- **#483 judge:** two rubrics (hype reaction / own-gameplay comedy, plus first-look), each
+- **#483 judge:** two rubrics (hype reaction / comedy), each
   shown Fega's own keeps and rejects of that format. Ask the judge for reaction end and middle
   dead air too, so the same call feeds auto-edit. Bar to beat: AUC 0.70 (generic watch), on the
   90-clip test set.
@@ -146,10 +146,12 @@ reactions; hubris alone in 68% of EO).
 - **Views study, next round:** day-7 views per platform instead of lifetime totals, so older
   clips do not win by age.
 
-## Questions for Fega
+## Fega's answers (2026-10-01)
 
-1. Is "two formats, judged differently" right, or are the 100T hype clips also funny to you
-   in a way this misses?
-2. GTA 6 first-look clips: a format you want more of, or a one-off for the reveal?
-3. When you add sound effects and extra cuts to an MC/EO clip, is it because the clip was weak?
-   (That would explain the negative lean.)
+1. **Two kinds, judged differently: confirmed.** He said to start the judge (#483) on that basis.
+2. **GTA 6 first-look was a one-off for the reveal.** Not a third format; GTA6-R is left out of
+   the judge's test set and examples.
+3. **Sound effects, pictures and music are there to play a moment up, not to rescue a weak
+   clip.** So the negative lean of sounds/cuts against views in MC and EO is NOT explained by
+   weak clips. Treat it as unexplained (small samples, 22-23 clips per game); do not teach
+   auto-edit to avoid sounds on the strength of it.

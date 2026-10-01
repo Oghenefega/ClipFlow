@@ -1,0 +1,146 @@
+{
+ "n": 240,
+ "cost": {
+  "judge-noex": 2.53,
+  "judge": 3.01
+ },
+ "confidence": {
+  "auc_all": 0.704,
+  "auc_hype": 0.621,
+  "auc_comedy": 0.789,
+  "at_5pct_keep_loss": {
+   "threshold": 0.67,
+   "keeps_lost": 0.05,
+   "rejects_removed": 0.167
+  },
+  "at_10pct_keep_loss": {
+   "threshold": 0.7,
+   "keeps_lost": 0.092,
+   "rejects_removed": 0.25
+  },
+  "by_game": {
+   "100T": {
+    "n": 120,
+    "auc": 0.621
+   },
+   "DD": {
+    "n": 9,
+    "auc": 0.7
+   },
+   "EO": {
+    "n": 26,
+    "auc": 0.673
+   },
+   "MC": {
+    "n": 26,
+    "auc": 0.973
+   },
+   "RL": {
+    "n": 25,
+    "auc": 0.712
+   },
+   "ROBOT": {
+    "n": 20,
+    "auc": 0.912
+   }
+  }
+ },
+ "judge-noex": {
+  "auc_all": 0.731,
+  "auc_hype": 0.683,
+  "auc_comedy": 0.8,
+  "at_5pct_keep_loss": {
+   "threshold": 10,
+   "keeps_lost": 0.0,
+   "rejects_removed": 0.117
+  },
+  "at_10pct_keep_loss": {
+   "threshold": 15,
+   "keeps_lost": 0.075,
+   "rejects_removed": 0.267
+  },
+  "by_game": {
+   "100T": {
+    "n": 120,
+    "auc": 0.683
+   },
+   "DD": {
+    "n": 9,
+    "auc": 0.725
+   },
+   "EO": {
+    "n": 26,
+    "auc": 0.756
+   },
+   "MC": {
+    "n": 26,
+    "auc": 0.83
+   },
+   "RL": {
+    "n": 25,
+    "auc": 0.702
+   },
+   "ROBOT": {
+    "n": 20,
+    "auc": 0.852
+   }
+  },
+  "kind_accuracy": 0.996,
+  "end": {
+   "n": 92,
+   "ai_window_median_err": 7.4,
+   "judge_median_err": 5.5,
+   "ai_within_2s": 0.23,
+   "judge_within_2s": 0.29
+  }
+ },
+ "judge": {
+  "auc_all": 0.725,
+  "auc_hype": 0.667,
+  "auc_comedy": 0.786,
+  "at_5pct_keep_loss": {
+   "threshold": 10,
+   "keeps_lost": 0.0,
+   "rejects_removed": 0.075
+  },
+  "at_10pct_keep_loss": {
+   "threshold": 15,
+   "keeps_lost": 0.067,
+   "rejects_removed": 0.242
+  },
+  "by_game": {
+   "100T": {
+    "n": 120,
+    "auc": 0.667
+   },
+   "DD": {
+    "n": 9,
+    "auc": 0.625
+   },
+   "EO": {
+    "n": 26,
+    "auc": 0.696
+   },
+   "MC": {
+    "n": 26,
+    "auc": 0.795
+   },
+   "RL": {
+    "n": 25,
+    "auc": 0.737
+   },
+   "ROBOT": {
+    "n": 20,
+    "auc": 0.89
+   }
+  },
+  "kind_accuracy": 0.996,
+  "end": {
+   "n": 84,
+   "ai_window_median_err": 7.2,
+   "judge_median_err": 6.1,
+   "ai_within_2s": 0.23,
+   "judge_within_2s": 0.31
+  }
+ }
+}

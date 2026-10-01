@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_f3nz",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3789,
+  "outputTokens": 645,
+  "thoughtTokens": 514
+ },
+ "cost": 0.010520999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator tries to hype up the team at round start saying 'We're in the endgame now!', but the round proceeds calmly without a major play.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    21,
+    38
+   ]
+  ],
+  "reason": "No highlight play or clutch occurs during the clip, and the creator simply sits back and watches in silence after his initial speech."
+ }
+}

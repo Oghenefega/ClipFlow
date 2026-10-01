@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785455230241_m9bj",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2448,
+  "outputTokens": 607,
+  "thoughtTokens": 489
+ },
+ "cost": 0.0082245,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer finishes a driving course successfully and celebrates excitedly, screaming 'Let's go! Get him out of here!'.",
+  "keep_score": 35,
+  "payoff_t": 9,
+  "reaction_end_t": 19,
+  "dead_air": [],
+  "reason": "It is a standard victory celebration upon crossing a finish line without any comedic subversion, fail, or joke to make it memorable to a stranger."
+ }
+}

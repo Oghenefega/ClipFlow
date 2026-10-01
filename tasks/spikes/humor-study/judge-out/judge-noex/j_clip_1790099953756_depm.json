@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099953756_depm",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4625,
+  "outputTokens": 795,
+  "thoughtTokens": 676
+ },
+ "cost": 0.012899999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while watching a robot goalkeeper fail to react to a goal, exclaiming, 'Yeah, that dude stood no chance!'",
+  "keep_score": 88,
+  "payoff_t": 11.5,
+  "reaction_end_t": 33,
+  "dead_air": [],
+  "reason": "Extremely funny reaction to absurd robot soccer footage with a huge, genuine laugh and great physical mimicry of the delayed goalkeeper."
+ }
+}

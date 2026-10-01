@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_fsm8",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7093,
+  "outputTokens": 607,
+  "thoughtTokens": 488
+ },
+ "cost": 0.015192,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator monologues about how exciting a hypothetical Robot Olympics would be while speculating about robot hacking.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    62
+   ]
+  ],
+  "reason": "This clip is just long rambling monologue and speculation over background footage with no joke payoff, surprise, or big comedic reaction."
+ }
+}

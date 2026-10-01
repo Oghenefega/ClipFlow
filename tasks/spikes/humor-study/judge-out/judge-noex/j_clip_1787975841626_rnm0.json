@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_rnm0",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2817,
+  "outputTokens": 980,
+  "thoughtTokens": 826
+ },
+ "cost": 0.011575499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with hands-on-head excitement as 100 Thieves closes out the round, shouting 'NOOO! He wins it!'",
+  "keep_score": 45,
+  "payoff_t": 1,
+  "reaction_end_t": 5,
+  "dead_air": [
+   [
+    6,
+    26
+   ]
+  ],
+  "reason": "The clip begins at the very end of the clutch play so the actual pro play isn't shown live, and the rest of the clip is just post-round commentary and quiet replay watching."
+ }
+}

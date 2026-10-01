@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784688841533_kub7",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6001,
+  "outputTokens": 759,
+  "thoughtTokens": 618
+ },
+ "cost": 0.014694000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer hesitates and tries to back out of a jump, but his egg falls and cracks anyway as he reacts with 'Oh god!'",
+  "keep_score": 30,
+  "payoff_t": 3.5,
+  "reaction_end_t": 6,
+  "dead_air": [
+   [
+    6,
+    57
+   ]
+  ],
+  "reason": "The initial mistake is a minor comedic moment, but the clip continues for nearly a minute with pure chat banter and stream talk that lacks any further payoff."
+ }
+}

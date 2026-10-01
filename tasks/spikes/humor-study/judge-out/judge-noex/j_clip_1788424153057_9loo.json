@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788424153057_9loo",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7752,
+  "outputTokens": 1060,
+  "thoughtTokens": 889
+ },
+ "cost": 0.019577999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics while trying to set up his pose and camouflage on a painting before time runs out, screaming 'No, no, no, don't change your pose right now!'.",
+  "keep_score": 35,
+  "payoff_t": 30,
+  "reaction_end_t": 33,
+  "dead_air": [
+   [
+    47,
+    59
+   ],
+   [
+    113,
+    122
+   ]
+  ],
+  "reason": "The moment consists mostly of extended pre-round setup and menu navigation with minimal punchline or comedy payoff for an outside viewer."
+ }
+}

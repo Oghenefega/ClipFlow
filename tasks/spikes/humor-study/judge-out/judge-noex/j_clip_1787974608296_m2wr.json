@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_m2wr",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4275,
+  "outputTokens": 705,
+  "thoughtTokens": 563
+ },
+ "cost": 0.011699999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer explodes out of his chair shouting 'HE JUST STOPPED HIM MAN!' when 100 Thieves secures a round win.",
+  "keep_score": 90,
+  "payoff_t": 25,
+  "reaction_end_t": 37,
+  "dead_air": [
+   [
+    0,
+    18
+   ]
+  ],
+  "reason": "A massive, high-energy hype reaction where he leaps out of his seat in excitement following a clutch round win in a pro Valorant match."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719526_b6qf",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4408,
+  "outputTokens": 658,
+  "thoughtTokens": 544
+ },
+ "cost": 0.011546999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer passionately hypes up 100 Thieves during pre-match broadcast footage, saying 'We're about to silence this arena.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no actual gameplay or pro play on screen, only pre-match shots of the crowd and players sitting at their desks."
+ }
+}

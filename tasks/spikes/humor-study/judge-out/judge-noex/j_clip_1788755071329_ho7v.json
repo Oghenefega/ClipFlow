@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_ho7v",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3222,
+  "outputTokens": 675,
+  "thoughtTokens": 557
+ },
+ "cost": 0.009895500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through a timeout while watching player webcams, claiming 100 Thieves will make a comeback because it is a defense-sided map.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no actual pro gameplay or play on screen during this clip, only a timeout with player webcams while the creator commentary runs."
+ }
+}

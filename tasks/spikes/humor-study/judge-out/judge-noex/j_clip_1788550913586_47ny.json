@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913586_47ny",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4275,
+  "outputTokens": 641,
+  "thoughtTokens": 491
+ },
+ "cost": 0.01122,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator goes wild over a massive 100T play, screaming 'It's too easy bro!' and 'You're not that guy! You're not THE Phoenix, okay?!'.",
+  "keep_score": 90,
+  "payoff_t": 2.5,
+  "reaction_end_t": 31,
+  "dead_air": [
+   [
+    32,
+    44
+   ]
+  ],
+  "reason": "High-energy hype reaction with iconic quotables while reacting to chaotic pro Valorant kills and outplays."
+ }
+}

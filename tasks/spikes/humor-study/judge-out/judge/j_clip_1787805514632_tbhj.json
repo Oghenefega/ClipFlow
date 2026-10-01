@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_tbhj",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5957,
+  "outputTokens": 802,
+  "thoughtTokens": 650
+ },
+ "cost": 0.014950499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically while watching a weightlifting robot fail its lift and shake uncontrollably, shouting \"Somebody said that's me in the gym!\"",
+  "keep_score": 72,
+  "payoff_t": 20,
+  "reaction_end_t": 48,
+  "dead_air": [
+   [
+    0,
+    14.5
+   ]
+  ],
+  "reason": "The robot's pathetic failure and shaking paired with the streamer's genuine laugh and chat commentary makes for a solid reaction clip once the 14-second setup is trimmed."
+ }
+}

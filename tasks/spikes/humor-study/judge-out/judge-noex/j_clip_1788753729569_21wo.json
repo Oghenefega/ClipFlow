@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788753729569_21wo",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3870,
+  "outputTokens": 762,
+  "thoughtTokens": 610
+ },
+ "cost": 0.011519999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator shouts in disbelief as a player hits an unbelievable headshot while stunned during a VCT match, saying 'these guys are cheating, bro!'.",
+  "keep_score": 80,
+  "payoff_t": 24,
+  "reaction_end_t": 34,
+  "dead_air": [
+   [
+    3,
+    9
+   ],
+   [
+    11,
+    23
+   ]
+  ],
+  "reason": "Great hype reaction to an absurd pro play where a stunned player lands a headshot, featuring strong quotable disbelief from the creator."
+ }
+}

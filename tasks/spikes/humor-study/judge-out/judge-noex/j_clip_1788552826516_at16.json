@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552826516_at16",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1683,
+  "outputTokens": 593,
+  "thoughtTokens": 469
+ },
+ "cost": 0.006972,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator shouts 'GET HIM OUT OF HERE!' and stands up in hype as 100 Thieves closes out a clutch round win in a pro Valorant match.",
+  "keep_score": 95,
+  "payoff_t": 6.5,
+  "reaction_end_t": 12,
+  "dead_air": [],
+  "reason": "Combines an exciting pro match clutch with an energetic, quotable reaction from the creator shouting and jumping out of his chair."
+ }
+}

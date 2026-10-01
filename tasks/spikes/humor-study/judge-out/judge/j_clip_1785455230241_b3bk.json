@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785455230241_b3bk",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3630,
+  "outputTokens": 503,
+  "thoughtTokens": 394
+ },
+ "cost": 0.0092175,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sits on the game's level selection menu explaining that he sucks at the game but will figure it out. Key line: \"I'll figure it out.\"",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is purely menu setup and intro talking with no gameplay, payoff, or funny moment."
+ }
+}

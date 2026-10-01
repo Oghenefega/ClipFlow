@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092102_24dr",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5811,
+  "outputTokens": 845,
+  "thoughtTokens": 695
+ },
+ "cost": 0.015054000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator dismisses NRG winning a thrifty round against 100 Thieves as lucky, jokingly claiming 100T was winning too easily and needed a challenge: 'We were winning a little bit too easy so we needed to sound like hello, need some help.'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip lacks a high-stakes pro play or clutch on screen, and the creator's calm rationalization is not the big, hype reaction expected for this clip type."
+ }
+}

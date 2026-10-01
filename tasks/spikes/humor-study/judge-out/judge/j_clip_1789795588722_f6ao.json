@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588722_f6ao",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5850,
+  "outputTokens": 808,
+  "thoughtTokens": 656
+ },
+ "cost": 0.014835000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer loses a prop hunt round and reacts in utter disbelief when the post-round reveal shows a player hidden inside a metal shelf frame, shouting \"How is someone supposed to find that?\"",
+  "keep_score": 78,
+  "payoff_t": 30,
+  "reaction_end_t": 47,
+  "dead_air": [
+   [
+    9.5,
+    26.5
+   ]
+  ],
+  "reason": "The ridiculous reveal of a hider completely glitched inside a metal shelf beam creates an absurd payoff with a big, genuine reaction from the creator."
+ }
+}

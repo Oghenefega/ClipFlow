@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784963060893_fe2b",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4853,
+  "outputTokens": 638,
+  "thoughtTokens": 532
+ },
+ "cost": 0.012064499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer wonders what he is doing wrong before playfully arguing with chat telling him to stop talking and lock in.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is just casual narration and chat banter while rolling the egg with no gameplay fail, clear setup/payoff, or funny moment."
+ }
+}

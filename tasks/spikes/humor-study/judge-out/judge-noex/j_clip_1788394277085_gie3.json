@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277085_gie3",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3459,
+  "outputTokens": 554,
+  "thoughtTokens": 437
+ },
+ "cost": 0.0093435,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer accidentally backs out of his game lobby while downloading mods, lamenting 'I didn't know what I was doing!'",
+  "keep_score": 25,
+  "payoff_t": 11,
+  "reaction_end_t": 24,
+  "dead_air": [],
+  "reason": "Accidentally misclicking in a server menu and having to reload is minor menu frustration without a strong setup or funny comedic payoff."
+ }
+}

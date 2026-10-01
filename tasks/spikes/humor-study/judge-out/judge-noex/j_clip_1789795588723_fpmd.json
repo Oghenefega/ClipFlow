@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588723_fpmd",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3783,
+  "outputTokens": 505,
+  "thoughtTokens": 386
+ },
+ "cost": 0.009462,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator says he is going to get real good real soon, then spends the rest of the clip quietly searching shelves with no payoff.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    5,
+    38
+   ]
+  ],
+  "reason": "The clip has no comedic payoff, failure, or surprise moment; he simply walks around quietly checking objects."
+ }
+}

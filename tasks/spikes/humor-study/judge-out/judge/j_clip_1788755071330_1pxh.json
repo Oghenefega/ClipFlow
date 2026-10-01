@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071330_1pxh",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4331,
+  "outputTokens": 767,
+  "thoughtTokens": 631
+ },
+ "cost": 0.012249,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer tells pro player Asuna to spam through smoke and erupts in excitement when Asuna immediately gets a kill. Key line: \"THERE WE GO! It's like he can hear me!\"",
+  "keep_score": 88,
+  "payoff_t": 13,
+  "reaction_end_t": 21,
+  "dead_air": [],
+  "reason": "Clear setup and instant payoff as Asuna executes the creator's callout, leading to a high-energy, quotable hype reaction."
+ }
+}

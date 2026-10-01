@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785201843219_aeww",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2121,
+  "outputTokens": 629,
+  "thoughtTokens": 511
+ },
+ "cost": 0.007899,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads a chat request to 1v1 from a Champ 3 player and jokes that he only wants to 1v1 a Bronze player with 2,000 hours.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is stream setup and chat banter with no gameplay event or comedic payoff, which falls under the comedy rejection criteria."
+ }
+}

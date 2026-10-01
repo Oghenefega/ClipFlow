@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092102_pwp5",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3303,
+  "outputTokens": 560,
+  "thoughtTokens": 463
+ },
+ "cost": 0.0091545,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator provides commentary over replays and round setup without any major play happening on screen.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip consists entirely of calm narration and waiting during round setup with no big gameplay highlight or hype reaction."
+ }
+}

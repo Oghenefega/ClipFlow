@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_uqyx",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2748,
+  "outputTokens": 485,
+  "thoughtTokens": 354
+ },
+ "cost": 0.0077595,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly watches 100 Thieves set up on defense during a Valorant match, saying 'We're good on defense.'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "No big play occurs on screen during the clip, and the creator gives calm commentary without a hype moment or big reaction."
+ }
+}

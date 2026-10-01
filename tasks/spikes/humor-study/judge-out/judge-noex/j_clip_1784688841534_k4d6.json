@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784688841534_k4d6",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5000,
+  "outputTokens": 985,
+  "thoughtTokens": 830
+ },
+ "cost": 0.0148875,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts 'I'm gonna close my eye and do this jump!', then rambles and cracks his egg moments later while pleading with it not to fall.",
+  "keep_score": 30,
+  "payoff_t": 26.5,
+  "reaction_end_t": 35,
+  "dead_air": [
+   [
+    16,
+    25
+   ]
+  ],
+  "reason": "The gap between his boast and the egg breaking is filled with slow rambling, and his reaction when it cracks is too calm and long-winded to land as a sharp comedy highlight."
+ }
+}

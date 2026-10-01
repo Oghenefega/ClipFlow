@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092101_4cgx",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2169,
+  "outputTokens": 686,
+  "thoughtTokens": 565
+ },
+ "cost": 0.0083985,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator accurately predicts Bang getting the kill and erupts in excitement yelling 'I said it! I called it! Oh my goodness... Bang is!'",
+  "keep_score": 90,
+  "payoff_t": 3,
+  "reaction_end_t": 18,
+  "dead_air": [],
+  "reason": "The creator makes a bold call right before the play occurs and delivers a energetic, quotable hype reaction as the play succeeds."
+ }
+}

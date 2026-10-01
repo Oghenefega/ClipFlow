@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202987979_l54l",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2409,
+  "outputTokens": 873,
+  "thoughtTokens": 753
+ },
+ "cost": 0.010161,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with intense excitement as 100T Cryo secures multi-kills in a high-stakes Valorant match round, shouting 'WOAH! COME ON!'",
+  "keep_score": 85,
+  "payoff_t": 1.5,
+  "reaction_end_t": 6,
+  "dead_air": [],
+  "reason": "Features a high-stakes multi-kill play in a VCT match accompanied by a loud, high-energy hype reaction from the creator."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202782989_3q3k",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2250,
+  "outputTokens": 889,
+  "thoughtTokens": 755
+ },
+ "cost": 0.0100425,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts excitedly to 100 Thieves winning an international final, cheering 'They're 1 for 1 baby, let's go!'",
+  "keep_score": 20,
+  "payoff_t": 10.5,
+  "reaction_end_t": 17.5,
+  "dead_air": [],
+  "reason": "There is no pro gameplay on screen, only interview/vlog footage of a player on a bus. Clips featuring talk about the team without live play action are automatic rejects."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788752392261_slnu",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3322,
+  "outputTokens": 653,
+  "thoughtTokens": 545
+ },
+ "cost": 0.0098805,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jokingly accuses the opposing team of cheating during a match replay, claiming 'These guys have cheats, I promise!'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is calm narration and cope commentary about the match result rather than a big, explosive hype reaction to an incredible pro play."
+ }
+}

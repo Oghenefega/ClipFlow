@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202987979_keo2",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1440,
+  "outputTokens": 656,
+  "thoughtTokens": 528
+ },
+ "cost": 0.0070799999999999995,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer flexes and laughs at a round replay summary before sitting silently as the next round starts.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": 3.5,
+  "dead_air": [
+   [
+    3.5,
+    9.8
+   ]
+  ],
+  "reason": "The clip shows the tail end of a reaction over a replay screen followed by dead air during round setup, with no live pro play occurring."
+ }
+}

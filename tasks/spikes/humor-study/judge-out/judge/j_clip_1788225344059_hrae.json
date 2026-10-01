@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788225344059_hrae",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3653,
+  "outputTokens": 638,
+  "thoughtTokens": 513
+ },
+ "cost": 0.0102645,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator excitedly celebrates 100 Thieves winning the match 2-0 as players shake hands on stage, shouting 'And that's done baby! Too easy bro!'",
+  "keep_score": 25,
+  "payoff_t": 5,
+  "reaction_end_t": 17,
+  "dead_air": [],
+  "reason": "The clip shows post-match handshakes and final score screens rather than an active, impressive pro play on screen."
+ }
+}

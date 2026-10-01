@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_fe9j",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2175,
+  "outputTokens": 485,
+  "thoughtTokens": 366
+ },
+ "cost": 0.0069,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads through his inventory items, noticing 'Playing Cards', before closing the menu and walking through a door.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15.6
+   ]
+  ],
+  "reason": "Nothing comedic or noteworthy happens; it is just routine inventory management and walking with no punchline or payoff."
+ }
+}

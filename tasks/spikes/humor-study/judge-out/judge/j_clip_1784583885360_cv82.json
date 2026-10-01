@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784583885360_cv82",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4751,
+  "outputTokens": 779,
+  "thoughtTokens": 654
+ },
+ "cost": 0.012969,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer gets scored on twice in Rocket League while quietly mumbling about making silly mistakes.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    11.5,
+    20
+   ]
+  ],
+  "reason": "Lacks a strong setup and payoff or big reaction. The streamer just flatly admits to making mistakes after getting scored on, which feels like routine gameplay."
+ }
+}

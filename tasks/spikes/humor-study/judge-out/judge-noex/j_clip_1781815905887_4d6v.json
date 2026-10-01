@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_4d6v",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1720,
+  "outputTokens": 484,
+  "thoughtTokens": 362
+ },
+ "cost": 0.00621,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator runs through an open field commenting that it seems too early for anyone to extract, but nothing happens.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "Nothing happens in this clip; the creator simply runs across the map talking to himself with no comedic payoff or gameplay action."
+ }
+}

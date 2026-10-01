@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_0y3h",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3060,
+  "outputTokens": 688,
+  "thoughtTokens": 559
+ },
+ "cost": 0.00975,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves secure the final round victory and goes wild, grabbing his team jersey and shouting 'LET'S GO!' at the top of his lungs.",
+  "keep_score": 90,
+  "payoff_t": 18,
+  "reaction_end_t": 29,
+  "dead_air": [],
+  "reason": "Features a high-stakes match win for 100 Thieves combined with an extremely high-energy, passionate celebration from the creator."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_cbff",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4913,
+  "outputTokens": 744,
+  "thoughtTokens": 620
+ },
+ "cost": 0.0129495,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with intense disbelief and excitement to a pro player securing a clutch round kill, screaming 'THERE HE IS!' and pulling his jersey over his head.",
+  "keep_score": 85,
+  "payoff_t": 26,
+  "reaction_end_t": 35,
+  "dead_air": [],
+  "reason": "Features a clutch round finish paired with a passionate, high-energy reaction from the creator, fitting the hype_reaction criteria well."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_5z92",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2600,
+  "outputTokens": 590,
+  "thoughtTokens": 468
+ },
+ "cost": 0.008324999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads a tweet about 666 teams participating in the World Humanoid Robot Games and jokes 'Tell me that is not a sign for something'.",
+  "keep_score": 25,
+  "payoff_t": 14,
+  "reaction_end_t": 21,
+  "dead_air": [],
+  "reason": "It is low-key commentary reading a social media post without a strong comedic punchline or visual fail to make it memorable."
+ }
+}

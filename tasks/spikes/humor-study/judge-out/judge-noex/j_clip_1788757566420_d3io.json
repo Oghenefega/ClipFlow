@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_d3io",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2412,
+  "outputTokens": 996,
+  "thoughtTokens": 866
+ },
+ "cost": 0.011087999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator wildly celebrates 100 Thieves winning the trophy, holding up his jersey and shouting 'Look how silent the crowd is, oh my god!'.",
+  "keep_score": 75,
+  "payoff_t": 4.5,
+  "reaction_end_t": 20,
+  "dead_air": [],
+  "reason": "The creator gives a hugely energetic reaction to 100 Thieves winning the Americas trophy, pulling out his team jersey and hilariously mocking the silent opposing crowd."
+ }
+}

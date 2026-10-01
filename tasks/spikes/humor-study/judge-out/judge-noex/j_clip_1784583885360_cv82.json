@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784583885360_cv82",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3498,
+  "outputTokens": 617,
+  "thoughtTokens": 484
+ },
+ "cost": 0.009874500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets scored on in Rocket League and calmly dismisses his errors, saying 'I still make a lot of silly mistakes and it's okay.'",
+  "keep_score": 20,
+  "payoff_t": 26.5,
+  "reaction_end_t": 33,
+  "dead_air": [
+   [
+    12,
+    20
+   ]
+  ],
+  "reason": "The delivery is flat and low-energy without a clear setup or funny payoff to entertain a casual viewer."
+ }
+}

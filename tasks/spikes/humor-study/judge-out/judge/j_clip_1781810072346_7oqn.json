@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072346_7oqn",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4705,
+  "outputTokens": 478,
+  "thoughtTokens": 365
+ },
+ "cost": 0.0106425,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer silently loots containers and manages his inventory while playing Arc Raiders.",
+  "keep_score": 0,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    30
+   ]
+  ],
+  "reason": "Nothing happens in this clip except standard inventory management and looting with flat commentary, offering no punchline or funny reaction."
+ }
+}

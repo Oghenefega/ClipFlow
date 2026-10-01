@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784787737930_39oe",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2886,
+  "outputTokens": 485,
+  "thoughtTokens": 340
+ },
+ "cost": 0.007966500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer talks to chat about learning positioning and scoring a goal in his real-life soccer league while driving off a Rocket League kickoff. Key line: \"By the way I scored a goal, did I tell y'all?\"",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "Nothing happens in the gameplay and there is no setup or comedic payoff, just passive chat banter during a kickoff."
+ }
+}

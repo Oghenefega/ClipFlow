@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788236573820_lno4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2974,
+  "outputTokens": 622,
+  "thoughtTokens": 507
+ },
+ "cost": 0.009126,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into laughter while watching a malfunctioning humanoid robot flail on the ground, comparing it to 'The cockroach in my house trying to stand up'.",
+  "keep_score": 88,
+  "payoff_t": 2,
+  "reaction_end_t": 11,
+  "dead_air": [],
+  "reason": "A hilariously funny visual paired with an absurd comparison and energetic reaction that requires no prior context."
+ }
+}

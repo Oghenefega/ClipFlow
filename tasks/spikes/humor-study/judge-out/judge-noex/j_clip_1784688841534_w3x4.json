@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841534_w3x4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2907,
+  "outputTokens": 603,
+  "thoughtTokens": 481
+ },
+ "cost": 0.008883,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator calmly claims 'I understand the game plan now' right before almost falling off a ledge, triggering an explosive scream as he jumps out of his chair.",
+  "keep_score": 85,
+  "payoff_t": 19,
+  "reaction_end_t": 24.5,
+  "dead_air": [],
+  "reason": "Classic comedy structure where his calm, confident statement immediately precedes a terrifying close call that sends him leaping out of his seat in panic."
+ }
+}

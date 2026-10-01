@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_gjwc",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3546,
+  "outputTokens": 721,
+  "thoughtTokens": 567
+ },
+ "cost": 0.0107265,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-reacts to a clean Valorant pro kill, standing up and yelling 'GET HIM OUT OF THERE! GET HIM OUT OF THERE!'.",
+  "keep_score": 88,
+  "payoff_t": 25,
+  "reaction_end_t": 31,
+  "dead_air": [
+   [
+    0,
+    16
+   ]
+  ],
+  "reason": "The clip features a strong pro play accompanied by an energetic, quotable hype reaction ('GET HIM OUT OF THERE!'). The introductory monologue before the action starts should be trimmed."
+ }
+}

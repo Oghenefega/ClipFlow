@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788433695048_9811",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4379,
+  "outputTokens": 685,
+  "thoughtTokens": 573
+ },
+ "cost": 0.011706,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer spectates a metallic teammate avatar and laughs, asking \"Chilly, why do you have nipples, bro? On your chrome body?\"",
+  "keep_score": 30,
+  "payoff_t": 4,
+  "reaction_end_t": 12,
+  "dead_air": [],
+  "reason": "It is light spectator banter about an avatar model rather than a strong comedy setup with a gameplay payoff or subversion."
+ }
+}

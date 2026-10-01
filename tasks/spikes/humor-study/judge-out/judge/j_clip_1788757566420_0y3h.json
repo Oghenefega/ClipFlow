@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_0y3h",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4306,
+  "outputTokens": 624,
+  "thoughtTokens": 493
+ },
+ "cost": 0.011139,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in excitement and proudly pulls out his 100 Thieves sweater as 100T secures the match victory: 'LET'S GO!'",
+  "keep_score": 85,
+  "payoff_t": 18.5,
+  "reaction_end_t": 29,
+  "dead_air": [],
+  "reason": "Delivers an authentic, high-energy hype reaction to a crucial match-winning round for 100 Thieves with memorable merch-flexing celebration."
+ }
+}

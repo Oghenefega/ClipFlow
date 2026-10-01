@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757102761_pfc9",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3060,
+  "outputTokens": 910,
+  "thoughtTokens": 804
+ },
+ "cost": 0.011415,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to sad fans in the crowd and shouts to hype up the start of an overtime round.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "While the creator brings energetic commentary, there is no actual pro play or engagement happening on screen during the clip, making it a reject."
+ }
+}

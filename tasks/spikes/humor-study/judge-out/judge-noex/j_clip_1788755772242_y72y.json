@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_y72y",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5085,
+  "outputTokens": 849,
+  "thoughtTokens": 703
+ },
+ "cost": 0.013995,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams and jumps out of his chair when 100 Thieves wins a crucial overtime round, shouting 'GET HIM OUT OF MY FACE BRO!'.",
+  "keep_score": 88,
+  "payoff_t": 15,
+  "reaction_end_t": 27,
+  "dead_air": [
+   [
+    36,
+    54
+   ]
+  ],
+  "reason": "High-stakes pro play with an intensely hyped and quotable reaction from the creator as 100 Thieves seals the round."
+ }
+}

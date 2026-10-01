@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788752392261_slnu",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2088,
+  "outputTokens": 775,
+  "thoughtTokens": 645
+ },
+ "cost": 0.008944500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with mock outrage as 100 Thieves loses the round replay, yelling 'These guys have cheats, I promise!' and claiming 'something is not right!'.",
+  "keep_score": 70,
+  "payoff_t": 3,
+  "reaction_end_t": 16,
+  "dead_air": [],
+  "reason": "He delivers a passionate and quotable mock-outrage cope accusing the enemy pro team of cheating after they beat 100 Thieves."
+ }
+}

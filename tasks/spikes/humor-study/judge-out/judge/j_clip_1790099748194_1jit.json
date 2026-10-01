@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790099748194_1jit",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3867,
+  "outputTokens": 615,
+  "thoughtTokens": 466
+ },
+ "cost": 0.010413,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads a tweet stating there are 666 teams in the World Humanoid Robot Games and laughs, asking 'Tell me that is not a sign for something'.",
+  "keep_score": 20,
+  "payoff_t": 14,
+  "reaction_end_t": 19,
+  "dead_air": [
+   [
+    20,
+    22.7
+   ]
+  ],
+  "reason": "This is just reading text on Twitter and reacting to the number 666 without any funny robot clip or unexpected payoff occurring on screen."
+ }
+}

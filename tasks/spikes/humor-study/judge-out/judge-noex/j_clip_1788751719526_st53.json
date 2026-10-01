@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719526_st53",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6948,
+  "outputTokens": 765,
+  "thoughtTokens": 627
+ },
+ "cost": 0.0161595,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "LOUD tuyz pulls off an absurd 1v3 clutch against 100 Thieves, causing the creator to jump out of his chair shouting 'WHY ARE WE GIVING HIM A 1v3?!'",
+  "keep_score": 88,
+  "payoff_t": 46,
+  "reaction_end_t": 64,
+  "dead_air": [],
+  "reason": "Features an impressive pro 1v3 clutch coupled with an explosive, high-energy reaction from the creator standing up in shock and disbelief."
+ }
+}

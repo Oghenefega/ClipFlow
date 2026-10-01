@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784963060894_w8k9",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3327,
+  "outputTokens": 470,
+  "thoughtTokens": 347
+ },
+ "cost": 0.0085155,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer talks to chat about bad advice regarding a cinder block while slowly rolling his egg along a plank, saying, 'Whoever gave that idea does not know what they're talking about.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "Nothing actually happens in the clip—there is no fall, fail, or comedic payoff, just continuous chat banter while idling on a platform."
+ }
+}

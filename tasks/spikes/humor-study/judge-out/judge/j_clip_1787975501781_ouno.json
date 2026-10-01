@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501781_ouno",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 645,
+  "thoughtTokens": 502
+ },
+ "cost": 0.0095475,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly mutters in confusion while watching a Valorant round, saying 'I'm confused, I don't know what I've just seen in the past 15 seconds.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "The reaction is extremely calm and muted, lacking the big, energetic hype or screaming reaction required for a hype reaction clip."
+ }
+}

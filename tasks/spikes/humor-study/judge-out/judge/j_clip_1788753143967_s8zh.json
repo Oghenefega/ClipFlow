@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_s8zh",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5027,
+  "outputTokens": 690,
+  "thoughtTokens": 551
+ },
+ "cost": 0.012715500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with dramatic disbelief and hands on his head as a pro Valorant player gets a sudden headshot kill, shouting 'Dear Jesus! Oh my word! How?!'",
+  "keep_score": 85,
+  "payoff_t": 20,
+  "reaction_end_t": 28,
+  "dead_air": [
+   [
+    2,
+    18
+   ]
+  ],
+  "reason": "Features an impressive pro kill on screen coupled with an energetic disbelief reaction from the creator."
+ }
+}

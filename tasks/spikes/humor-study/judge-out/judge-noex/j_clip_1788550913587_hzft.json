@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788550913587_hzft",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2655,
+  "outputTokens": 589,
+  "thoughtTokens": 466
+ },
+ "cost": 0.008400000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer erupts during a 100 Thieves round win, yelling 'GET HIM OUT OF THERE BRO! TOO EASY!' and standing up from his chair in hype.",
+  "keep_score": 90,
+  "payoff_t": 7.5,
+  "reaction_end_t": 15.5,
+  "dead_air": [],
+  "reason": "High-energy pro esports moment with a classic big reaction, quotable line, and physical hype from the creator."
+ }
+}

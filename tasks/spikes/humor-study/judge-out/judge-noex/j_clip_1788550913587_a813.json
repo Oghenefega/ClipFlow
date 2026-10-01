@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_a813",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4761,
+  "outputTokens": 740,
+  "thoughtTokens": 584
+ },
+ "cost": 0.0126915,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately hypes up a 100 Thieves round win, shouting 'Read him like a book!' and 'Get him out of here!' while clapping and celebrating.",
+  "keep_score": 88,
+  "payoff_t": 14,
+  "reaction_end_t": 48,
+  "dead_air": [
+   [
+    20,
+    28
+   ]
+  ],
+  "reason": "Delivers classic hype reaction energy with iconic lines ('Read him like a book!', 'Get him out of here!') during an dominant 100 Thieves round."
+ }
+}

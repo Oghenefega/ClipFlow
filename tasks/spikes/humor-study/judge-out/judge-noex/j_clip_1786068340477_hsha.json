@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1786068340477_hsha",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2202,
+  "outputTokens": 994,
+  "thoughtTokens": 866
+ },
+ "cost": 0.010758,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates scoring a Rocket League goal during the replay, shouting 'GET HIM OUT OF HERE BRO!'",
+  "keep_score": 30,
+  "payoff_t": 1,
+  "reaction_end_t": 7,
+  "dead_air": [
+   [
+    9,
+    17
+   ]
+  ],
+  "reason": "While his initial celebration has high energy, the clip lacks a clear comedic setup or subversion, and ends with trailing dead air after the kickoff."
+ }
+}

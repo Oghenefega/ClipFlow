@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719527_ps0t",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5211,
+  "outputTokens": 483,
+  "thoughtTokens": 371
+ },
+ "cost": 0.011439000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reflects on 100T's mix of young players and veteran Asuna while watching pre-game stage footage.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no active gameplay or big play on screen, and the creator gives a calm commentary about the team rather than a hyped reaction."
+ }
+}

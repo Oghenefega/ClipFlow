@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719526_b6qf",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3141,
+  "outputTokens": 545,
+  "thoughtTokens": 435
+ },
+ "cost": 0.008799000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives a passionate pre-match hype speech supporting 100 Thieves while crowd and player camera footage plays.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is pre-game intro hype talk with no actual gameplay or pro play happening on screen, which is a reject under hype reaction rules."
+ }
+}

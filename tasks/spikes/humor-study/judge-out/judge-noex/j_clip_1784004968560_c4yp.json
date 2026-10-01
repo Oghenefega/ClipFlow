@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784004968560_c4yp",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2382,
+  "outputTokens": 892,
+  "thoughtTokens": 751
+ },
+ "cost": 0.010263,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator says \"22 seconds is a lot of time\" before scoring a goal and shouting \"Come on! Come on! Come on!\"",
+  "keep_score": 45,
+  "payoff_t": 10,
+  "reaction_end_t": 16,
+  "dead_air": [
+   [
+    2,
+    8
+   ]
+  ],
+  "reason": "While his reaction is energetic and positive after scoring, it is a straightforward success rather than a funny moment, subverted expectation, or fail."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_gw3j",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3789,
+  "outputTokens": 655,
+  "thoughtTokens": 512
+ },
+ "cost": 0.010596,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with extreme hype to an insane Operator shot in a VCT replay, shouting 'What is that op shot from Timentino?! What the flip?!'",
+  "keep_score": 90,
+  "payoff_t": 8,
+  "reaction_end_t": 32,
+  "dead_air": [
+   [
+    32,
+    38
+   ]
+  ],
+  "reason": "Great hype reaction to an impressive pro play replay with genuine excitement and a memorable commentary about the team's growing momentum."
+ }
+}

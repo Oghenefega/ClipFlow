@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785358551594_rp1r",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5619,
+  "outputTokens": 766,
+  "thoughtTokens": 608
+ },
+ "cost": 0.0141735,
+ "judged": {
+  "kind": "comedy",
+  "what": "After making a clutch save and yelling 'Not on my watch!', the streamer loses control of his car and lets in a goal, laughing hystericallly while asking 'What is my car doing?'",
+  "keep_score": 88,
+  "payoff_t": 30,
+  "reaction_end_t": 35,
+  "dead_air": [
+   [
+    0,
+    16
+   ]
+  ],
+  "reason": "Classic comedy shape: he shouts triumphantly after a big save, only to immediately mess up his driving and get scored on right after, reacting with huge genuine laughter."
+ }
+}

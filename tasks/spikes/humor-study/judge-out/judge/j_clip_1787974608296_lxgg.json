@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787974608296_lxgg",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5691,
+  "outputTokens": 572,
+  "thoughtTokens": 437
+ },
+ "cost": 0.0128265,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with intense excitement and loud trash-talk as 100 Thieves shuts down an enemy ultimate to win the round, shouting 'GET HIM OUT OF THERE! Read him like a book baby!'",
+  "keep_score": 88,
+  "payoff_t": 23,
+  "reaction_end_t": 32,
+  "dead_air": [],
+  "reason": "High-energy reaction to a strong 100T round win with energetic commentary, strong delivery, and memorable hype lines."
+ }
+}

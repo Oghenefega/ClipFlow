@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_c9wm",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3586,
+  "outputTokens": 612,
+  "thoughtTokens": 498
+ },
+ "cost": 0.009969,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reflects on a lost map and gives strategic advice for the upcoming pistol round while watching crowd reactions and player cams.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "No live pro play or hype clutch is happening on screen. The clip shows post-map reactions and crowd shots while the streamer gives calm tactical advice between rounds."
+ }
+}

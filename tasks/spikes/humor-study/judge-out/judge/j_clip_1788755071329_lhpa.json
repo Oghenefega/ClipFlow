@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_lhpa",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2602,
+  "outputTokens": 796,
+  "thoughtTokens": 677
+ },
+ "cost": 0.009873,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer yells in excitement and disbelief as 100 Thieves secures a big kill play, shouting 'THERE WE GO!' and 'No freaking way!'",
+  "keep_score": 85,
+  "payoff_t": 4,
+  "reaction_end_t": 8,
+  "dead_air": [],
+  "reason": "Features an exciting pro esports play paired with an enthusiastic, high-energy reaction from the creator shouting quotable lines."
+ }
+}

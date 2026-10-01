@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_h8g5",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6161,
+  "outputTokens": 1022,
+  "thoughtTokens": 875
+ },
+ "cost": 0.016906499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer erupts in hype while watching a replay of 100T Asuna clutching on Phoenix. Key line: \"GET HIM OUT OF THERE!\"",
+  "keep_score": 85,
+  "payoff_t": 10.5,
+  "reaction_end_t": 18.5,
+  "dead_air": [
+   [
+    22,
+    34
+   ]
+  ],
+  "reason": "Great esports hype moment with high energy and iconic line delivery during the replay play. The tail end after the replay can be trimmed down."
+ }
+}

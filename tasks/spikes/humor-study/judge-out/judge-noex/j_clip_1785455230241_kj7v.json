@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1785455230241_kj7v",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2853,
+  "outputTokens": 595,
+  "thoughtTokens": 426
+ },
+ "cost": 0.008742,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator boasts 'I'm actually going to be deadly in this game. Check this out,' but then simply drives through the level with no punchline, failure, or comedic payoff.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    2.5,
+    7.5
+   ],
+   [
+    10,
+    27
+   ]
+  ],
+  "reason": "While there is a setup where he confidently claims he will be great at the game, the gameplay that follows features no crash, funny failure, or funny reaction to complete the comedic structure."
+ }
+}

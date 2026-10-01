@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_5edq",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5111,
+  "outputTokens": 649,
+  "thoughtTokens": 531
+ },
+ "cost": 0.012534,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reacts to humanoid robot games footage with apocalyptic dread, concluding that \"the West is cooked\" and he needs to move back to Nigeria.",
+  "keep_score": 70,
+  "payoff_t": 48,
+  "reaction_end_t": 53,
+  "dead_air": [],
+  "reason": "A funny hyperbolic rant and reaction to absurd humanoid robot footage that lands a good punchline when he declares the West is cooked."
+ }
+}

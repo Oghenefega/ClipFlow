@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092102_24dr",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4518,
+  "outputTokens": 782,
+  "thoughtTokens": 663
+ },
+ "cost": 0.012642,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator downplays NRG winning an eco round against 100 Thieves, claiming 'Whatever man, lucky! Lucky shots, that's all.'",
+  "keep_score": 20,
+  "payoff_t": 10,
+  "reaction_end_t": 44,
+  "dead_air": [],
+  "reason": "The reaction is flat coping and casual talk rather than an energetic or quotable reaction to a major esports play."
+ }
+}

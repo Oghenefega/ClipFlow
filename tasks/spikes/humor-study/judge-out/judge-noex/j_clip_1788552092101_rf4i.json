@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092101_rf4i",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2736,
+  "outputTokens": 666,
+  "thoughtTokens": 534
+ },
+ "cost": 0.009099,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype reacts to 100T Boostio closing out a round, jumping out of his chair and shouting 'THAT'S MY IGL! ARE YOU NOT ENTERTAINED?!'.",
+  "keep_score": 95,
+  "payoff_t": 4,
+  "reaction_end_t": 16,
+  "dead_air": [],
+  "reason": "Combines a clutch pro round win with an extremely energetic and quotable reaction as the creator stands up and shouts at the camera."
+ }
+}

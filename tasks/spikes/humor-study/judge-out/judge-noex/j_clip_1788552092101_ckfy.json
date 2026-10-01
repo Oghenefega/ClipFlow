@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092101_ckfy",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4032,
+  "outputTokens": 841,
+  "thoughtTokens": 701
+ },
+ "cost": 0.012355499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator energetically shouts 'They're all dropping like flies!' as 100 Thieves dismantles NRG in a flawless Valorant round.",
+  "keep_score": 88,
+  "payoff_t": 10,
+  "reaction_end_t": 39,
+  "dead_air": [
+   [
+    27,
+    33
+   ]
+  ],
+  "reason": "Strong hype reaction with non-stop passionate commentary and loud quotable lines during a dominant 100 Thieves round."
+ }
+}

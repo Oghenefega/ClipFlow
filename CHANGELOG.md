@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 283): watch-and-listen judge tested
+
+### Added
+- **A Gemini judge that watches each candidate moment with sound was tested on 240 of Fega's reviewed clips (#483).** It works out whether a moment is a hype reaction or comedy (right 99.6% of the time) and scores it by that kind's rules. Alone it barely beats the confidence the clip-finder already gives each clip (AUC 0.73 vs 0.70), but averaged with that confidence it reaches 0.754 and would push 44% of rejects to the bottom while losing 10% of keeps, against 25% for confidence alone. Showing it Fega's past keeps and rejects as text made no difference. 100T is the weak spot: Fega keeps taunts and story beats and rejects many generic hype screams, which a one-clip-at-a-time judge cannot tell apart, so the next test judges a whole recording's candidates together. App code is unchanged; results are in `tasks/specs/detection-input-science.md` Step 7, scripts in `tasks/spikes/humor-study/` (`judge-set.py`, `judge.js`, `judge-score.py`), $5.54 of Gemini.
+
 ## [Unreleased] 2026-10-01 (session 283): humor study of Fega's published clips
 
 ### Added

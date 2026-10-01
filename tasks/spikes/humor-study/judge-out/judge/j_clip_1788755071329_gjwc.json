@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_gjwc",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4766,
+  "outputTokens": 1119,
+  "thoughtTokens": 974
+ },
+ "cost": 0.015541500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer hype-predicts the play and screams wildly as a 100T Valorant player lands a headshot kill, shouting 'GET HIM OUT OF THERE!'.",
+  "keep_score": 82,
+  "payoff_t": 26,
+  "reaction_end_t": 31,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "Features a strong pro play combined with an explosive, high-energy reaction and a memorable quote from the streamer."
+ }
+}

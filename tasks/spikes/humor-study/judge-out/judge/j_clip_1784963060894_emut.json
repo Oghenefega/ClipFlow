@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784963060894_emut",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6167,
+  "outputTokens": 917,
+  "thoughtTokens": 811
+ },
+ "cost": 0.016128,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer wildly praises a chat member's game advice, calling them a genius and explaining the strategy. Key line: \"This dude is a genius!\"",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip consists entirely of chat banter and strategy explanation without any gameplay payoff or comedic twist."
+ }
+}

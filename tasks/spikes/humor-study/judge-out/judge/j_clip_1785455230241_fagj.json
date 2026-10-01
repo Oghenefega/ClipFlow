@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_fagj",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6337,
+  "outputTokens": 422,
+  "thoughtTokens": 301
+ },
+ "cost": 0.012670500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer realizes he forgot his Rocket League keybindings while setting up controls in the menu, saying 'I totally forgot my Rocket League controls.'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    54
+   ]
+  ],
+  "reason": "The entire clip consists of setup and menu configuration with no gameplay or comedic payoff."
+ }
+}

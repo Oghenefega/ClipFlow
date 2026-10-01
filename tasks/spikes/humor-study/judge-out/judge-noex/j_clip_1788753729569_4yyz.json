@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753729569_4yyz",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1926,
+  "outputTokens": 629,
+  "thoughtTokens": 490
+ },
+ "cost": 0.0076065,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer gets nervous and tries to encourage 100 Thieves before the round starts, admitting 'I don't know why my words are failing me right now man.'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "This is just talking about his feelings during a timeout and round setup without any actual gameplay or big pro play occurring on screen."
+ }
+}

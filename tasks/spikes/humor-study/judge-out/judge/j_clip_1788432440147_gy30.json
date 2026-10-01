@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788432440147_gy30",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6561,
+  "outputTokens": 481,
+  "thoughtTokens": 379
+ },
+ "cost": 0.013449,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer spends the pre-round customizing his character's camouflage paint job while boasting about how intimidating his army look will be to opponents.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is entirely setup and character customization talk with no gameplay payoff or comedic moment landing."
+ }
+}

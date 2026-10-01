@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1787974608296_c8l2",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3627,
+  "outputTokens": 910,
+  "thoughtTokens": 742
+ },
+ "cost": 0.0122655,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through a Valorant round until Neon dashes in with blades and gets a kill, shouting 'Get him out of here!' before being taken down.",
+  "keep_score": 25,
+  "payoff_t": 22,
+  "reaction_end_t": 27.5,
+  "dead_air": [
+   [
+    0,
+    20.5
+   ],
+   [
+    28,
+    36
+   ]
+  ],
+  "reason": "The clip consists mostly of casual commentary over a standard entry kill rather than a huge clutch or highlight play, and the creator's reaction remains relatively tame."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788756538966_o2j5",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4333,
+  "outputTokens": 615,
+  "thoughtTokens": 508
+ },
+ "cost": 0.011112,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator analyzes a player's delayed Neon stun during a Valorant match replay, imitating the slow ability activation speed.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip is a calm gameplay breakdown and critique of ability timing rather than a hype reaction to a major pro play or clutch."
+ }
+}

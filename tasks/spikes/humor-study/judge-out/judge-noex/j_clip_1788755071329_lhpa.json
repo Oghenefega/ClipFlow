@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_lhpa",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1359,
+  "outputTokens": 751,
+  "thoughtTokens": 617
+ },
+ "cost": 0.007671000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-reacts to a fast 100 Thieves multi-kill on Valorant, screaming 'THERE WE GO!' and 'No freaking way!'.",
+  "keep_score": 88,
+  "payoff_t": 3.5,
+  "reaction_end_t": 8.5,
+  "dead_air": [
+   [
+    0,
+    2.5
+   ]
+  ],
+  "reason": "It features a fast, exciting pro play combined with a big, quotable hype reaction from the creator."
+ }
+}

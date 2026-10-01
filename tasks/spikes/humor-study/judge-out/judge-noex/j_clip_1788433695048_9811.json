@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788433695048_9811",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3135,
+  "outputTokens": 858,
+  "thoughtTokens": 711
+ },
+ "cost": 0.011137500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs while spectating his friend's chrome character model and asks, \"Chilly, why do you have nipples, bro, on your chrome body?\"",
+  "keep_score": 35,
+  "payoff_t": 4,
+  "reaction_end_t": 12,
+  "dead_air": [
+   [
+    17,
+    29
+   ]
+  ],
+  "reason": "It features a lighthearted observation about a character skin, but lacks a major gameplay event or strong punchline, trailing off into casual spectating."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072345_mt9p",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3358,
+  "outputTokens": 702,
+  "thoughtTokens": 578
+ },
+ "cost": 0.010302,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reviews his map to find an extraction point after a successful raid, saying 'I have a reason to live, guys.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    28
+   ]
+  ],
+  "reason": "This clip consists purely of routine map navigation and setup with no comedic payoff, joke, or unexpected moment."
+ }
+}

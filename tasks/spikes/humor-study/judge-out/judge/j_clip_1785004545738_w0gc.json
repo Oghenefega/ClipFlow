@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785004545738_w0gc",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4988,
+  "outputTokens": 386,
+  "thoughtTokens": 264
+ },
+ "cost": 0.010377,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer wonders what a chat member means by 'I'm a GP' while playing Rocket League, only to realize after scoring that it stands for 'ground pinch'.",
+  "keep_score": 15,
+  "payoff_t": 19,
+  "reaction_end_t": 29,
+  "dead_air": [],
+  "reason": "This clip is primarily chat banter and terminology explanation without a strong comedic subversion or funny payoff for a casual viewer."
+ }
+}

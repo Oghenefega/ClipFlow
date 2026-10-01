@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_e47i",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4353,
+  "outputTokens": 590,
+  "thoughtTokens": 465
+ },
+ "cost": 0.0109545,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer gets emotional while watching the 100 Thieves post-match broadcast ceremony. Key line: \"I love my team. I love my team.\"",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no actual gameplay or pro play on screen, only post-match celebrations and interviews. Expressing feelings about the team without a highlight play happening is a reject."
+ }
+}

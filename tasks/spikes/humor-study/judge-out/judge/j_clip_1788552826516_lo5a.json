@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788552826516_lo5a",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4970,
+  "outputTokens": 495,
+  "thoughtTokens": 335
+ },
+ "cost": 0.0111675,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer calmly watches a 100 Thieves Valorant round, offering mild commentary before softly celebrating at the end with 'There we go, there we go, there we go!'",
+  "keep_score": 25,
+  "payoff_t": 36,
+  "reaction_end_t": 37.5,
+  "dead_air": [
+   [
+    3,
+    11
+   ],
+   [
+    23,
+    35
+   ]
+  ],
+  "reason": "The creator's reaction is very muted throughout the round without any major hype, yelling, or quotable moments to elevate the play."
+ }
+}

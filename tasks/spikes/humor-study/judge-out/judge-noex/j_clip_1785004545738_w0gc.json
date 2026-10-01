@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785004545738_w0gc",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 582,
+  "thoughtTokens": 451
+ },
+ "cost": 0.009972000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer asks what 'GP' means, scores a goal, and chat clarifies it stands for 'Ground Pinch'.",
+  "keep_score": 15,
+  "payoff_t": 19,
+  "reaction_end_t": 29,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "This is mild chat banter explaining Rocket League acronyms without a comedic subversion, big fail, or funny payoff."
+ }
+}

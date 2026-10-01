@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_zi0i",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3747,
+  "outputTokens": 899,
+  "thoughtTokens": 767
+ },
+ "cost": 0.012362999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer crashes his delivery truck directly into the finish line barrier and calmly remarks, 'Died on the finish line.'",
+  "keep_score": 30,
+  "payoff_t": 13.5,
+  "reaction_end_t": 19,
+  "dead_air": [
+   [
+    4.5,
+    12.5
+   ]
+  ],
+  "reason": "While failing right at the finish line is an amusing scenario, the streamer's mild delivery and quiet driving setup make the moment lack punch."
+ }
+}

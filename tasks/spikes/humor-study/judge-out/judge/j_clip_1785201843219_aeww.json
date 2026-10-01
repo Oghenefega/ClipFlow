@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785201843219_aeww",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3352,
+  "outputTokens": 586,
+  "thoughtTokens": 480
+ },
+ "cost": 0.009423,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reads a chat message asking for a 1v1 and jokes that he only wants to challenge bad players with thousands of hours in Bronze.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is just casual chat banter while waiting between rounds, with no comedic payoff or funny gameplay moment."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_5edq",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6359,
+  "outputTokens": 654,
+  "thoughtTokens": 523
+ },
+ "cost": 0.0144435,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches ridiculous clips from the World Humanoid Robot Games and humorously warns that the robot uprising is near, saying 'Guys, we are living in the end times... The West is cooked.'",
+  "keep_score": 80,
+  "payoff_t": 16,
+  "reaction_end_t": 53,
+  "dead_air": [],
+  "reason": "Funny and animated absurd commentary on strange viral footage of humanoid robots, delivering a memorable and funny rant about the end of the world."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143968_lgo0",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4247,
+  "outputTokens": 975,
+  "thoughtTokens": 838
+ },
+ "cost": 0.013682999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator expresses mild disbelief after LOUD wins a round, asking 'How the actual heck is that even possible, bro?'",
+  "keep_score": 30,
+  "payoff_t": 3,
+  "reaction_end_t": 14,
+  "dead_air": [
+   [
+    8,
+    13
+   ]
+  ],
+  "reason": "The reaction is far too subdued and quiet without the energetic hype, yelling, or iconic outburst required for an esports watch party clip."
+ }
+}

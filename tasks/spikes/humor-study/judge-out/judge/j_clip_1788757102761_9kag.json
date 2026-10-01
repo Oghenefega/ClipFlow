@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788757102761_9kag",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4770,
+  "outputTokens": 951,
+  "thoughtTokens": 797
+ },
+ "cost": 0.0142875,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer shouts 'Let's go! Oh my goodness!' as 100 Thieves pushes onto site and gets entry kills during a VCT match.",
+  "keep_score": 30,
+  "payoff_t": 31.5,
+  "reaction_end_t": 35,
+  "dead_air": [
+   [
+    0,
+    11.5
+   ],
+   [
+    21,
+    30.5
+   ]
+  ],
+  "reason": "The creator's reaction is generic hype ('Let's go!') over standard round trades rather than a standout clutch or iconic play."
+ }
+}

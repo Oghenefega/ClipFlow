@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788236573820_lno4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1709,
+  "outputTokens": 432,
+  "thoughtTokens": 317
+ },
+ "cost": 0.0058035,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as a twitching cheerleading robot struggles on the floor, calling it 'The cockroach in my house trying to stand up'.",
+  "keep_score": 88,
+  "payoff_t": 1.5,
+  "reaction_end_t": 10.5,
+  "dead_air": [],
+  "reason": "A hilarious and relatable punchline commentary on absurd robot footage, delivered with great timing and genuine laughter."
+ }
+}

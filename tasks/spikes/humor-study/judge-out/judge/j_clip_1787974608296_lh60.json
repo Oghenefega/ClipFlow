@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_lh60",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7530,
+  "outputTokens": 608,
+  "thoughtTokens": 447
+ },
+ "cost": 0.015855,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer wildly jumps out of his chair and screams in hype after 100T Bang pulls off an incredible round win in a pro Valorant match. Key line: \"Bang might just be the best player on the planet, bro!\"",
+  "keep_score": 88,
+  "payoff_t": 14,
+  "reaction_end_t": 51,
+  "dead_air": [
+   [
+    54,
+    109
+   ]
+  ],
+  "reason": "A massive pro Valorant play combined with an explosive, high-energy physical reaction and great quotable hype lines."
+ }
+}

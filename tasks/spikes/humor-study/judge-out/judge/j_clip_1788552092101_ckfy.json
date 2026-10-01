@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092101_ckfy",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5255,
+  "outputTokens": 777,
+  "thoughtTokens": 658
+ },
+ "cost": 0.01371,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer energetically hypes up 100 Thieves winning a round, shouting 'They're all dropping like flies!'",
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 40,
+  "dead_air": [],
+  "reason": "While the streamer displays high energy, he is simply hyping up a routine round win without a specific clutch or highlight outplay on screen."
+ }
+}

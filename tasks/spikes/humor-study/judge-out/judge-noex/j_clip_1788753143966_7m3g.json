@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143966_7m3g",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7596,
+  "outputTokens": 960,
+  "thoughtTokens": 811
+ },
+ "cost": 0.018594,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with intense hype to Cryo's multi-kills for 100 Thieves, screaming 'GET HIM OUT OF HERE!' and standing up from his chair.",
+  "keep_score": 90,
+  "payoff_t": 18,
+  "reaction_end_t": 25,
+  "dead_air": [
+   [
+    0,
+    7
+   ]
+  ],
+  "reason": "Extremely high-energy watch party clip featuring multiple big pro plays on screen accompanied by classic, high-octane reactions and memorable quotes."
+ }
+}

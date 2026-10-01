@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784963060894_emut",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4909,
+  "outputTokens": 694,
+  "thoughtTokens": 542
+ },
+ "cost": 0.0125685,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hype-praises a chat member's advice, standing up and calling them a genius with a 500 IQ brain: 'This dude is a genius! That is what I'm talking about!'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    15,
+    45
+   ]
+  ],
+  "reason": "The clip consists entirely of reading chat advice and over-explaining why it is smart, with no gameplay subversion or comedic payoff taking place."
+ }
+}

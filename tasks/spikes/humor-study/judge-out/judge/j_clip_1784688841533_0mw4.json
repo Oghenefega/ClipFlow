@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841533_0mw4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4599,
+  "outputTokens": 864,
+  "thoughtTokens": 748
+ },
+ "cost": 0.0133785,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer promises positivity and praises his egg as a really good egg, only for it to roll off the edge and shatter as he screams in anguish.",
+  "keep_score": 88,
+  "payoff_t": 24.5,
+  "reaction_end_t": 28.5,
+  "dead_air": [],
+  "reason": "Features a perfect subversion where his calm praise of the egg immediately leads to failure and a dramatic scream reaction."
+ }
+}

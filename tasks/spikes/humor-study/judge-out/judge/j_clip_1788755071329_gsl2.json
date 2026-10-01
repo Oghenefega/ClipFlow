@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_gsl2",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5050,
+  "outputTokens": 730,
+  "thoughtTokens": 604
+ },
+ "cost": 0.013049999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator intensely calls out an opposing player's absurd movement before Cryo closes out the round, shouting 'Get him out of my face!'",
+  "keep_score": 85,
+  "payoff_t": 23,
+  "reaction_end_t": 26,
+  "dead_air": [
+   [
+    5,
+    13
+   ]
+  ],
+  "reason": "High energy reaction with strong quotes and intense body language pointing at the screen leading directly into a round-winning kill."
+ }
+}

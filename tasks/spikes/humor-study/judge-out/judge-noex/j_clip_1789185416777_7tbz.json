@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1789185416777_7tbz",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2169,
+  "outputTokens": 638,
+  "thoughtTokens": 525
+ },
+ "cost": 0.0080385,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps up and yells 'GET HIM OUT OF HERE!' in disbelief after Cryo hits a crazy flick to win the round.",
+  "keep_score": 95,
+  "payoff_t": 1,
+  "reaction_end_t": 9,
+  "dead_air": [],
+  "reason": "Features an incredible pro flick shot accompanied by maximum hype and a top-tier quotable reaction from the streamer."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092102_50ut",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2736,
+  "outputTokens": 917,
+  "thoughtTokens": 784
+ },
+ "cost": 0.0109815,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator shouts 'GET HIM OUT OF HERE!' celebrating a 100 Thieves round win.",
+  "keep_score": 35,
+  "payoff_t": 1.5,
+  "reaction_end_t": 14,
+  "dead_air": [
+   [
+    15,
+    25
+   ]
+  ],
+  "reason": "The clip begins after the action has already concluded on the round win screen, followed by extended downtime and replay analysis without a live play."
+ }
+}

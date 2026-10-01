@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755772242_g6y6",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3546,
+  "outputTokens": 937,
+  "thoughtTokens": 814
+ },
+ "cost": 0.0123465,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator mockingly imitates Asuna's Neon play style before yelling 'GET HIM OUT OF MY FACE BRO! GET HIM OUT OF HERE!'",
+  "keep_score": 82,
+  "payoff_t": 27,
+  "reaction_end_t": 31,
+  "dead_air": [],
+  "reason": "He has a loud, high-energy mock outrage reaction with a solid quotable line ('Get him out of my face bro!') right as the round replay shows the opponent eliminated."
+ }
+}

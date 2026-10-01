@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788149370220_gqno",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4356,
+  "outputTokens": 775,
+  "thoughtTokens": 648
+ },
+ "cost": 0.0123465,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs uncontrollably when the coach dramatically presses an oversized glowing red timeout button on stage.",
+  "keep_score": 20,
+  "payoff_t": 20,
+  "reaction_end_t": 45,
+  "dead_air": [
+   [
+    0,
+    18
+   ]
+  ],
+  "reason": "This clip features no gameplay or pro play, focusing instead on a stage prop during a timeout break between rounds."
+ }
+}

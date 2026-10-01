@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202782989_p83v",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5247,
+  "outputTokens": 572,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0121605,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator discusses how he prefers having esports coaches seated on stage behind the players rather than in a hidden back room.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is calm commentary and analysis of the tournament stage setup without any gameplay or hype reaction."
+ }
+}

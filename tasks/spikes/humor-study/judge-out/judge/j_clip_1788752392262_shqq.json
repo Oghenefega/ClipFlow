@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788752392262_shqq",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2918,
+  "outputTokens": 997,
+  "thoughtTokens": 873
+ },
+ "cost": 0.0118545,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up Asuna using Phoenix's ultimate, shouting 'We're about to Ronaldo this thing up!', but the clip ends before any play or kill actually happens.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "While the creator is energetic, there is no pro play, kill, or clutch on screen during this clip, making it setup without a payoff."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_h3rd",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8162,
+  "outputTokens": 563,
+  "thoughtTokens": 466
+ },
+ "cost": 0.0164655,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reacts in horror to a creepy matte black centaur robot, imagining scenarios where it breaks into a house with a saw.",
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip consists of drawn-out commentary and narration without a punchy joke, sharp comedy beat, or visual payoff."
+ }
+}

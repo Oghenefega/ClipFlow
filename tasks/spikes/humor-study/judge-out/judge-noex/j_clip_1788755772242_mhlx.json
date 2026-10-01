@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755772242_mhlx",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3141,
+  "outputTokens": 648,
+  "thoughtTokens": 516
+ },
+ "cost": 0.0095715,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up a clutch round win, standing up and screaming 'LET'S GO!' and 'Oh my god! Wake him up, baby!'",
+  "keep_score": 90,
+  "payoff_t": 16.5,
+  "reaction_end_t": 29,
+  "dead_air": [],
+  "reason": "Delivers exactly what hype reaction clips need: a high-stakes round win on screen paired with an energetic, standing-up screaming reaction and great quotable lines."
+ }
+}

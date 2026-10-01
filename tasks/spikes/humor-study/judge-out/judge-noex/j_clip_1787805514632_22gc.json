@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_22gc",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6164,
+  "outputTokens": 595,
+  "thoughtTokens": 484
+ },
+ "cost": 0.013708500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically as a humanoid robot gets distracted watching cheerleader robots and tumbles off a platform.",
+  "keep_score": 88,
+  "payoff_t": 38,
+  "reaction_end_t": 53,
+  "dead_air": [],
+  "reason": "The creator provides hilarious commentary treating the robot as a guy getting distracted by female cheerleaders, leading to a great fall and genuine visual and vocal reaction."
+ }
+}

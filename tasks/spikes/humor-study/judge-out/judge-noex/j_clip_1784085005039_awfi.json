@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784085005039_awfi",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2088,
+  "outputTokens": 554,
+  "thoughtTokens": 431
+ },
+ "cost": 0.007287,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tells the egg to behave itself while explaining his plan to jump when a fan moves, but no payoff occurs before the clip ends.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    6,
+    15
+   ]
+  ],
+  "reason": "The clip is purely setup and narration with no comedic payoff, failure, or dramatic reaction occurring."
+ }
+}

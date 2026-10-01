@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_4ybr",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4167,
+  "outputTokens": 685,
+  "thoughtTokens": 534
+ },
+ "cost": 0.011387999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-reacts passionately to Asuna pulling off a lighting-fast sliding kill on Neon, shouting 'You think you're moving fast, I'll show you fast, bro!'",
+  "keep_score": 85,
+  "payoff_t": 10,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    19,
+    27
+   ]
+  ],
+  "reason": "High-energy reaction to a fast pro Neon play by Asuna with a great quotable line and loud celebration."
+ }
+}

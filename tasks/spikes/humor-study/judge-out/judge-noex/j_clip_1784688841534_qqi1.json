@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841534_qqi1",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3271,
+  "outputTokens": 611,
+  "thoughtTokens": 492
+ },
+ "cost": 0.009489000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs while explaining how he expected a mechanism to push his egg, only to roll straight off the edge instead.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip is just the creator narrating and laughing about a mistake that already happened while his egg rolls safely on screen. Without showing the fail as it happens, there is no real comedic payoff."
+ }
+}

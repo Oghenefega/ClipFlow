@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143968_lgo0",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2979,
+  "outputTokens": 712,
+  "thoughtTokens": 596
+ },
+ "cost": 0.0098085,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in complete disbelief to an absurd Valorant play, asking, \"How the actual heck is that even possible, bro?\"",
+  "keep_score": 75,
+  "payoff_t": 1,
+  "reaction_end_t": 15,
+  "dead_air": [],
+  "reason": "The creator delivers a strong, expressive reaction of disbelief with great body language and quotable lines following an absurd round."
+ }
+}

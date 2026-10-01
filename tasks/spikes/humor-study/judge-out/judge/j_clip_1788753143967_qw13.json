@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_qw13",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6174,
+  "outputTokens": 1052,
+  "thoughtTokens": 904
+ },
+ "cost": 0.017151,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams with excitement as 100T Cryo secures the round victory, shouting 'Get him out of my face, bro! Get him out of here!'.",
+  "keep_score": 85,
+  "payoff_t": 30,
+  "reaction_end_t": 39,
+  "dead_air": [
+   [
+    10,
+    28
+   ]
+  ],
+  "reason": "Features a strong pro play from Cryo paired with a huge, iconic reaction from the creator standing up with open arms."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_c5xk",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3303,
+  "outputTokens": 553,
+  "thoughtTokens": 447
+ },
+ "cost": 0.009101999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams and celebrates ecstatically as 100 Thieves lifts the trophy on stage surrounded by confetti.",
+  "keep_score": 85,
+  "payoff_t": 16,
+  "reaction_end_t": 33,
+  "dead_air": [],
+  "reason": "Passionate and energetic reaction to a major championship trophy lift for 100 Thieves."
+ }
+}

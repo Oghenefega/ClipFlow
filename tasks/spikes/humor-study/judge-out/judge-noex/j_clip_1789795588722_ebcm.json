@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1789795588722_ebcm",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5689,
+  "outputTokens": 797,
+  "thoughtTokens": 697
+ },
+ "cost": 0.014511,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer sits on a game's main menu and talks at length about how good his roommate's cooking smells.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is purely menu setup and rambling commentary with no gameplay action, comedic subversion, or payoff."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501781_m6qa",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5198,
+  "outputTokens": 739,
+  "thoughtTokens": 594
+ },
+ "cost": 0.0133395,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer puts his hands on his head in shock and screams with hype as 100T Vora clutches a clutch round. Key line: 'NOOOO! NICE!'",
+  "keep_score": 85,
+  "payoff_t": 31.5,
+  "reaction_end_t": 39,
+  "dead_air": [
+   [
+    0,
+    20
+   ]
+  ],
+  "reason": "A high-stakes VCT clutch round paired with a huge physical and vocal shock reaction from the creator."
+ }
+}

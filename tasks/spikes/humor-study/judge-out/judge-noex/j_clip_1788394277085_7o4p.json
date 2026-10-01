@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277085_7o4p",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3459,
+  "outputTokens": 1094,
+  "thoughtTokens": 931
+ },
+ "cost": 0.0133935,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a player somehow surviving gunfire in plain sight, shouting 'How is this guy not dead?!' before realizing the hunter is just missing.",
+  "keep_score": 40,
+  "payoff_t": 26,
+  "reaction_end_t": 33,
+  "dead_air": [
+   [
+    14,
+    24
+   ]
+  ],
+  "reason": "The clip begins mid-reaction without showing what triggered the initial scream, followed by tech talk about camera controls. While his reaction to the hunter missing at 00:26 is amusing, the moment is too unfocused overall."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236855_rj72",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5210,
+  "outputTokens": 1016,
+  "thoughtTokens": 894
+ },
+ "cost": 0.015435,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator carefully tries to steady his egg while muttering reassurance, only to lose control, yell 'WAIT!', and watch in stunned disbelief as the egg tumbles all the way down.",
+  "keep_score": 65,
+  "payoff_t": 30,
+  "reaction_end_t": 39,
+  "dead_air": [],
+  "reason": "Good comedic structure as his careful concentration collapses into a sudden fall, though his final reaction is somewhat muted."
+ }
+}

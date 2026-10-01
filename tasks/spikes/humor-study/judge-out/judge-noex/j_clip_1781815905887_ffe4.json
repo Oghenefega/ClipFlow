@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_ffe4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1538,
+  "outputTokens": 452,
+  "thoughtTokens": 331
+ },
+ "cost": 0.005697,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer runs around the map in Arc Raiders, commenting that water treatment is too open for his liking.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    8.8
+   ]
+  ],
+  "reason": "Nothing happens in this clip beyond calm gameplay commentary about the map layout, lacking any punchline, action, or comedic payoff."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588723_fpmd",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5093,
+  "outputTokens": 545,
+  "thoughtTokens": 410
+ },
+ "cost": 0.011727000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer claims he will get 'real good real soon' before quietly wandering around a store map without finding any hidden props.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    7,
+    37
+   ]
+  ],
+  "reason": "Nothing happens in this clip. He makes a brief setup comment at the start and then silently roams the map for 30 seconds with no payoff or punchline."
+ }
+}

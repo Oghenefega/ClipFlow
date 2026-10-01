@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1785908333797_i3qf",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4090,
+  "outputTokens": 771,
+  "thoughtTokens": 592
+ },
+ "cost": 0.0119175,
+ "judged": {
+  "kind": "comedy",
+  "what": "While the creator turns his camera away to inspect the path, saying 'surely I'm not gonna be climbing that', the egg starts rolling down the ramp, making him panic and yell 'HEY! NO! NO!'.",
+  "keep_score": 88,
+  "payoff_t": 23.5,
+  "reaction_end_t": 29.5,
+  "dead_air": [
+   [
+    0,
+    1.5
+   ],
+   [
+    31,
+    36.5
+   ]
+  ],
+  "reason": "Classic comedy structure: he turns his attention away while talking calmly, the physics immediately betray him, and he reacts with hilarious, high-energy outrage."
+ }
+}

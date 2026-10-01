@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788753143966_7m3g",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8870,
+  "outputTokens": 1243,
+  "thoughtTokens": 1066
+ },
+ "cost": 0.0226275,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately celebrates a 100 Thieves round win by jumping out of his chair and screaming, 'LET'S GO! GET OUT OF HERE! WE'RE BACK MAN!'",
+  "keep_score": 65,
+  "payoff_t": 18,
+  "reaction_end_t": 24,
+  "dead_air": [
+   [
+    25,
+    57
+   ],
+   [
+    106,
+    118
+   ]
+  ],
+  "reason": "The initial reaction to the round victory is high energy and explosive, though the clip drags out as it goes through the replay and into the next round."
+ }
+}

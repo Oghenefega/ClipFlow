@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092102_vvz5",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2979,
+  "outputTokens": 752,
+  "thoughtTokens": 617
+ },
+ "cost": 0.0101085,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves during a VCT match, screaming 'GET HIM OUT OF HERE!' after huge Operator kills.",
+  "keep_score": 90,
+  "payoff_t": 25.5,
+  "reaction_end_t": 28.5,
+  "dead_air": [
+   [
+    13,
+    24
+   ]
+  ],
+  "reason": "Excellent hype reaction featuring high energy, explosive yelling, and iconic quotes on impressive pro Operator kills."
+ }
+}

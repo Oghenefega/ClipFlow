@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202987979_l54l",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1197,
+  "outputTokens": 662,
+  "thoughtTokens": 548
+ },
+ "cost": 0.006760500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in excitement as Asuna secures a crucial kill during a high-stakes Valorant overtime round, shouting 'Ooh, come on!'",
+  "keep_score": 85,
+  "payoff_t": 3.5,
+  "reaction_end_t": 6.5,
+  "dead_air": [],
+  "reason": "High-energy reaction with screaming and excitement to a pro VCT round-winning play during overtime."
+ }
+}

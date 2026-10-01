@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788432440147_zxie",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2649,
+  "outputTokens": 505,
+  "thoughtTokens": 396
+ },
+ "cost": 0.007761,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reflects on his missed spots after a round, lamenting 'I should've just kept shooting the tree, bro!' while looking at the scoreboard.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip consists entirely of post-round reflection and explanation without any active gameplay payoff or funny subversion."
+ }
+}

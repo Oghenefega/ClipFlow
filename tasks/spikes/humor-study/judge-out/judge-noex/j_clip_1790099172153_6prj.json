@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790099172153_6prj",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5678,
+  "outputTokens": 577,
+  "thoughtTokens": 439
+ },
+ "cost": 0.012844500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs uncontrollably at humanoid robots running erratically on a track, shouting, \"Look at this dude, man!\"",
+  "keep_score": 85,
+  "payoff_t": 41.5,
+  "reaction_end_t": 48,
+  "dead_air": [
+   [
+    0,
+    5
+   ]
+  ],
+  "reason": "The ridiculous footage of humanoid robots running erratically on a track combined with the streamer's genuine, contagious laughter makes this extremely funny for anyone."
+ }
+}

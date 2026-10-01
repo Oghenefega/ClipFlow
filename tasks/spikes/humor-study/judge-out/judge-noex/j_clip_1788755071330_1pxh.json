@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071330_1pxh",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3060,
+  "outputTokens": 624,
+  "thoughtTokens": 472
+ },
+ "cost": 0.00927,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer urges Asuna to spam through the smoke, and when Asuna instantly gets a kill, he screams 'THERE WE GO! It's like he can hear me! We in sync baby!'",
+  "keep_score": 90,
+  "payoff_t": 13.5,
+  "reaction_end_t": 21,
+  "dead_air": [
+   [
+    0,
+    12
+   ]
+  ],
+  "reason": "The streamer predicts and demands a play right before the pro player executes it, leading to an explosive and quotable reaction."
+ }
+}

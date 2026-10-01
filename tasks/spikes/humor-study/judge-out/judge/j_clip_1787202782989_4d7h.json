@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202782989_4d7h",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7315,
+  "outputTokens": 1234,
+  "thoughtTokens": 1069
+ },
+ "cost": 0.020227500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "While criticizing a pro player's strange mouse grip, the creator forgets basic gaming terminology and repeatedly calls ADS 'zoom in', shouting 'I'm old bro! I'm old! It's showing!'",
+  "keep_score": 70,
+  "payoff_t": 49,
+  "reaction_end_t": 61,
+  "dead_air": [
+   [
+    0,
+    24
+   ]
+  ],
+  "reason": "It is a funny self-own where his attempt to roast a pro's setup backfires as he forgets standard FPS terms, leading to a hilarious brain fart and self-deprecation."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202782989_rdv8",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5180,
+  "outputTokens": 763,
+  "thoughtTokens": 622
+ },
+ "cost": 0.0134925,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer laughs and tries to figure out what the 100 Thieves players are shouting during their pre-match huddle, saying 'What are they saying? Ding dong?'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    23,
+    40
+   ]
+  ],
+  "reason": "There is no gameplay or pro play on screen, only pre-match behind-the-scenes footage of the team doing a huddle chant."
+ }
+}

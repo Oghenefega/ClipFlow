@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277084_0979",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2730,
+  "outputTokens": 357,
+  "thoughtTokens": 217
+ },
+ "cost": 0.0067725,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently claims 'I think they got him' right before a hider miraculously evades capture, causing him to yell 'WHAT?!' in complete disbelief.",
+  "keep_score": 85,
+  "payoff_t": 12,
+  "reaction_end_t": 22,
+  "dead_air": [
+   [
+    0,
+    4
+   ]
+  ],
+  "reason": "A strong comedy clip with a perfect setup-and-subversion structure when his confident prediction is immediately proven wrong, producing a hilarious loud reaction."
+ }
+}

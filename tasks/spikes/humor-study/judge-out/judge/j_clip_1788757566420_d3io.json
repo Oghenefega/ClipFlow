@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_d3io",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3645,
+  "outputTokens": 712,
+  "thoughtTokens": 599
+ },
+ "cost": 0.0108075,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer screams and waves a 100 Thieves jersey in excitement while watching 100T celebrate their tournament victory on stage.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": 21,
+  "dead_air": [],
+  "reason": "This is post-match stage celebration footage rather than an actual in-game pro play or clutch moment on screen."
+ }
+}

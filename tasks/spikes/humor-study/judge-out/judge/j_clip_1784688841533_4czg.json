@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784688841533_4czg",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5341,
+  "outputTokens": 958,
+  "thoughtTokens": 811
+ },
+ "cost": 0.015196500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer brags about making the game look easy before instantly dropping his egg and screaming in rage, 'NO BRO! WHAT THE HECK!'",
+  "keep_score": 85,
+  "payoff_t": 30.5,
+  "reaction_end_t": 36,
+  "dead_air": [
+   [
+    0,
+    21
+   ]
+  ],
+  "reason": "Follows the classic comedy structure where extreme hubris ('I make it look so easy') is instantly punished by a fall, capped off by a big screaming reaction."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_xzc4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3258,
+  "outputTokens": 738,
+  "thoughtTokens": 625
+ },
+ "cost": 0.010422,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator misses mailboxes in a delivery game and reacts in disbelief after failing the level.",
+  "keep_score": 25,
+  "payoff_t": 6.5,
+  "reaction_end_t": 12,
+  "dead_air": [
+   [
+    10.5,
+    15
+   ]
+  ],
+  "reason": "Standard gameplay failure without a strong comedic setup, boast, or punchy payoff."
+ }
+}

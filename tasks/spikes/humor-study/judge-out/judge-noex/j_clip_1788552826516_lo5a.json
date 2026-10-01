@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788552826516_lo5a",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3708,
+  "outputTokens": 728,
+  "thoughtTokens": 572
+ },
+ "cost": 0.011022,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a Valorant match as eeiu gets an Operator kill, giving a low-energy reaction with 'Aeyo, what the flip'.",
+  "keep_score": 20,
+  "payoff_t": 21,
+  "reaction_end_t": 24,
+  "dead_air": [
+   [
+    0,
+    12
+   ],
+   [
+    24,
+    35
+   ]
+  ],
+  "reason": "The reaction is far too flat and quiet for a hype esports clip, lacking the big, energetic, or quotable response needed to keep it."
+ }
+}

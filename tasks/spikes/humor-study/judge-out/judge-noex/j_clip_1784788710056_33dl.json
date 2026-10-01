@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788710056_33dl",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3903,
+  "outputTokens": 930,
+  "thoughtTokens": 777
+ },
+ "cost": 0.0128295,
+ "judged": {
+  "kind": "comedy",
+  "what": "After predicting his opponent will score off kickoff, Fega gets scored on and aggressively celebrates his opponent with 'I'm so happy for you man! Nice shot! Phenomenal!'.",
+  "keep_score": 80,
+  "payoff_t": 25,
+  "reaction_end_t": 36,
+  "dead_air": [
+   [
+    11,
+    15
+   ]
+  ],
+  "reason": "Fega's ironic, wildly over-the-top praise for his opponent scoring on him creates an hilarious self-deprecating comedy payoff."
+ }
+}

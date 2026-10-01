@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588722_htx7",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3735,
+  "outputTokens": 792,
+  "thoughtTokens": 636
+ },
+ "cost": 0.0115425,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator frantically searches for a hidden opponent before spotting a tiny yellow duck prop on the floor and blasting it while laughing hysterically: 'Get him out of my face!'",
+  "keep_score": 80,
+  "payoff_t": 12,
+  "reaction_end_t": 17,
+  "dead_air": [
+   [
+    18,
+    21
+   ]
+  ],
+  "reason": "The sudden discovery of the tiny yellow prop leads to a burst of contagious laughter and a great line ('Get him out of my face!'), creating a strong payoff for the search."
+ }
+}

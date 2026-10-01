@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788433695050_pmc4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2497,
+  "outputTokens": 863,
+  "thoughtTokens": 738
+ },
+ "cost": 0.010218000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while spectating a teammate successfully disguise as a bottle right next to identical props while a seeker checks the area.",
+  "keep_score": 35,
+  "payoff_t": 2,
+  "reaction_end_t": 6,
+  "dead_air": [],
+  "reason": "Watching a player successfully hide in prop hunt is mild gameplay, but without a sudden subversion, dramatic failure, or absurd turn of events, it lacks a strong comedic punchline."
+ }
+}

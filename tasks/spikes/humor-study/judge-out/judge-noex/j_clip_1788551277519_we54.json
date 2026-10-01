@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788551277519_we54",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4275,
+  "outputTokens": 713,
+  "thoughtTokens": 556
+ },
+ "cost": 0.01176,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly commentary-watches 100 Thieves play a round of Valorant, offering mild encouragement like 'That's unfortunate' and 'Relax buddy'.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    12
+   ],
+   [
+    23,
+    44
+   ]
+  ],
+  "reason": "The clip lacks a standout pro play and the creator's commentary remains calm and low-energy throughout without a big hype reaction."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1786068340476_5vrh",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5967,
+  "outputTokens": 580,
+  "thoughtTokens": 441
+ },
+ "cost": 0.0133005,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer scores a game-winning goal in Rocket League and celebrates loudly, shouting 'GET HIM OUT OF HERE BRO!'",
+  "keep_score": 15,
+  "payoff_t": 1,
+  "reaction_end_t": 14,
+  "dead_air": [
+   [
+    17,
+    47
+   ]
+  ],
+  "reason": "Standard victory celebration with no comedic subversion, fail, or funny twist. It's just generic hype followed by menu navigation and reading chat donations."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277085_gie3",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4757,
+  "outputTokens": 778,
+  "thoughtTokens": 651
+ },
+ "cost": 0.0129705,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer accidentally backs out of a game lobby to the main menu while waiting for a mod to download, lamenting his mistake. Key line: \"I mistakenly backed out!\"",
+  "keep_score": 15,
+  "payoff_t": 4,
+  "reaction_end_t": 23,
+  "dead_air": [
+   [
+    24,
+    33
+   ]
+  ],
+  "reason": "Menu navigation errors and setup delays lack gameplay payoff and are typically rejected as tech talk with nothing happening."
+ }
+}

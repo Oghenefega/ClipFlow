@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_2qt6",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4825,
+  "outputTokens": 847,
+  "thoughtTokens": 706
+ },
+ "cost": 0.013590000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer hypes up an upcoming 4v2 situation during a Valorant match, exclaiming 'Check out this 4v2, ladies and gentlemen!'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "The creator hypes up the potential of a 4v2 round, but no actual major pro play or clutch moment occurs within this clip."
+ }
+}

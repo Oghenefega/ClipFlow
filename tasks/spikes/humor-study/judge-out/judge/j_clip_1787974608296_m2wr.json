@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_m2wr",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5511,
+  "outputTokens": 669,
+  "thoughtTokens": 513
+ },
+ "cost": 0.013284,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer jumps out of his chair in excitement as 100T Asuna lands a jumping headshot to finish the round, shouting, 'You love to see it bro! Let's go!'",
+  "keep_score": 85,
+  "payoff_t": 25,
+  "reaction_end_t": 37,
+  "dead_air": [
+   [
+    0,
+    18
+   ]
+  ],
+  "reason": "Features a big play with a jumping headshot round-winner and a huge, high-energy physical reaction from the creator standing up and hyping the team."
+ }
+}

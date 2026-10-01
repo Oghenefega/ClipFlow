@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1786068952330_vomx",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5603,
+  "outputTokens": 942,
+  "thoughtTokens": 812
+ },
+ "cost": 0.0154695,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer stares at the post-game scoreboard after a blowout loss and argues his conversion percentage makes him better, saying 'If you ask me, that's a better ratio. I'm quite the better player.'",
+  "keep_score": 25,
+  "payoff_t": 14,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip consists entirely of menu screen stat rambling with no gameplay action, visual payoff, or game event to anchor the joke."
+ }
+}

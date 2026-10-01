@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072346_7oqn",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3449,
+  "outputTokens": 390,
+  "thoughtTokens": 278
+ },
+ "cost": 0.0080985,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer quietly loots containers and manages inventory in Arc Raiders with no notable events or comedy.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    30
+   ]
+  ],
+  "reason": "This is entirely quiet routine gameplay of inventory management with zero payoff, comedy, or excitement."
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1787974608296_8nuq",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3951,
+  "outputTokens": 976,
+  "thoughtTokens": 813
+ },
+ "cost": 0.0132465,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer watches 100 Thieves execute on site and win a round, exclaiming 'Nice! Nice! It's so easy, bro!'",
+  "keep_score": 35,
+  "payoff_t": 10,
+  "reaction_end_t": 15,
+  "dead_air": [
+   [
+    1.5,
+    8.5
+   ],
+   [
+    16,
+    30.5
+   ]
+  ],
+  "reason": " The round features standard execution without a major clutch or explosive play, and the streamer spends long stretches silently watching with a mild overall reaction."
+ }
+}

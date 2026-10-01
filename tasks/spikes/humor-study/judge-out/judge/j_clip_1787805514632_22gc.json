@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_22gc",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7459,
+  "outputTokens": 598,
+  "thoughtTokens": 484
+ },
+ "cost": 0.0156735,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into laughter while watching a video of a humanoid robot get distracted by robot cheerleaders and tumble off a platform.",
+  "keep_score": 85,
+  "payoff_t": 37,
+  "reaction_end_t": 53,
+  "dead_air": [],
+  "reason": "The robot's funny fall combined with the creator's hilarious narration and genuine laughter makes it instantly funny to a stranger."
+ }
+}

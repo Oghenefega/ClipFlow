@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1789795588722_hloz",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5322,
+  "outputTokens": 539,
+  "thoughtTokens": 415
+ },
+ "cost": 0.012025500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains at length about being assigned the hunter role again while aimlessly wandering the lobby.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    8,
+    37
+   ],
+   [
+    45,
+    56
+   ]
+  ],
+  "reason": "The clip is mostly slow lobby setup and rambling complaints with no comedic payoff or subversion."
+ }
+}

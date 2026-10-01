@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785566426951_a4yv",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3828,
+  "outputTokens": 492,
+  "thoughtTokens": 370
+ },
+ "cost": 0.009432,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer complains about his opponent playing well, but the clip features standard driving around with no funny payoff or notable event.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    5,
+    22
+   ]
+  ],
+  "reason": "Nothing happens after his initial comment. It is just standard gameplay with no funny moment, whiff, or payoff."
+ }
+}

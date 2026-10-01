@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789956899839_1e1y",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5240,
+  "outputTokens": 695,
+  "thoughtTokens": 542
+ },
+ "cost": 0.013072499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically while standing in plain sight, amazed he hasn't been found, until another player alerts the seeker and he gets instantly shot.",
+  "keep_score": 85,
+  "payoff_t": 30.5,
+  "reaction_end_t": 38,
+  "dead_air": [
+   [
+    10,
+    18.5
+   ]
+  ],
+  "reason": "Great comedy setup and payoff where the streamer's absurd luck of hiding right in front of the seeker ends instantly when another player warns him, leading to a sudden death and huge laughter."
+ }
+}

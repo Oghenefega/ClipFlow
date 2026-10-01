@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788432440148_spcb",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1353,
+  "outputTokens": 592,
+  "thoughtTokens": 456
+ },
+ "cost": 0.0064694999999999996,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator transitions to the main menu screen after a game and laughs, saying, 'That was actually phenomenal, guys. What the heck?'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    3.5
+   ]
+  ],
+  "reason": "The clip takes place entirely on a loading and main menu screen with no actual gameplay or context provided for his reaction, making it uninteresting to a general viewer."
+ }
+}

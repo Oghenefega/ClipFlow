@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277085_cfqv",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2973,
+  "outputTokens": 767,
+  "thoughtTokens": 633
+ },
+ "cost": 0.010211999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs after another player tells him to 'simply succeed next time,' realizing his mic was open the whole time.",
+  "keep_score": 25,
+  "payoff_t": 7,
+  "reaction_end_t": 14,
+  "dead_air": [
+   [
+    15,
+    27
+   ]
+  ],
+  "reason": "A mild interaction about his mic being open is followed by slow, unexciting gameplay without a strong comedy payoff or clear joke."
+ }
+}

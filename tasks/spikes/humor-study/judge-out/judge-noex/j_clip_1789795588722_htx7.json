@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588722_htx7",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2487,
+  "outputTokens": 762,
+  "thoughtTokens": 621
+ },
+ "cost": 0.009445499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator searches for a hidden prop, shoots a poster, and bursts out laughing when a tiny yellow duck pops out, screaming 'GET HIM OUT OF MY FACE!'.",
+  "keep_score": 82,
+  "payoff_t": 12.5,
+  "reaction_end_t": 17.5,
+  "dead_air": [
+   [
+    18,
+    21
+   ]
+  ],
+  "reason": "An unexpected discovery of a ridiculously tiny hidden prop leads to a hilarious and contagious laughter reaction from the creator."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785358945274_hc6l",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5536,
+  "outputTokens": 762,
+  "thoughtTokens": 625
+ },
+ "cost": 0.014019,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer hypes himself up for a late comeback in Rocket League, saying 'if there's anyone who could do it, it's you bro', only to immediately score an own goal and laugh in disbelief.",
+  "keep_score": 90,
+  "payoff_t": 28,
+  "reaction_end_t": 41,
+  "dead_air": [],
+  "reason": "Classic comedy shape where he confidently hypes up a miracle comeback, immediately accidentally scores on his own net, and reacts with hysterical laughter and disbelief."
+ }
+}

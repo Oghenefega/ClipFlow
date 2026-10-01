@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_sxwk",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4680,
+  "outputTokens": 1097,
+  "thoughtTokens": 940
+ },
+ "cost": 0.0152475,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer celebrates 100 Thieves winning round 11, shouting \"Let's go! Oh my god! 100 Thieves, let's go!\" before watching the round replay.",
+  "keep_score": 65,
+  "payoff_t": 2,
+  "reaction_end_t": 12,
+  "dead_air": [
+   [
+    27,
+    50
+   ]
+  ],
+  "reason": "The clip features strong hype and energy celebrating a round win at the start, though the main play occurs prior to the clip and the end devolves into buy-phase dead air."
+ }
+}

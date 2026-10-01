@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202782990_7z0e",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4599,
+  "outputTokens": 602,
+  "thoughtTokens": 504
+ },
+ "cost": 0.0114135,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer calmly talks about his thoughts on playing Valorant again and his current streaming schedule.",
+  "keep_score": 0,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no esports play happening on screen, and the creator is simply chatting casually with his audience about his schedule."
+ }
+}

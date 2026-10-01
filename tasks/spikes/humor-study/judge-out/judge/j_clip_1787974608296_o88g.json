@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787974608296_o88g",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3682,
+  "outputTokens": 809,
+  "thoughtTokens": 688
+ },
+ "cost": 0.0115905,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer admits that watching esports pros makes him delusionally believe he can aim like them, saying \"Just maybe if I get in my game, I also will have aim like that.\"",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no actual pro play happening on screen and the creator gives a calm, conversational statement rather than a big hype reaction."
+ }
+}

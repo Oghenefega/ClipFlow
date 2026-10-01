@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788645584705_toae",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4761,
+  "outputTokens": 847,
+  "thoughtTokens": 706
+ },
+ "cost": 0.013493999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-reacts to 100T Asuna outplaying the enemy team in Valorant, shouting 'Read him like a book!'.",
+  "keep_score": 85,
+  "payoff_t": 14,
+  "reaction_end_t": 16,
+  "dead_air": [
+   [
+    16,
+    36
+   ]
+  ],
+  "reason": "Features a strong pro outplay on screen accompanied by an energetic, quotable hype reaction from the creator."
+ }
+}

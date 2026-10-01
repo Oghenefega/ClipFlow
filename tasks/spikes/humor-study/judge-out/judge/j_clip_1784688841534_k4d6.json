@@ -1,0 +1,33 @@
+{
+ "key": "j_clip_1784688841534_k4d6",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6183,
+  "outputTokens": 802,
+  "thoughtTokens": 635
+ },
+ "cost": 0.0152895,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer rambles and messes around while playing Egging On, apologizing for not locking in as his egg wobbles on a wooden ramp.",
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    13
+   ],
+   [
+    18,
+    26
+   ],
+   [
+    35,
+    46.5
+   ]
+  ],
+  "reason": "The clip lacks a sharp comedic payoff or big reaction. It is mostly casual narration and slow gameplay without a strong highlight moment."
+ }
+}

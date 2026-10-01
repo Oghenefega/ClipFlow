@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202987979_keo2",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2731,
+  "outputTokens": 804,
+  "thoughtTokens": 680
+ },
+ "cost": 0.0101265,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator flexes and yells in celebration at the end of a round replay before quietly watching the next round setup.",
+  "keep_score": 20,
+  "payoff_t": 1.5,
+  "reaction_end_t": 3,
+  "dead_air": [
+   [
+    3.5,
+    9
+   ]
+  ],
+  "reason": "The play that triggered his reaction is cut out, leaving only the tail end of his celebration followed by silent watching."
+ }
+}

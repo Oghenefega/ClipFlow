@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_yuv6",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5566,
+  "outputTokens": 975,
+  "thoughtTokens": 826
+ },
+ "cost": 0.0156615,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates excitedly as 100 Thieves secures a round victory, shouting 'LET'S GO BABY! COME ON!' while flexing.",
+  "keep_score": 65,
+  "payoff_t": 11,
+  "reaction_end_t": 22,
+  "dead_air": [
+   [
+    22,
+    46
+   ]
+  ],
+  "reason": "The creator delivers a solid high-energy celebration on a round win, though the second half of the clip devolves into quiet replay watching that needs to be trimmed."
+ }
+}

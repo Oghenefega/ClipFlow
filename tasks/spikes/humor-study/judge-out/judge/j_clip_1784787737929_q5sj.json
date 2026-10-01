@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784787737929_q5sj",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3045,
+  "outputTokens": 524,
+  "thoughtTokens": 401
+ },
+ "cost": 0.008497500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer briefly celebrates a goal in Rocket League before quietly driving to position for kickoff, saying 'Easy stuff, easy stuff.'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    3.5,
+    11
+   ]
+  ],
+  "reason": "Nothing funny or extraordinary happens in this standard goal clip, and it lacks any humorous payoff or big reaction."
+ }
+}

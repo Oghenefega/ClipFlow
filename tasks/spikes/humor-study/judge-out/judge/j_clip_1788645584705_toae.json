@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788645584705_toae",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5979,
+  "outputTokens": 979,
+  "thoughtTokens": 836
+ },
+ "cost": 0.016311,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up an impressive pro Valorant kill and jumps out of his chair, shouting, 'Get him out of there! Read him like a book!'",
+  "keep_score": 75,
+  "payoff_t": 10,
+  "reaction_end_t": 16,
+  "dead_air": [
+   [
+    20,
+    36
+   ]
+  ],
+  "reason": "He delivers a high-energy reaction to a slick pro kill with physical excitement and a strong quotable line."
+ }
+}

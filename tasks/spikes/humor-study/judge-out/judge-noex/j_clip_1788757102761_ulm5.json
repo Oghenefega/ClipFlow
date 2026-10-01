@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_ulm5",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5976,
+  "outputTokens": 818,
+  "thoughtTokens": 684
+ },
+ "cost": 0.015099000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator goes wild and jumps out of his chair screaming 'OH MY GOD!' as 100 Thieves forces overtime in a high-stakes VCT match.",
+  "keep_score": 90,
+  "payoff_t": 2,
+  "reaction_end_t": 27,
+  "dead_air": [
+   [
+    56,
+    105
+   ]
+  ],
+  "reason": "Huge esports match-point moment with genuine, massive hype and quotable screaming from the creator."
+ }
+}

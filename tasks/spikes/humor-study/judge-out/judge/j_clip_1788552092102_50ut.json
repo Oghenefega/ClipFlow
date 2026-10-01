@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092102_50ut",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3970,
+  "outputTokens": 655,
+  "thoughtTokens": 502
+ },
+ "cost": 0.010867499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer shouts 'GET HIM OUT OF HERE!' in celebration after 100 Thieves secures a round win against NRG.",
+  "keep_score": 25,
+  "payoff_t": 1.5,
+  "reaction_end_t": 6,
+  "dead_air": [
+   [
+    6,
+    25
+   ]
+  ],
+  "reason": "The creator reacts after the round has already ended with a post-round screen rather than reacting directly to a highlighted clutch play on screen. Additionally, 'Get him out of here' is a repetitive catchphrase across clips."
+ }
+}

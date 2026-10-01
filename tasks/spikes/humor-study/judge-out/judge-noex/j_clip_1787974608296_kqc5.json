@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_kqc5",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3303,
+  "outputTokens": 747,
+  "thoughtTokens": 595
+ },
+ "cost": 0.010557,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts excitedly to a VCT Valorant clutch play, yelling 'I thought we died! But HE died! That is insane! What a save from Cryo!'",
+  "keep_score": 88,
+  "payoff_t": 12,
+  "reaction_end_t": 31,
+  "dead_air": [
+   [
+    4,
+    10.5
+   ]
+  ],
+  "reason": "Excellent hype reaction featuring high energy, a dramatic head-in-hands burst of emotion, and memorable quote-worthy lines during a clutch pro play."
+ }
+}

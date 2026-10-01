@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784963060893_q59p",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6605,
+  "outputTokens": 827,
+  "thoughtTokens": 700
+ },
+ "cost": 0.01611,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer confidently dedicates a high-stakes jump to his viewers only to immediately lose control and shatter his egg, causing him to laugh off the complete setback.",
+  "keep_score": 88,
+  "payoff_t": 29.5,
+  "reaction_end_t": 41,
+  "dead_air": [],
+  "reason": "It follows a classic comedy structure where he builds up immense hype and dedicates the move to his chat, followed instantly by utter failure and a good laugh."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787975841626_1woy",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4194,
+  "outputTokens": 620,
+  "thoughtTokens": 522
+ },
+ "cost": 0.010941,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs and comments on how aggressively coaches hit the red timeout button during a VCT match pause.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip takes place entirely during a match timeout with no active pro play or gameplay on screen."
+ }
+}

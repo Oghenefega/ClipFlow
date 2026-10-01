@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143968_ilsk",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2958,
+  "outputTokens": 794,
+  "thoughtTokens": 660
+ },
+ "cost": 0.010392,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator dismisses the opposing young squad during the buy phase of a Valorant match, saying 'They think they know what they're doing, but they don't.'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    3.5,
+    11.5
+   ]
+  ],
+  "reason": "Nothing happens on screen as the clip cuts off during the buy phase between rounds with no gameplay or pro play taking place."
+ }
+}

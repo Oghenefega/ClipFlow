@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099949324_5ava",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2965,
+  "outputTokens": 614,
+  "thoughtTokens": 489
+ },
+ "cost": 0.0090525,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while watching staff attempt to hold down a malfunctioning robot on the floor, comparing it to 'The cockroach in my house trying to stand up.'",
+  "keep_score": 88,
+  "payoff_t": 1.5,
+  "reaction_end_t": 11,
+  "dead_air": [],
+  "reason": "An hilarious and absurd commentary on funny footage that hits immediately, keeping high energy laughter throughout as the staff wrestles the twitching robot."
+ }
+}

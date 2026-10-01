@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552092101_4cgx",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3390,
+  "outputTokens": 525,
+  "thoughtTokens": 394
+ },
+ "cost": 0.0090225,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately predicts Bang's kill and erupts in celebratory yelling when Bang executes the play. Key line: \"I said it! I called it! Oh my goodness!\"",
+  "keep_score": 88,
+  "payoff_t": 3,
+  "reaction_end_t": 18,
+  "dead_air": [],
+  "reason": "High-energy reaction to a pro play where the creator's prediction instantly pays off, complete with iconic hype yelling and clear quotable delivery."
+ }
+}

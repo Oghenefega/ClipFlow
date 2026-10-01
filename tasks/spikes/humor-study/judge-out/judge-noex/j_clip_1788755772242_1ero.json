@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_1ero",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3384,
+  "outputTokens": 927,
+  "thoughtTokens": 793
+ },
+ "cost": 0.0120285,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator takes off his shirt after 100T secures a round, then monologues about letting the team cook like pasta.",
+  "keep_score": 25,
+  "payoff_t": 1,
+  "reaction_end_t": 3,
+  "dead_air": [
+   [
+    10,
+    33
+   ]
+  ],
+  "reason": "Most of the clip is post-round downtime and calm narration about team strategy rather than an active pro play."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785358945274_hc6l",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4308,
+  "outputTokens": 692,
+  "thoughtTokens": 540
+ },
+ "cost": 0.011652000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hype-talks himself saying \"if there's anyone who could, it's you bro\", only to immediately hit an own goal into his own net and scream in laughter.",
+  "keep_score": 90,
+  "payoff_t": 28.5,
+  "reaction_end_t": 41,
+  "dead_air": [
+   [
+    3,
+    8
+   ]
+  ],
+  "reason": "Classic setup and fail structure where his confident self-pep-talk is immediately contradicted by scoring an own goal, followed by a great genuine reaction."
+ }
+}

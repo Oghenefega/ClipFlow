@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_6u4x",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5108,
+  "outputTokens": 820,
+  "thoughtTokens": 664
+ },
+ "cost": 0.013812,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer frantically panics as his van flies off the road into the trees, screaming before miraculously landing right near the finish line and shouting 'No freaking way dude, I got to the back of the thingy!'",
+  "keep_score": 70,
+  "payoff_t": 22,
+  "reaction_end_t": 33,
+  "dead_air": [
+   [
+    33,
+    40
+   ]
+  ],
+  "reason": "The chaotic physics off-road tumble paired with his high-energy screaming and improbable landing near the finish creates a solid funny gameplay moment."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_kzmu",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5809,
+  "outputTokens": 547,
+  "thoughtTokens": 422
+ },
+ "cost": 0.012815999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer speculates about humanoid robots chasing people in the future and questions why a robot would need to do a long jump before playing a video.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    37
+   ]
+  ],
+  "reason": "The clip consists entirely of setup and commentary with no comedy payoff or funny reaction before it cuts off."
+ }
+}

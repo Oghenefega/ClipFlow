@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790094024511_qd40",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5814,
+  "outputTokens": 934,
+  "thoughtTokens": 790
+ },
+ "cost": 0.015726,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer loses the hide-and-seek round only to discover the final player was clipped inside a metal shelf frame, shouting 'How is someone supposed to find that?'.",
+  "keep_score": 65,
+  "payoff_t": 28,
+  "reaction_end_t": 47,
+  "dead_air": [
+   [
+    10,
+    25
+   ]
+  ],
+  "reason": "The reveal of an absurd, glitched hiding spot after the round ends provides a good surprise payoff and energetic reaction."
+ }
+}

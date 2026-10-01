@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785455230241_b3bk",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2367,
+  "outputTokens": 532,
+  "thoughtTokens": 430
+ },
+ "cost": 0.0075405,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sits on the menu screen of Deadline Delivery and explains that he sucked at the game before while clicking through locked levels.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is purely menu browsing and setup talk before starting the game, with no gameplay or comedic payoff."
+ }
+}

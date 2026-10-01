@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788432440147_399a",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3704,
+  "outputTokens": 865,
+  "thoughtTokens": 732
+ },
+ "cost": 0.0120435,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer tells himself to lock in while searching for hiders, only to be completely startled when the hunters suddenly win out of nowhere. Key line: \"Nah that is insane! How'd he find the last guy?\"",
+  "keep_score": 62,
+  "payoff_t": 10,
+  "reaction_end_t": 20,
+  "dead_air": [],
+  "reason": "A fun sudden surprise moment where the round unexpectedly ends right as he starts looking around, triggering an energetic laugh reaction."
+ }
+}

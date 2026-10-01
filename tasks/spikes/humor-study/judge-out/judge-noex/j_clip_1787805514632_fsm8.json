@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_fsm8",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5840,
+  "outputTokens": 417,
+  "thoughtTokens": 311
+ },
+ "cost": 0.0118875,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks continuously about his ideas for a hypothetical 'Robot Olympics' and how teams would hack each other's robots.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is purely explanatory commentary and rambling tech thoughts without any comedy payoff, funny fail on screen, or big comedic reaction."
+ }
+}

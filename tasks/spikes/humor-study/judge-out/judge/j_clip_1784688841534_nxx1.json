@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841534_nxx1",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4140,
+  "outputTokens": 682,
+  "thoughtTokens": 578
+ },
+ "cost": 0.011324999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer rambles about setting a crack limit before telling his egg 'behave yourself' as it safely boards a drone basket.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no comedic payoff or subversion; he successfully guides the egg onto the platform without falling or cracking."
+ }
+}

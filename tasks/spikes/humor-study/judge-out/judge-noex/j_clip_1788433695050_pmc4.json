@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788433695050_pmc4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1272,
+  "outputTokens": 468,
+  "thoughtTokens": 341
+ },
+ "cost": 0.005418,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while spectating a player disguised as an orange bottle getting found and shot, yelling 'Get out of here, bro!'",
+  "keep_score": 35,
+  "payoff_t": 2,
+  "reaction_end_t": 6,
+  "dead_air": [],
+  "reason": "The moment relies entirely on simple spectating laughter without a strong comedic subversion, setup-payoff, or self-own to make it stand out to a broader audience."
+ }
+}

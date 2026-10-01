@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_c4s2",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1538,
+  "outputTokens": 419,
+  "thoughtTokens": 308
+ },
+ "cost": 0.0054494999999999995,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator opens doors in Arc Raiders, asking 'That's it?' with no notable payoff or funny moment.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    1.5,
+    8
+   ]
+  ],
+  "reason": "The clip consists entirely of quiet exploration with no setup, punchline, or comedy payoff."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143968_clib",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2979,
+  "outputTokens": 640,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0092685,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams 'GET HIM OUT OF HERE!' and jumps out of his chair as 100 Thieves seals a Valorant round win.",
+  "keep_score": 88,
+  "payoff_t": 23,
+  "reaction_end_t": 28,
+  "dead_air": [
+   [
+    10.5,
+    15.5
+   ]
+  ],
+  "reason": "High-energy pro play with iconic hype shouts and a energetic reaction from the creator that fits the format perfectly."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753729569_21wo",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5156,
+  "outputTokens": 1153,
+  "thoughtTokens": 991
+ },
+ "cost": 0.0163815,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with shock and disbelief as 100T Asuna hits an unbelievable kill while completely stunned, shouting 'these guys are cheating, bro!'",
+  "keep_score": 85,
+  "payoff_t": 24,
+  "reaction_end_t": 37,
+  "dead_air": [
+   [
+    2.5,
+    23.5
+   ]
+  ],
+  "reason": "It features an absurd pro play where Asuna headshots an opponent while fully stunned, paired with a funny and quotable reaction calling out cheating. There is significant dead air in the middle while waiting for the replay."
+ }
+}

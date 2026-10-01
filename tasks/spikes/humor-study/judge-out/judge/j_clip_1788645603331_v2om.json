@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788645603331_v2om",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4150,
+  "outputTokens": 650,
+  "thoughtTokens": 520
+ },
+ "cost": 0.011099999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams and leaps out of his chair in pure hype as 100 Thieves clutches an intense Valorant round, exclaiming, 'Yo! This is crazy!'",
+  "keep_score": 90,
+  "payoff_t": 14,
+  "reaction_end_t": 27,
+  "dead_air": [],
+  "reason": "This clip features an exciting pro Valorant clutch paired with a massive, energetic reaction from the creator who literally jumps out of his chair screaming."
+ }
+}

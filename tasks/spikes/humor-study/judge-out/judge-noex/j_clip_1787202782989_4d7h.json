@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787202782989_4d7h",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6057,
+  "outputTokens": 944,
+  "thoughtTokens": 814
+ },
+ "cost": 0.0161655,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator analyzes a pro player's strange mouse grip, accidentally refers to ADS as 'zoom in', and immediately has a self-own moment about getting old.",
+  "keep_score": 65,
+  "payoff_t": 46,
+  "reaction_end_t": 59,
+  "dead_air": [
+   [
+    0,
+    24
+   ]
+  ],
+  "reason": "A relatable and funny self-own moment where the creator forgets basic gaming terminology and laughs at his own slip-up, though the clip has a slow setup."
+ }
+}

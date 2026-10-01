@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099109782_xaoe",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 10785,
+  "outputTokens": 825,
+  "thoughtTokens": 687
+ },
+ "cost": 0.022364999999999996,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically as cheerleading robots glitch and fall over during a performance, joking that one flailing robot looks like 'the cockroach in my house trying to stand up.'",
+  "keep_score": 90,
+  "payoff_t": 4.5,
+  "reaction_end_t": 108,
+  "dead_air": [],
+  "reason": "The footage of malfunctioning humanoid cheerleading robots flailing violently while technicians pin them down is inherently hilarious, and the creator's constant laughing and commentary make it a prime comedy moment."
+ }
+}

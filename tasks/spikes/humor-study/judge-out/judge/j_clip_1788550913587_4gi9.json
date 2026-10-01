@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_4gi9",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3429,
+  "outputTokens": 730,
+  "thoughtTokens": 573
+ },
+ "cost": 0.0106185,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer excitedly jumps out of his chair and screams in hype as 100 Thieves closes out an intense round win, saying 'Wait a minute, wait a minute, I think I'm rooting for the wrong person!'.",
+  "keep_score": 85,
+  "payoff_t": 15.5,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    5,
+    9.5
+   ]
+  ],
+  "reason": "Features a big pro play round finish with the creator exploding in hype, standing up and delivering a funny, iconic reaction."
+ }
+}

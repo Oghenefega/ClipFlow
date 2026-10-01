@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788149370220_gqno",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5546,
+  "outputTokens": 721,
+  "thoughtTokens": 581
+ },
+ "cost": 0.013726499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer laughs hysterically as a coach calls a timeout by pressing a dramatically large red button on stage, saying: \"Not the big red button!\"",
+  "keep_score": 20,
+  "payoff_t": 19,
+  "reaction_end_t": 44,
+  "dead_air": [
+   [
+    0,
+    18
+   ]
+  ],
+  "reason": "Lacks an actual pro gameplay play or clutch; he is simply commenting on broadcast downtime and stage props between rounds."
+ }
+}

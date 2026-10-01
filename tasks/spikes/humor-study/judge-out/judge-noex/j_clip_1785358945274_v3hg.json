@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785358945274_v3hg",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3984,
+  "outputTokens": 714,
+  "thoughtTokens": 573
+ },
+ "cost": 0.011331,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains about his opponent pressuring him, misses a shot opportunity, and immediately gets scored on, laughingly admitting 'I deserved that one.'",
+  "keep_score": 75,
+  "payoff_t": 34,
+  "reaction_end_t": 39,
+  "dead_air": [
+   [
+    8,
+    19
+   ]
+  ],
+  "reason": "A funny, relatable Rocket League moment where his dramatic complaining is immediately met with a goal against him, leading to a great self-deprecating reaction."
+ }
+}

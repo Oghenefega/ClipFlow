@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099748194_1jit",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2600,
+  "outputTokens": 602,
+  "thoughtTokens": 482
+ },
+ "cost": 0.008414999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator notices there are 666 teams in the World Humanoid Robot Games and jokes that it must be an ominous sign.",
+  "keep_score": 20,
+  "payoff_t": 13,
+  "reaction_end_t": 21,
+  "dead_air": [],
+  "reason": "This is just mild commentary reading a tweet about the number 666 without a strong punchline, visual payoff, or big comedic reaction."
+ }
+}

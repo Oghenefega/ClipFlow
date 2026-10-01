@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784787737930_39oe",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1635,
+  "outputTokens": 576,
+  "thoughtTokens": 453
+ },
+ "cost": 0.0067725,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about needing to learn positioning in game and real life soccer as the Rocket League round begins.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "Nothing noteworthy or funny happens in this clip. It is just casual stream commentary during a round start with no comedic payoff or big moment."
+ }
+}

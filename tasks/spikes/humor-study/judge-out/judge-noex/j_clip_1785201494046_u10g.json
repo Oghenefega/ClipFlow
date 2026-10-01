@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785201494046_u10g",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2202,
+  "outputTokens": 780,
+  "thoughtTokens": 633
+ },
+ "cost": 0.009153,
+ "judged": {
+  "kind": "comedy",
+  "what": "After taunting his opponent upon scoring, the creator gets instantly scored on off the kickoff and mutters 'I don't want to talk about that bro, 'cause what?'",
+  "keep_score": 80,
+  "payoff_t": 12.5,
+  "reaction_end_t": 17,
+  "dead_air": [
+   [
+    4.5,
+    9.5
+   ]
+  ],
+  "reason": "A classic instant karma setup where his confident taunting after a goal is immediately humbled by a kick-off goal against him seconds later."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552826516_kaf4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2736,
+  "outputTokens": 868,
+  "thoughtTokens": 734
+ },
+ "cost": 0.010613999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-checks bang saying 'If there's anybody that could and would, it is bang' while watching him position for a clutch, but no play or kill occurs in the clip.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "There is no pro play or payoff within the clip itself; it is purely setup and speculation without any kills or action landing."
+ }
+}

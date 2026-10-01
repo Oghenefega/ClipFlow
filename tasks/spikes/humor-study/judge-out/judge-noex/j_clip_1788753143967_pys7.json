@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143967_pys7",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5085,
+  "outputTokens": 740,
+  "thoughtTokens": 615
+ },
+ "cost": 0.013177500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves forcing LOUD to call a tactical timeout, shouting 'They had to take a timeout!' and gloating that the opponent is getting uncomfortable.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip takes place entirely during a tactical timeout with no pro play or active round footage on screen, making it a reject for hype reaction clips."
+ }
+}

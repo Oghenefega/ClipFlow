@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1786434432376_2a88",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5770,
+  "outputTokens": 673,
+  "thoughtTokens": 525
+ },
+ "cost": 0.0137025,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer plays Rocket League in near silence before his teammate scores, prompting a light reaction: 'Nah, Chili on fire right now dude, what the heck!'",
+  "keep_score": 10,
+  "payoff_t": 40.5,
+  "reaction_end_t": 46,
+  "dead_air": [
+   [
+    3.5,
+    40
+   ]
+  ],
+  "reason": "The clip has nearly forty seconds of complete silence and uninteresting gameplay leading up to a minor reaction. There is no joke, fail, or comedy payoff."
+ }
+}

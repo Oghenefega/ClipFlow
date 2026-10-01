@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784085005038_z19p",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1633,
+  "outputTokens": 500,
+  "thoughtTokens": 368
+ },
+ "cost": 0.0061995,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega wakes up at the bottom of the map and realizes why his egg is there, saying 'Oh, I probably fell last time.'",
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    2.5,
+    4.5
+   ]
+  ],
+  "reason": "Nothing funny or punchy happens in this clip, as it is just setup with him realizing he fell from a previous run before rolling away."
+ }
+}

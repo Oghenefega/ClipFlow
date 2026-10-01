@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_efrl",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4048,
+  "outputTokens": 399,
+  "thoughtTokens": 274
+ },
+ "cost": 0.009064500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer quietly watches a Valorant match while drinking water and quietly repeating, 'You're quite literally not that guy.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    26
+   ]
+  ],
+  "reason": "There is no big pro play occurring on screen and the streamer gives a completely flat, quiet reaction while drinking from a bottle."
+ }
+}

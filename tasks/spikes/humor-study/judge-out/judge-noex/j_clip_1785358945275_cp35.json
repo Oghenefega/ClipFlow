@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785358945275_cp35",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2283,
+  "outputTokens": 603,
+  "thoughtTokens": 475
+ },
+ "cost": 0.007947,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator speculates he might score on his opponent, only for the opponent to immediately score on him instead, leading him to say, 'I spoke too early.'",
+  "keep_score": 50,
+  "payoff_t": 16.5,
+  "reaction_end_t": 19,
+  "dead_air": [],
+  "reason": "It features a classic jinx setup and payoff where he claims he might score right before getting scored on, though his calm reaction keeps the humor modest."
+ }
+}

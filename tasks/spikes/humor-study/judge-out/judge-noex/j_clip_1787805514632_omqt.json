@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_omqt",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5678,
+  "outputTokens": 587,
+  "thoughtTokens": 472
+ },
+ "cost": 0.0129195,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while watching humanoid robots run erratically and swerve out of their lanes in a track race.",
+  "keep_score": 85,
+  "payoff_t": 41.5,
+  "reaction_end_t": 58,
+  "dead_air": [],
+  "reason": "His genuine, hysterical laughter at the absurd footage of flailing humanoid robots running off course makes for a great stand-alone comedy clip."
+ }
+}

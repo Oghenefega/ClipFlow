@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277084_0979",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4016,
+  "outputTokens": 738,
+  "thoughtTokens": 602
+ },
+ "cost": 0.011559,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer spectates in shock as a seeker repeatedly swings right next to a player disguised as a wall painting without noticing him, gasping 'What?! Oh my God, he's right there!'",
+  "keep_score": 85,
+  "payoff_t": 12,
+  "reaction_end_t": 25,
+  "dead_air": [],
+  "reason": "A hilarious close call where an enemy attacks right beside a disguised player without detecting him, driving a great, wide-eyed reaction of disbelief from the creator."
+ }
+}

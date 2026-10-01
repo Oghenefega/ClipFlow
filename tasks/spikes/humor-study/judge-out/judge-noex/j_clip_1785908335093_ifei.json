@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785908335093_ifei",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2769,
+  "outputTokens": 603,
+  "thoughtTokens": 483
+ },
+ "cost": 0.008676,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently claims 'I fear no man' while having no boost, only to immediately get scored on and burst out laughing.",
+  "keep_score": 90,
+  "payoff_t": 8,
+  "reaction_end_t": 21,
+  "dead_air": [],
+  "reason": "Classic comedy structure: he makes a proud boast about fearing no man, gets immediately humbled by a goal, and reacts with genuine laughter at the instant irony."
+ }
+}

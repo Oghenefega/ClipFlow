@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788088823_wuo6",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3579,
+  "outputTokens": 688,
+  "thoughtTokens": 567
+ },
+ "cost": 0.0105285,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer cracks up after his teammate scores a funny goal, asking 'Are we gonna talk about what that was?'",
+  "keep_score": 45,
+  "payoff_t": 2,
+  "reaction_end_t": 16,
+  "dead_air": [
+   [
+    16,
+    25
+   ]
+  ],
+  "reason": "The clip begins during the goal replay, missing the initial hilarious setup, and concludes with prolonged menu navigation."
+ }
+}

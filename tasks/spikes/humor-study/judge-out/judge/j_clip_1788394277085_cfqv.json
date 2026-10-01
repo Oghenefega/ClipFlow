@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277085_cfqv",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4211,
+  "outputTokens": 1040,
+  "thoughtTokens": 889
+ },
+ "cost": 0.0141165,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically when an in-game player gives him deadpan advice over proximity chat, prompting him to reply, 'Okay dude, appreciate it!'",
+  "keep_score": 25,
+  "payoff_t": 7,
+  "reaction_end_t": 13,
+  "dead_air": [
+   [
+    13.5,
+    27
+   ]
+  ],
+  "reason": "The proximity chat interaction is mildly funny, but the moment lacks a strong comedic subversion or payoff and devolves into aimless searching for the second half of the clip."
+ }
+}

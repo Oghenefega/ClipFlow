@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_2qt6",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3546,
+  "outputTokens": 731,
+  "thoughtTokens": 581
+ },
+ "cost": 0.010801499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer hypes up an upcoming 4v2 situation saying 'Check out this 4v2, it's about to be the most insane', but the clip ends during the setup phase before any play occurs.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "The clip shows setup and anticipation for a play, but cuts off before any actual kills or hype moment take place, offering no payoff."
+ }
+}

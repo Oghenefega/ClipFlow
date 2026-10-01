@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_1vcw",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2838,
+  "outputTokens": 735,
+  "thoughtTokens": 586
+ },
+ "cost": 0.0097695,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer panics as he crosses the finish line with a slow time, shouting 'I ruined it!' before laughing hysterically and blaming his teammate.",
+  "keep_score": 20,
+  "payoff_t": 2.5,
+  "reaction_end_t": 8,
+  "dead_air": [
+   [
+    8.5,
+    11
+   ]
+  ],
+  "reason": "The clip begins mid-sentence at the very end of the run, lacking the setup or visual fail that caused the slow time, making the reaction feel context-heavy and unmotivated."
+ }
+}

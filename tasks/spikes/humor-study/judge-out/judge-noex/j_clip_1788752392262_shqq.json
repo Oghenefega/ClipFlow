@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788752392262_shqq",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1683,
+  "outputTokens": 904,
+  "thoughtTokens": 776
+ },
+ "cost": 0.0093045,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves at the start of match point, shouting 'We're about to Ronaldo this thing up!', but the clip cuts before any kills or big plays happen.",
+  "keep_score": 30,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "While the creator brings high energy, the clip only shows early round utility without any actual pro kills, clutches, or highlight play landing on screen."
+ }
+}

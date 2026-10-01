@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788433695048_or2y",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3783,
+  "outputTokens": 647,
+  "thoughtTokens": 520
+ },
+ "cost": 0.010527,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tries to mold his avatar to fit a wall cutout, but his leg and butt stick out ridiculously through the wall, causing him to break into laughter saying 'Oh my butt!'.",
+  "keep_score": 82,
+  "payoff_t": 9,
+  "reaction_end_t": 34,
+  "dead_air": [],
+  "reason": "A strong comedy clip featuring funny visual absurdity in-game paired with genuine, contagious laughter as his avatar fails to hide properly."
+ }
+}

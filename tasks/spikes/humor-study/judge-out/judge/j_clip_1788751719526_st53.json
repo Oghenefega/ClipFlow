@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788751719526_st53",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8198,
+  "outputTokens": 939,
+  "thoughtTokens": 787
+ },
+ "cost": 0.0193395,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer screams in disbelief and holds his head after an opponent clutches a 1v3 against 100 Thieves, yelling 'WHY ARE WE GIVING HIM A 1V3?!'",
+  "keep_score": 90,
+  "payoff_t": 46,
+  "reaction_end_t": 64,
+  "dead_air": [
+   [
+    10,
+    40
+   ]
+  ],
+  "reason": "Features a high-stakes 1v3 pro clutch on screen combined with an explosive, quote-worthy reaction of outrage and disbelief from the streamer."
+ }
+}

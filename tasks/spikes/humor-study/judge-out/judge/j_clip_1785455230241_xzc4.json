@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_xzc4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4506,
+  "outputTokens": 769,
+  "thoughtTokens": 628
+ },
+ "cost": 0.0125265,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer fails a package delivery attempt and then immediately misses another delivery on his second try, key line: 'How did I miss that?'",
+  "keep_score": 20,
+  "payoff_t": 6.5,
+  "reaction_end_t": 12,
+  "dead_air": [
+   [
+    12.5,
+    15
+   ]
+  ],
+  "reason": "The clip features a black screen cut in the middle between attempts, and the reactions to failing the deliveries are low energy with little comedic value."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784963060893_q59p",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5364,
+  "outputTokens": 1083,
+  "thoughtTokens": 934
+ },
+ "cost": 0.0161685,
+ "judged": {
+  "kind": "comedy",
+  "what": "After hyping up a leap and dedicating it to his viewers, the creator's egg bounces wildly, smashes open, and resets his progress as he bursts into laughter.",
+  "keep_score": 90,
+  "payoff_t": 30,
+  "reaction_end_t": 42,
+  "dead_air": [
+   [
+    0,
+    7
+   ]
+  ],
+  "reason": "A classic comedy setup where a confident countdown and dedication to his viewers leads directly to a total disaster and full reset, paired with a funny, genuine reaction."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_yuv6",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4356,
+  "outputTokens": 878,
+  "thoughtTokens": 730
+ },
+ "cost": 0.013118999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves securing another round win in Valorant, yelling 'LET'S GO BABY, COME ON!' while flexing on camera.",
+  "keep_score": 85,
+  "payoff_t": 11,
+  "reaction_end_t": 22,
+  "dead_air": [
+   [
+    25,
+    45
+   ]
+  ],
+  "reason": "Features a key round win for 100 Thieves accompanied by a loud, high-energy hype reaction and celebration from the creator."
+ }
+}

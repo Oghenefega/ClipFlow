@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_s8zh",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3708,
+  "outputTokens": 880,
+  "thoughtTokens": 736
+ },
+ "cost": 0.012162,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in utter disbelief as Less gets a crazy kill on 100T, grabbing his head and yelling 'Jesus! Oh my lord! How, dude?'.",
+  "keep_score": 88,
+  "payoff_t": 20,
+  "reaction_end_t": 28,
+  "dead_air": [
+   [
+    8,
+    18
+   ]
+  ],
+  "reason": "Features an incredible pro kill that triggers a massive, physical disbelief reaction with great audio cues and memorable visuals."
+ }
+}

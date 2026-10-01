@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_cten",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4194,
+  "outputTokens": 882,
+  "thoughtTokens": 732
+ },
+ "cost": 0.012905999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gets hyped as 100 Thieves secures a flawless round win, throwing his hands up and screaming 'Oh my goodness, let's freaking go baby!'.",
+  "keep_score": 75,
+  "payoff_t": 14,
+  "reaction_end_t": 17.5,
+  "dead_air": [
+   [
+    18,
+    43
+   ]
+  ],
+  "reason": "Strong hype reaction with high energy and screaming right when the round ends, but the second half of the clip drags out with quiet commentary."
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788394277085_p6uc",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4884,
+  "outputTokens": 783,
+  "thoughtTokens": 638
+ },
+ "cost": 0.0131985,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts about having incredible vision and claims no one will get past him, all while stuck on a lobby loading screen waiting for players to download mods.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ],
+   [
+    13,
+    22
+   ]
+  ],
+  "reason": "This is purely lobby talk and setup with no gameplay payoff or comedic subversion occurring on screen."
+ }
+}

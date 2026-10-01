@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_qw13",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4923,
+  "outputTokens": 870,
+  "thoughtTokens": 733
+ },
+ "cost": 0.013909500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-reacts to Cryo securing a round win, yelling 'GET HIM OUT OF MY FACE BRO! GET HIM OUT OF HERE!' and celebrating the 4K.",
+  "keep_score": 88,
+  "payoff_t": 29.5,
+  "reaction_end_t": 52,
+  "dead_air": [
+   [
+    9,
+    26
+   ]
+  ],
+  "reason": "Strong pro play multi-kill payoff with big, iconic reactions and high energy from the streamer."
+ }
+}

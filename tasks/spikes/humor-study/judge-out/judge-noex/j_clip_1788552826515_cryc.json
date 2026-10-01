@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552826515_cryc",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2493,
+  "outputTokens": 649,
+  "thoughtTokens": 533
+ },
+ "cost": 0.008607,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator loses his mind celebrating as the team wins the match and qualifies for Champions, shouting 'LET'S GO!'.",
+  "keep_score": 75,
+  "payoff_t": 1.5,
+  "reaction_end_t": 22,
+  "dead_air": [],
+  "reason": "High-energy reaction to a huge esports tournament win moment, with the creator screaming along with the casters in total hype."
+ }
+}

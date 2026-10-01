@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_kqc5",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4591,
+  "outputTokens": 919,
+  "thoughtTokens": 788
+ },
+ "cost": 0.013779,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in disbelief and excitement as 100 Thieves clutches an improbable round, shouting, 'I thought we died! But he died! That is insane!'",
+  "keep_score": 90,
+  "payoff_t": 13,
+  "reaction_end_t": 31,
+  "dead_air": [
+   [
+    4,
+    11
+   ]
+  ],
+  "reason": "Features a high-stakes pro clutch play accompanied by a loud, hilarious, and genuine hype reaction from the creator."
+ }
+}

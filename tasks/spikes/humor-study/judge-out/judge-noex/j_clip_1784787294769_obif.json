@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784787294769_obif",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3336,
+  "outputTokens": 574,
+  "thoughtTokens": 435
+ },
+ "cost": 0.009309,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator cheers excitedly when his teammate Jickel scores a goal, shouting 'Oh yes Jickel! Let's go buddy, come on!'",
+  "keep_score": 25,
+  "payoff_t": 16.5,
+  "reaction_end_t": 29.5,
+  "dead_air": [
+   [
+    0,
+    16
+   ]
+  ],
+  "reason": "The clip features standard excitement over a routine teammate goal without a strong comedic setup, contrast, or funny punchline."
+ }
+}

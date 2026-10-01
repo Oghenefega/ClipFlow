@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277084_kmgo",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3135,
+  "outputTokens": 502,
+  "thoughtTokens": 367
+ },
+ "cost": 0.0084675,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer panics in hide-and-seek as the hunter destroys artwork one by one right next to him, yelling \"He's going from piece to piece! Oh, don't do that!\"",
+  "keep_score": 85,
+  "payoff_t": 24.5,
+  "reaction_end_t": 30,
+  "dead_air": [],
+  "reason": "The escalating tension as the seeker methodically destroys art piece by piece right next to him creates great comedy, paired with his loud panicked reaction."
+ }
+}

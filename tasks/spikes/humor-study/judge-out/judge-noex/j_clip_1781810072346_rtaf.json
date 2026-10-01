@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072346_rtaf",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3449,
+  "outputTokens": 579,
+  "thoughtTokens": 452
+ },
+ "cost": 0.009516,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loots several player corpses while asking why there are so many dead individuals, then hides quietly in a bush.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    10,
+    29
+   ]
+  ],
+  "reason": "Nothing funny or exciting happens in the clip; it consists of slow looting and hiding in bushes with no comedic payoff or punchline."
+ }
+}

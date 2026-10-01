@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788550913587_tv95",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2898,
+  "outputTokens": 641,
+  "thoughtTokens": 532
+ },
+ "cost": 0.0091545,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps out of his chair screaming in disbelief as Ethan pulls off an insane Valorant clutch.",
+  "keep_score": 90,
+  "payoff_t": 13.5,
+  "reaction_end_t": 27,
+  "dead_air": [],
+  "reason": "Features an incredible pro esports clutch match moment paired with an explosive, genuine reaction from the creator standing up and screaming."
+ }
+}

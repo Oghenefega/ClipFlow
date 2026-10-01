@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_46g8",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4599,
+  "outputTokens": 880,
+  "thoughtTokens": 733
+ },
+ "cost": 0.0134985,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs and taunts the opposing player on camera during a replay, shouting 'Where you running to bro?! All of a sudden he's not so happy man!'",
+  "keep_score": 70,
+  "payoff_t": 28,
+  "reaction_end_t": 38,
+  "dead_air": [
+   [
+    4,
+    27
+   ]
+  ],
+  "reason": "He gives a high-energy, quotable reaction mocking the opposing player's expression on player-cam during the replay."
+ }
+}

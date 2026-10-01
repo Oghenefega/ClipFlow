@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_q15x",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2574,
+  "outputTokens": 594,
+  "thoughtTokens": 470
+ },
+ "cost": 0.008316,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly watches Valorant esports round setup and caster commentary without any big plays or energetic reactions.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    23
+   ]
+  ],
+  "reason": "No major play or clutch occurs on screen, and the creator remains calm and silent for most of the clip without providing a hype reaction."
+ }
+}

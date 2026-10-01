@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_h3rd",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6893,
+  "outputTokens": 626,
+  "thoughtTokens": 493
+ },
+ "cost": 0.0150345,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loses it looking at a terrifying black centaur robot standing outside a door, shouting, 'Tell me this thing isn't demonic!'",
+  "keep_score": 82,
+  "payoff_t": 34,
+  "reaction_end_t": 72,
+  "dead_air": [
+   [
+    18,
+    22
+   ]
+  ],
+  "reason": "His funny horror-style narration and wide-eyed reactions to the uncanny robot design create a very entertaining comedy clip."
+ }
+}

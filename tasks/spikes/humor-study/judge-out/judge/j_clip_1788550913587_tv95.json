@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_tv95",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4175,
+  "outputTokens": 714,
+  "thoughtTokens": 574
+ },
+ "cost": 0.0116175,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps out of his chair and screams in total shock as Asuna clutches a high-stakes round, key line: \"OH MY GOD! This is crazy!\"",
+  "keep_score": 88,
+  "payoff_t": 14,
+  "reaction_end_t": 27,
+  "dead_air": [
+   [
+    0,
+    12.5
+   ]
+  ],
+  "reason": "Features an incredible clutch play paired with an explosive, high-energy reaction where the streamer leaps out of his seat screaming."
+ }
+}

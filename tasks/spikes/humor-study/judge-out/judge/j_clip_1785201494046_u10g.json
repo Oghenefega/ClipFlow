@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785201494046_u10g",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3423,
+  "outputTokens": 839,
+  "thoughtTokens": 708
+ },
+ "cost": 0.011427,
+ "judged": {
+  "kind": "comedy",
+  "what": "After scoring and asking his opponent 'How does it feel buddy?', the streamer immediately gets scored on off the kickoff, leaving him in confused laughter asking, 'I'm sorry, what?'",
+  "keep_score": 35,
+  "payoff_t": 13,
+  "reaction_end_t": 17,
+  "dead_air": [],
+  "reason": "While there is a brief ironic payoff when he immediately concedes off the kickoff after taunting, his reaction is relatively flat and mild rather than a big comedic moment."
+ }
+}

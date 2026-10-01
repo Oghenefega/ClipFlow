@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785022519030_w8zm",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2692,
+  "outputTokens": 512,
+  "thoughtTokens": 417
+ },
+ "cost": 0.007878,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks to the camera about how satisfying it was to 'hate watch' Argentina.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The streamer is just talking directly to the camera with no gameplay event, visual joke, or comedy payoff."
+ }
+}

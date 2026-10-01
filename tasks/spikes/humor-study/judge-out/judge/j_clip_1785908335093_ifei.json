@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785908335093_ifei",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4032,
+  "outputTokens": 819,
+  "thoughtTokens": 683
+ },
+ "cost": 0.0121905,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently declares 'I fear no man' while low on boost, only for his opponent to immediately score on him.",
+  "keep_score": 90,
+  "payoff_t": 8,
+  "reaction_end_t": 20,
+  "dead_air": [
+   [
+    21,
+    25
+   ]
+  ],
+  "reason": "Follows the ideal comedy clip formula: he makes a bold boast and the game instantly punishes him, triggering a genuine laughing reaction."
+ }
+}

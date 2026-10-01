@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_5632",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3516,
+  "outputTokens": 594,
+  "thoughtTokens": 482
+ },
+ "cost": 0.009729,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer smiles while watching post-match stage footage of Asuna interacting with fans, quietly repeating 'Let's go'.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no actual gameplay or pro play on screen, and the creator's reaction is very flat with no hype or quotable moment."
+ }
+}

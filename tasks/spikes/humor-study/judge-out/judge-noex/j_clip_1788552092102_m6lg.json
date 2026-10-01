@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092102_m6lg",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3384,
+  "outputTokens": 767,
+  "thoughtTokens": 650
+ },
+ "cost": 0.0108285,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks trash about player Keeko before pointing to his shirt and shouting, 'This is our qualification match, ladies and gentlemen!'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    27
+   ]
+  ],
+  "reason": "There is no pro play or action happening on screen, only commentary between rounds."
+ }
+}

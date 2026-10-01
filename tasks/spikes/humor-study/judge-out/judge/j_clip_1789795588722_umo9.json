@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588722_umo9",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4651,
+  "outputTokens": 694,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0121815,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer shoots a player hiding seamlessly against a wall poster after a callout and bursts into hysterical laughter, saying 'I did not see him next to the roses, what?!'",
+  "keep_score": 82,
+  "payoff_t": 7.5,
+  "reaction_end_t": 25,
+  "dead_air": [
+   [
+    27,
+    33
+   ]
+  ],
+  "reason": "A funny surprise reveal where an enemy is perfectly disguised inside a wall picture, provoking a big and infectious laughing reaction."
+ }
+}

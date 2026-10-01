@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_udn4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4139,
+  "outputTokens": 791,
+  "thoughtTokens": 648
+ },
+ "cost": 0.012141,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer roasts a silver fighting robot for missing every strike and collapsing, saying 'The dude in silver literally did not land one shot!'",
+  "keep_score": 55,
+  "payoff_t": 11.5,
+  "reaction_end_t": 18.5,
+  "dead_air": [
+   [
+    19,
+    41
+   ]
+  ],
+  "reason": "The roast on the failing combat robot delivers a funny beat, but the clip continues into a completely flat second video that bogs down the momentum."
+ }
+}

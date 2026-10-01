@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1784688841534_n7by",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5343,
+  "outputTokens": 832,
+  "thoughtTokens": 661
+ },
+ "cost": 0.0142545,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer rhythmically counts his jumps while playing Egging On before enthusiastically agreeing with a chat comment, shouting 'Big brain man, that's what I was thinking bro!' and returning to counting.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": 29,
+  "dead_air": [
+   [
+    0,
+    16.5
+   ],
+   [
+    29.5,
+    36
+   ]
+  ],
+  "reason": "The clip consists mostly of repetitive jump counting without any gameplay fail or comedic payoff. Chat banter alone is not enough to make this funny to a general audience."
+ }
+}

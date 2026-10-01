@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092101_rf4i",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3968,
+  "outputTokens": 591,
+  "thoughtTokens": 431
+ },
+ "cost": 0.010384500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams and jumps out of his chair celebrating a 100T round win, yelling 'Get him out of there bro!' and 'ARE YOU NOT ENTERTAINED?!'",
+  "keep_score": 95,
+  "payoff_t": 5,
+  "reaction_end_t": 15,
+  "dead_air": [
+   [
+    16,
+    25
+   ]
+  ],
+  "reason": "Classic hype reaction featuring an iconic phrase ('Get him out of here') followed by standing up and screaming 'ARE YOU NOT ENTERTAINED?!' right on a big round win."
+ }
+}

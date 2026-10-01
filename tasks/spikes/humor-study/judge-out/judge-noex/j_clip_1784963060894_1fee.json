@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784963060894_1fee",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4272,
+  "outputTokens": 625,
+  "thoughtTokens": 497
+ },
+ "cost": 0.0110955,
+ "judged": {
+  "kind": "comedy",
+  "what": "While trying to remind himself to roll at five, the creator says 'you have five fingers... no I have 10, sorry' and bursts into laughter at his own mistake.",
+  "keep_score": 80,
+  "payoff_t": 16,
+  "reaction_end_t": 22,
+  "dead_air": [],
+  "reason": "A funny and relatable self-own where a simple slip of the tongue while rationalizing game timing leads to a genuine moment of laughter."
+ }
+}

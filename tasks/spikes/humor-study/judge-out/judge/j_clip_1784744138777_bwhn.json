@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784744138777_bwhn",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5695,
+  "outputTokens": 979,
+  "thoughtTokens": 835
+ },
+ "cost": 0.015885000000000003,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets outplayed and scored on in Rocket League, reacting with 'Red me like a book, bro. What the flip?'",
+  "keep_score": 25,
+  "payoff_t": 22,
+  "reaction_end_t": 25,
+  "dead_air": [
+   [
+    25,
+    45
+   ]
+  ],
+  "reason": "The reaction to getting scored on is mild, and the clip quickly devolves into extended chat Q&A about his Rocket League rank with no comedic payoff."
+ }
+}

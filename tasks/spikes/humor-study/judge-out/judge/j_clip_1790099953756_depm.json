@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1790099953756_depm",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5896,
+  "outputTokens": 924,
+  "thoughtTokens": 767
+ },
+ "cost": 0.015774000000000003,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as a robot soccer goalie stands frozen while a goal is scored, only to tip backward seconds later, leading him to mockingly imitate it: 'Yeah that dude stood no chance!'",
+  "keep_score": 88,
+  "payoff_t": 11.5,
+  "reaction_end_t": 33,
+  "dead_air": [
+   [
+    4,
+    7.5
+   ]
+  ],
+  "reason": "The visual absurdity of the robot goalie's delayed reaction paired with the creator's big, contagious laugh and physical imitation makes this genuinely funny to a stranger."
+ }
+}

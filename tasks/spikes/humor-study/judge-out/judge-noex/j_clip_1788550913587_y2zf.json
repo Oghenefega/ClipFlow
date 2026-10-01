@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788550913587_y2zf",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3384,
+  "outputTokens": 495,
+  "thoughtTokens": 395
+ },
+ "cost": 0.0087885,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator complains about the map veto choices during match setup, calling them 'the three worst maps'.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip contains no active gameplay or hype pro plays on screen, only map selection analysis before the match."
+ }
+}

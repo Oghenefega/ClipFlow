@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785358945274_v3hg",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5260,
+  "outputTokens": 961,
+  "thoughtTokens": 801
+ },
+ "cost": 0.0150975,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer attempts a stylish shot in Rocket League while shouting 'Ain't no way!', only to immediately get counter-scored on to make it 4-1 and admit, 'I deserved that one.'",
+  "keep_score": 70,
+  "payoff_t": 33.5,
+  "reaction_end_t": 39,
+  "dead_air": [
+   [
+    7,
+    18
+   ]
+  ],
+  "reason": "A funny Rocket League self-own where his attempt to score backfires into an immediate counter-goal, leaving him laughing in defeat with his face in his hands."
+ }
+}

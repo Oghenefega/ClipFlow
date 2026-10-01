@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099741948_gni9",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7442,
+  "outputTokens": 571,
+  "thoughtTokens": 437
+ },
+ "cost": 0.0154455,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically as a humanoid robot gets distracted by robot cheerleaders, climbs a ledge to watch, and tumbles off the platform, with the streamer noting 'dude just misses his step'.",
+  "keep_score": 88,
+  "payoff_t": 38,
+  "reaction_end_t": 54,
+  "dead_air": [],
+  "reason": "A funny absurd clip with a clear visual physical comedy payoff where the robot falls off the platform, matched by a huge genuine reaction from the streamer."
+ }
+}

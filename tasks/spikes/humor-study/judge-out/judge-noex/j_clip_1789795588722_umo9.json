@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1789795588722_umo9",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3459,
+  "outputTokens": 634,
+  "thoughtTokens": 506
+ },
+ "cost": 0.009943500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator is confused when his teammate says a player is next to the roses, only to shoot a picture frame and reveal a player perfectly blended into the wall art, bursting into uncontrollable laughter.",
+  "keep_score": 82,
+  "payoff_t": 8,
+  "reaction_end_t": 25,
+  "dead_air": [],
+  "reason": "The unexpected and absurd hiding spot blended into the picture frame creates a great surprise payoff, backed by genuine, infectious laughter from the creator."
+ }
+}

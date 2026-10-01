@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788432440147_399a",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2487,
+  "outputTokens": 526,
+  "thoughtTokens": 401
+ },
+ "cost": 0.0076755,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator says 'we gotta lock in bro' while searching for props, only for the hunters to suddenly win the round unexpectedly, triggering a loud burst of disbelief and laughter.",
+  "keep_score": 75,
+  "payoff_t": 10,
+  "reaction_end_t": 19,
+  "dead_air": [],
+  "reason": "Good comedic timing with an unexpected round win right after he claims he needs to lock in, followed by a passionate and funny reaction."
+ }
+}

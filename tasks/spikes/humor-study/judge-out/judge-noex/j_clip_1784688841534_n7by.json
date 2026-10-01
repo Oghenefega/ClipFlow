@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1784688841534_n7by",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4090,
+  "outputTokens": 673,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0111825,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator counts rhythmically while watching his egg before suddenly agreeing with a chat suggestion, shouting 'Big brain man, that's what I was thinking bro!'",
+  "keep_score": 40,
+  "payoff_t": 19,
+  "reaction_end_t": 30,
+  "dead_air": [
+   [
+    0,
+    17
+   ],
+   [
+    30,
+    36
+   ]
+  ],
+  "reason": "While his enthusiastic outburst in response to chat advice is lively, the clip is framed by tedious counting with no actual in-game gameplay payoff or mishap."
+ }
+}

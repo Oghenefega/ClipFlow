@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789956899839_1e1y",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4026,
+  "outputTokens": 779,
+  "thoughtTokens": 636
+ },
+ "cost": 0.0118815,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at how he hasn't been spotted while standing right behind the hunter, only to be suddenly shot dead the moment in-game voice chat gives him away.",
+  "keep_score": 85,
+  "payoff_t": 30,
+  "reaction_end_t": 36,
+  "dead_air": [
+   [
+    10,
+    18
+   ]
+  ],
+  "reason": "Great comedy timing with a clear comedic payoff when he gets instantly sniped right after using in-game voice chat."
+ }
+}

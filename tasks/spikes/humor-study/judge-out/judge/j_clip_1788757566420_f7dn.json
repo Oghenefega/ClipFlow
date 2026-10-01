@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_f7dn",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5108,
+  "outputTokens": 638,
+  "thoughtTokens": 524
+ },
+ "cost": 0.012447,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches post-match broadcast footage of a player signing fan autographs and being interviewed after a tournament win.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no pro gameplay or clutch play occurring on screen, only post-match interview and crowd footage. Hype reactions require an actual gameplay play to trigger the reaction."
+ }
+}

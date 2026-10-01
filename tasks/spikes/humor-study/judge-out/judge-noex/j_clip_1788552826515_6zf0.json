@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552826515_6zf0",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2979,
+  "outputTokens": 1192,
+  "thoughtTokens": 1032
+ },
+ "cost": 0.0134085,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves closing out a crucial round, laughing and asking 'Was it worth it? What did it cost?' before celebrating their Champions qualification shouting 'CHAMPS! CHAMPS! Can you hear it?'.",
+  "keep_score": 85,
+  "payoff_t": 2.5,
+  "reaction_end_t": 28,
+  "dead_air": [
+   [
+    11.5,
+    16.5
+   ]
+  ],
+  "reason": "Great hype energy with memorable quote reactions to 100 Thieves securing a key round win and qualifying for Champions."
+ }
+}

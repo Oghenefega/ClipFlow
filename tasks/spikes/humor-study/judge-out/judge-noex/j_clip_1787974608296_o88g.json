@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_o88g",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2412,
+  "outputTokens": 680,
+  "thoughtTokens": 559
+ },
+ "cost": 0.008718,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks about how watching pros makes him want to play Valorant in hopes of having aim like them.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    21
+   ]
+  ],
+  "reason": "This is purely calm discussion about his feelings while watching pros with no pro play or hype reaction taking place."
+ }
+}

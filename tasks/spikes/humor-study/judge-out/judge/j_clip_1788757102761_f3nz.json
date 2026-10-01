@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_f3nz",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4994,
+  "outputTokens": 694,
+  "thoughtTokens": 573
+ },
+ "cost": 0.012695999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer hypes up entering the end game before silently watching the early round utility and positioning play out.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    38
+   ]
+  ],
+  "reason": "No notable pro play occurs during the clip, and the creator offers only calm narration and silent watching rather than a big hyped reaction."
+ }
+}

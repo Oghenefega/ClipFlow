@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_tnuy",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2088,
+  "outputTokens": 814,
+  "thoughtTokens": 681
+ },
+ "cost": 0.009237,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a Valorant pro match and screams 'WHAT! WHAT!' in disbelief as bang secures an incredible kill through smoke.",
+  "keep_score": 88,
+  "payoff_t": 14,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    4,
+    12.5
+   ]
+  ],
+  "reason": "Delivers a great hype reaction with genuine disbelief and shouting right as the pro player executes a sick play."
+ }
+}

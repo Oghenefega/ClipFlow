@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788710056_ualf",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3822,
+  "outputTokens": 939,
+  "thoughtTokens": 790
+ },
+ "cost": 0.012775499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega calls out his Rocket League opponent for making pre-game excuses after getting scored on, before scoring a goal back and asking 'Bob, what's your excuse now?'",
+  "keep_score": 72,
+  "payoff_t": 3.5,
+  "reaction_end_t": 15,
+  "dead_air": [
+   [
+    21,
+    28
+   ]
+  ],
+  "reason": "Fega delivers an energetic and relatable rant mocking common gamer excuses after getting scored on, which sets up a satisfying moment when he scores back."
+ }
+}

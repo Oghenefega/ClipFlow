@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785358551594_rp1r",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4389,
+  "outputTokens": 697,
+  "thoughtTokens": 556
+ },
+ "cost": 0.011810999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loses control of his vehicle asking 'What's my car doing?', immediately concedes a goal, and bursts into laughter at his own mistake.",
+  "keep_score": 82,
+  "payoff_t": 30,
+  "reaction_end_t": 36,
+  "dead_air": [
+   [
+    0,
+    16
+   ]
+  ],
+  "reason": "A great self-own moment where his confusion over his own movement leads directly to conceding a goal, followed by a genuine big laugh."
+ }
+}

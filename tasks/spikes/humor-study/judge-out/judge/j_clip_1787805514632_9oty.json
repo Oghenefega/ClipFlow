@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_9oty",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4369,
+  "outputTokens": 661,
+  "thoughtTokens": 531
+ },
+ "cost": 0.011511,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into laughter watching humanoid robots race on a track with a bizarre jumping gait, exclaiming 'What is this, bro?'",
+  "keep_score": 80,
+  "payoff_t": 10,
+  "reaction_end_t": 27,
+  "dead_air": [
+   [
+    0,
+    6
+   ]
+  ],
+  "reason": "It features absurd commentary on genuinely ridiculous footage of humanoid robots sprinting wildly, making for a strong, funny standalone reaction clip."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788088823_wuo6",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4789,
+  "outputTokens": 769,
+  "thoughtTokens": 622
+ },
+ "cost": 0.012951,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs uncontrollably after his Rocket League teammate scores, admitting he was just aimlessly flying around and asking 'Are we gonna talk about what that was?'",
+  "keep_score": 25,
+  "payoff_t": 1,
+  "reaction_end_t": 15,
+  "dead_air": [
+   [
+    16,
+    34
+   ]
+  ],
+  "reason": "The play itself happens right as the clip begins so there is no setup, and over half of the clip consists of menu navigation after the match ends."
+ }
+}

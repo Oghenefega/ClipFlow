@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_g6y6",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4744,
+  "outputTokens": 1777,
+  "thoughtTokens": 1632
+ },
+ "cost": 0.0204435,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer passionately rants about pro player Asuna sliding on Neon, yelling 'GET HIM OUT OF MY FACE, BRO!'",
+  "keep_score": 20,
+  "payoff_t": 27,
+  "reaction_end_t": 34,
+  "dead_air": [
+   [
+    3,
+    12
+   ]
+  ],
+  "reason": "While the creator reacts energetically, there is no clear pro play, multi-kill, or clutch happening on screen—just buy phase movement and player cams between rounds."
+ }
+}

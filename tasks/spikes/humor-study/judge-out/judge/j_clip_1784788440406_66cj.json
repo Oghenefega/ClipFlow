@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788440406_66cj",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4921,
+  "outputTokens": 572,
+  "thoughtTokens": 428
+ },
+ "cost": 0.011671500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs after getting scored on in Rocket League, shouting 'How dare you do that to me on live television!', before missing a boost pad during kickoff.",
+  "keep_score": 18,
+  "payoff_t": 0,
+  "reaction_end_t": 15,
+  "dead_air": [
+   [
+    18,
+    35
+   ]
+  ],
+  "reason": "The clip begins mid-reaction to a goal that already occurred, followed by almost twenty seconds of standard gameplay without any comedic payoff or event."
+ }
+}

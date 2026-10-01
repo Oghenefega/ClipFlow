@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_ulm5",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7251,
+  "outputTokens": 809,
+  "thoughtTokens": 649
+ },
+ "cost": 0.016944,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer erupts in excitement as 100T pushes the match into overtime, before calmly analyzing the replay with 'It's all good, it's all good'.",
+  "keep_score": 25,
+  "payoff_t": 16.5,
+  "reaction_end_t": 22,
+  "dead_air": [
+   [
+    25,
+    65
+   ]
+  ],
+  "reason": "While the initial burst of excitement over reaching overtime is passionate, there is no standout pro play featured, and the clip quickly devolves into calm narration and coping during the replay."
+ }
+}

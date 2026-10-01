@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755772242_vbrk",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5166,
+  "outputTokens": 650,
+  "thoughtTokens": 535
+ },
+ "cost": 0.012624,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts during a match timeout to the casters giving 100 Thieves a chance, joking 'Don't jinx it now, don't join the team!'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip takes place entirely during a tactical timeout with no pro gameplay or plays happening on screen."
+ }
+}

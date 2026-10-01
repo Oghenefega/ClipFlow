@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_q15x",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3881,
+  "outputTokens": 611,
+  "thoughtTokens": 487
+ },
+ "cost": 0.010404,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer quietly watches the setup phase of a Valorant esports round while listening to caster commentary.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    23
+   ]
+  ],
+  "reason": "No high-stakes play or action occurs during this clip, and the streamer offers no big or expressive reaction while watching the round setup."
+ }
+}

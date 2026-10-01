@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841533_0mw4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3362,
+  "outputTokens": 564,
+  "thoughtTokens": 439
+ },
+ "cost": 0.009273,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer preaches positivity and praises his egg's performance, only for it to immediately tumble off a plank and shatter while he screams 'NO!'.",
+  "keep_score": 88,
+  "payoff_t": 25,
+  "reaction_end_t": 28,
+  "dead_air": [],
+  "reason": "Fits the ideal comedy structure perfectly: he expresses calm confidence and positivity toward the egg, which instantly fails and breaks, leading to a dramatic scream."
+ }
+}

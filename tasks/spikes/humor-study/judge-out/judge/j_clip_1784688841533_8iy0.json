@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1784688841533_8iy0",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5008,
+  "outputTokens": 775,
+  "thoughtTokens": 621
+ },
+ "cost": 0.0133245,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer excitedly counts his jumps and celebrates completing a platforming section, only to immediately get disoriented and confused about where he landed.",
+  "keep_score": 30,
+  "payoff_t": 24,
+  "reaction_end_t": 31,
+  "dead_air": [
+   [
+    0,
+    8
+   ],
+   [
+    15,
+    20
+   ]
+  ],
+  "reason": "The moment lacks a dramatic fail or funny reversal, making it similar to previously rejected clips of routine gameplay navigation in this game."
+ }
+}

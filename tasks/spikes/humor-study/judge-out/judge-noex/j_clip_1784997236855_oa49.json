@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236855_oa49",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3882,
+  "outputTokens": 684,
+  "thoughtTokens": 565
+ },
+ "cost": 0.010953000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "After declaring that playing without checkpoints is the worst thing possible, the creator accidentally drops his egg and silently watches it tumble all the way down to the ground.",
+  "keep_score": 68,
+  "payoff_t": 21,
+  "reaction_end_t": 36,
+  "dead_air": [],
+  "reason": "Good comedic timing as his warning about no checkpoints is immediately followed by a devastating fall all the way back to the start."
+ }
+}

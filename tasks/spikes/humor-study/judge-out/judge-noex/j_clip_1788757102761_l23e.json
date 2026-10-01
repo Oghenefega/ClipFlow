@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788757102761_l23e",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5733,
+  "outputTokens": 980,
+  "thoughtTokens": 816
+ },
+ "cost": 0.0159495,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a tense 12-12 match point round, cheering 'Let's go!' when 100 Thieves secures key kills.",
+  "keep_score": 40,
+  "payoff_t": 14,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    0,
+    13
+   ],
+   [
+    19,
+    58
+   ]
+  ],
+  "reason": "The clip features long stretches of quiet watching and the creator's reaction is generic shouting without a strong quotable moment or insane play."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_x5hb",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4424,
+  "outputTokens": 739,
+  "thoughtTokens": 601
+ },
+ "cost": 0.012178499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with pure shock and hypes up an incredible pro Valorant play during a replay, screaming 'Get him out of here!'",
+  "keep_score": 88,
+  "payoff_t": 17,
+  "reaction_end_t": 18.5,
+  "dead_air": [
+   [
+    19,
+    31
+   ]
+  ],
+  "reason": "Includes a great pro play on screen paired with a big, passionate hype reaction and a classic quotable line."
+ }
+}

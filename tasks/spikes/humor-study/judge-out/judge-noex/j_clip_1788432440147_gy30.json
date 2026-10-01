@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1788432440147_gy30",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5322,
+  "outputTokens": 682,
+  "thoughtTokens": 541
+ },
+ "cost": 0.013098,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer customizes his character's camouflage outfit, boasting that other players will be scared when they see his army look.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    15.5,
+    18.5
+   ],
+   [
+    20,
+    22.5
+   ]
+  ],
+  "reason": "The clip consists entirely of character customization and uninterrupted monologuing without any gameplay payoff or hilarious twist."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552826515_6zf0",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4231,
+  "outputTokens": 729,
+  "thoughtTokens": 601
+ },
+ "cost": 0.011814000000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately celebrates 100 Thieves reaching match point to qualify for Champions, shouting, 'Ladies and gentlemen! Champs! Champs! Can you hear it?'",
+  "keep_score": 85,
+  "payoff_t": 18.5,
+  "reaction_end_t": 28,
+  "dead_air": [],
+  "reason": "The creator gives a big, energetic hype reaction to 100 Thieves securing a pivotal match point to qualify for Champions with memorable commentary."
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1785455230241_zi0i",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2529,
+  "outputTokens": 849,
+  "thoughtTokens": 703
+ },
+ "cost": 0.010161,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator crashes and fails his delivery right at the finish line, deadpanning 'Died on the finish line.'",
+  "keep_score": 35,
+  "payoff_t": 13.5,
+  "reaction_end_t": 19,
+  "dead_air": [
+   [
+    4,
+    12.5
+   ],
+   [
+    19.5,
+    23.5
+   ]
+  ],
+  "reason": "Failing right at the finish line is a decent moment, but his reaction is relatively flat and there is noticeable silent driving before the payoff."
+ }
+}

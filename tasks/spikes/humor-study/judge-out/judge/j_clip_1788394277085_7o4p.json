@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277085_7o4p",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4656,
+  "outputTokens": 879,
+  "thoughtTokens": 744
+ },
+ "cost": 0.013576500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator screams in disbelief while spectating a chaotic chase in Meccha Chameleon, laughing hysterically and asking 'How is this guy not dead?'",
+  "keep_score": 80,
+  "payoff_t": 26,
+  "reaction_end_t": 30,
+  "dead_air": [
+   [
+    14,
+    18
+   ]
+  ],
+  "reason": "A genuinely funny highlight driven by an absurd escape and the creator's big, hysterical reaction culminating in a great key line."
+ }
+}

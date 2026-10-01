@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787974608295_uhda",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3501,
+  "outputTokens": 683,
+  "thoughtTokens": 559
+ },
+ "cost": 0.010374000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with extreme shock and disbelief holding his head after an insane pro Valorant headshot, shouting 'OH MY GOD! NO! What did I just watch?'",
+  "keep_score": 90,
+  "payoff_t": 6,
+  "reaction_end_t": 15,
+  "dead_air": [],
+  "reason": "An incredible pro shot occurs on screen accompanied by an intense, highly expressive, and quotable hype reaction from the creator."
+ }
+}

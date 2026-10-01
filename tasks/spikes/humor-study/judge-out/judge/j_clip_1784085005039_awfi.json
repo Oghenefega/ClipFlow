@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784085005039_awfi",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3305,
+  "outputTokens": 419,
+  "thoughtTokens": 322
+ },
+ "cost": 0.0081,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer instructs his egg to behave while carefully planning his timing to jump onto a moving fan.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip ends during setup while he explains his strategy, leaving no payoff or outcome to make the moment funny."
+ }
+}

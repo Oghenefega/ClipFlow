@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787975501780_q03i",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4356,
+  "outputTokens": 670,
+  "thoughtTokens": 540
+ },
+ "cost": 0.011559,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs hysterically as a coach slaps a dramatic big red button on stage to call a timeout, exclaiming 'Not the big red button!'.",
+  "keep_score": 25,
+  "payoff_t": 20,
+  "reaction_end_t": 35,
+  "dead_air": [],
+  "reason": "While his reaction is lively, there is no big pro play or clutch on screen—he is just commenting on the dramatic broadcast shot of the timeout button."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788710056_33dl",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5193,
+  "outputTokens": 816,
+  "thoughtTokens": 666
+ },
+ "cost": 0.013909499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding a kickoff goal, the streamer sarcastically celebrates his opponent's play: 'I'm so happy for you man! Nice shot! Nice shot! Great, phenomenal!'",
+  "keep_score": 75,
+  "payoff_t": 25,
+  "reaction_end_t": 36,
+  "dead_air": [
+   [
+    9,
+    15
+   ]
+  ],
+  "reason": "A clean comedy clip with a clear setup and punchline where the streamer's prediction comes true and he reacts with hilarious over-the-top sarcastic praise."
+ }
+}

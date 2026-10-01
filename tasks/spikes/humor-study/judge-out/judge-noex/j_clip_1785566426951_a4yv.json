@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785566426951_a4yv",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2607,
+  "outputTokens": 502,
+  "thoughtTokens": 378
+ },
+ "cost": 0.0076755,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator mutters 'When I get my chance, all of a sudden he's good' while driving around in Rocket League without any notable outcome.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    5,
+    22
+   ]
+  ],
+  "reason": "There is no comedic payoff, mistake, or funny reaction during the entire gameplay clip."
+ }
+}

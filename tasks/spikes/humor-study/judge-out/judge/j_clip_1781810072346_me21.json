@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072346_me21",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4296,
+  "outputTokens": 511,
+  "thoughtTokens": 384
+ },
+ "cost": 0.0102765,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer walks around a building talking to himself about forgetting his pickaxe controls before checking his map to find where to head next.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    25
+   ]
+  ],
+  "reason": "Nothing funny or noteworthy happens in this clip. It is just mundane gameplay narration with no punchline, fail, or payoff."
+ }
+}

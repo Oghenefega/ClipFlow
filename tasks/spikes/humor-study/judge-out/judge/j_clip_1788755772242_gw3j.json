@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_gw3j",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5029,
+  "outputTokens": 831,
+  "thoughtTokens": 694
+ },
+ "cost": 0.013776,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with loud disbelief to a clean Operator shot during a pro Valorant match replay, screaming 'Oh my goodness, what is that Op shot bro?!'",
+  "keep_score": 85,
+  "payoff_t": 8,
+  "reaction_end_t": 22,
+  "dead_air": [
+   [
+    28,
+    38
+   ]
+  ],
+  "reason": "Clear pro play on screen paired with an energetic, quotable hype reaction from the streamer."
+ }
+}

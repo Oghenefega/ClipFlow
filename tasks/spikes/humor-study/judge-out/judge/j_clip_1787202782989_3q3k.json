@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787202782989_3q3k",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3522,
+  "outputTokens": 636,
+  "thoughtTokens": 520
+ },
+ "cost": 0.010053,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with excitement to an interview clip about 100 Thieves reaching their first international grand finals, shouting 'They're one for one baby, let's go!'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no gameplay or pro play on screen, only talk about the team during an interview clip."
+ }
+}

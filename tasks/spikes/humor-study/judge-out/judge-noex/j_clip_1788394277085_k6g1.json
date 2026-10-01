@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277085_k6g1",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2649,
+  "outputTokens": 976,
+  "thoughtTokens": 859
+ },
+ "cost": 0.0112935,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator boasts about cooking other players before randomly hitting a teammate and quickly backpedaling with 'I was just testing... all love bro'.",
+  "keep_score": 25,
+  "payoff_t": 18,
+  "reaction_end_t": 23,
+  "dead_air": [],
+  "reason": "This is mostly pre-round lobby waiting chatter with a very mild, low-energy joke that lacks a strong punchline or funny payoff."
+ }
+}

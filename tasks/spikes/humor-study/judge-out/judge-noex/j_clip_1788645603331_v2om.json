@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788645603331_v2om",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2898,
+  "outputTokens": 605,
+  "thoughtTokens": 489
+ },
+ "cost": 0.0088845,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams and jumps out of his chair in disbelief during an intense Valorant pro clutch, shouting 'OH MY GOD!'",
+  "keep_score": 90,
+  "payoff_t": 13.5,
+  "reaction_end_t": 27,
+  "dead_air": [],
+  "reason": "Delivers an incredible pro clutch play paired with a huge physical reaction as the creator screams and jumps out of his seat."
+ }
+}

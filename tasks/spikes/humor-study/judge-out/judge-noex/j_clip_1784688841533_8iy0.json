@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841533_8iy0",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3817,
+  "outputTokens": 770,
+  "thoughtTokens": 641
+ },
+ "cost": 0.0115005,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates successfully landing a tricky jump with his egg, only to immediately realize he has no idea where he ended up, saying, 'No time to celebrate guys.'",
+  "keep_score": 70,
+  "payoff_t": 24,
+  "reaction_end_t": 32,
+  "dead_air": [],
+  "reason": "Good comedic contrast between his loud premature excitement over landing a jump and his immediate confusion upon realizing he is completely lost."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785455230241_q6ec",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2448,
+  "outputTokens": 788,
+  "thoughtTokens": 666
+ },
+ "cost": 0.009582,
+ "judged": {
+  "kind": "comedy",
+  "what": "After starting a new driving level, the creator immediately crashes into a barrier and admits, 'Yeah, I actually suck at this, man.'",
+  "keep_score": 45,
+  "payoff_t": 16.5,
+  "reaction_end_t": 21,
+  "dead_air": [],
+  "reason": "It features a quick crash and a funny, self-deprecating realization, but the overall setup and punchline are fairly low-energy."
+ }
+}

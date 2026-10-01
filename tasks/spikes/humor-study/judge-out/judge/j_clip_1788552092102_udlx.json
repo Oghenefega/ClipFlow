@@ -1,0 +1,33 @@
+{
+ "key": "j_clip_1788552092102_udlx",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7231,
+  "outputTokens": 772,
+  "thoughtTokens": 607
+ },
+ "cost": 0.0166365,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer checks the MVP poll and end-game statistics following a 100 Thieves match while reacting to desk commentary.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    8
+   ],
+   [
+    18,
+    32
+   ],
+   [
+    42,
+    65
+   ]
+  ],
+  "reason": "There is no actual gameplay or pro play on screen, only post-game desk analysis, fan photos, and match statistics."
+ }
+}

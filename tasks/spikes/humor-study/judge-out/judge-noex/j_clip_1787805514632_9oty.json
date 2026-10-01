@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_9oty",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3086,
+  "outputTokens": 693,
+  "thoughtTokens": 544
+ },
+ "cost": 0.009826500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically at humanoid robots running on a track with an eerie bounding stride, exclaiming 'What is this, bro? Can you imagine that jumping? That is literally the scariest thing to imagine.'",
+  "keep_score": 82,
+  "payoff_t": 10.5,
+  "reaction_end_t": 26.5,
+  "dead_air": [
+   [
+    0,
+    3.2
+   ]
+  ],
+  "reason": "His genuine burst of laughter at the absurd, terrifying sprint style of the humanoid robots paired with his hilarious commentary creates a great standalone moment."
+ }
+}

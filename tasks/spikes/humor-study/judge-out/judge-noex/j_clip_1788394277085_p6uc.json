@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788394277085_p6uc",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3621,
+  "outputTokens": 820,
+  "thoughtTokens": 691
+ },
+ "cost": 0.011581500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts to his chat while stuck on a mod download screen that he has 'vision for days' and nobody will get past him.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    13,
+    20
+   ]
+  ],
+  "reason": "This clip is entirely setup and bragging while waiting on a mod download screen, lacking any gameplay payoff or comedic subversion."
+ }
+}

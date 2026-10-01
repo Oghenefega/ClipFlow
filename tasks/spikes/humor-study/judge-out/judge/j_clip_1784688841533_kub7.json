@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784688841533_kub7",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7268,
+  "outputTokens": 561,
+  "thoughtTokens": 432
+ },
+ "cost": 0.0151095,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator breaks his egg early on and spends the rest of the clip playfully blaming chat for his lack of support.",
+  "keep_score": 15,
+  "payoff_t": 3.5,
+  "reaction_end_t": 6,
+  "dead_air": [
+   [
+    6,
+    57
+   ]
+  ],
+  "reason": "The initial fail happens almost immediately, followed by nearly a minute of rambling chat banter with no punchline or second payoff."
+ }
+}

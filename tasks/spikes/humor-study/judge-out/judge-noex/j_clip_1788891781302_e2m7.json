@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788891781302_e2m7",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1359,
+  "outputTokens": 719,
+  "thoughtTokens": 607
+ },
+ "cost": 0.007431,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly says 'We're Thieves for a reason' while watching 100 Thieves set up at the start of a round on Ascent.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "No major play or highlight occurs during this early round setup, and the creator gives only a calm, quiet comment."
+ }
+}

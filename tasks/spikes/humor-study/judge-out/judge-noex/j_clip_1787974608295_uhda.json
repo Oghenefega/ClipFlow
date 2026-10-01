@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787974608295_uhda",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2250,
+  "outputTokens": 559,
+  "thoughtTokens": 440
+ },
+ "cost": 0.0075675,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in utter disbelief, 'OH MY GOD! NO! WHAT DID I JUST WATCH?!' after an insane Valorant VCT shot.",
+  "keep_score": 95,
+  "payoff_t": 6.5,
+  "reaction_end_t": 13.5,
+  "dead_air": [],
+  "reason": "An unbelievable pro Valorant play triggers an instant, iconic hands-on-head reaction and loud scream from the creator."
+ }
+}

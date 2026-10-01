@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1789795588722_f6ao",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4593,
+  "outputTokens": 796,
+  "thoughtTokens": 642
+ },
+ "cost": 0.0128595,
+ "judged": {
+  "kind": "comedy",
+  "what": "After the round ends, the creator discovers a player clipped inside the structural frame of a metal shelf, exclaiming, 'He's literally inside... How is someone supposed to find that?'",
+  "keep_score": 60,
+  "payoff_t": 31,
+  "reaction_end_t": 47,
+  "dead_air": [
+   [
+    9,
+    26
+   ]
+  ],
+  "reason": "The reveal of the impossible hiding spot inside the shelf geometry is a funny moment, though the clip needs editing to remove the quiet searching phase in the middle."
+ }
+}

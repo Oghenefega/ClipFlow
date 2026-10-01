@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_q6ec",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3684,
+  "outputTokens": 906,
+  "thoughtTokens": 762
+ },
+ "cost": 0.012321,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer celebrates finishing a level, only to crash into a barrier four seconds into the next attempt and admit 'Yeah, I actually suck at this, man.'",
+  "keep_score": 20,
+  "payoff_t": 16.5,
+  "reaction_end_t": 21.5,
+  "dead_air": [
+   [
+    3.5,
+    12
+   ]
+  ],
+  "reason": "A routine gameplay crash with a flat, low-energy reaction. Without a strong setup or hilarious delivery, it lacks the comedic impact needed to entertain a stranger."
+ }
+}

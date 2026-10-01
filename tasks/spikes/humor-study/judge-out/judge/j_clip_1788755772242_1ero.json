@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755772242_1ero",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4667,
+  "outputTokens": 684,
+  "thoughtTokens": 565
+ },
+ "cost": 0.012130499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator takes off his jersey and talks to the camera after a round, telling viewers to 'just let the team cook... like pasta'.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no major pro play occurring on screen during the clip; the creator is mostly talking to the camera and giving commentary while player cams and replays roll."
+ }
+}

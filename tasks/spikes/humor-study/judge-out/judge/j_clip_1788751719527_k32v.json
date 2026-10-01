@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719527_k32v",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5484,
+  "outputTokens": 616,
+  "thoughtTokens": 506
+ },
+ "cost": 0.012846,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator introduces the Valorant regional finals match between 100 Thieves and LOUD, explaining the stakes to his audience.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no pro play happening on screen, only pre-match stage intros and the streamer giving calm background commentary explaining the teams."
+ }
+}

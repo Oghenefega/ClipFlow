@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236854_h88y",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5137,
+  "outputTokens": 908,
+  "thoughtTokens": 791
+ },
+ "cost": 0.0145155,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer executes an unexpected skip in Egging On and reacts in utter shock, pacing around his room while shouting, 'I did not just do that!'",
+  "keep_score": 85,
+  "payoff_t": 3,
+  "reaction_end_t": 34,
+  "dead_air": [],
+  "reason": "A clear surprise play with a high-energy reaction that sees him jump out of his chair in total disbelief."
+ }
+}

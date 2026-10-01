@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_10x4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3590,
+  "outputTokens": 691,
+  "thoughtTokens": 557
+ },
+ "cost": 0.0105675,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs as a VCT Shanghai promo trailer advertises 'great food and great transit', key line: 'Great food, great transit, I'm sold!'",
+  "keep_score": 20,
+  "payoff_t": 10,
+  "reaction_end_t": 19,
+  "dead_air": [],
+  "reason": "There is no actual pro gameplay or play on screen, only a promotional video teaser. Without a clutch or highlight play, this lacks the hype needed for a keep."
+ }
+}

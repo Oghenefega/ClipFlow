@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788432440148_spcb",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2551,
+  "outputTokens": 548,
+  "thoughtTokens": 422
+ },
+ "cost": 0.007936499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator returns to the main menu screen of Meccha Chameleon and chuckles, saying, 'That was actually phenomenal guys, what the heck?'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    7
+   ]
+  ],
+  "reason": "Nothing happens on screen as the game transitions to the main menu, providing no funny moment or gameplay payoff."
+ }
+}

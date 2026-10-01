@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788552826515_cryc",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3746,
+  "outputTokens": 727,
+  "thoughtTokens": 608
+ },
+ "cost": 0.011071500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately celebrates as Fnatic qualifies for Champions, shouting 'LET'S GO BABY!' and 'Oh my goodness!'",
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 22,
+  "dead_air": [],
+  "reason": "While the streamer reacts with high energy, the clip shows post-match stage celebration rather than an actual in-game pro play or clutch."
+ }
+}

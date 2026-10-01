@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501781_htbz",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3420,
+  "outputTokens": 662,
+  "thoughtTokens": 535
+ },
+ "cost": 0.010095,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly watches a 100 Thieves Valorant round setup as the team prepares to plant the spike.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    16
+   ]
+  ],
+  "reason": "There is no major play or hype moment on screen, and the creator remains silent for nearly the entire clip with no payoff reaction."
+ }
+}

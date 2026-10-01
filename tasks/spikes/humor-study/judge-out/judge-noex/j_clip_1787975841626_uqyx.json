@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_uqyx",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1521,
+  "outputTokens": 576,
+  "thoughtTokens": 445
+ },
+ "cost": 0.0066015,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches standard round setup in a 100 Thieves Valorant match while calmly commenting 'We're good on defense.'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "No major play occurs on screen during this round setup, and the creator gives only calm commentary without any hype or big reaction."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781815905887_fe9j",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3439,
+  "outputTokens": 480,
+  "thoughtTokens": 358
+ },
+ "cost": 0.008758499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads item descriptions in his inventory before silently walking out of a room in Arc Raiders.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    15
+   ]
+  ],
+  "reason": "Nothing happens in this clip; the creator simply clicks on items in his inventory menu and walks through a doorway without any funny moments or payoff."
+ }
+}

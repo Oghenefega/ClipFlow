@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_kj7v",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4128,
+  "outputTokens": 609,
+  "thoughtTokens": 476
+ },
+ "cost": 0.010759499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer claims he will be deadly at the game, but then simply drives down the road without any comedic twist, failure, or payoff.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    8,
+    28
+   ]
+  ],
+  "reason": "The clip lacks a comedic subversion or payoff after the streamer's setup. Nothing funny or unexpected happens as he smoothly drives down the road."
+ }
+}

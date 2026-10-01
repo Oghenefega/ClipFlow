@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757102761_i9pi",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4437,
+  "outputTokens": 874,
+  "thoughtTokens": 756
+ },
+ "cost": 0.0132105,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up match point between rounds, shouting \"What better way to take it all the way to the very end!\" while showing crowd and replay footage.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip contains no actual pro play or highlight moment; it is entirely pre-round commentary, crowd shots, and match setup."
+ }
+}

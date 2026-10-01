@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841533_4czg",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4090,
+  "outputTokens": 808,
+  "thoughtTokens": 686
+ },
+ "cost": 0.012195000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator boasts about making the game look easy, only to immediately slip and drop the egg, yelling 'NO! No, bro! What the heck?'",
+  "keep_score": 88,
+  "payoff_t": 31,
+  "reaction_end_t": 36,
+  "dead_air": [],
+  "reason": "Classic comedy shape with a confident boast about how easy the game is, followed immediately by a blunder and a loud, dramatic reaction."
+ }
+}

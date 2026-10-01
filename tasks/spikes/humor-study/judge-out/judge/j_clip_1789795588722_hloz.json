@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1789795588722_hloz",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6596,
+  "outputTokens": 603,
+  "thoughtTokens": 429
+ },
+ "cost": 0.0144165,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer complains about being selected as a hunter before finding a player disguised as a wall painting, chuckling \"Not that dude, I actually thought he was just gonna be a picture on the wall\".",
+  "keep_score": 20,
+  "payoff_t": 39,
+  "reaction_end_t": 45,
+  "dead_air": [
+   [
+    12,
+    35
+   ],
+   [
+    46,
+    56
+   ]
+  ],
+  "reason": "The clip lacks a strong comedic punchline or contrast. Most of the duration consists of low-energy complaints about the hunter role and rambling commentary."
+ }
+}

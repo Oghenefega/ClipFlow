@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1781810072346_rqgf",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4086,
+  "outputTokens": 391,
+  "thoughtTokens": 285
+ },
+ "cost": 0.0090615,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wanders through a building, complaining that he forgets his pickaxe keybind every time.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    36
+   ]
+  ],
+  "reason": "This is routine gameplay and mild internal monologue with no funny payoff or comedic turn."
+ }
+}

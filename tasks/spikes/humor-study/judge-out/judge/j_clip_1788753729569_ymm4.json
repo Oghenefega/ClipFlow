@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753729569_ymm4",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5101,
+  "outputTokens": 1297,
+  "thoughtTokens": 1138
+ },
+ "cost": 0.017379,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer passionately instructs a 100 Thieves player that his only job in life is to play back during a round, celebrating when they secure the win.",
+  "keep_score": 30,
+  "payoff_t": 36,
+  "reaction_end_t": 41,
+  "dead_air": [
+   [
+    3,
+    14
+   ]
+  ],
+  "reason": "The clip consists mostly of commentary and backseat coaching during a standard round. Without a specific standout pro clutch or crazy multi-kill, the creator's reaction isn't enough to make this a keep."
+ }
+}

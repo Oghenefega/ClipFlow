@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501781_htbz",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2169,
+  "outputTokens": 618,
+  "thoughtTokens": 497
+ },
+ "cost": 0.0078885,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves execute a routine site take and spike plant while making a brief, quiet comment.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    19
+   ]
+  ],
+  "reason": "There is no big highlight play on screen and the creator's reaction is flat and quiet."
+ }
+}

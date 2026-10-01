@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1786068340477_4oxr",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3995,
+  "outputTokens": 736,
+  "thoughtTokens": 610
+ },
+ "cost": 0.0115125,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer claims a play is his 'bread and butter' before successfully scoring a goal in Rocket League. Key line: \"That's my bread and butter man.\"",
+  "keep_score": 20,
+  "payoff_t": 15.5,
+  "reaction_end_t": 20,
+  "dead_air": [],
+  "reason": "He boasts and then actually succeeds in scoring, which lacks the funny twist, whiff, or subverted expectation needed for a comedy clip."
+ }
+}

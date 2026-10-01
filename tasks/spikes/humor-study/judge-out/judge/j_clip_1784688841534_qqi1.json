@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784688841534_qqi1",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4497,
+  "outputTokens": 692,
+  "thoughtTokens": 583
+ },
+ "cost": 0.0119355,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs while recounting how he previously rolled off an edge by mistake, as he smoothly rolls his egg along a wooden track.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "No comedic payoff or event occurs on screen during the clip; he is simply laughing while recounting a past mistake and rolling along standard terrain."
+ }
+}

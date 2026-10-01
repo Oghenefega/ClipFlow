@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501781_ouno",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1926,
+  "outputTokens": 619,
+  "thoughtTokens": 478
+ },
+ "cost": 0.0075315,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly watches a Valorant round unfold and calmly states, 'I'm confused, I don't know what I've just seen in the past 15 seconds.'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    10
+   ]
+  ],
+  "reason": "There is no major play or hype clutch happening on screen, and the creator gives a low-energy, calm reaction."
+ }
+}

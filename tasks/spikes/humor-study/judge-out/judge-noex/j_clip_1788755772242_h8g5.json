@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_h8g5",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4923,
+  "outputTokens": 782,
+  "thoughtTokens": 620
+ },
+ "cost": 0.0132495,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rewatches a replay of Asuna's Phoenix play and screams 'GET HIM OUT OF HERE! What a save from Asuna!' in total excitement.",
+  "keep_score": 85,
+  "payoff_t": 10,
+  "reaction_end_t": 21,
+  "dead_air": [
+   [
+    21,
+    52
+   ]
+  ],
+  "reason": "Hits all criteria for hype reaction with a big pro replay play and an energetic, quotable reaction ('GET HIM OUT OF HERE!'). It drags on a bit too long into the timeout screen at the end."
+ }
+}

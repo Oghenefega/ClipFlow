@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_tbhj",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4706,
+  "outputTokens": 795,
+  "thoughtTokens": 654
+ },
+ "cost": 0.0130215,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically when a weightlifting robot collapses under the barbell, joking, \"Somebody said that's me in the gym!\"",
+  "keep_score": 85,
+  "payoff_t": 18,
+  "reaction_end_t": 48,
+  "dead_air": [
+   [
+    0,
+    14
+   ]
+  ],
+  "reason": "A clear, funny visual payoff when the robot collapses at 18 seconds, triggering genuine, energetic laughter and funny commentary from the creator."
+ }
+}

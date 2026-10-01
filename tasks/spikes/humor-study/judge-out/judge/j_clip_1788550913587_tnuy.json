@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_tnuy",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3347,
+  "outputTokens": 744,
+  "thoughtTokens": 611
+ },
+ "cost": 0.0106005,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in complete astonishment and screams 'OH! WHAT?! WHAT?!' after a pro Valorant player lands an incredible flick shot.",
+  "keep_score": 85,
+  "payoff_t": 13,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    0,
+    11
+   ]
+  ],
+  "reason": "Delivers a big, high-energy hype reaction with loud disbelief to an impressive flick kill during pro Valorant gameplay."
+ }
+}

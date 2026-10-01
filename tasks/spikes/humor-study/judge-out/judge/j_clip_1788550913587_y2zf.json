@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788550913587_y2zf",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4593,
+  "outputTokens": 534,
+  "thoughtTokens": 423
+ },
+ "cost": 0.0108945,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator looks at the map veto selection screen and complains about the map pool, key line: 'Talk about the three worst maps, bro! What the heck!'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no gameplay or pro play happening on screen, just pre-match map veto commentary."
+ }
+}

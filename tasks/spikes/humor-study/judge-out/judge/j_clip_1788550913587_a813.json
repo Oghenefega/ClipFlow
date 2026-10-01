@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788550913587_a813",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5979,
+  "outputTokens": 930,
+  "thoughtTokens": 776
+ },
+ "cost": 0.0159435,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer hypes up 100T Asuna during a Valorant match, jumping out of his seat when Asuna gets a kill and screaming, \"Read him like a book!\"",
+  "keep_score": 78,
+  "payoff_t": 11,
+  "reaction_end_t": 16,
+  "dead_air": [
+   [
+    20,
+    38
+   ]
+  ],
+  "reason": "The clip features a solid pro play followed immediately by a big, high-energy reaction from the creator with a great quotable line."
+ }
+}

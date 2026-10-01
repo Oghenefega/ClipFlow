@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_rnm0",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4077,
+  "outputTokens": 706,
+  "thoughtTokens": 548
+ },
+ "cost": 0.0114105,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer cheers after 100 Thieves wins a round and watches the replay, saying, 'I thought it was a 1v1 after he killed that guy!'",
+  "keep_score": 25,
+  "payoff_t": 1.5,
+  "reaction_end_t": 10,
+  "dead_air": [
+   [
+    15,
+    26
+   ]
+  ],
+  "reason": "The round finishes right as the clip begins, so the actual pro play is missed. The majority of the clip is spent watching replays and post-round celebrations with low energy."
+ }
+}

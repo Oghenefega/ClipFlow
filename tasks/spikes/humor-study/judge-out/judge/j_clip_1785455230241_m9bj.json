@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1785455230241_m9bj",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3723,
+  "outputTokens": 867,
+  "thoughtTokens": 730
+ },
+ "cost": 0.012087,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer successfully completes a driving level and celebrates loudly, shouting 'Let's go! Get him out of here!'",
+  "keep_score": 20,
+  "payoff_t": 9,
+  "reaction_end_t": 19,
+  "dead_air": [
+   [
+    0,
+    5.5
+   ]
+  ],
+  "reason": "This is a standard level completion with generic celebration. It lacks any comedic subversion, unexpected fail, or funny joke to work as a comedy clip."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1786068340476_5vrh",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4632,
+  "outputTokens": 888,
+  "thoughtTokens": 742
+ },
+ "cost": 0.013607999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates winning a Rocket League match while shouting 'GET HIM OUT OF HERE BRO!' before spending the rest of the clip navigating post-game menus.",
+  "keep_score": 20,
+  "payoff_t": 2,
+  "reaction_end_t": 13,
+  "dead_air": [
+   [
+    16,
+    48
+   ]
+  ],
+  "reason": "The clip begins at the goal explosion and consists mostly of post-match menu navigation and viewer thank-yous, lacking a comedic setup or funny payoff."
+ }
+}

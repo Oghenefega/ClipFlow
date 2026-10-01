@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_i0kg",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4883,
+  "outputTokens": 1423,
+  "thoughtTokens": 1268
+ },
+ "cost": 0.017997,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer energetically reacts to a Valorant match replay, incredulously calling out 100 Thieves for hiding inside the generator 'like a Trojan horse' before yelling 'Get 'em out of here!'",
+  "keep_score": 70,
+  "payoff_t": 21,
+  "reaction_end_t": 33,
+  "dead_air": [
+   [
+    4,
+    20
+   ]
+  ],
+  "reason": "He has a high-energy, memorable reaction to the play replay with a funny visual metaphor ('Trojan horse') and loud excitement."
+ }
+}

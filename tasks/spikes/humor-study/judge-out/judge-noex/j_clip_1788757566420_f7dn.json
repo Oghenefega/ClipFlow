@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788757566420_f7dn",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3789,
+  "outputTokens": 648,
+  "thoughtTokens": 538
+ },
+ "cost": 0.0105435,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer watches post-match fan interactions and interviews following 100 Thieves' VCT Americas victory.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is post-match broadcast footage rather than active gameplay, so it lacks the high-stakes pro play or clutch required for a hype reaction clip."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236854_h88y",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3882,
+  "outputTokens": 742,
+  "thoughtTokens": 621
+ },
+ "cost": 0.011388,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega unexpectedly pulls off an insane skip in Egging On and reacts with pure disbelief, shouting 'I did not just do that!' before declaring 'I'm that guy baby.'",
+  "keep_score": 85,
+  "payoff_t": 1,
+  "reaction_end_t": 36,
+  "dead_air": [],
+  "reason": "A big unexpected play in a frustrating physics game paired with a high-energy reaction and funny swagger."
+ }
+}

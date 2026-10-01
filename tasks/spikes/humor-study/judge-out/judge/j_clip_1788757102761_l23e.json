@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788757102761_l23e",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6933,
+  "outputTokens": 738,
+  "thoughtTokens": 597
+ },
+ "cost": 0.015934499999999997,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a tense 100 Thieves Valorant match, shouting 'Let's go!' during key round kills.",
+  "keep_score": 30,
+  "payoff_t": 14.5,
+  "reaction_end_t": 18,
+  "dead_air": [
+   [
+    18.5,
+    58.5
+   ]
+  ],
+  "reason": "The clip contains a massive 40-second stretch of silent watching between kills, making it a bad cut with too much dead air."
+ }
+}

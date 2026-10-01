@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277085_occt",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5303,
+  "outputTokens": 509,
+  "thoughtTokens": 392
+ },
+ "cost": 0.011772,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer blindly shoots at paintings searching for hidden players in prop hunt, expressing disappointment when he fails to find anyone: \"I can't believe I didn't find any single person.\"",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The clip features slow gameplay narration and blind shooting with no sharp comedy payoff, subversion, or funny moment."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787974608296_lh60",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6300,
+  "outputTokens": 881,
+  "thoughtTokens": 730
+ },
+ "cost": 0.0160575,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator goes crazy after 100T Bang clutches an incredible 4K round, shouting 'Bang might just be the best player on the planet, bro!'",
+  "keep_score": 92,
+  "payoff_t": 14,
+  "reaction_end_t": 50,
+  "dead_air": [
+   [
+    53,
+    109
+   ]
+  ],
+  "reason": "Outstanding hype reaction with high energy, including the creator jumping out of his chair and delivering huge quotes throughout both the live play and the replay."
+ }
+}

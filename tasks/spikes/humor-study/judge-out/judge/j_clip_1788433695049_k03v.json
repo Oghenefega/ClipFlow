@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788433695049_k03v",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4014,
+  "outputTokens": 651,
+  "thoughtTokens": 538
+ },
+ "cost": 0.0109035,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator questions why a player in his game lobby sounds funny over voice chat before deciding to leave the match, asking 'Why does that kid sound like that?'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "Nothing funny or punchy occurs in this clip; it is just lobby waiting and the creator deciding to leave the game."
+ }
+}

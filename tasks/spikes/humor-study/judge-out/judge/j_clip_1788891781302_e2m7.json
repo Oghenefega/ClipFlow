@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788891781302_e2m7",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2567,
+  "outputTokens": 591,
+  "thoughtTokens": 461
+ },
+ "cost": 0.008283,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly talks to himself as a round starts, saying, 'We're not afraid, man... Thieves for a reason.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    8
+   ]
+  ],
+  "reason": "No pro play or high-intensity action occurs on screen during the clip; it is just round setup with calm quiet commentary."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755772242_ntfi",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5071,
+  "outputTokens": 776,
+  "thoughtTokens": 659
+ },
+ "cost": 0.013426500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer gets overwhelmed with emotion as 100 Thieves secures a round lead, shouting 'I want to cry! Tears of joy!'",
+  "keep_score": 85,
+  "payoff_t": 21,
+  "reaction_end_t": 34,
+  "dead_air": [],
+  "reason": "High-energy, passionate emotional outburst from the creator during a pivotal tournament match round with clear quotable lines."
+ }
+}

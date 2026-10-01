@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788433695049_ppxe",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2649,
+  "outputTokens": 683,
+  "thoughtTokens": 543
+ },
+ "cost": 0.009096,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a teammate who was talking trash, only to see them hidden as a tiny pipe stuck high on a wall, laughing, 'What is this, bro?'",
+  "keep_score": 35,
+  "payoff_t": 16,
+  "reaction_end_t": 23,
+  "dead_air": [
+   [
+    0,
+    12
+   ]
+  ],
+  "reason": "It is mild spectating commentary without a strong setup-payoff structure or a major funny event."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1790099916957_olg3",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5111,
+  "outputTokens": 694,
+  "thoughtTokens": 558
+ },
+ "cost": 0.0128715,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to footage from humanoid robot games, hilariously warning that 'we are living in the end times' and declaring 'the West is cooked, I'm going back to Nigeria.'",
+  "keep_score": 80,
+  "payoff_t": 16,
+  "reaction_end_t": 53,
+  "dead_air": [],
+  "reason": "Engaging and funny commentary on absurd footage, featuring high-energy delivery and hilarious hyperbolic statements ('the West is cooked') that land well without needing extra context."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785022519029_aerz",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2364,
+  "outputTokens": 538,
+  "thoughtTokens": 446
+ },
+ "cost": 0.007581,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks to his stream about sleeping well last night despite body pains and scrolling Twitter.",
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is casual chat banter about his sleep schedule with no gameplay, joke, or comedic payoff."
+ }
+}

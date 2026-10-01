@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788433695049_k03v",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2730,
+  "outputTokens": 495,
+  "thoughtTokens": 372
+ },
+ "cost": 0.0078075,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at a player's voice in a game lobby before deciding to leave (\"Why you gotta sound like that?\").",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    14,
+    24
+   ]
+  ],
+  "reason": "This is standard lobby waiting with minor commentary and no comedic setup, payoff, or funny moment."
+ }
+}

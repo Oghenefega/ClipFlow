@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785455230241_1vcw",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1557,
+  "outputTokens": 540,
+  "thoughtTokens": 421
+ },
+ "cost": 0.0063855,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator crashes right at the finish line of a delivery game and screams 'I ruined it! I ruined it!' while bursting into laughter at his score.",
+  "keep_score": 80,
+  "payoff_t": 2.5,
+  "reaction_end_t": 8,
+  "dead_air": [],
+  "reason": "A fast, high-energy gaming fail where he self-sabotages at the finish line and breaks into genuine hysterical laughter."
+ }
+}

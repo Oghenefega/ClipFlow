@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787974608296_lxgg",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4437,
+  "outputTokens": 716,
+  "thoughtTokens": 580
+ },
+ "cost": 0.0120255,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately hypes up 100 Thieves shutting down the enemy Raze ultimate and winning the round, screaming 'GET HIM OUT OF THERE!' and 'Read him like a book, baby!'",
+  "keep_score": 90,
+  "payoff_t": 22,
+  "reaction_end_t": 46,
+  "dead_air": [],
+  "reason": "High-energy pro esports shut-down play paired with iconic, loud, and quotable reactions throughout both the live play and the replay."
+ }
+}

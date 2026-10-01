@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_23ds",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 478,
+  "thoughtTokens": 378
+ },
+ "cost": 0.0097035,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer uses hand gestures to explain tactical high-low setups and collateral damage issues while watching a Valorant match replay.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This clip is purely a tactical breakdown and explanation without a major play or big hype reaction."
+ }
+}

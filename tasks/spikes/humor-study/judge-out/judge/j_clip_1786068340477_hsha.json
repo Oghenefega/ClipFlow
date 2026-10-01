@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1786068340477_hsha",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3507,
+  "outputTokens": 825,
+  "thoughtTokens": 682
+ },
+ "cost": 0.011448,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator aggressively demolishes an opposing player while scoring in Rocket League and laughs hysterically, shouting 'GET HIM OUT OF HERE BRO! You have to give me the red card bro!'",
+  "keep_score": 88,
+  "payoff_t": 1.5,
+  "reaction_end_t": 8,
+  "dead_air": [
+   [
+    9,
+    17
+   ]
+  ],
+  "reason": "A hilarious and disrespectful demo play combined with a big, quotable shout from the creator makes this a classic keep."
+ }
+}

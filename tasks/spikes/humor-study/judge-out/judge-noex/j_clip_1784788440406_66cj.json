@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784788440406_66cj",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3660,
+  "outputTokens": 928,
+  "thoughtTokens": 783
+ },
+ "cost": 0.01245,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer dramatically laughs off getting scored on, exclaiming 'How dare you do that to me, on live television!' before missing a boost pad.",
+  "keep_score": 30,
+  "payoff_t": 0,
+  "reaction_end_t": 14,
+  "dead_air": [
+   [
+    24,
+    35
+   ]
+  ],
+  "reason": "The clip catches only the tail end of his goal reaction without showing the play that caused it, and concludes with ten seconds of quiet, uninteresting gameplay."
+ }
+}

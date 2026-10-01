@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1787805514632_5z92",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3823,
+  "outputTokens": 522,
+  "thoughtTokens": 405
+ },
+ "cost": 0.0096495,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer reads that 666 teams entered the World Humanoid Robot Games and jokes that it must be a bad sign: 'Tell me that is not a sign for something.'",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no strong comedic payoff or funny video event, just the creator reading text from Twitter and making mild commentary."
+ }
+}

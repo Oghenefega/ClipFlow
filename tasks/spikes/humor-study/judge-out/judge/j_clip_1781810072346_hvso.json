@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1781810072346_hvso",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5514,
+  "outputTokens": 650,
+  "thoughtTokens": 509
+ },
+ "cost": 0.013146000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer takes a zipline down to loot a container while commenting on the game timer and joking 'Stuff was trying to act like it wasn't there.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    32
+   ],
+   [
+    35,
+    38
+   ]
+  ],
+  "reason": "Nothing interesting or funny happens in the clip, and his casual commentary lacks any joke setup or humorous payoff."
+ }
+}

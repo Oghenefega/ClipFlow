@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787805514632_kzmu",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4544,
+  "outputTokens": 560,
+  "thoughtTokens": 435
+ },
+ "cost": 0.011016000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer discusses how silly it would be if robots chased people for minor offenses before pulling up a video of a robot long jump competition.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    35
+   ]
+  ],
+  "reason": "This clip is entirely setup commentary and stream banter before watching the video, with no gameplay or footage payoff occurring."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236855_npg9",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3882,
+  "outputTokens": 766,
+  "thoughtTokens": 654
+ },
+ "cost": 0.011568,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer carefully rolls his egg onto a high platform and expresses confusion about where to go, repeatedly chanting 'I think I do' when he thinks he figures it out.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "The streamer simply navigates around while narrating his confusion; no fall, mistake, or comedic payoff occurs."
+ }
+}

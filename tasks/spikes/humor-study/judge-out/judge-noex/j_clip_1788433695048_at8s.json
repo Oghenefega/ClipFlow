@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788433695048_at8s",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1758,
+  "outputTokens": 623,
+  "thoughtTokens": 504
+ },
+ "cost": 0.0073095,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a teammate getting found right after switching cameras and casually remarks, 'Oh man, that's unfortunate man.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    3.5,
+    12
+   ]
+  ],
+  "reason": "The clip consists of calm spectating narration without a comedic payoff or significant reaction."
+ }
+}

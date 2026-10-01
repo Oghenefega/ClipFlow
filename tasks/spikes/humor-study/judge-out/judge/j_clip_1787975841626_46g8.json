@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975841626_46g8",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5911,
+  "outputTokens": 896,
+  "thoughtTokens": 760
+ },
+ "cost": 0.0155865,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer laughs and mocks an opposing Valorant player's camera reaction during a match replay, yelling 'Where you running to bro?'",
+  "keep_score": 25,
+  "payoff_t": 28,
+  "reaction_end_t": 38,
+  "dead_air": [
+   [
+    0,
+    27
+   ]
+  ],
+  "reason": "There is no major gameplay moment or clutch on screen during his reaction; he is only mocking player facecam footage during a replay transition."
+ }
+}

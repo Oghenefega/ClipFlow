@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1785022519030_w8zm",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3926,
+  "outputTokens": 495,
+  "thoughtTokens": 398
+ },
+ "cost": 0.0096015,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer talks about how satisfying it was to hate-watch Argentina lose, calling them corrupt and evil.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "Nothing happens on screen and there is no comedic payoff or gameplay moment, just stream talk and commentary."
+ }
+}

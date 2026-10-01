@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784787737929_q5sj",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1797,
+  "outputTokens": 510,
+  "thoughtTokens": 378
+ },
+ "cost": 0.0065205,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates a goal in Rocket League, saying 'Nice one, let's go' and 'Easy stuff' during the replay.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    3.5,
+    10.5
+   ]
+  ],
+  "reason": "There is no comedy payoff, subverted expectation, or standout moment; it is just routine gameplay celebration followed by dead air during a replay."
+ }
+}

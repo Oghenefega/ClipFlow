@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784997236855_lr06",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3508,
+  "outputTokens": 874,
+  "thoughtTokens": 729
+ },
+ "cost": 0.011817,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer counts rhythmically to time a jump with his egg, lands it, and screams in extreme celebration before instantly returning to calm counting: 'LET'S FREAKING GO!'",
+  "keep_score": 25,
+  "payoff_t": 9,
+  "reaction_end_t": 16,
+  "dead_air": [
+   [
+    0,
+    7
+   ]
+  ],
+  "reason": "Standard gameplay success without a comedic fail, boast-to-whiff contrast, or funny punchline to entertain a stranger."
+ }
+}

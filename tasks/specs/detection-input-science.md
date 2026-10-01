@@ -461,3 +461,34 @@ points looser. 20% cheaper per recording.
 `#194` rolling per-game approval stats (Feedback → approval rates, quality = conf ≥0.7
 excluding mechanical rejects) is the production complement to the harness — if v3
 tagging works, RL's rolling quality rate climbs over the next generations.
+
+## Step 7: watch-and-listen judge · TESTED, combine-with-confidence is the candidate (#483, session 283, 2026-10-01)
+
+Test set (`tasks/spikes/humor-study/judge-set.py`): 240 of Fega's reviewed clips, 120 hype reaction
+(all 100T) and 120 comedy (EO, MC, RL, ROBOT, DD, AR, JC; game-stratified), half kept and half rejected.
+Mechanical rejects (duplicate, bad-cut, wrong-content, repetitive) excluded; GTA6-R excluded (one-off).
+Each clip cut raw from the master over the AI window, 720p + stereo audio, judged by gemini-3.6-flash
+(`judge.js`). Rubric per kind (from `tasks/specs/humor-playbook.md`); the `judge` arm adds 12 keeps +
+12 rejects of the same kind from OTHER recordings as text. Scored by `judge-score.py`.
+
+| Score | AUC all | Hype (100T) | Comedy | Rejects removed at ≤10% keeps lost | $/clip |
+|---|---|---|---|---|---|
+| Detection confidence (today, free) | 0.704 | 0.621 | 0.789 | 25% | 0 |
+| Judge, rubric only | 0.731 | 0.683 | 0.800 | 27% | $0.011 |
+| Judge + Fega's examples | 0.725 | 0.667 | 0.786 | 24% | $0.013 |
+| **Confidence + judge (rank average)** | **0.754** | 0.674 | **0.845** | **44%** | $0.011 |
+
+- The judge alone is only slightly better than the confidence Corva already has. The two catch
+  different clips: averaged, they beat confidence alone by 0.05 AUC (bootstrap 95% CI +0.015 to +0.09)
+  and remove 44% of rejects at 10% of keeps lost (vs 25%).
+- Fega's examples as text did not help (effect CI -0.04 to +0.03). Drop them; the rubric carries it.
+- Kind is classified right 99.6% of the time, so routing by kind is solved.
+- Reaction end: cutting 1 s after the judge's `reaction_end_t` lands closer to Fega's real end than
+  the AI window (median error 5.5 s vs 7.4 s, 29% vs 23% within 2 s, 92 published clips). Better, not
+  good enough to auto-trim yet.
+- **Why 100T stays hard:** the misses are systematic. Fega KEEPS taunts and story beats with no play
+  on screen ("We're in their heads!" over two enemy timeouts, trash talk at Keeko, the trophy-lift
+  "why am I feeling so emotional"), and REJECTS many generic "GET HIM OUT OF THERE!" screams (19 of 60
+  test rejects are "live-only"). In 100T streams the big hype scream happens every round; what he keeps
+  is the moment that stands out FROM THAT STREAM. Judging one clip at a time cannot see that. Next cell:
+  judge all candidates of one recording together and rank them (distinctiveness within the stream).

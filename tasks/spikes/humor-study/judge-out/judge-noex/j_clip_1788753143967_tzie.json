@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143967_tzie",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2412,
+  "outputTokens": 982,
+  "thoughtTokens": 853
+ },
+ "cost": 0.010983,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jokes about flashes making players want to become accountants, then reacts with mild surprise when Asuna gets a flashed kill right as he says it.",
+  "keep_score": 25,
+  "payoff_t": 11,
+  "reaction_end_t": 18,
+  "dead_air": [],
+  "reason": "The clip lacks a major pro play such as a clutch or multi-kill, and the creator's reaction is mostly narrative commentary rather than a big hype moment."
+ }
+}

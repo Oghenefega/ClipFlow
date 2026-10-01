@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1787975501781_m6qa",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3951,
+  "outputTokens": 674,
+  "thoughtTokens": 528
+ },
+ "cost": 0.0109815,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a tense Valorant round until a clutch attempt fails, causing him to grab his head in shock and scream 'NOOO!'.",
+  "keep_score": 82,
+  "payoff_t": 31.5,
+  "reaction_end_t": 38,
+  "dead_air": [
+   [
+    0,
+    28
+   ]
+  ],
+  "reason": "Big, genuine reaction of disbelief with a head-in-hands gesture right at the round's climax, though the quiet setup before second 28 should be cut."
+ }
+}

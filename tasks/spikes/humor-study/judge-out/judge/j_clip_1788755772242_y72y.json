@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755772242_y72y",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6307,
+  "outputTokens": 936,
+  "thoughtTokens": 798
+ },
+ "cost": 0.016480500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer goes wild celebrating a crucial overtime round win for 100 Thieves, standing up and shouting 'Get him out of my face, bro!'",
+  "keep_score": 88,
+  "payoff_t": 15,
+  "reaction_end_t": 27,
+  "dead_air": [
+   [
+    35,
+    46
+   ]
+  ],
+  "reason": "Delivers a high-stakes overtime round win with intense hype and memorable lines from the creator."
+ }
+}

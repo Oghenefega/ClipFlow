@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_ho7v",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4377,
+  "outputTokens": 601,
+  "thoughtTokens": 480
+ },
+ "cost": 0.011073,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rationalizes 100T being down in rounds during a timeout, exclaiming 'Oh, it's a defense-sided map!'",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "No pro play or gameplay occurs during this clip as it takes place entirely during a team timeout. Hype reaction clips require a real pro play on screen."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_tqqr",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4340,
+  "outputTokens": 582,
+  "thoughtTokens": 431
+ },
+ "cost": 0.010875000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with pure astonishment to an impressive Valorant play, shouting, 'HOW DOES HE DO THAT?!'",
+  "keep_score": 85,
+  "payoff_t": 20.5,
+  "reaction_end_t": 27,
+  "dead_air": [
+   [
+    2,
+    19.5
+   ]
+  ],
+  "reason": "It features a strong pro play accompanied by a passionate, high-energy scream from the creator. There is notable dead air at the beginning while waiting for the play to happen, but the reaction itself is solid."
+ }
+}

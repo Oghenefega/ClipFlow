@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788755071329_cbff",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3708,
+  "outputTokens": 784,
+  "thoughtTokens": 654
+ },
+ "cost": 0.011442,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer watches a tense 1v1 clutch round, clapping and shouting 'You read him like a book, bro!', before screaming in hype when the player secures the final kill.",
+  "keep_score": 90,
+  "payoff_t": 26,
+  "reaction_end_t": 34,
+  "dead_air": [],
+  "reason": "Delivers a great pro esports clutch moment paired with an energetic, high-hype reaction from the creator as he stands up and screams."
+ }
+}

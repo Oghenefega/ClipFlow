@@ -1,0 +1,29 @@
+{
+ "key": "j_clip_1781810072346_rqgf",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5373,
+  "outputTokens": 629,
+  "thoughtTokens": 500
+ },
+ "cost": 0.012777,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wanders through a building and complains about forgetting his pickaxe keybind before opening his map.",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    16
+   ],
+   [
+    25,
+    36
+   ]
+  ],
+  "reason": "Nothing funny happens in this clip; it is just casual gameplay narration and inventory checking with no punchline or dramatic payoff."
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753729569_ymm4",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3870,
+  "outputTokens": 1058,
+  "thoughtTokens": 916
+ },
+ "cost": 0.013739999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately instructs his team to 'play back' before erupting in celebration when they secure the round win shouting 'Let's go!'.",
+  "keep_score": 65,
+  "payoff_t": 36,
+  "reaction_end_t": 40,
+  "dead_air": [
+   [
+    3,
+    19
+   ]
+  ],
+  "reason": "The creator has a energetic, funny rant coaching the players on screen, followed by a hype payoff when they win the round."
+ }
+}

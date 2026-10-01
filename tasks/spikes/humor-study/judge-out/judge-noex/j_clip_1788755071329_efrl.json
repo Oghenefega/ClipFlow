@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788755071329_efrl",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2817,
+  "outputTokens": 672,
+  "thoughtTokens": 552
+ },
+ "cost": 0.0092655,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly comments 'You're quite literally not that guy' and drinks water while watching a Valorant round unfold.",
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    7,
+    25
+   ]
+  ],
+  "reason": "The clip lacks a major pro play payoff and the creator's reaction is very quiet and passive throughout."
+ }
+}

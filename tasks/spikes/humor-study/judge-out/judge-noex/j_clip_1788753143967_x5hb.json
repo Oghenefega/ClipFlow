@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788753143967_x5hb",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3222,
+  "outputTokens": 775,
+  "thoughtTokens": 637
+ },
+ "cost": 0.0106455,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator loses his mind watching a pro Valorant play over a Sage wall, shouting 'GET HIM OUT OF HERE!'",
+  "keep_score": 90,
+  "payoff_t": 17,
+  "reaction_end_t": 19.5,
+  "dead_air": [
+   [
+    19.5,
+    31
+   ]
+  ],
+  "reason": "Delivers an explosive, high-energy hype reaction with great quotable shouting right on top of a crazy pro Valorant play."
+ }
+}

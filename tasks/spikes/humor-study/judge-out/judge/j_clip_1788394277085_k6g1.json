@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788394277085_k6g1",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3875,
+  "outputTokens": 554,
+  "thoughtTokens": 446
+ },
+ "cost": 0.0099675,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts about cooking the opponents before hitting a teammate during the pre-round countdown and telling them 'all love, bro'.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "Nothing happens during the clip as it ends in the pre-round setup phase without any payoff or subversion to his boast."
+ }
+}

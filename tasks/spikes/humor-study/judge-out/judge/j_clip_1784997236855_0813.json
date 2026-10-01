@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236855_0813",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4113,
+  "outputTokens": 770,
+  "thoughtTokens": 656
+ },
+ "cost": 0.0119445,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer successfully rolls his egg onto a checkpoint platform and celebrates intensely, screaming 'CHECK FREAKING POINT!'",
+  "keep_score": 25,
+  "payoff_t": 9,
+  "reaction_end_t": 16,
+  "dead_air": [],
+  "reason": "Reaching a checkpoint and shouting in relief is standard game progression without a comedic twist, fail, or funny subversion to entertain a stranger."
+ }
+}

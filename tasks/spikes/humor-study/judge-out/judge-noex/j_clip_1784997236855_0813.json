@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1784997236855_0813",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2910,
+  "outputTokens": 602,
+  "thoughtTokens": 479
+ },
+ "cost": 0.008879999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator successfully guides his egg onto a difficult checkpoint pad and screams 'CHECK FREAKING POINT! Let's go!' while celebrating with his hands up.",
+  "keep_score": 85,
+  "payoff_t": 8,
+  "reaction_end_t": 15,
+  "dead_air": [],
+  "reason": "A high-energy victory moment in a frustrating game where his tense anticipation converts into a huge, ecstatic reaction as the egg hits the checkpoint."
+ }
+}

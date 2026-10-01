@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1789185416777_7tbz",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3419,
+  "outputTokens": 568,
+  "thoughtTokens": 447
+ },
+ "cost": 0.009388500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in hype and grabs his head while reacting to a pro Valorant flick kill, yelling 'Get him out of here! Look at that flick, bro!'",
+  "keep_score": 88,
+  "payoff_t": 0.5,
+  "reaction_end_t": 18,
+  "dead_air": [],
+  "reason": "High-energy reaction to an impressive pro play with loud, quotable hypes and great physical reaction."
+ }
+}

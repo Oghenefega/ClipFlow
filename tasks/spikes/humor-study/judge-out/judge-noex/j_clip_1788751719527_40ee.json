@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788751719527_40ee",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3789,
+  "outputTokens": 626,
+  "thoughtTokens": 513
+ },
+ "cost": 0.010378499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts to LOUD's aggressive weapon buy choices during a match, saying 'You've got to be a maniac to buy a Phantom.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "This is calm commentary on team buys and round setup rather than a reaction to a live pro play or clutch moment."
+ }
+}

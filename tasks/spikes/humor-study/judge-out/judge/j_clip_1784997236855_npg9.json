@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784997236855_npg9",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5084,
+  "outputTokens": 667,
+  "thoughtTokens": 515
+ },
+ "cost": 0.0126285,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer carefully wobbles his egg back and forth on a wooden platform while expressing confusion about where to go next, saying 'Guys, this is the farthest I've actually ever made it in this game.'",
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [
+   [
+    0,
+    38
+   ]
+  ],
+  "reason": "Nothing happens in this clip; he spends the entire time wiggling back and forth on the same platform expressing confusion without any jump, fall, or comedic payoff."
+ }
+}

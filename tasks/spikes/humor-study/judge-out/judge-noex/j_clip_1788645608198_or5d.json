@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788645608198_or5d",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3060,
+  "outputTokens": 544,
+  "thoughtTokens": 432
+ },
+ "cost": 0.00867,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gets hyped pointing to his 100 Thieves merch over the opposing team taking two timeouts in one half, shouting 'We're in their heads!'.",
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no actual pro play on screen—just a tactical timeout and crowd shots between rounds."
+ }
+}

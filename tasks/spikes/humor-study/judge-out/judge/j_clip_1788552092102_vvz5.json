@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1788552092102_vvz5",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4238,
+  "outputTokens": 1141,
+  "thoughtTokens": 999
+ },
+ "cost": 0.0149145,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in excitement and jumps out of his seat as 100 Thieves closes out a Valorant round, shouting 'GET HIM OUT OF THERE!'",
+  "keep_score": 70,
+  "payoff_t": 25.5,
+  "reaction_end_t": 28.5,
+  "dead_air": [
+   [
+    8,
+    24
+   ]
+  ],
+  "reason": "The creator delivers a big hype reaction to the round-ending kill, though the clip contains a long mid-round lull that needs trimming."
+ }
+}

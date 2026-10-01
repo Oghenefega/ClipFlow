@@ -1,0 +1,25 @@
+{
+ "key": "j_clip_1784744138777_bwhn",
+ "arm": "judge-noex",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4470,
+  "outputTokens": 898,
+  "thoughtTokens": 755
+ },
+ "cost": 0.01344,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets outplayed and scored on in Rocket League, exclaiming \"Read me like a book bro, what the flip?\" before rambling into chat reading.",
+  "keep_score": 25,
+  "payoff_t": 22,
+  "reaction_end_t": 25,
+  "dead_air": [
+   [
+    25,
+    45
+   ]
+  ],
+  "reason": "A standard opponent goal with mild frustration that quickly devolves into reading chat banter, lacking a strong comedic structure or standout reaction."
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "key": "j_clip_1788753143967_tzie",
+ "arm": "judge",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 896,
+  "thoughtTokens": 774
+ },
+ "cost": 0.0122175,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rants about flashes making players want to quit and become accountants, then expresses mild surprise when a player gets flashed and eliminated early in the round.",
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "dead_air": [],
+  "reason": "There is no major play or clutch on screen, just standard early-round utility play, and the creator's reaction lacks the high hype needed for a keep."
+ }
+}
