@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01: 0.5.0-alpha.17 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.17 and the installer published to the update feed.** This build ships everything since alpha.16 (`59c51a8..HEAD`): new games and reaction shows copying the user's own YouTube description layout and channel tags (#262), and the Rename tab's tip for relinking a renamed recording in Resolve or Premiere (#473). Fega asked for this cut explicitly. The What's New entry was stamped with this version.
+
 ## [Unreleased] 2026-09-29: relink tip on the Rename tab
 
 ### Added

@@ -12,8 +12,11 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.17",
+    date: "2026-10-01",
+    added: [
+      "Already editing a recording in Resolve or Premiere? Renaming it in Corva makes it show as media offline there. The Rename tab now has a short tip with the steps to relink it in either editor. Close it with the × and it stays gone.",
+    ],
     changed: [
       "When you add a game, or Corva makes a reaction show for you, its YouTube description now copies the layout of your main game's description (your schedule, links and everything else) with the new game's name and hashtag, and it gets the tags you use on every game. Regenerate in Captions & Descriptions does the same.",
     ],
