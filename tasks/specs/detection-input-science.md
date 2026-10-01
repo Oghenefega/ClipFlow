@@ -420,6 +420,20 @@ helped as much as `count`, with the best precision of any arm. Not yet run: `cou
 high together, the obvious next cell (~$1.40). The Anthropic prepaid balance ran out on the
 `high` arm's RL Day8 runs 2-3; no arm passes the gate yet.
 
+**`count` @high (label `p55-counthigh`, run after the top-up): PASSES the gate, awaiting Fega.**
+
+| | Recall | Rejected-hit | Coverage | Picks/run | Unreviewed | $/run | s/run |
+|---|---|---|---|---|---|---|---|
+| Sonnet 5.5 `count` @high | **84/90 = 93%** | **157/338 = 46%** | 80% | 18.8 | 95 | $0.080 | 12.4 |
+| Sonnet 4.6 (Step 6) | 83/90 = 92% | 147/287 = 51% | 83% | 15.9 | 61 | $0.100 | ~14 |
+
+Per recording vs 4.6: EO Day3 27/27 (24), RL Day8 12/12 (9), RL Day9 12/12 (12), RL Day10 3/3
+(3), EO Day4 18/21 (20), DD Day2 12/15 (15). Every 5.5 arm caught DD Day2 12/15, so one approved
+DD moment is consistently missed. Reading: recall matches 4.6 (+1 of 90 is inside noise), a lower
+share of picks lands on rejected clips but the absolute count of rejected picks is about the same
+(157 vs 147), and ~3 more picks per recording land on unreviewed footage. Boundary overlap is 3
+points looser. 20% cheaper per recording.
+
 ## Decisions locked (do not re-litigate without flagging Fega)
 
 - Engine variants are judged by replay scores against Fega's history, not vibes.
