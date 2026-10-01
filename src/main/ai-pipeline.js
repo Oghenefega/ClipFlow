@@ -15,6 +15,7 @@ const geminiWatch = require("./gemini-watch");
 const { PipelineLogger } = require("./pipeline-logger");
 const { linkedGame } = require("../shared/reactions");
 const { getProvider } = require("./ai/llm-provider");
+const DETECTION_MODEL = require("./ai/detection-model"); // #480
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
 // so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
 const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
@@ -428,20 +429,33 @@ function extractFrame(videoPath, outPath, timeSeconds) {
  */
 async function callLLMForHighlights(systemPrompt, userContent, logger) {
   const provider = getProvider();
-  const model = provider.defaultModel;
+  // #480: detection has its own Anthropic model (src/main/ai/detection-model.js).
+  const tuned = provider.name === "anthropic" ? DETECTION_MODEL : null;
+  const model = tuned ? tuned.model : provider.defaultModel;
 
-  logger.info(`LLM request via ${provider.name} (${model})`);
+  logger.info(`LLM request via ${provider.name} (${model}${tuned ? `, effort ${tuned.effort}` : ""})`);
 
-  const { text, usage } = await provider.chat({
+  const { text, usage, stopReason } = await provider.chat({
     model,
     system: systemPrompt,
     messages: [{ role: "user", content: userContent }],
-    maxTokens: 8192,
-    timeout: 120000,
+    maxTokens: tuned ? tuned.maxTokens : 8192,
+    timeout: tuned ? tuned.timeout : 120000,
+    ...(tuned ? { effort: tuned.effort } : {}),
   });
 
   // Log usage
   logger.logApiUsage(usage.inputTokens, usage.outputTokens, model);
+
+  // A declined or cut-off answer is not "invalid JSON": say what happened.
+  if (stopReason === "refusal") {
+    logger.logOutput("RAW_RESPONSE", text || "");
+    throw new Error("The AI declined to pick clips for this recording (its safety filter stopped it). Try again; if it keeps happening, report it.");
+  }
+  if (stopReason === "max_tokens") {
+    logger.logOutput("RAW_RESPONSE", text || "");
+    throw new Error(`The AI's answer was cut off before it finished listing clips (${usage.outputTokens} tokens). Try again.`);
+  }
 
   if (!text) throw new Error("Empty response from LLM provider");
 

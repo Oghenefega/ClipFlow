@@ -8,6 +8,8 @@
 // Pricing per 1M tokens (USD)
 const PRICING = {
   // Anthropic
+  "claude-sonnet-5-5":     { input: 2,    output: 10 }, // #480: clip detection
+  "claude-opus-5-5":       { input: 4,    output: 20 },
   "claude-sonnet-4-6":     { input: 3,    output: 15 },
   "claude-sonnet-4-5":     { input: 3,    output: 15 },
   "claude-opus-4-6":       { input: 5,    output: 25 },

@@ -324,7 +324,10 @@ function score(picks, truth) {
   fs.mkdirSync(RESULTS_DIR, { recursive: true });
   const provider = llmProvider.getProvider();
 
-  const model = variant.model || provider.defaultModel;
+  // No --model = exactly what the pipeline runs (src/main/ai/detection-model.js), effort included.
+  const DETECTION = require(path.join(REPO, "src", "main", "ai", "detection-model"));
+  const model = variant.model || DETECTION.model;
+  if (!variant.model && !variant.effort) variant.effort = DETECTION.effort;
   const rate = RATES[model];
   if (!rate) throw new Error(`no price for ${model}: add it to RATES`);
   // Thinking (Sonnet 5.5) counts toward max_tokens and adds time, so it gets more of both.

@@ -44,6 +44,15 @@ function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, watchedG
     ? `\n\nThis recording is ~${durationMin} minute${durationMin === 1 ? "" : "s"} long.`
     : "";
 
+  // #480: a recording long enough for 10+ clips gets its count as a NUMBER, one per
+  // 80 s (what Sonnet 4.6 returned on its own). Sonnet 5.5 reads "roughly one per 90
+  // seconds" literally and settled near 14; with the number stated it matched 4.6's
+  // recall (tasks/specs/detection-input-science.md Step 6b).
+  const statedCount = durationMin ? Math.min(25, Math.round((durationMin * 60) / 80)) : 0;
+  const countRule = statedCount >= 10
+    ? `return at least ${statedCount} clips for this ~${durationMin}-minute recording, and more (up to 25) if it holds more genuine moments. Keep going until its genuine moments are exhausted.`
+    : "aim for roughly one clip per 90 seconds of recording, minimum 10, maximum 25. A dense 20-30 minute session honestly holds 15-25 clips — do not settle at 14-15 out of habit; keep going until the recording's genuine moments are exhausted.";
+
   // ── Section 1: Task Definition ──
   sections.push(`# TASK
 
@@ -153,7 +162,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 }
 
 ## Constraints:
-- Scale the clip count to the recording: aim for roughly one clip per 90 seconds of recording, minimum 10, maximum 25. A dense 20-30 minute session honestly holds 15-25 clips — do not settle at 14-15 out of habit; keep going until the recording's genuine moments are exhausted. When the recording is too short to hold 10 non-overlapping clips, return as many non-overlapping clips as it can physically hold instead, covering the best moments available — include below-the-bar moments with honest low confidence rather than leaving slots empty. The creator reviews every pick: a weak pick costs one click to reject, but a moment you skip is gone forever. Never return an empty array.
+- Scale the clip count to the recording: ${countRule} When the recording is too short to hold 10 non-overlapping clips, return as many non-overlapping clips as it can physically hold instead, covering the best moments available — include below-the-bar moments with honest low confidence rather than leaving slots empty. The creator reviews every pick: a weak pick costs one click to reject, but a moment you skip is gone forever. Never return an empty array.
 - Order by confidence descending (best clips first)
 - clip_number must be sequential: 1, 2, 3, ...
 - start must use format HH:MM:SS (zero-padded, e.g. "00:05:30" not "5:30")

@@ -32,6 +32,8 @@ const REJECTED_TEXT = "Treat them as negative calibration: give a moment like th
 
 const VARIANTS = {
   count(prompt) {
+    // Shipped in src/main/ai-prompt.js (#480): the built prompt already states the number.
+    if (/return at least \d+ clips for this/.test(prompt)) throw new Error('prompt variant "count" shipped in ai-prompt.js; drop it from --prompt-variant');
     const m = prompt.match(/This recording is ~(\d+) minutes? long\./);
     if (!m) throw new Error('prompt variant "count": no recording length line');
     const minutes = parseInt(m[1], 10);

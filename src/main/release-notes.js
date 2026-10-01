@@ -17,6 +17,9 @@ module.exports = [
     added: [
       "Corva now keeps track of how much you edit each clip it makes before you post it, so it can learn to need less of your time. Settings → Diagnostics shows your average editing minutes per posted clip and how many go out with no edits. It fills in as you post.",
     ],
+    changed: [
+      "Finding clips now uses a newer AI model. In testing on your own recordings it found your kind of moments as well as before, with fewer picks you'd reject, and it costs less to run. You'll see a few more clips per recording to review.",
+    ],
   },
   {
     version: "0.5.0-alpha.17",

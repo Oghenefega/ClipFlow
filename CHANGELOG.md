@@ -4,6 +4,13 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 282): clip-finding switched to Sonnet 5.5
+
+### Changed
+- **Clip detection now runs on Claude Sonnet 5.5 at effort high, and the prompt states each recording's clip count as a number (#480).** Fega approved the switch after the replay test: 84 of 90 approved clips found (Sonnet 4.6: 83), 46% of picks on rejected clips (51%), 20% cheaper per recording, about 3 more picks per recording. The model, effort, 16,000-token budget and 240 s timeout live in one place, `src/main/ai/detection-model.js`, which the replay test kit also reads, so a test with no `--model` replays exactly what the app runs. Only detection moved: the Claude title fallback and game profiles keep the provider default (Sonnet 4.6), and game research keeps Opus 4.6, because only detection was tested. In `ai-prompt.js`, a recording long enough for 10 or more clips is told "return at least N clips for this ~M-minute recording" at one per 80 seconds; shorter recordings keep the old per-90-seconds rule. The cost tracker knows Sonnet 5.5 and Opus 5.5 prices.
+- **A declined or cut-off AI answer now says so** instead of "LLM returned invalid JSON": "The AI declined to pick clips for this recording" for a safety-filter refusal, and "The AI's answer was cut off before it finished listing clips" when it runs out of room. The raw text is still written to the run log.
+- Checked with the real pipeline end to end (transcription, signals, AI pick) on a copy of a 4-minute Rocket League recording and a copy of the prod database: the run log shows `claude-sonnet-5-5, effort high`, $0.05 at the new rates, 9 clips in 5.7 s, covering all 4 clips Fega approved from that recording. `ai-prompt.test.js` has a new case for the stated count (82 pass); jest 692 pass.
+
 ## [Unreleased] 2026-10-01 (session 282): prompt tuned for Sonnet 5.5, partly tested
 
 ### Changed

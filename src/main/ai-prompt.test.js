@@ -648,6 +648,34 @@ test("long recording rounds to minutes and keeps the overlap ban (#200)", () => 
   expect(prompt).toContain("must not overlap");
 });
 
+test("a recording long enough for 10+ clips gets its count as a number, one per 80 s (#480)", () => {
+  const p30 = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
+    approvedClips: [], creatorProfile: null, sourceDuration: 1800,
+  });
+  expect(p30).toContain("return at least 23 clips for this ~30-minute recording, and more (up to 25)");
+  expect(p30).notToContain("one clip per 90 seconds");
+  expect(p30).notToContain("14-15 out of habit");
+  expect(p30).toContain("as many non-overlapping clips as it can physically hold");
+  const p21 = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
+    approvedClips: [], creatorProfile: null, sourceDuration: 21 * 60,
+  });
+  expect(p21).toContain("return at least 16 clips for this ~21-minute recording");
+  // 13 min = 9.75 -> 10 stated; 12 min = 9 -> under 10, keeps the rate rule
+  const p12 = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
+    approvedClips: [], creatorProfile: null, sourceDuration: 12 * 60,
+  });
+  expect(p12).toContain("one clip per 90 seconds of recording, minimum 10, maximum 25");
+  expect(p12).notToContain("return at least");
+  const p90 = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
+    approvedClips: [], creatorProfile: null, sourceDuration: 90 * 60,
+  });
+  expect(p90).toContain("return at least 25 clips for this ~90-minute recording");
+});
+
 test("sourceDuration omitted — no length line, floor still present (#200)", () => {
   const prompt = buildFullPrompt();
   expect(prompt).notToContain("This recording is ~");
