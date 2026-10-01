@@ -1,0 +1,134 @@
+{
+ "projectId": "proj_1787974685148_36a5ut",
+ "name": "2026-08-28 100T Day2 Pt2",
+ "mode": "single",
+ "cost": 0.056534999999999995,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787974788113_o6f4",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "needs-context"
+   ],
+   "confidence": 0.68,
+   "start": 6,
+   "end": 35,
+   "judged": {
+    "play": "Halftime break screen showing 100 Thieves losing 2-10, transitioning into the second half pistol round with no combat.",
+    "play_quality": 0,
+    "line": "You guys, you got this on defense man. All you gotta do is stop these guys from planting.",
+    "keep_score": 10,
+    "reason": "This clip consists only of halftime commentary with no actual gameplay action or standout moments."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787974788113_0ezk",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 54,
+   "end": 82,
+   "judged": {
+    "play": "100 Thieves locks down the site defuse in a 2v1 situation to win the round.",
+    "play_quality": 6,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 75,
+    "reason": "The creator stands up and screams his signature line in celebration as 100 Thieves converts the round to take an 11-2 lead."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787974788113_0y2o",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.82,
+   "start": 89,
+   "end": 119,
+   "judged": {
+    "play": "Replay shows 100 Thieves securing consecutive kills to lead 11-2, with Bang surviving on 1 HP while celebrating on stage.",
+    "play_quality": 7,
+    "line": "GET HIM OUT OF HERE! ONE HP!",
+    "keep_score": 80,
+    "reason": "The creator gets extremely hyped during the replay and mirrors Bang's flexing celebration on camera after 100 Thieves dominates."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787974788112_bem5",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.88,
+   "start": 129,
+   "end": 147,
+   "judged": {
+    "play": "100 Thieves secures the final kill on Lotus to close out Map 1 with a dominant 13-2 victory.",
+    "play_quality": 6,
+    "line": "Too easy! Next map!",
+    "keep_score": 75,
+    "reason": "His energetic hype celebrating 100 Thieves wrapping up map one in a 13-2 blowout makes a solid match-milestone highlight."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787974788112_ri1a",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 174,
+   "end": 203,
+   "judged": {
+    "play": "100 Thieves shuts down Leviatán's final C-site push to secure the map win 13-2.",
+    "play_quality": 9,
+    "line": "What did he think he was trying to do?!",
+    "keep_score": 95,
+    "reason": "This is a dominant map-winning moment for 100 Thieves that triggers a high-energy, chair-leaving celebration from the creator."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787974788112_dnka",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context",
+    "nothing-happens"
+   ],
+   "confidence": 0.91,
+   "start": 209,
+   "end": 233,
+   "judged": {
+    "play": "100 Thieves secures Map 1 against Leviatán as the players walk off stage.",
+    "play_quality": 3,
+    "line": "That's my boys, man!",
+    "keep_score": 25,
+    "reason": "It captures his excitement for 100 Thieves winning Map 1, but without live gameplay action or a unique story beat, it remains a standard post-map reaction."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787974788113_8chu",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "needs-context"
+   ],
+   "confidence": 0.84,
+   "start": 279,
+   "end": 304,
+   "judged": {
+    "play": "100 Thieves secures the map victory as players celebrate on stage",
+    "play_quality": 6,
+    "line": "My boys! We make it look too easy, bro!",
+    "keep_score": 65,
+    "reason": "The creator enthusiastically celebrates as his team 100 Thieves closes out the map win and fist bumps on stage."
+   }
+  }
+ ]
+}

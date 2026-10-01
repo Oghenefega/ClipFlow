@@ -1,0 +1,211 @@
+{
+ "projectId": "proj_1787975566584_7zg6mr",
+ "name": "2026-08-28 100T Day2 Pt5",
+ "mode": "single",
+ "cost": 0.107919,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787975841626_strm",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 56,
+   "end": 74,
+   "judged": {
+    "play": "No kills occur as both teams set up positions and throw utility around A site.",
+    "play_quality": 1,
+    "line": "100 Heart Attacks!",
+    "keep_score": 15,
+    "reason": "There is no in-game play or action happening, only brief casual banter from the streamer."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787975841626_gtsl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 117,
+   "end": 174,
+   "judged": {
+    "play": "LEV wins the round against 100 Thieves while the streamer gets confused by a player tag reading SPIKE on screen.",
+    "play_quality": 2,
+    "line": "Who is this spike guy, bro?",
+    "keep_score": 15,
+    "reason": "This is a minor moment of confusion over a broadcast spectator tag during a round loss rather than an impressive gameplay highlight."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787975841626_ce75",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.85,
+   "start": 288,
+   "end": 327,
+   "judged": {
+    "play": "No gameplay action; early round setup and positioning on Haven.",
+    "play_quality": 1,
+    "line": "I've been muted, bro!",
+    "keep_score": 20,
+    "reason": "This is just a minor streamer error where he realizes he was muted during the round setup, with no gameplay play happening on screen."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787975841626_uqyx",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 525,
+   "end": 536,
+   "judged": {
+    "play": "The streamer watches 100 Thieves set up on defense during the early phase of a round with no active firefights or kills.",
+    "play_quality": 1,
+    "line": "We've got this, we've got this. We're good on defense.",
+    "keep_score": 5,
+    "reason": "This is routine round setup without any kills, high-stakes moments, or notable reactions."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787975841625_0jte",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 543,
+   "end": 571,
+   "judged": {
+    "play": "100T gets two straightforward kills on B site to secure the round.",
+    "play_quality": 4,
+    "line": "GET HIM OUT OF HERE! GET HIM OUT OF HERE BRO! LET'S GO!",
+    "keep_score": 25,
+    "reason": "Standard kills accompanied by his routine shouting do not meet the threshold for a clip highlight."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787975841626_1woy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 608,
+   "end": 652,
+   "judged": {
+    "play": "Levitatán calls a tactical timeout during the match against 100 Thieves",
+    "play_quality": 0,
+    "line": "The way this guy slams that timeout is so funny bro",
+    "keep_score": 20,
+    "reason": "This is minor filler commentary during a broadcast timeout graphic rather than a standout play or highlight moment."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787975841626_46g8",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.83,
+   "start": 744,
+   "end": 793,
+   "judged": {
+    "play": "100 Thieves wins round 10 to extend their lead 10-7, followed by facecams showing Lev players looking stressed.",
+    "play_quality": 4,
+    "line": "Where you running to bro? All of a sudden he's not so happy man!",
+    "keep_score": 65,
+    "reason": "He gets a huge kick out of watching the opposing team's disappointed facecams as 100T closes in on a Champions spot."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787975841626_yuv6",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 818,
+   "end": 864,
+   "judged": {
+    "play": "100 Thieves secures a round win to take an 11-7 lead against LEV.",
+    "play_quality": 6,
+    "line": "Let's go baby, come on!",
+    "keep_score": 70,
+    "reason": "The creator gets very hyped celebrating 100 Thieves breaking away to an 11-7 lead after being tied."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787975841626_rnm0",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "chat-banter"
+   ],
+   "confidence": 0.9,
+   "start": 939,
+   "end": 966,
+   "judged": {
+    "play": "100 Thieves closes out the map 13-7 against Leviatán as eeiu secures the final round win.",
+    "play_quality": 8,
+    "line": "Let's go!",
+    "keep_score": 85,
+    "reason": "He celebrates ecstatically as his team 100 Thieves closes out a decisive map victory."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787975841625_800i",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1040,
+   "end": 1090,
+   "judged": {
+    "play": "100 Thieves closes out the final round to secure a 2-0 match victory.",
+    "play_quality": 8,
+    "line": "IT'S OVER! IT'S OVER!",
+    "keep_score": 90,
+    "reason": "He gets wildly hype celebrating 100 Thieves' match-clinching victory to seal a 2-0 series sweep."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788225344059_hrae",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1068.100081,
+   "end": 1090,
+   "judged": {
+    "play": "100 Thieves completes a 2-0 match sweep against Leviatán (LEV) as teams shake hands.",
+    "play_quality": 8,
+    "line": "I don't know who these guys are! Too easy, bro!",
+    "keep_score": 80,
+    "reason": "It captures a strong celebratory story beat as his favorite team secures a clean 2-0 series victory."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787975841626_o3xo",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.63,
+   "start": 1117,
+   "end": 1137,
+   "judged": {
+    "play": "100 Thieves celebrates their victory on stage while the creator discusses tournament qualification scheduling",
+    "play_quality": 0,
+    "line": "One more tomorrow, ladies and gentlemen, one more.",
+    "keep_score": 10,
+    "reason": "This is routine post-match stream commentary about tournament schedules without any gameplay or standout reaction."
+   }
+  }
+ ]
+}

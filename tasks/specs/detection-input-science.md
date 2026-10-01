@@ -492,3 +492,28 @@ Each clip cut raw from the master over the AI window, 720p + stereo audio, judge
   test rejects are "live-only"). In 100T streams the big hype scream happens every round; what he keeps
   is the moment that stands out FROM THAT STREAM. Judging one clip at a time cannot see that. Next cell:
   judge all candidates of one recording together and rank them (distinctiveness within the stream).
+
+### Step 7b: 100T with Fega's play-quality rule, one clip vs whole recording (#483, session 283)
+
+Fega (s283): the same line ("get him outta here") is a highlight on a triple kill or a clutch and not on a
+shabby single kill. Rubric v2 says so (`stream-judge.js`): the quality of the play decides, the line alone
+means little; standout taunts and story beats count. Two modes on every reviewed 100T clip (mechanical
+rejects excluded): `single` judges each clip alone; `stream` sends all of one recording's candidates
+(up to 22) in one call, in stream order, and asks which stand out. 269 clips / 98 keeps / 18 recordings
+scored (Day3 Pt3 timed out in `single` twice and is left out). Scored by `stream-score.py`.
+
+| Score | AUC | AUC inside a recording | Top-k: show as many as Fega kept | Rejects removed at ≤10% keeps lost | $ |
+|---|---|---|---|---|---|
+| Detection confidence | 0.638 | 0.673 | 54/98 | 12% | 0 |
+| **Single clip, rubric v2** | **0.750** | **0.783** | **64/98** | **33%** | $2.38 |
+| Whole recording, rubric v2 | 0.720 | 0.764 | 61/98 | 15% | $1.75 |
+| Confidence + single v2 | 0.718 | 0.740 | 63/98 | 29% | |
+
+- **The play-quality rule works:** single-clip v2 beats detection confidence on 100T by +0.11 AUC
+  (bootstrap by recording, 95% CI +0.04 to +0.19). On the 111 clips cell 1 also judged: 0.744 vs the
+  cell-1 rubric's 0.719.
+- **Seeing the whole recording did NOT help** (−0.03, CI −0.10 to +0.05). The "stands out from the
+  stream" hypothesis is not supported; it is cheaper per clip but no better.
+- **Do not average with confidence on 100T:** confidence is weak there and drags the judge down. On
+  comedy the average is what helps (Step 7). So the candidate design is routed by kind: hype → judge
+  alone, comedy → judge + confidence.

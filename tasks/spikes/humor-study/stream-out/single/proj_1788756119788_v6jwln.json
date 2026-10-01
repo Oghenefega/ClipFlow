@@ -1,0 +1,222 @@
+{
+ "projectId": "proj_1788756119788_v6jwln",
+ "name": "2026-09-06 100T Day4 Pt9",
+ "mode": "single",
+ "cost": 0.10464,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788756538965_erkn",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 199,
+   "end": 236,
+   "judged": {
+    "play": "100T vora gets a multi-kill through smoke to win the round for 100 Thieves.",
+    "play_quality": 8,
+    "line": "LET'S GO! THAT'S HOME BABY!",
+    "keep_score": 85,
+    "reason": "An impressive multi-kill play combined with high-energy celebration from the creator makes this a standout highlight."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788756538966_ukka",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.9,
+   "start": 429,
+   "end": 478,
+   "judged": {
+    "play": "100 Thieves secures a round win as the broadcast transitions into replays and the buy phase for the next round.",
+    "play_quality": 3,
+    "line": "N4RRATE IS BACK, BABY!",
+    "keep_score": 30,
+    "reason": "The streamer brings high celebratory energy for 100 Thieves, but the clip mostly consists of round-end screens, replays, and buy phase downtime."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788756538966_b3zt",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 513,
+   "end": 533,
+   "judged": {
+    "play": "100T executes onto C site on Haven using utility like Brimstone's Orbital Strike and Viper's pit, with standard positioning taking place.",
+    "play_quality": 3,
+    "line": "Oh my goodness",
+    "keep_score": 15,
+    "reason": "The clip shows routine utility setup and round progression without any high-impact multi-kills or clutch plays, while the streamer's reaction remains quiet."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788756538966_mz7c",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 550,
+   "end": 596,
+   "judged": {
+    "play": "100 Thieves loses a round, followed by a replay of the loss and a single routine Operator kill at the start of the next round.",
+    "play_quality": 2,
+    "line": "How did we lose that?",
+    "keep_score": 15,
+    "reason": "The clip centers on a round loss and a standard single kill, lacking a major play or standout moment to justify a highlight."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788756538966_mib9",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.58,
+   "start": 651.8,
+   "end": 658.8,
+   "judged": {
+    "play": "Early round transition and setup phase with no action or kills.",
+    "play_quality": 1,
+    "line": "It's all good, we're gonna bring it home.",
+    "keep_score": 10,
+    "reason": "This is routine stream filler between rounds without any gameplay plays or notable events."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788756538966_mtdg",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 746,
+   "end": 776,
+   "judged": {
+    "play": "100 Thieves completes a routine round win to tie the map score 3-3.",
+    "play_quality": 2,
+    "line": "Good job squad.",
+    "keep_score": 10,
+    "reason": "This clip only shows the end of a routine round with standard, calm praise and no notable action on screen."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788756538966_j8t3",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 791,
+   "end": 828,
+   "judged": {
+    "play": "Technical pause during the match showing player cams and arena",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This clip takes place during a technical pause with no gameplay or noteworthy reaction."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788756538966_z8qj",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.66,
+   "start": 992,
+   "end": 1013,
+   "judged": {
+    "play": "No active gameplay; stage wide shot during a tech pause while casters and streamer discuss player confidence and stats.",
+    "play_quality": 0,
+    "line": "He moves like he's the best in the lobby.",
+    "keep_score": 5,
+    "reason": "There is no in-game gameplay or high-energy moment happening during this technical pause chat."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788756538966_38dj",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 1233,
+   "end": 1255,
+   "judged": {
+    "play": "Early round buy phase and positioning, no kills or action on screen",
+    "play_quality": 1,
+    "line": "That's the spirit, man.",
+    "keep_score": 10,
+    "reason": "The clip consists entirely of early-round setup and team morale commentary during buy phase without any gameplay action or kills."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788756538966_i588",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1338,
+   "end": 1372,
+   "judged": {
+    "play": "100T retakes C site with LukXO shutting down LOUD to secure the defuse and tie the game 4-4.",
+    "play_quality": 7,
+    "line": "I don't even know how the other guy died, but we don't care!",
+    "keep_score": 80,
+    "reason": "A crucial retake and round-tying defuse paired with a hyped, funny reaction makes this a strong highlight."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788756538966_wh64",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.63,
+   "start": 1481,
+   "end": 1504,
+   "judged": {
+    "play": "Replay showing round gameplay while the creator analyzes player positioning and stacking.",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 10,
+    "reason": "This is low-energy commentary over a replay without any spectacular play or notable reaction."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788756538966_o2j5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 1665,
+   "end": 1695,
+   "judged": {
+    "play": "Replay showing round gameplay while creator discusses Neon's slow stun ability deployment",
+    "play_quality": 3,
+    "line": "I will stun him in like two seconds, give me a second.",
+    "keep_score": 25,
+    "reason": "This is primarily streamer commentary and a funny impression regarding utility timing rather than a standout highlight play."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788756538966_vgci",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 1719,
+   "end": 1750,
+   "judged": {
+    "play": "100 Thieves secures a round win against LOUD to bring the score to 5-6.",
+    "play_quality": 4,
+    "line": "There we go, baby!",
+    "keep_score": 25,
+    "reason": "While 100 Thieves wins the round, it is a routine round victory without a standout clutch or multi-kill."
+   }
+  }
+ ]
+}

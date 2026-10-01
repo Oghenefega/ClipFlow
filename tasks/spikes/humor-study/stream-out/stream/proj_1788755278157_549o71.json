@@ -1,0 +1,328 @@
+{
+ "projectId": "proj_1788755278157_549o71",
+ "name": "2026-09-06 100T Day4 Pt6",
+ "mode": "stream",
+ "cost": 0.113394,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788755772242_1ero",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 28,
+   "end": 62,
+   "judged": {
+    "id": "c01",
+    "play": "100T round win replay showing a pistol/sheriff kill.",
+    "play_quality": 4,
+    "line": "GET HIM OUT OF MY FACE!",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Standard round win discussion without an extraordinary play compared to later clutches."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788755772242_g6y6",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 154,
+   "end": 190,
+   "judged": {
+    "id": "c02",
+    "play": "Flawless round screen shown while creator mocks Neon's movement.",
+    "play_quality": 3,
+    "line": "Get him out of my face bro!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Routine commentary on enemy agent mechanics following a standard flawless victory."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788755772243_ceau",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.77,
+   "start": 229,
+   "end": 283,
+   "judged": {
+    "id": "c03",
+    "play": "100T wins an intense 1v1 clutch on A site.",
+    "play_quality": 7,
+    "line": "GET HIM OUT OF THERE!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "An intense 1v1 clutch finish with explosive high-energy hype from the creator."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788755772242_vbrk",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "live-only"
+   ],
+   "confidence": 0.85,
+   "start": 321,
+   "end": 377,
+   "judged": {
+    "id": "c04",
+    "play": "LOUD calls a strategic timeout as 100T rallies back.",
+    "play_quality": 3,
+    "line": "Why you in my party bro?",
+    "keep_score": 70,
+    "stands_out": true,
+    "reason": "Great banter during a strategic timeout highlighting the opponent's visible frustration."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788755772243_e1hk",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 452,
+   "end": 488,
+   "judged": {
+    "id": "c05",
+    "play": "100T site defense round win with Bang smiling on camera.",
+    "play_quality": 6,
+    "line": "We got Bang smiling!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Good morale moment, but outshined by the bigger clutches and series-ending rounds."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788755772242_gw3j",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 583,
+   "end": 622,
+   "judged": {
+    "id": "c06",
+    "play": "Replay of an impressive Operator shot from eevey.",
+    "play_quality": 6,
+    "line": "What is that OP shot bro!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Strong enthusiasm over a sniper play, but repeats similar round-winning excitement."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788755772242_ntfi",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.95,
+   "start": 735,
+   "end": 775,
+   "judged": {
+    "id": "c07",
+    "play": "100T forces an enemy eco round win, bringing them closer to victory.",
+    "play_quality": 5,
+    "line": "I want to cry! Tears of joy!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Highly emotional highlight where the creator gets teary-eyed anticipating a major trophy."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788755772243_1zoj",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.74,
+   "start": 900,
+   "end": 935,
+   "judged": {
+    "id": "c08",
+    "play": "100T secures another flawless round on defense.",
+    "play_quality": 5,
+    "line": "Get him out of my face bro.",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Generic celebration of a flawless round without a specific standout play featured."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788755772242_h8g5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 984,
+   "end": 1037,
+   "judged": {
+    "id": "c09",
+    "play": "Asuna multi-kill replay using Phoenix ultimate.",
+    "play_quality": 8,
+    "line": "Asuna is THAT Phoenix guys!",
+    "keep_score": 88,
+    "stands_out": true,
+    "reason": "High-impact Phoenix play by Asuna accompanied by passionate creator praise."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788755772242_mhlx",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.96,
+   "start": 1106,
+   "end": 1137,
+   "judged": {
+    "id": "c10",
+    "play": "100T wins a critical late-game tie-breaking round.",
+    "play_quality": 7,
+    "line": "Let's go! Oh my god!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "Crucial late-game round win that brings high energy as the match reaches its climax."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788755772243_2w1h",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1170,
+   "end": 1198,
+   "judged": {
+    "id": "c11",
+    "play": "Mid-round setup with Cryo hiding in smoke.",
+    "play_quality": 4,
+    "line": null,
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Mid-round tactical narration without an immediate explosive payoff."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788755772242_p3lp",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 1238,
+   "end": 1262,
+   "judged": {
+    "id": "c12",
+    "play": "100T secures map point at 12-11.",
+    "play_quality": 7,
+    "line": "Job's not done boys!",
+    "keep_score": 78,
+    "stands_out": true,
+    "reason": "High tension moment as 100T secures map point in a dramatic comeback."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788755772242_72xl",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "live-only"
+   ],
+   "confidence": 0.83,
+   "start": 1335,
+   "end": 1373,
+   "judged": {
+    "id": "c13",
+    "play": "LOUD wins a round in smoke to force overtime.",
+    "play_quality": 5,
+    "line": "He's in the smoke I am telling you brother!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Unfortunate round loss reaction that is quickly overshadowed by the match finish."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788755772243_s6lg",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 1380,
+   "end": 1396,
+   "judged": {
+    "id": "c14",
+    "play": "Replay analysis of enemy multi-kill.",
+    "play_quality": 3,
+    "line": "He quite literally turned on the cheats again bro.",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Brief commentary expressing frustration during replay analysis."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788755772242_y72y",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 1484,
+   "end": 1539,
+   "judged": {
+    "id": "c15",
+    "play": "100T wins the final round to complete the comeback victory.",
+    "play_quality": 9,
+    "line": "GET HIM OUT OF MY FACE BRO!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "The dramatic match-winning round concluding a massive comeback."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788891781302_e2m7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 1552,
+   "end": 1561,
+   "judged": {
+    "id": "c16",
+    "play": "Creator talks to stream while holding up 100T jersey between rounds.",
+    "play_quality": 2,
+    "line": "We're Thieves for a reason.",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Very short inspirational speech between rounds with no active gameplay."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788755772242_fegu",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "reaction-adds-nothing"
+   ],
+   "confidence": 0.98,
+   "start": 1644,
+   "end": 1734,
+   "judged": {
+    "id": "c17",
+    "play": "Post-match victory celebration, Asuna interview, and final highlights.",
+    "play_quality": 9,
+    "line": "What a freaking comeback! Oh my god!",
+    "keep_score": 92,
+    "stands_out": true,
+    "reason": "Celebratory culmination of the entire watch party featuring post-match interviews and final highlights."
+   }
+  }
+ ]
+}

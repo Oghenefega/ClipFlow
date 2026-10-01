@@ -1,0 +1,220 @@
+{
+ "projectId": "proj_1788753363823_0hwgl7",
+ "name": "2026-09-06 100T Day4 Pt4",
+ "mode": "single",
+ "cost": 0.10541249999999999,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788753729569_zagl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.6,
+   "start": 158,
+   "end": 185,
+   "judged": {
+    "play": "LOUD executes onto A site, catching 100 Thieves off-guard and securing quick kills.",
+    "play_quality": 3,
+    "line": "Oh my goodness.",
+    "keep_score": 15,
+    "reason": "This is a routine site execute with no notable play or impactful reaction from the streamer."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1789185416777_7tbz",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 296,
+   "end": 315,
+   "judged": {
+    "play": "Cryo hits an impressive Operator flick shot to secure a crucial round win for 100 Thieves.",
+    "play_quality": 9,
+    "line": "GET HIM OUT OF HERE! LOOK AT THAT FLICK BRO!",
+    "keep_score": 90,
+    "reason": "An incredible Operator flick shot by Cryo in a tight match perfectly justifies the creator's intense hype and signature catchphrase."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788753729569_6tdv",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "chat-banter",
+    "not-funny"
+   ],
+   "confidence": 0.65,
+   "start": 433,
+   "end": 458,
+   "judged": {
+    "play": "Pre-round commentary on player statistics followed by Cryo dying early at the start of a 9-9 round.",
+    "play_quality": 2,
+    "line": "Eeiu is waking up, he's coming after that Cryo's MVP bro.",
+    "keep_score": 10,
+    "reason": "This clip consists entirely of casual pre-round score commentary and routine early-round setup without any highlight gameplay."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788753729569_21wo",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 512,
+   "end": 552,
+   "judged": {
+    "play": "In the replay, an opposing player lands a headshot despite being fully stunned.",
+    "play_quality": 7,
+    "line": "This guy is cheating, bro!",
+    "keep_score": 75,
+    "reason": "The creator gives a funny, incredulous reaction to an opponent landing an unbelievable headshot while stunned."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788753729569_mhwd",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny"
+   ],
+   "confidence": 0.79,
+   "start": 562,
+   "end": 616,
+   "judged": {
+    "play": "No gameplay shown; streamer reacts to the casters praising the opposing team during a timeout.",
+    "play_quality": 0,
+    "line": "We need to start playing on the moon, where there's no home crowd.",
+    "keep_score": 15,
+    "reason": "This is just stream banter and commentary during a broadcast timeout without any gameplay or high-stakes match moment."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788753729569_ymm4",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny"
+   ],
+   "confidence": 0.93,
+   "start": 659,
+   "end": 699,
+   "judged": {
+    "play": "100 Thieves secures a 3v1 post-plant round win on B site against LOUD.",
+    "play_quality": 3,
+    "line": "You know who you're going up against? Fricking Cryo!",
+    "keep_score": 25,
+    "reason": "This is a routine post-plant round win with a strong numerical advantage rather than an extraordinary individual play or clutch."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788753729569_adc6",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "reaction-adds-nothing"
+   ],
+   "confidence": 0.84,
+   "start": 706,
+   "end": 742,
+   "judged": {
+    "play": "Replays of Bang securing kills followed by the creator mocking LOUD's failed timeout during the match.",
+    "play_quality": 3,
+    "line": "They took a timeout, thought it was gonna work out? Absolutely not!",
+    "keep_score": 25,
+    "reason": "The clip features commentary on replays and a opponent timeout rather than a live highlight play."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788753729569_ykic",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 863,
+   "end": 893,
+   "judged": {
+    "play": "100 Thieves wins a critical round on Split to reach match point (12-10) against Leviatán.",
+    "play_quality": 6,
+    "line": "NO!",
+    "keep_score": 65,
+    "reason": "The streamer's intense, head-in-hands reaction to securing match point creates a strong emotional beat for a watch party highlight."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788753729569_9tdm",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.82,
+   "start": 903,
+   "end": 924,
+   "judged": {
+    "play": "Replay showing Bang securing a kill and celebrating on player cam as 100 Thieves reach match point.",
+    "play_quality": 4,
+    "line": "Let's go Bang! Let's go!",
+    "keep_score": 25,
+    "reason": "The clip shows the tail end of a replay celebration and pre-round downtime without showing the full live play."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788753729569_4yyz",
+   "decision": "rejected",
+   "reasons": [
+    "no-reaction",
+    "nothing-happens"
+   ],
+   "confidence": 0.67,
+   "start": 1076,
+   "end": 1092,
+   "judged": {
+    "play": "100 Thieves are on match point at 12-11 during a timeout leading into the round.",
+    "play_quality": 0,
+    "line": "We've got this, okay? We've got this, come on.",
+    "keep_score": 15,
+    "reason": "This is purely pre-round anticipation and team motivation during a timeout with no actual gameplay occurring."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788753729568_qi0p",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1206,
+   "end": 1260,
+   "judged": {
+    "play": "100 Thieves secures key round wins and clutches to take Map 2.",
+    "play_quality": 8,
+    "line": "That's what I'm talking about! We take map two!",
+    "keep_score": 85,
+    "reason": "His intense excitement and celebratory reaction to 100 Thieves winning the map make this a great highlight."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788753729569_l4hv",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.94,
+   "start": 1269,
+   "end": 1300,
+   "judged": {
+    "play": "100T Asuna clutches a high-stakes round by shutting down an opponent's ultimate.",
+    "play_quality": 8,
+    "line": "Get him out of here, we don't care what ult you using, we don't care!",
+    "keep_score": 85,
+    "reason": "A clutch play in a crucial round paired with the creator's passionate, high-energy shout creates a great highlight moment."
+   }
+  }
+ ]
+}

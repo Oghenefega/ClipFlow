@@ -1,0 +1,363 @@
+{
+ "projectId": "proj_1788754544278_ifijx1",
+ "name": "2026-09-06 100T Day4 Pt5",
+ "mode": "single",
+ "cost": 0.17117100000000002,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788755071329_tqqr",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 194,
+   "end": 224,
+   "judged": {
+    "play": "LOUD's player flashes out and instantly headshots 100T Bang in mid.",
+    "play_quality": 7,
+    "line": "How does he do that?!",
+    "keep_score": 45,
+    "reason": "It is an impressive shot by the opposing team that prompts a big reaction, but it shows his team getting outplayed rather than a positive highlight."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788755071329_efrl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 273,
+   "end": 300,
+   "judged": {
+    "play": "Players rotate and execute recon abilities during a setup phase without major kills.",
+    "play_quality": 2,
+    "line": "You're quite literally not that guy.",
+    "keep_score": 10,
+    "reason": "No major play occurs on screen and the streamer silently drinks water without a significant reaction."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788755071329_23ds",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.78,
+   "start": 327,
+   "end": 355,
+   "judged": {
+    "play": "The streamer demonstrates a 'high-low setup' angle with his hands while watching early-round positioning and an initial pick.",
+    "play_quality": 2,
+    "line": "That's the high-low setup I'm talking about.",
+    "keep_score": 15,
+    "reason": "This clip consists mostly of casual tactical explanation during round setup rather than an exciting highlight play."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788755071329_ltpx",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 398,
+   "end": 430,
+   "judged": {
+    "play": "LOUD's player hits an insane Operator no-scope headshot kill to close out the round right after the streamer talks trash about him.",
+    "play_quality": 8,
+    "line": "Why is it always him?",
+    "keep_score": 85,
+    "reason": "The streamer's trash-talking immediately backfires as the opponent lands an insane highlight shot, creating a classic jinx moment."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788755071329_cbff",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 484,
+   "end": 522,
+   "judged": {
+    "play": "100T Asuna loses a 1v1 clutch against LOUD tuyz on B site Ascent, giving LOUD a 5-0 lead.",
+    "play_quality": 5,
+    "line": "You've read him like a book, bro!",
+    "keep_score": 35,
+    "reason": "Although the streamer has an animated reaction as Asuna loses the 1v1 clutch, it is a routine round loss that puts his team down 0-5."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788755071329_aiim",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.81,
+   "start": 584,
+   "end": 615,
+   "judged": {
+    "play": "Buy phase setup on Bind with 100 Thieves down 0-5 against LOUD",
+    "play_quality": 0,
+    "line": "Believe in them! Believe in them, okay?",
+    "keep_score": 10,
+    "reason": "This clip consists entirely of pre-round hype and chat interaction without any gameplay action."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788755071329_gjwc",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.94,
+   "start": 622,
+   "end": 658,
+   "judged": {
+    "play": "100T eeiu gets an opening kill on LOUD tuyz on Ascent B site.",
+    "play_quality": 3,
+    "line": "GET HIM OUT OF THERE! GET HIM OUT OF THERE!",
+    "keep_score": 15,
+    "reason": "It is only a routine single kill early in the round, making it unsuitable as a standalone highlight despite the streamer's high energy."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788755071329_pdei",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.76,
+   "start": 743,
+   "end": 783,
+   "judged": {
+    "play": "A technical pause occurs during the VCT match while 100 Thieves is down 0-6.",
+    "play_quality": 1,
+    "line": "Somebody unplugged their computer.",
+    "keep_score": 15,
+    "reason": "This is downtime during a technical pause with light banter from the creator, lacking any gameplay action or standout highlight moment."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788755071330_x8gi",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "not-funny",
+    "nothing-happens"
+   ],
+   "confidence": 0.57,
+   "start": 816,
+   "end": 842,
+   "judged": {
+    "play": "Tech pause showing trophy, player close-ups, and fan crowd with score at 0-6",
+    "play_quality": 0,
+    "line": "These guys just have home advantage, that's it.",
+    "keep_score": 15,
+    "reason": "This is idle stream commentary during a technical pause with no gameplay action occurring."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788755071329_gsl2",
+   "decision": "approved",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.85,
+   "start": 931,
+   "end": 970,
+   "judged": {
+    "play": "100T wins the round as Cryo secures kills to make it 7-6 against LEV.",
+    "play_quality": 4,
+    "line": "Get him out of my face, bro!",
+    "keep_score": 35,
+    "reason": "Standard kills leading to a round win triggering his usual hype lines do not make a standout highlight."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788755071329_lhpa",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 992,
+   "end": 1001,
+   "judged": {
+    "play": "100T Cryo gets two rapid opening headshot kills against LOUD at the start of the round.",
+    "play_quality": 6,
+    "line": "THERE WE GO! No freaking way!",
+    "keep_score": 60,
+    "reason": "Cryo gets two fast opening headshot kills to give 100 Thieves an early advantage, sparking a high-energy reaction."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788755071329_m3j7",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens",
+    "not-funny"
+   ],
+   "confidence": 0.64,
+   "start": 1059,
+   "end": 1077,
+   "judged": {
+    "play": "Early round setup on A site with team comms playing, with no kills or major engagements occurring.",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This is routine early-round setup and positioning without any action, kills, or notable reaction from the creator."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788755071329_i0kg",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.83,
+   "start": 1112,
+   "end": 1148,
+   "judged": {
+    "play": "100 Thieves wins a round and the replay shows multiple players stacked inside the generator on site.",
+    "play_quality": 4,
+    "line": "Look at these people hiding inside the generator like a Trojan horse!",
+    "keep_score": 30,
+    "reason": "The clip shows the round win screen and replay rather than an active highlight play, relying mostly on his commentary about the team's stack."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788755071330_1pxh",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.6,
+   "start": 1182,
+   "end": 1212,
+   "judged": {
+    "play": "100T Asuna gets a kill through smoke right as the streamer predicts and calls for it",
+    "play_quality": 6,
+    "line": "It's like he can hear me! We in sync, baby!",
+    "keep_score": 88,
+    "reason": "The creator's exact live callout perfectly aligns with the player's action for an instant kill, creating a hilarious and highly engaging stream moment."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788755071329_oo71",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 1241,
+   "end": 1278,
+   "judged": {
+    "play": "LOUD wins the round against 100T to extend their lead to 8-2.",
+    "play_quality": 5,
+    "line": "No freaking way, dude",
+    "keep_score": 30,
+    "reason": "The creator reacts in disbelief as 100T loses another round, but it is a routine round loss rather than a standout play."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788755071329_ho7v",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "live-only"
+   ],
+   "confidence": 0.87,
+   "start": 1298,
+   "end": 1330,
+   "judged": {
+    "play": "Streamer commentary during a timeout when the score is 2-8",
+    "play_quality": 0,
+    "line": "Oh, it's a defense-sided map!",
+    "keep_score": 10,
+    "reason": "This is just commentary during a timeout without any gameplay or notable moment happening."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788755071328_dohh",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.96,
+   "start": 1405,
+   "end": 1431,
+   "judged": {
+    "play": "Boostio (100T) gets headshot and loses a 1v1 pistol duel on A site.",
+    "play_quality": 6,
+    "line": "Oh my goodness!",
+    "keep_score": 85,
+    "reason": "Boostio losing a crucial 1v1 triggers an iconic, head-in-hands agony reaction from the streamer."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788755071329_c9wm",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.66,
+   "start": 1539,
+   "end": 1560,
+   "judged": {
+    "play": "Post-map camera shots of the players and crowd followed by a replay transition",
+    "play_quality": 1,
+    "line": "We need to get Sheriffs on the pistol round.",
+    "keep_score": 10,
+    "reason": "This is downtime between maps with generic commentary and no highlight-worthy play."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788755071329_btq9",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.79,
+   "start": 1579,
+   "end": 1615,
+   "judged": {
+    "play": "No gameplay is shown; the streamer rambles to his audience during an interview segment on the VCT broadcast.",
+    "play_quality": 0,
+    "line": "A lot of people think when you go on a heist... you're playing defense.",
+    "keep_score": 5,
+    "reason": "This clip contains no gameplay or notable tournament moment, featuring only stream filler chatter during an event break."
+   }
+  },
+  {
+   "id": "c20",
+   "clipId": "clip_1788755071329_lx2k",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.7,
+   "start": 1687,
+   "end": 1724,
+   "judged": {
+    "play": "Halftime broadcast showing crowd, stage, and players setting up without any gameplay action",
+    "play_quality": 0,
+    "line": "If you're not on the 100 Thieves train, I don't know what win you're talking about, okay?",
+    "keep_score": 10,
+    "reason": "This clip contains no gameplay action, only halftime intermission commentary and reactions."
+   }
+  }
+ ]
+}

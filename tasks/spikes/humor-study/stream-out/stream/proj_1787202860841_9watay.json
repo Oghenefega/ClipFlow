@@ -1,0 +1,165 @@
+{
+ "projectId": "proj_1787202860841_9watay",
+ "name": "2026-08-19 100T Day1 Pt2",
+ "mode": "stream",
+ "cost": 0.041398500000000005,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787202987979_imel",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context",
+    "nothing-happens"
+   ],
+   "confidence": 0.75,
+   "start": 7,
+   "end": 32,
+   "judged": {
+    "id": "c01",
+    "play": "100T finishes off a flawless round victory",
+    "play_quality": 5,
+    "line": "Flawless.",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Standard round win with relatively subdued commentary compared to the bigger tournament moments."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787202987979_b8ny",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.92,
+   "start": 49.4,
+   "end": 56.4,
+   "judged": {
+    "id": "c02",
+    "play": "Asuna plays Phoenix in a VCT match",
+    "play_quality": 4,
+    "line": "Asuna playing Phoenix in this day and age, it's insane! What timeline are we in?",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "A brief, funny meta observation, but doesn't feature an explosive play or big emotional beat."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787202987979_keo2",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.87,
+   "start": 110,
+   "end": 120,
+   "judged": {
+    "id": "c03",
+    "play": "100T secures a map win against NRG on replay",
+    "play_quality": 6,
+    "line": null,
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "A brief celebration, but ecliped by the actual grand final victory clips later in the stream."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787202987979_l54l",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.81,
+   "start": 181.4,
+   "end": 188.4,
+   "judged": {
+    "id": "c04",
+    "play": "100T player secures a crucial multi-kill on match point",
+    "play_quality": 8,
+    "line": "Oh come on! Three!",
+    "keep_score": 82,
+    "stands_out": true,
+    "reason": "Combines high-stakes gameplay on match point with the creator's peak hype shouting."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787202987979_08tg",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 199,
+   "end": 225,
+   "judged": {
+    "id": "c05",
+    "play": "100T players hug and lift the championship trophy on stage",
+    "play_quality": 9,
+    "line": "That is insane! Nah, the joy in their hearts, man!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "The ultimate peak of the stream as 100T lifts the championship trophy with huge excitement from the creator."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787202987979_4s3t",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.83,
+   "start": 241,
+   "end": 256,
+   "judged": {
+    "id": "c06",
+    "play": "100T players give emotional post-match interview about winning with best friends",
+    "play_quality": 7,
+    "line": "Winning with your best friends, oh my goodness!",
+    "keep_score": 70,
+    "stands_out": false,
+    "reason": "Heartwarming story beat, though secondary to the actual trophy lift celebration."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787202987978_zgv7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 339,
+   "end": 363,
+   "judged": {
+    "id": "c07",
+    "play": "100T lifts trophy while player thanks fans, making streamer teary-eyed",
+    "play_quality": 8,
+    "line": "Man, why am I feeling so emotional, bro?",
+    "keep_score": 88,
+    "stands_out": true,
+    "reason": "Captures a genuine, heartfelt moment where the creator gets visibly emotional watching his team win."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787202987979_ag7p",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context",
+    "nothing-happens"
+   ],
+   "confidence": 0.91,
+   "start": 364,
+   "end": 412,
+   "judged": {
+    "id": "c08",
+    "play": "Creator reflects on 100T's journey over a static YouTube thumbnail",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Extended post-match monologue over a static screen lacking gameplay or visual action."
+   }
+  }
+ ]
+}

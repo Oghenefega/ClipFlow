@@ -1,0 +1,61 @@
+{
+ "clips": 269,
+ "keeps": 98,
+ "recordings": 18,
+ "cost": {
+  "single": 2.38,
+  "stream": 1.75
+ },
+ "confidence": {
+  "auc": 0.638,
+  "auc_within": 0.673,
+  "top_k": "54/98",
+  "at_10pct": {
+   "keeps_lost": 0.041,
+   "rejects_removed": 0.123
+  }
+ },
+ "single_v2": {
+  "auc": 0.75,
+  "auc_within": 0.783,
+  "top_k": "64/98",
+  "at_10pct": {
+   "keeps_lost": 0.051,
+   "rejects_removed": 0.327
+  }
+ },
+ "stream_v2": {
+  "auc": 0.72,
+  "auc_within": 0.764,
+  "top_k": "61/98",
+  "at_10pct": {
+   "keeps_lost": 0.031,
+   "rejects_removed": 0.152
+  }
+ },
+ "confidence+single_v2": {
+  "auc": 0.718,
+  "auc_within": 0.74,
+  "top_k": "63/98",
+  "at_10pct": {
+   "keeps_lost": 0.092,
+   "rejects_removed": 0.287
+  }
+ },
+ "confidence+stream_v2": {
+  "auc": 0.698,
+  "auc_within": 0.729,
+  "top_k": "58/98",
+  "at_10pct": {
+   "keeps_lost": 0.092,
+   "rejects_removed": 0.292
+  }
+ },
+ "vs_cell1_on_shared": {
+  "n": 111,
+  "cell1_rubric_only": 0.719,
+  "confidence": 0.636,
+  "single_v2": 0.744,
+  "stream_v2": 0.701
+ }
+}

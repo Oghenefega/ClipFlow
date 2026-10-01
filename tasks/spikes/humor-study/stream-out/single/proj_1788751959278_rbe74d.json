@@ -1,0 +1,292 @@
+{
+ "projectId": "proj_1788751959278_rbe74d",
+ "name": "2026-09-06 100T Day4 Pt2",
+ "mode": "single",
+ "cost": 0.157344,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788752392260_rwht",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.95,
+   "start": 56,
+   "end": 110,
+   "judged": {
+    "play": "100 Thieves secures a round win against LOUD to make the score 3-7.",
+    "play_quality": 5,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 45,
+    "reason": "Although 100 Thieves wins the round and the creator celebrates with high energy, the gameplay lacks a standout clutch or multi-kill to make it a memorable highlight."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788752392261_9rjh",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny",
+    "no-payoff"
+   ],
+   "confidence": 0.8,
+   "start": 153,
+   "end": 180,
+   "judged": {
+    "play": "eeiu gets caught in Fade's ultimate on A site and is killed by Loud without securing a kill.",
+    "play_quality": 2,
+    "line": "Oh my word, how is he getting that?",
+    "keep_score": 10,
+    "reason": "The round setup results in a routine death for the streamer's team with no highlight play made."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788752392261_slnu",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 227,
+   "end": 245,
+   "judged": {
+    "play": "Replay showing enemy players securing clean kills to close out the round victory.",
+    "play_quality": 4,
+    "line": "These guys have cheats, I promise.",
+    "keep_score": 55,
+    "reason": "His humorous copium accusing the opponents of cheating provides a funny commentary moment over a standard replay."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788752392261_y27o",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.86,
+   "start": 359,
+   "end": 384,
+   "judged": {
+    "play": "100 Thieves loses a high-advantage round to Lev, prompting the streamer to react to the opponent player's calm reaction after the win.",
+    "play_quality": 5,
+    "line": "Check his computer bro!",
+    "keep_score": 75,
+    "reason": "The creator's animated 'Check his computer' reaction to losing a key advantage round provides a genuinely funny and relatable story beat."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788752392261_iamk",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 507,
+   "end": 590,
+   "judged": {
+    "play": "LOUD runs an all-Sheriff eco strategy and wins the round against 100 Thieves.",
+    "play_quality": 7,
+    "line": "We gotta do this Sheriff stuff man, every time!",
+    "keep_score": 70,
+    "reason": "He reacts enthusiastically to LOUD's all-Sheriff strategy overwhelming 100 Thieves."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788752392261_y5wc",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.87,
+   "start": 618,
+   "end": 653,
+   "judged": {
+    "play": "100 Thieves takes an early 5v3 advantage on A site during round 14 against LOUD.",
+    "play_quality": 2,
+    "line": "Generational runs don't just stop abruptly, okay?",
+    "keep_score": 20,
+    "reason": "The creator gives a passionate pep talk to his viewers, but the game on screen only shows routine early-round trading with no dramatic play."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788752392262_ekno",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 696,
+   "end": 722,
+   "judged": {
+    "play": "Pre-round setup with no active gameplay or kills on screen.",
+    "play_quality": 0,
+    "line": "I can't wait for the crowd to be quiet!",
+    "keep_score": 10,
+    "reason": "There is no gameplay action or standout moment, only pre-round commentary."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788752392262_jiaj",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "flat-delivery"
+   ],
+   "confidence": 0.71,
+   "start": 785,
+   "end": 830,
+   "judged": {
+    "play": "Bang manages to cross the map and plant the spike with just three seconds remaining on the clock.",
+    "play_quality": 5,
+    "line": "Oh my goodness!",
+    "keep_score": 35,
+    "reason": "While getting a last-second spike plant under intense time pressure is tense, there are no kills or round-winning outplays in the clip to make it a standout highlight."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788752392261_4kyz",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 911,
+   "end": 945,
+   "judged": {
+    "play": "Streamer gives commentary during VCT broadcast footage and round setup without any active combat plays.",
+    "play_quality": 0,
+    "line": "That's not a human being. That's AI.",
+    "keep_score": 15,
+    "reason": "This is purely pre-round streamer commentary without any gameplay highlights or notable in-game actions."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788752392261_js2k",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 997,
+   "end": 1034,
+   "judged": {
+    "play": "100T is down 4-12 on map point as the broadcast transitions between rounds.",
+    "play_quality": 2,
+    "line": "I just came from church and I know what's possible, man.",
+    "keep_score": 15,
+    "reason": "There is no notable play on screen, only the creator coping with his team being down on match point."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788752392262_shqq",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.73,
+   "start": 1137,
+   "end": 1150,
+   "judged": {
+    "play": "100T Asuna uses Clove's ultimate to revive early in a round while down 5-12 against LOUD.",
+    "play_quality": 2,
+    "line": "We're about to Ronaldo this thing up man, come on!",
+    "keep_score": 15,
+    "reason": "No kills or major plays occur in the clip, only early-round setup and ability usage."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788752392261_uvmi",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff"
+   ],
+   "confidence": 0.84,
+   "start": 1153,
+   "end": 1208,
+   "judged": {
+    "play": "100T gets a kill and plants the spike on A site to set up map point.",
+    "play_quality": 3,
+    "line": "Who the fuck is this guy?",
+    "keep_score": 35,
+    "reason": "He passionately argues with the caster's doubtful commentary, but the on-screen action is just a routine round setup."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788752392262_bsvk",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "not-funny"
+   ],
+   "confidence": 0.78,
+   "start": 1249,
+   "end": 1273,
+   "judged": {
+    "play": "LOUD timeout screen during VCT match with players sitting at their desks",
+    "play_quality": 0,
+    "line": "Can someone throw the boys a banana or something?",
+    "keep_score": 10,
+    "reason": "This clip contains no gameplay and features only casual downtime commentary during a match timeout."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788752392262_k0z7",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "not-funny"
+   ],
+   "confidence": 0.69,
+   "start": 1311,
+   "end": 1337,
+   "judged": {
+    "play": "LOUD's lukshow gets an early Operator kill on 100T Asuna on B site.",
+    "play_quality": 2,
+    "line": "He got Asuna though.",
+    "keep_score": 5,
+    "reason": "The clip is mostly chatting with stream before a routine opening death for 100 Thieves with no major play or reaction."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788752392261_zipx",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.82,
+   "start": 1356,
+   "end": 1425,
+   "judged": {
+    "play": "100 Thieves wins a round to make it 7-12, and the streamer humorously argues with the caster advice during the buy phase.",
+    "play_quality": 3,
+    "line": "Maybe we should actually listen to the casters. I mean, they know what they're doing. I'm just here with the energy, man.",
+    "keep_score": 70,
+    "reason": "While there isn't a standout multi-kill play in this clip, his self-aware joke about arguing with the casters creates a funny commentary highlight."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788752392262_p94c",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.77,
+   "start": 1514,
+   "end": 1558,
+   "judged": {
+    "play": "Streamer gives commentary and analysis over match recap footage showing crowd shots and player reactions",
+    "play_quality": 2,
+    "line": "It's not easy being at the top. There's not a lot of oxygen up there.",
+    "keep_score": 10,
+    "reason": "This clip consists purely of commentary and narration between matches rather than a live highlight play."
+   }
+  }
+ ]
+}

@@ -1,0 +1,149 @@
+{
+ "projectId": "proj_1787202860841_9watay",
+ "name": "2026-08-19 100T Day1 Pt2",
+ "mode": "single",
+ "cost": 0.0555225,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787202987979_imel",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context",
+    "nothing-happens"
+   ],
+   "confidence": 0.75,
+   "start": 7,
+   "end": 32,
+   "judged": {
+    "play": "The streamer casually spectates the match and comments on the score while 100 Thieves secures a round victory.",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 10,
+    "reason": "The clip features low-energy commentary about the match score without any standout plays or notable reactions."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787202987979_b8ny",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.92,
+   "start": 49.4,
+   "end": 56.4,
+   "judged": {
+    "play": "Asuna selects Phoenix at the start of the round while 100T leads 12-1.",
+    "play_quality": 0,
+    "line": "Asuna playing Phoenix is insane! What timeline are we in?",
+    "keep_score": 10,
+    "reason": "This is just casual reaction to an agent pick during round setup without any actual gameplay action."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787202987979_keo2",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.87,
+   "start": 110,
+   "end": 120,
+   "judged": {
+    "play": "The creator flexes and celebrates during a post-round replay following a 100 Thieves round win.",
+    "play_quality": 2,
+    "line": "Nah, dude.",
+    "keep_score": 15,
+    "reason": "The clip only captures post-round reaction and spectator filler between rounds without showing a live highlight play."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787202987979_l54l",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.81,
+   "start": 181.4,
+   "end": 188.4,
+   "judged": {
+    "play": "Asuna gets two crucial kills on A site during overtime match point to help secure the round for 100 Thieves.",
+    "play_quality": 8,
+    "line": "Oh! Come on!",
+    "keep_score": 80,
+    "reason": "A high-stakes double kill on match point in overtime triggers an excited reaction as 100T inches closer to victory."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787202987979_08tg",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 199,
+   "end": 225,
+   "judged": {
+    "play": "100 Thieves celebrates their match victory and lifts the trophy together on stage.",
+    "play_quality": 8,
+    "line": "LET'S FREAKING GO!",
+    "keep_score": 85,
+    "reason": "This is an emotional story beat featuring 100 Thieves winning a tournament and lifting the trophy, which brings out genuine joy from the creator."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787202987979_4s3t",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.83,
+   "start": 241,
+   "end": 256,
+   "judged": {
+    "play": "No gameplay; creator watches a post-match interview with 100 Thieves players reflecting on their victory.",
+    "play_quality": 0,
+    "line": "Winning with your best friends, oh my goodness.",
+    "keep_score": 20,
+    "reason": "It is a nice emotional story beat, but it lacks the high-energy hype or gameplay action required for a main highlight clip."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787202987978_zgv7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 339,
+   "end": 363,
+   "judged": {
+    "play": "100 Thieves players hugging and lifting the trophy at the end of their documentary video.",
+    "play_quality": 0,
+    "line": "Why am I feeling so emotional bro?",
+    "keep_score": 80,
+    "reason": "He gets genuinely emotional watching his team lift the trophy, delivering a resonant story beat that fits the prompt criteria."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787202987979_ag7p",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context",
+    "nothing-happens"
+   ],
+   "confidence": 0.91,
+   "start": 364,
+   "end": 412,
+   "judged": {
+    "play": "None (streamer talking directly to camera with static 100T graphics)",
+    "play_quality": 0,
+    "line": "Let's go 100 Thieves, man.",
+    "keep_score": 5,
+    "reason": "There is no gameplay occurring, only casual commentary from the creator expressing his happiness for 100 Thieves."
+   }
+  }
+ ]
+}

@@ -1,0 +1,403 @@
+{
+ "projectId": "proj_1788754544278_ifijx1",
+ "name": "2026-09-06 100T Day4 Pt5",
+ "mode": "stream",
+ "cost": 0.11650200000000001,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788755071329_tqqr",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 194,
+   "end": 224,
+   "judged": {
+    "id": "c01",
+    "play": "100T Cryo gets isolated in an unwinnable 1v1 and dies to LOUD.",
+    "play_quality": 3,
+    "line": "How does he do that?",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Routine round finish where 100T loses and the streamer reacts with mild disappointment."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788755071329_efrl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 273,
+   "end": 300,
+   "judged": {
+    "id": "c02",
+    "play": "LOUD secures a round through smoke line-ups against 100T.",
+    "play_quality": 4,
+    "line": "You're quite literally not that guy.",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Standard round loss for 100T featuring minor commentary while the streamer drinks water."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788755071329_23ds",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.78,
+   "start": 327,
+   "end": 355,
+   "judged": {
+    "id": "c03",
+    "play": "Streamer uses hand gestures over a replay screen to explain high-low crossfire setups.",
+    "play_quality": 2,
+    "line": "When we do these high-low setups, we can't be directly behind each other.",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "An educational tactical explanation by the streamer, but lacks gameplay excitement."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788755071329_ltpx",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 398,
+   "end": 430,
+   "judged": {
+    "id": "c04",
+    "play": "LOUD tuyz hits an absurd no-scope Operator headshot right after being called lucky.",
+    "play_quality": 8,
+    "line": "He's just been lucky so far.",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Incredible clip timing as tuyz lands a ridiculous no-scope right as the streamer claims he is just lucky."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788755071329_cbff",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 484,
+   "end": 522,
+   "judged": {
+    "id": "c05",
+    "play": "100T Asuna clutches a high-stakes 1v1 round win on site.",
+    "play_quality": 8,
+    "line": "You've read him like a book bro!",
+    "keep_score": 90,
+    "stands_out": true,
+    "reason": "Clutch play by Asuna triggers an explosive celebration with the streamer pulling his shirt over his head."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788755071329_aiim",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.81,
+   "start": 584,
+   "end": 615,
+   "judged": {
+    "id": "c06",
+    "play": "Streamer pulls at his jersey and gives a motivational speech during a broadcast pause.",
+    "play_quality": 1,
+    "line": "Believe in them, believe in them, okay?",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Passionate fan speech during a break, but lacks any gameplay context."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788755071329_gjwc",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.94,
+   "start": 622,
+   "end": 658,
+   "judged": {
+    "id": "c07",
+    "play": "100T executes a clean site defense trade on Ascent to secure the round.",
+    "play_quality": 6,
+    "line": "Let me show you what they do, bro!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Solid defense round from 100T with hype hype calling, but fairly standard overall."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788755071329_pdei",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.76,
+   "start": 743,
+   "end": 783,
+   "judged": {
+    "id": "c08",
+    "play": "A technical pause is called, and opponent player Less winks on player camera.",
+    "play_quality": 2,
+    "line": "He literally winked!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "Hilarious narrative moment as the streamer accuses LOUD of pulling the plug and catches Less smirking on camera."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788755071330_x8gi",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "not-funny",
+    "nothing-happens"
+   ],
+   "confidence": 0.57,
+   "start": 816,
+   "end": 842,
+   "judged": {
+    "id": "c09",
+    "play": "Intermission graphics show the VCT trophy while streamer talks about home crowd advantage.",
+    "play_quality": 1,
+    "line": "We're not afraid, we're not afraid.",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Routine pause banter regarding home court advantage without gameplay."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788755071329_gsl2",
+   "decision": "approved",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.85,
+   "start": 931,
+   "end": 970,
+   "judged": {
+    "id": "c10",
+    "play": "100T Cryo executes aggressive slide kills to secure a round win on Ascent.",
+    "play_quality": 7,
+    "line": "You're slide freaking 100% accuracying, Cryo!",
+    "keep_score": 70,
+    "stands_out": false,
+    "reason": "Nice aggressive entry round by Cryo, though outshined by bigger clutches in the match."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788755071329_lhpa",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 992,
+   "end": 1001,
+   "judged": {
+    "id": "c11",
+    "play": "Brief snippet of a Sova ultimate kill play cut short abruptly.",
+    "play_quality": 5,
+    "line": "There we go!",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Very short, abruptly cut clip that doesn't allow the play to breathe."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788755071329_m3j7",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens",
+    "not-funny"
+   ],
+   "confidence": 0.64,
+   "start": 1059,
+   "end": 1077,
+   "judged": {
+    "id": "c12",
+    "play": "Broadcast listens in to 100T team comms during round setup.",
+    "play_quality": 4,
+    "line": null,
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Quiet clip where the streamer listens along to team comms without much commentary."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788755071329_i0kg",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.83,
+   "start": 1112,
+   "end": 1148,
+   "judged": {
+    "id": "c13",
+    "play": "100T stacks three players inside the generator on site like a 'Trojan Horse' to win the round.",
+    "play_quality": 7,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Great reaction to 100T's hilarious and unexpected multi-man setup inside the site generator."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788755071330_1pxh",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.6,
+   "start": 1182,
+   "end": 1212,
+   "judged": {
+    "id": "c14",
+    "play": "100T Asuna spams through smoke and kills tuyz immediately after streamer calls for it.",
+    "play_quality": 7,
+    "line": "It's like he can hear me! We in sync baby!",
+    "keep_score": 88,
+    "stands_out": true,
+    "reason": "Great fan moment where Asuna executes the exact smoke kill the streamer predicted live."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788755071329_oo71",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 1241,
+   "end": 1278,
+   "judged": {
+    "id": "c15",
+    "play": "LOUD qck wins a 1v2 retake against 100T to close the round.",
+    "play_quality": 7,
+    "line": "Oh my goodness!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Strong retake by LOUD that leaves the streamer in head-in-hands despair, but a low point for his team."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788755071329_ho7v",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "live-only"
+   ],
+   "confidence": 0.87,
+   "start": 1298,
+   "end": 1330,
+   "judged": {
+    "id": "c16",
+    "play": "100T calls a timeout while trailing 2-8 as streamer rationalizes the map side.",
+    "play_quality": 1,
+    "line": "It's a defense-sided map!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Amusing copium rant during a timeout, but contains no gameplay."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788755071328_dohh",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.96,
+   "start": 1405,
+   "end": 1431,
+   "judged": {
+    "id": "c17",
+    "play": "100T Boostio wins a clutch 1v1 pistol round duel with a Ghost.",
+    "play_quality": 8,
+    "line": "What the flip bro?!",
+    "keep_score": 92,
+    "stands_out": true,
+    "reason": "Top-tier hype reaction with the streamer leaving his desk after Boostio pulls off an crucial IGL clutch."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788755071329_c9wm",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.66,
+   "start": 1539,
+   "end": 1560,
+   "judged": {
+    "id": "c18",
+    "play": "Replay shows LOUD lukxo outplaying 100T as crowd cheers.",
+    "play_quality": 5,
+    "line": "Dammit, that is crazy.",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Defeated reaction watching opponent highlights during a replay sequence."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788755071329_btq9",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.79,
+   "start": 1579,
+   "end": 1615,
+   "judged": {
+    "id": "c19",
+    "play": "Streamer delivers a philosophical monologue arguing that pulling off a heist is defense, not offense.",
+    "play_quality": 1,
+    "line": "When you go on a heist, you're playing defense!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "Hilarious comedic monologue during intermission where the streamer passionately debates heist logic."
+   }
+  },
+  {
+   "id": "c20",
+   "clipId": "clip_1788755071329_lx2k",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.7,
+   "start": 1687,
+   "end": 1724,
+   "judged": {
+    "id": "c20",
+    "play": "Halftime break showing LOUD fans while streamer preaches loyalty to 100T.",
+    "play_quality": 1,
+    "line": "Hop on or get left behind!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Standard halftime chat interaction demanding loyalty down 2-10."
+   }
+  }
+ ]
+}

@@ -1,0 +1,367 @@
+{
+ "projectId": "proj_1788756669093_meyghi",
+ "name": "2026-09-06 100T Day4 Pt10",
+ "mode": "single",
+ "cost": 0.209049,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788757102762_9ixz",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 63,
+   "end": 106,
+   "judged": {
+    "play": "LOUD wins the round to take a 7-5 halftime lead over 100 Thieves, followed by the round replay",
+    "play_quality": 3,
+    "line": "Did Asuna use both flashes?",
+    "keep_score": 15,
+    "reason": "The creator reacts with low-energy disappointment as 100 Thieves lose the round and fall behind 7-5 at halftime."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788757102761_m6kd",
+   "decision": "rejected",
+   "reasons": [
+    "no-reaction",
+    "live-only"
+   ],
+   "confidence": 0.87,
+   "start": 298,
+   "end": 366,
+   "judged": {
+    "play": "100 Thieves wins a round followed by player facecams and replay footage during early round setup.",
+    "play_quality": 3,
+    "line": "Let's go Asuna! That's the energy!",
+    "keep_score": 15,
+    "reason": "This clip consists mostly of round-end reactions, replay clips, and standard round setups without a standout live play."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1789524996681_z76g",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 406.53431652524836,
+   "end": 419.1492346640185,
+   "judged": {
+    "play": "The streamer laughs at a crowd replay showing a fan posing for the camera during downtime.",
+    "play_quality": 1,
+    "line": "She was like 'ah', I gotta look pretty.",
+    "keep_score": 20,
+    "reason": "This is just a brief, lighthearted comment on a crowd member during round transition rather than an impactful play or highlight moment."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788757102761_q15x",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.65,
+   "start": 516,
+   "end": 540,
+   "judged": {
+    "play": "Players position themselves and set up utility early in the round without any combat engagements.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This clip contains only standard early-round positioning with no kills or impactful commentary from the streamer."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788757102761_bbxj",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.84,
+   "start": 560,
+   "end": 617,
+   "judged": {
+    "play": "Bang clutches a 1v2 round with 1 HP remaining to secure the round win for 100 Thieves.",
+    "play_quality": 8,
+    "line": "Get him out of here! Let's go!",
+    "keep_score": 88,
+    "reason": "A clutch 1v2 win with 1 HP remaining sparks a big, enthusiastic reaction from the creator."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788757102761_2hpj",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.7,
+   "start": 693,
+   "end": 723,
+   "judged": {
+    "play": "100T gets two early kills in a round against LOUD.",
+    "play_quality": 3,
+    "line": "Lovely baby.",
+    "keep_score": 10,
+    "reason": "These are routine opening kills with very mild energy from the creator, far short of a highlight moment."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788757102761_f3nz",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 755,
+   "end": 794,
+   "judged": {
+    "play": "Teams set up utility around Mid and A Site at the start of the round with no kills occurring on screen.",
+    "play_quality": 2,
+    "line": "We're in the endgame now.",
+    "keep_score": 10,
+    "reason": "No highlight play occurs during the clip, leaving the streamer's generic hype commentary as unexceptional filler."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788757102761_5ffm",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 829,
+   "end": 847,
+   "judged": {
+    "play": "LOUD wins the round to tie the match 9-9 against 100T.",
+    "play_quality": 4,
+    "line": "Lucky shots bro, what the flip bro!",
+    "keep_score": 25,
+    "reason": "This is just a standard round loss for his team where he vents about lucky shots, lacking a strong highlight play or memorable funny moment."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788757102761_mhqu",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.79,
+   "start": 868,
+   "end": 895,
+   "judged": {
+    "play": "Round setup phase with no combat or kills taking place on screen.",
+    "play_quality": 1,
+    "line": "PSYCHE it's not all love man, get him out of here!",
+    "keep_score": 15,
+    "reason": "The creator banters with an opposing team's fan in stream chat during the setup phase without any gameplay action occurring."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788757102761_cten",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 922,
+   "end": 966,
+   "judged": {
+    "play": "100 Thieves secures a flawless round win to take a 10-9 lead against LOUD.",
+    "play_quality": 8,
+    "line": "Oh my goodness, let's freaking go baby!",
+    "keep_score": 85,
+    "reason": "100 Thieves secures a crucial flawless round to take the lead, prompting a high-energy celebration from the streamer."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788757102761_hg3j",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "live-only"
+   ],
+   "confidence": 0.78,
+   "start": 996,
+   "end": 1041,
+   "judged": {
+    "play": "LOUD takes a timeout during a VCT broadcast replay before the round starts",
+    "play_quality": 0,
+    "line": "I want to do some pushups, man, some pull-ups!",
+    "keep_score": 15,
+    "reason": "This is pre-round hype during a timeout without any active gameplay or notable match moment."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788757102761_d2zx",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1068,
+   "end": 1082,
+   "judged": {
+    "play": "100 Thieves holds a post-plant scenario on A site Lotus, securing an early kill during LOUD's retake attempt.",
+    "play_quality": 3,
+    "line": "Nice, baby, nice!",
+    "keep_score": 15,
+    "reason": "This shows a routine round setup with a single standard kill and standard cheering, lacking a highlight-worthy play."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788757102761_sxwk",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.94,
+   "start": 1085,
+   "end": 1135,
+   "judged": {
+    "play": "100 Thieves wins round 20 to lead 11-9 against LOUD, showing LOUD's quiet player cams during the replay.",
+    "play_quality": 4,
+    "line": "They are so quiet it's insane!",
+    "keep_score": 55,
+    "reason": "The clip shows the round end result and team cam reactions rather than live action, but his hype over 100 Thieves closing in on victory provides decent fan energy."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788757102761_ps40",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1178,
+   "end": 1214,
+   "judged": {
+    "play": "100 Thieves reaches match point against LOUD, sitting one round away from winning VCT Americas.",
+    "play_quality": 7,
+    "line": "It's about to happen!",
+    "keep_score": 85,
+    "reason": "The creator passionately celebrates with his 100 Thieves jersey as his team reaches match point to win the trophy."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788757102761_2qt6",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "no-payoff"
+   ],
+   "confidence": 0.82,
+   "start": 1232,
+   "end": 1268,
+   "judged": {
+    "play": "100 Thieves is stuck in a 2v4 retake situation with no kills or action before the clip ends",
+    "play_quality": 2,
+    "line": "Check out this 4v2, ladies and gentlemen.",
+    "keep_score": 10,
+    "reason": "No kills or highlights occur in this clip as it cuts off during the setup for a 2v4 round."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788757102761_o82x",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 1340,
+   "end": 1429,
+   "judged": {
+    "play": "Pre-round setup and timeout prior to round 23 with 100 Thieves leading 12-10.",
+    "play_quality": 0,
+    "line": "You know what time it is! It's time to finish the heist!",
+    "keep_score": 25,
+    "reason": "This is pre-round hype and waiting between rounds without any actual gameplay action occurring."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788757102761_i9pi",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.74,
+   "start": 1485,
+   "end": 1532,
+   "judged": {
+    "play": "Pre-round setup on match point (100T 12-11 LOUD) with crowd reactions on screen",
+    "play_quality": 2,
+    "line": "There's going to be tears in this crowd tonight, bro.",
+    "keep_score": 35,
+    "reason": "While his speech taunting the opposing crowd builds tension, there is no actual gameplay or round outcome in this clip."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788757102761_9kag",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 1539,
+   "end": 1574,
+   "judged": {
+    "play": "100 Thieves secures entry kills on match point during a fast-paced round on Haven.",
+    "play_quality": 5,
+    "line": "Oh my goodness!",
+    "keep_score": 45,
+    "reason": "Although the stakes are extremely high on match point, the clip only features standard trade kills without a definitive clutch or multi-kill climax."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788757102761_ulm5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 1605,
+   "end": 1671,
+   "judged": {
+    "play": "The match score reaches 12-12, sending the game into overtime on match point.",
+    "play_quality": 8,
+    "line": "This is what we wanted!",
+    "keep_score": 85,
+    "reason": "The streamer's genuine excitement as the high-stakes match goes into overtime captures peak tournament tension."
+   }
+  },
+  {
+   "id": "c20",
+   "clipId": "clip_1788757102761_l23e",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.86,
+   "start": 1669,
+   "end": 1732,
+   "judged": {
+    "play": "100 Thieves gets key picks including the spike carrier during a 12-12 overtime round against LOUD.",
+    "play_quality": 3,
+    "line": "Let's go! Let's go! We got spike!",
+    "keep_score": 15,
+    "reason": "Although it is a high-stakes 12-12 overtime round, the clip only features routine single kills without any multi-kill or clutch play to warrant a highlight."
+   }
+  },
+  {
+   "id": "c21",
+   "clipId": "clip_1788757102761_pfc9",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.81,
+   "start": 1768,
+   "end": 1798,
+   "judged": {
+    "play": "Broadcast shows a cutaway to a disappointed couple in the crowd with 100 Thieves leading 13-12.",
+    "play_quality": 0,
+    "line": "She might break up with you, bro!",
+    "keep_score": 35,
+    "reason": "While there is no gameplay play, his funny observation about the couple in the audience provides a brief entertaining moment."
+   }
+  }
+ ]
+}

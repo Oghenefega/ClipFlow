@@ -1,0 +1,317 @@
+{
+ "projectId": "proj_1787202305653_tndmi9",
+ "name": "2026-08-19 100T Day1 Pt1",
+ "mode": "single",
+ "cost": 0.14937899999999998,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787202782990_fd27",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.74,
+   "start": 151,
+   "end": 186,
+   "judged": {
+    "play": "No gameplay shown; static RE:TAKE graphic on screen while the creator chats about Valorant's popularity.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 0,
+    "reason": "This clip contains only casual stream commentary during a graphic intermission with no gameplay or match action."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787202782990_ii6p",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.57,
+   "start": 288,
+   "end": 315,
+   "judged": {
+    "play": "None; streamer is talking to chat about life and introducing the video title",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 0,
+    "reason": "This is purely stream preamble and casual chat conversation with no gameplay or noteworthy moment."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787202782990_7z0e",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.72,
+   "start": 354,
+   "end": 403,
+   "judged": {
+    "play": "No gameplay shown; streamer is chatting with his audience about playing Valorant and his streaming schedule while watching a video of player posters.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 0,
+    "reason": "This is purely casual stream chat with no gameplay or highlight-worthy moment."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787202782989_4buw",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.78,
+   "start": 462,
+   "end": 502,
+   "judged": {
+    "play": "No gameplay shown; Benjyfishy on screen while streamer rambles about aging",
+    "play_quality": 0,
+    "line": "It's wild as an adult seeing how fast kids grow",
+    "keep_score": 5,
+    "reason": "This is casual downtime commentary about pro players growing older, with no gameplay or standout highlight moment."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787202782989_4d7h",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 544,
+   "end": 611,
+   "judged": {
+    "play": "Watching a video showing Vora's unique mouse grip close-up",
+    "play_quality": 0,
+    "line": "Who holds their mouse like that? That is so weird.",
+    "keep_score": 25,
+    "reason": "There is no gameplay action, but his funny reaction to Vora's strange mouse grip and his self-deprecating humor about forgetting gaming terms makes for a decent filler moment."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787202782989_xqc5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 694,
+   "end": 716,
+   "judged": {
+    "play": "No gameplay is featured; tournament broadcast visuals play while the creator talks to his stream about overestimating his gaming skills after watching pros.",
+    "play_quality": 0,
+    "line": "A toxic trait of mine guys, I'm not gonna lie...",
+    "keep_score": 15,
+    "reason": "This is just casual filler conversation between rounds without any actionable play or standout highlight moment."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787202782990_fnrv",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.66,
+   "start": 786,
+   "end": 818,
+   "judged": {
+    "play": "The creator watches vlog footage of a pro player playing a phone trivia guessing game behind the scenes.",
+    "play_quality": 0,
+    "line": "That's crazy that this guy doesn't know.",
+    "keep_score": 15,
+    "reason": "This is routine vlog commentary without gameplay or a standout highlight moment."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787202782990_5qob",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.68,
+   "start": 904,
+   "end": 943,
+   "judged": {
+    "play": "100 Thieves secures map point to win 13-2, followed by Asuna's signature post-match walk on broadcast.",
+    "play_quality": 3,
+    "line": "Asuna always doing like this is crazy!",
+    "keep_score": 25,
+    "reason": "The clip features mostly passive roster chatter and a brief laugh at Asuna's post-match gesture rather than an exciting in-game play."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787202782989_v3i1",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 967,
+   "end": 982,
+   "judged": {
+    "play": "The creator rewatches a hilarious replay of a player sticking a defuse inside Harbor's cove as casters jump out of their seats screaming in disbelief.",
+    "play_quality": 6,
+    "line": "I gotta watch that again.",
+    "keep_score": 35,
+    "reason": "It's a funny rewatched moment, but the streamer mostly just giggles along with the casters' reaction rather than adding his own high-energy response."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787202782990_y5rt",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.6,
+   "start": 1005,
+   "end": 1024,
+   "judged": {
+    "play": "100 Thieves secures the final round on Bind to win the series 2-1.",
+    "play_quality": 3,
+    "line": "I need to watch some more 100 Thieves at least.",
+    "keep_score": 15,
+    "reason": "The streamer gives a calm reflection rather than an energetic reaction as 100 Thieves closes out the match."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1787202782989_p83v",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.82,
+   "start": 1141,
+   "end": 1198,
+   "judged": {
+    "play": "Streamer comments on VCT stage setup with coaches sitting directly behind players.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 10,
+    "reason": "This is routine commentary about tournament stage setups rather than gameplay or a standout highlight."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787202782990_2r7b",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.7,
+   "start": 1263,
+   "end": 1278,
+   "judged": {
+    "play": "Asuna activates Phoenix ultimate on Lotus while the streamer casually comments on match results.",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This is casual downtime commentary without any notable plays, kills, or hype reactions."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1787202782989_ngxn",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 1358,
+   "end": 1422,
+   "judged": {
+    "play": "100T Bang wins a clutch 1v1 on match point to close out the series 2-1 for 100 Thieves.",
+    "play_quality": 8,
+    "line": "Let's freaking go, dude!",
+    "keep_score": 88,
+    "reason": "A match-winning clutch round for his team paired with an energetic celebration makes this a strong highlight."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1787202782990_16we",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.63,
+   "start": 1415,
+   "end": 1445,
+   "judged": {
+    "play": "The creator watches post-match celebration footage and player interviews after a tournament series.",
+    "play_quality": 2,
+    "line": "That is insane",
+    "keep_score": 15,
+    "reason": "This is purely passive viewing of post-match documentary footage and interviews without any gameplay action or notable highlight-worthy commentary."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1787202782989_3q3k",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 1500,
+   "end": 1520,
+   "judged": {
+    "play": "Streamer watches an interview clip with 100T Asuna on a bus after a tournament win, with no gameplay shown.",
+    "play_quality": 0,
+    "line": "They're 1 for 1 baby, let's go!",
+    "keep_score": 15,
+    "reason": "This is just reaction commentary on an interview vlog clip without any gameplay or major highlight moment."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1787202782989_rdv8",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.81,
+   "start": 1614,
+   "end": 1655,
+   "judged": {
+    "play": "100 Thieves pre-match team huddle and chant before a VCT match",
+    "play_quality": 0,
+    "line": "Ding dong chief?",
+    "keep_score": 15,
+    "reason": "There is no gameplay in this clip, only the creator reacting to 100T's pre-match team chant and typing a comment on the video."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1787202782989_k20x",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 1685,
+   "end": 1726,
+   "judged": {
+    "play": "Streamer reacts to player profile shots of Ethan and other VCT players on the broadcast.",
+    "play_quality": 0,
+    "line": "Man has such luscious hair!",
+    "keep_score": 15,
+    "reason": "This is just casual commentary about a player's hair and appearance during broadcast fluff without any gameplay or stand-out highlight moment."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1787202782990_tdb5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 1736,
+   "end": 1751,
+   "judged": {
+    "play": "The creator hypes up 100 Thieves winning VCT over routine map gameplay and team audio comms.",
+    "play_quality": 2,
+    "line": "100 Thieves about to win the VCT!",
+    "keep_score": 15,
+    "reason": "This is just casual streamer commentary and banter without any notable play or impactful highlight on screen."
+   }
+  }
+ ]
+}

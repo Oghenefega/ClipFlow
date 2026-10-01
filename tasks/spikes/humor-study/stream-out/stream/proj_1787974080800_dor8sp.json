@@ -1,0 +1,294 @@
+{
+ "projectId": "proj_1787974080800_dor8sp",
+ "name": "2026-08-28 100T Day2 Pt1",
+ "mode": "stream",
+ "cost": 0.09575099999999999,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787974608296_9k2f",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.7,
+   "start": 245,
+   "end": 281,
+   "judged": {
+    "id": "c01",
+    "play": "Streamer talks to chat before the match starts during Lotus map loading.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 10,
+    "stands_out": false,
+    "reason": "Pre-match chatter with chat about schedule and qualification requirements with no action."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787974608296_6l6c",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "needs-context"
+   ],
+   "confidence": 0.84,
+   "start": 427,
+   "end": 476,
+   "judged": {
+    "id": "c02",
+    "play": "100 Thieves holds site in round 2 and trades standard kills to win the eco round.",
+    "play_quality": 4,
+    "line": "Nice one!",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Routine eco round hold without any extraordinary individual plays."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787974608296_8nuq",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 693,
+   "end": 734,
+   "judged": {
+    "id": "c03",
+    "play": "Cryo scores clean kills with a pistol to secure a flawless round for 100T.",
+    "play_quality": 6,
+    "line": "Cryo is killing it with this gun!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Clean flawless round, but pales in comparison to the insane multi-kills and clutches later."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787974608296_lh60",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 819,
+   "end": 889,
+   "judged": {
+    "id": "c04",
+    "play": "Bang executes a monstrous 4K spray down with Clove, forcing an early enemy timeout.",
+    "play_quality": 9,
+    "line": "Bang might be the best player on the planet bro!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "An unbelievable 4K multi-kill that triggers maximum excitement and an early opponent timeout."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787974608296_o88g",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.75,
+   "start": 924,
+   "end": 946,
+   "judged": {
+    "id": "c05",
+    "play": "Streamer discusses how watching pro gameplay makes him want to play games during a timeout.",
+    "play_quality": 1,
+    "line": null,
+    "keep_score": 15,
+    "stands_out": false,
+    "reason": "Casual stream chat during a match timeout with zero gameplay happening."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787974608296_c8l2",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 980,
+   "end": 1017,
+   "judged": {
+    "id": "c06",
+    "play": "100T shuts down enemy Neon's aggression on A site.",
+    "play_quality": 4,
+    "line": "Put the knife in the pocket, you're not that guy.",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Amusing commentary about the opponent, but the round play itself is fairly routine."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787974608296_kwl7",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.68,
+   "start": 1140,
+   "end": 1161,
+   "judged": {
+    "id": "c07",
+    "play": "Streamer listens in on 100 Thieves calm and structured team communications.",
+    "play_quality": 5,
+    "line": "Look at the clean comms guys!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Interesting behind-the-scenes listen-in, but lacks a dramatic play moment."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787974608297_nye6",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.6,
+   "start": 1205,
+   "end": 1216,
+   "judged": {
+    "id": "c08",
+    "play": "Streamer briefly mentions his peak Valorant rank at round start.",
+    "play_quality": 1,
+    "line": "I think I was Ascendant highest man.",
+    "keep_score": 15,
+    "stands_out": false,
+    "reason": "Short personal anecdote without any relevant gameplay action."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787974608295_uhda",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1217,
+   "end": 1237,
+   "judged": {
+    "id": "c09",
+    "play": "Cryo lands an extraordinary hero Operator headshot through a wall/smoke.",
+    "play_quality": 8,
+    "line": "OH MY GOD! What did I just watch?!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Incredible, unexpected Operator shot that draws a genuine head-in-hands shock reaction."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787974608296_6mqc",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.94,
+   "start": 1333,
+   "end": 1422,
+   "judged": {
+    "id": "c10",
+    "play": "Bang clutches an intense 1v2 post-plant situation with immaculate positioning and aim.",
+    "play_quality": 9,
+    "line": "GET HIM OUT OF HERE! He's not human, he's THAT guy!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "A clutch highlight of the highest order that has the streamer jumping out of his seat."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1787974608296_m2wr",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 1461,
+   "end": 1506,
+   "judged": {
+    "id": "c11",
+    "play": "Asuna hits a stylish jumping classic headshot to close out a round.",
+    "play_quality": 7,
+    "line": "Asuna with a classic jumping headshot! You love to see it!",
+    "keep_score": 70,
+    "stands_out": false,
+    "reason": "Fun stylish shot, though it gets outshone by Bang's game-defining plays."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787974608296_6a8r",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.65,
+   "start": 1553,
+   "end": 1571,
+   "judged": {
+    "id": "c12",
+    "play": "Streamer explains why he got back into watching VCT esports.",
+    "play_quality": 1,
+    "line": "Sign me up man, I'm back on.",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Narrative commentary about his viewing habits with no significant match action."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1787974608296_lxgg",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 1574,
+   "end": 1621,
+   "judged": {
+    "id": "c13",
+    "play": "100T instantly swats down a flying Raze activate her Showstopper ultimate in mid-air.",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF THERE! He doesn't even get the Showstopper off!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "Extremely hilarious and impressive denial of a high-value ultimate with huge streamer hype."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1787974608296_kqc5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 1675,
+   "end": 1708,
+   "judged": {
+    "id": "c14",
+    "play": "100T survives a messy engagement on C site to secure a dominant 10-2 scoreline.",
+    "play_quality": 7,
+    "line": "I thought we died! What a save!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Good round conclusion to wrap up a dominant half, but lacks a single standout solo clip."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1787974608296_g7xo",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.73,
+   "start": 1742,
+   "end": 1768,
+   "judged": {
+    "id": "c15",
+    "play": "Streamer reacts to the 10-2 halftime scoreline as ads play.",
+    "play_quality": 2,
+    "line": "10-2! I'll take it!",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Standard halftime score reaction overlayed with promotional material."
+   }
+  }
+ ]
+}

@@ -1,0 +1,235 @@
+{
+ "projectId": "proj_1787975566584_7zg6mr",
+ "name": "2026-08-28 100T Day2 Pt5",
+ "mode": "stream",
+ "cost": 0.075297,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787975841626_strm",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 56,
+   "end": 74,
+   "judged": {
+    "id": "c01",
+    "play": "Asuna gets a kill while 100T loses a round",
+    "play_quality": 3,
+    "line": "I forgot what team I was rooting for, man. 100 heart attacks.",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Routine round with a mild reaction compared to the bigger round-winning moments in this stream."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787975841626_gtsl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 117,
+   "end": 174,
+   "judged": {
+    "id": "c02",
+    "play": "Lev wins a round and replay shows a Sheriff kill",
+    "play_quality": 3,
+    "line": "Who is this Spike guy, bro?",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "A standard reaction while watching opponent replays without any major gameplay highlight."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787975841626_ce75",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.85,
+   "start": 288,
+   "end": 327,
+   "judged": {
+    "id": "c03",
+    "play": "Red Bull Clutch replay while creator realizes his mic was muted",
+    "play_quality": 2,
+    "line": "I've been muted bro!",
+    "keep_score": 15,
+    "stands_out": false,
+    "reason": "Mostly minor stream technical filler with no actual match highlight happening."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787975841626_uqyx",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 525,
+   "end": 536,
+   "judged": {
+    "id": "c04",
+    "play": "Creator briefly remarks on 100T defense",
+    "play_quality": 1,
+    "line": null,
+    "keep_score": 10,
+    "stands_out": false,
+    "reason": "Brief pre-round narration with zero action or hype."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787975841625_0jte",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 543,
+   "end": 571,
+   "judged": {
+    "id": "c05",
+    "play": "100T Vora locks down A site on defense to secure the round",
+    "play_quality": 7,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "High-energy reaction to a clutch defensive shutdown from 100T."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787975841626_1woy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 608,
+   "end": 652,
+   "judged": {
+    "id": "c06",
+    "play": "Leviathan slams a timeout and the creator laughs hysterically at the big red UI button",
+    "play_quality": 6,
+    "line": "The way this guy slams that timeout is so funny bro!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "A genuinely hilarious non-gameplay story beat that breaks up the match hype."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787975841626_46g8",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.83,
+   "start": 744,
+   "end": 793,
+   "judged": {
+    "id": "c07",
+    "play": "100T wins round 10 and creator taunts opposition during the replay",
+    "play_quality": 6,
+    "line": "Where you running to, bro?",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Fun taunting reaction, but c05 and c08 feature much stronger round-winning celebrations."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787975841626_yuv6",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 818,
+   "end": 864,
+   "judged": {
+    "id": "c08",
+    "play": "100T secures another round to go up 11-7 and creator flexes on stream",
+    "play_quality": 7,
+    "line": "LET'S GO BABY!",
+    "keep_score": 78,
+    "stands_out": true,
+    "reason": "Outstanding hype and physical celebration from the creator as 100T nears match point."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787975841626_rnm0",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "chat-banter"
+   ],
+   "confidence": 0.9,
+   "start": 939,
+   "end": 966,
+   "judged": {
+    "id": "c09",
+    "play": "100T Cryo closes out round 12 to reach match point",
+    "play_quality": 8,
+    "line": "The rookie to get it done!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Key match point round win with a huge, passionate reaction from the creator."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787975841625_800i",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1040,
+   "end": 1090,
+   "judged": {
+    "id": "c10",
+    "play": "100T secures the final round for a 2-0 series victory over Leviathan",
+    "play_quality": 9,
+    "line": "SHOW ME A FAN THAT BELIEVED 100 THIEVES WERE GONNA WIN THIS GAME 2-0!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "The peak highlight of the stream celebrating 100T's 2-0 series sweep and qualification step."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788225344059_hrae",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1068.100081,
+   "end": 1090,
+   "judged": {
+    "id": "c11",
+    "play": "Creator celebrates 100T 2-0 sweep during post-match handshakes",
+    "play_quality": 5,
+    "line": "SHOW ME A FAN THAT BELIEVED...",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Direct overlap with the end of c10, making it redundant."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787975841626_o3xo",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.63,
+   "start": 1117,
+   "end": 1137,
+   "judged": {
+    "id": "c12",
+    "play": "100T poses post-match as creator reflects on tomorrow's match",
+    "play_quality": 3,
+    "line": "One more tomorrow ladies and gentlemen, one more.",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Quiet post-game chatter that lacks the energy of the victory celebration in c10."
+   }
+  }
+ ]
+}

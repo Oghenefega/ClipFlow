@@ -1,0 +1,264 @@
+{
+ "projectId": "proj_1787974080800_dor8sp",
+ "name": "2026-08-28 100T Day2 Pt1",
+ "mode": "single",
+ "cost": 0.13297499999999998,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787974608296_9k2f",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.7,
+   "start": 245,
+   "end": 281,
+   "judged": {
+    "play": "100 Thieves sets up for attack on Lotus pistol round with no engagements occurring",
+    "play_quality": 1,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This clip contains pre-round stream commentary and routine round setup without any notable gameplay or highlights."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787974608296_6l6c",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "needs-context"
+   ],
+   "confidence": 0.84,
+   "start": 427,
+   "end": 476,
+   "judged": {
+    "play": "100 Thieves fails to stop Lev's site push and loses the round cleanly.",
+    "play_quality": 2,
+    "line": "This isn't it, lads.",
+    "keep_score": 10,
+    "reason": "A routine round loss with quiet disappointment from the streamer is not highlight material."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787974608296_8nuq",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 693,
+   "end": 734,
+   "judged": {
+    "play": "100 Thieves cleanly takes C site on Lotus, plants the spike, and secures a flawless round win.",
+    "play_quality": 4,
+    "line": "Read him like a book.",
+    "keep_score": 25,
+    "reason": "It is a routine round win with standard kills, lacking an extraordinary play or highlight-worthy reaction."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787974608296_lh60",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 819,
+   "end": 889,
+   "judged": {
+    "play": "Bang secures an incredible 4K round win for 100 Thieves",
+    "play_quality": 9,
+    "line": "Bang might just be the best player on the planet, bro!",
+    "keep_score": 95,
+    "reason": "An incredible 4K play from Bang triggers an ecstatic, hands-on-head reaction from the creator, making it a definitive highlight."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787974608296_o88g",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.75,
+   "start": 924,
+   "end": 946,
+   "judged": {
+    "play": "Pre-round setup with no active combat or kills happening on screen.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 5,
+    "reason": "The clip features casual commentary during the buy phase with no gameplay action or highlight-worthy moment."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787974608296_c8l2",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 980,
+   "end": 1017,
+   "judged": {
+    "play": "Enemy Neon uses ultimate blades and gets a kill before getting shut down by 100T during a site execute.",
+    "play_quality": 3,
+    "line": "Put the knives in the pocket, okay? You're not that guy.",
+    "keep_score": 25,
+    "reason": "The round features a standard exchange without any exceptional multi-kills or clutch highlights to warrant inclusion."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787974608296_kwl7",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.68,
+   "start": 1140,
+   "end": 1161,
+   "judged": {
+    "play": "The creator listens to 100 Thieves' live team comms during round setup without active engagements.",
+    "play_quality": 2,
+    "line": "Look at my team bro! Look at the clean comms guys!",
+    "keep_score": 20,
+    "reason": "There is no gameplay highlight occurring, as the creator is just reacting to his team's calm communication between fights."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787974608297_nye6",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.6,
+   "start": 1205,
+   "end": 1216,
+   "judged": {
+    "play": "Round setup phase on Lotus with no kills or gameplay action occurring.",
+    "play_quality": 1,
+    "line": "I think I was Ascendant highest, man.",
+    "keep_score": 10,
+    "reason": "This is just casual chatter during the buy phase without any gameplay plays or notable reactions."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787974608295_uhda",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1217,
+   "end": 1237,
+   "judged": {
+    "play": "100T Cryo lands an unbelievable instant headshot flick on an overextending opponent.",
+    "play_quality": 9,
+    "line": "OH MY GOODNESS! NO! What did I just watch?",
+    "keep_score": 90,
+    "reason": "Cryo hits a stunning highlight-reel flick shot, prompting an iconic jaw-dropping reaction from the creator."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787974608296_6mqc",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.94,
+   "start": 1333,
+   "end": 1422,
+   "judged": {
+    "play": "100T bang wins a 1v2 clutch on C site to secure the round",
+    "play_quality": 9,
+    "line": "HE'S NOT HUMAN, HE'S THAT GUY!",
+    "keep_score": 95,
+    "reason": "Bang pulls off an insane clutch, prompting the creator to jump out of his seat and go completely wild."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1787974608296_m2wr",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 1461,
+   "end": 1506,
+   "judged": {
+    "play": "100T wins the round and hunts down the remaining player, with Asuna securing a jumping Classic headshot right as time expires.",
+    "play_quality": 7,
+    "line": "GET THIS OP OUT OF THIS BROTHER'S HANDS MAN!",
+    "keep_score": 75,
+    "reason": "He gets super hyped and stands up laughing after 100T denies the Operator and Asuna lands a stylish buzzer-beater Classic kill."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787974608296_6a8r",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.65,
+   "start": 1553,
+   "end": 1571,
+   "judged": {
+    "play": "Early round setup on Lotus with no active engagements or kills.",
+    "play_quality": 1,
+    "line": "Sign me up, man, I'm back on.",
+    "keep_score": 10,
+    "reason": "The creator is casually talking about returning to watch VCT during round setup without any significant gameplay action."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1787974608296_lxgg",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 1574,
+   "end": 1621,
+   "judged": {
+    "play": "100T Cryo shuts down LEV's Raze Showstopper mid-air to completely shut down their A-site push and win the round.",
+    "play_quality": 9,
+    "line": "READ HIM LIKE A BOOK BABY!",
+    "keep_score": 90,
+    "reason": "Denying a Raze Showstopper mid-air is an incredible pro play, and the streamer's explosive celebration matches the momentum."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1787974608296_kqc5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 1675,
+   "end": 1708,
+   "judged": {
+    "play": "100T Cryo survives a dangerous engagement and locks down the site with a Guardian to secure the round win.",
+    "play_quality": 8,
+    "line": "I thought we died! But he died! That is insane!",
+    "keep_score": 88,
+    "reason": "Cryo's incredible clutch save triggers a genuinely shocked and energetic celebration from the streamer."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1787974608296_g7xo",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.73,
+   "start": 1742,
+   "end": 1768,
+   "judged": {
+    "play": "No gameplay shown; halftime score screen (10-2) and ad breaks play on stream.",
+    "play_quality": 0,
+    "line": "This is what you call a halftime, bro! 10-2, I'll take it!",
+    "keep_score": 5,
+    "reason": "There is no gameplay occurring, only streamer reactions during halftime ad breaks."
+   }
+  }
+ ]
+}

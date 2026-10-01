@@ -1,0 +1,324 @@
+{
+ "projectId": "proj_1788751959278_rbe74d",
+ "name": "2026-09-06 100T Day4 Pt2",
+ "mode": "stream",
+ "cost": 0.104715,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788752392260_rwht",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.95,
+   "start": 56,
+   "end": 110,
+   "judged": {
+    "id": "c01",
+    "play": "100T secures a round win on Split to cut LOUD's lead to 7-2.",
+    "play_quality": 5,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "A solid round-win reaction, but he repeats this exact level of hype several times during the match."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788752392261_9rjh",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny",
+    "no-payoff"
+   ],
+   "confidence": 0.8,
+   "start": 153,
+   "end": 180,
+   "judged": {
+    "id": "c02",
+    "play": "100T holds A main with an Operator during a slow setup phase.",
+    "play_quality": 3,
+    "line": "Oh my word, how is he getting that?",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Mostly stream commentary during a slow round setup without an impactful play."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788752392261_slnu",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 227,
+   "end": 245,
+   "judged": {
+    "id": "c03",
+    "play": "LOUD wins a round and celebrates on camera.",
+    "play_quality": 2,
+    "line": "These guys have cheats, I promise.",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Funny sarcastic accusation, but lacks a dramatic gameplay moment from his team."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788752392261_y27o",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.86,
+   "start": 359,
+   "end": 384,
+   "judged": {
+    "id": "c04",
+    "play": "LOUD closes out the first half 9-3, showing their players on stage.",
+    "play_quality": 2,
+    "line": "Check his computer, bro!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Amusing reaction to LOUD taking a commanding half, but mostly banter between rounds."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788752392261_iamk",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 507,
+   "end": 590,
+   "judged": {
+    "id": "c05",
+    "play": "100T executes a full Sheriff eco strategy and wins a crisp pistol/eco round.",
+    "play_quality": 8,
+    "line": "We gotta do this Sheriff stuff man, every time!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Highlights a unique strategy working perfectly, accompanied by energetic tactical appreciation."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788752392261_y5wc",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.87,
+   "start": 618,
+   "end": 653,
+   "judged": {
+    "id": "c06",
+    "play": "100T begins an attack push while down 10-3.",
+    "play_quality": 4,
+    "line": "Get him out of my freaking face, bro!",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Mid-round motivation talk with standard routine kills underneath."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788752392262_ekno",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 696,
+   "end": 722,
+   "judged": {
+    "id": "c07",
+    "play": "Crowd cheering and broadcast replay between rounds at 11-3.",
+    "play_quality": 1,
+    "line": "I can't wait for the crowd to be quiet!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Filler moment between rounds focusing on crowd noise rather than gameplay."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788752392262_jiaj",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "flat-delivery"
+   ],
+   "confidence": 0.71,
+   "start": 785,
+   "end": 830,
+   "judged": {
+    "id": "c08",
+    "play": "100T holds off match point with clutch kills on B site.",
+    "play_quality": 6,
+    "line": "Oh my goodness!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Good tense round win under match point pressure, but the reaction is fairly standard for him."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788752392261_4kyz",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 911,
+   "end": 945,
+   "judged": {
+    "id": "c09",
+    "play": "Broadcast highlights LOUD's young IGL on camera during a pause.",
+    "play_quality": 1,
+    "line": "That's AI! That's not a human being.",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Hilarious and memorable observation praising the opponent's young caller, though not gameplay-driven."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788752392261_js2k",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 997,
+   "end": 1034,
+   "judged": {
+    "id": "c10",
+    "play": "100T secures a Flawless round win to continue their comeback attempt.",
+    "play_quality": 6,
+    "line": "I just came from church, and I know what's possible, man!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "Includes a hilarious and highly quotable rant following a clean Flawless round."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788752392262_shqq",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.73,
+   "start": 1137,
+   "end": 1150,
+   "judged": {
+    "id": "c11",
+    "play": "Round start at 12-5 down.",
+    "play_quality": 2,
+    "line": "We're about to Ronaldo this thing up!",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Very brief setup clip with a funny line but no play payout."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788752392261_uvmi",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff"
+   ],
+   "confidence": 0.84,
+   "start": 1153,
+   "end": 1208,
+   "judged": {
+    "id": "c12",
+    "play": "100T converts a clean defense round on A site.",
+    "play_quality": 6,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Solid standing reaction to a round win, but similar hype plays out in several other clips."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788752392262_bsvk",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "not-funny"
+   ],
+   "confidence": 0.78,
+   "start": 1249,
+   "end": 1273,
+   "judged": {
+    "id": "c13",
+    "play": "LOUD calls a timeout as 100T builds momentum.",
+    "play_quality": 2,
+    "line": "Can someone throw the boys a banana or something?",
+    "keep_score": 70,
+    "stands_out": true,
+    "reason": "A genuinely funny story beat reacting to the timeout and his own hunger that stands out from standard match reactions."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788752392262_k0z7",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "not-funny"
+   ],
+   "confidence": 0.69,
+   "start": 1311,
+   "end": 1337,
+   "judged": {
+    "id": "c14",
+    "play": "100T engages in early map positioning at 12-6.",
+    "play_quality": 4,
+    "line": null,
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Low energy clip showing standard positioning without a major play or reaction."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788752392261_zipx",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.82,
+   "start": 1356,
+   "end": 1425,
+   "judged": {
+    "id": "c15",
+    "play": "100T pulls off a dramatic retake to win their fourth straight round.",
+    "play_quality": 7,
+    "line": "Round after round after round after round!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "High-energy shouting match with the broadcast commentary during a huge comeback rally."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788752392262_p94c",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.77,
+   "start": 1514,
+   "end": 1558,
+   "judged": {
+    "id": "c16",
+    "play": "LOUD finishes Map 1 with a 13-7 victory.",
+    "play_quality": 3,
+    "line": "It's not so easy, but it's okay... we are the very best!",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Standard post-map copium commentary as 100T loses the first map."
+   }
+  }
+ ]
+}

@@ -1,0 +1,296 @@
+{
+ "projectId": "proj_1788757353200_yp916c",
+ "name": "2026-09-06 100T Day4 Pt11",
+ "mode": "stream",
+ "cost": 0.07358550000000001,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788757566420_0y3h",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 28,
+   "end": 58,
+   "judged": {
+    "id": "c01",
+    "play": "100 Thieves wins the final round in overtime to secure the match victory",
+    "play_quality": 10,
+    "line": "LET'S GO! Oh my goodness!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "The peak moment of the stream where the match win is locked in, triggering his biggest shirt-pulling celebrate."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788757566420_d3io",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.97,
+   "start": 58,
+   "end": 80,
+   "judged": {
+    "id": "c02",
+    "play": "Post-match broadcast shows 100T celebrating while the opposing crowd is quiet",
+    "play_quality": 7,
+    "line": "Look how silent the crowd is, oh my god!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "A great taunting beat where he points out the opponent arena crowd's complete silence after the win."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788757566420_838f",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.86,
+   "start": 89,
+   "end": 128,
+   "judged": {
+    "id": "c03",
+    "play": "100T players walk onto the stage towards the trophy",
+    "play_quality": 6,
+    "line": "We're bringing it home!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Serves mostly as build-up to the actual confetti trophy lift in clip c04."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788757566420_c5xk",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 150,
+   "end": 183,
+   "judged": {
+    "id": "c04",
+    "play": "100T players lift the VCT Americas trophy amidst exploding confetti",
+    "play_quality": 9,
+    "line": "We waited for times like these!",
+    "keep_score": 90,
+    "stands_out": true,
+    "reason": "The quintessential trophy lift moment with full streamer hype and confetti, standing out as a main storyline climax."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788757566420_bf55",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 213,
+   "end": 241,
+   "judged": {
+    "id": "c05",
+    "play": "Players interact with fans and sign autographs on stage",
+    "play_quality": 4,
+    "line": "100T is taking it all this year, I told you guys!",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Routine post-match celebratory commentary that lacks the peak energy of the match win or trophy lift."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788757566420_qgad",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.79,
+   "start": 252,
+   "end": 262,
+   "judged": {
+    "id": "c06",
+    "play": "Transition segment into the post-match interview",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 15,
+    "stands_out": false,
+    "reason": "Just a brief transition clip into the interview stage without any significant play or reaction."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788757566420_ro44",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 281,
+   "end": 304,
+   "judged": {
+    "id": "c07",
+    "play": "Interviewer talks to eeiu during the stage interview",
+    "play_quality": 4,
+    "line": "We did it Joe!",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Contains a funny brief quote, but overall is background chatter during a stage interview."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788757566420_f7dn",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.77,
+   "start": 360,
+   "end": 399,
+   "judged": {
+    "id": "c08",
+    "play": "Stage interview continues with players signing autographs in Portuguese broadcast",
+    "play_quality": 3,
+    "line": "My bad, I'm out of line.",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Slow interview segment with low action and minimal commentary value."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788757566420_5632",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 431,
+   "end": 451,
+   "judged": {
+    "id": "c09",
+    "play": "Asuna high-fives fans in the front row",
+    "play_quality": 3,
+    "line": "Let's go!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Low-energy filler showing routine post-match fan high-fives."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788757566420_95y0",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 505,
+   "end": 528,
+   "judged": {
+    "id": "c10",
+    "play": "Timotino comes up to the microphone for his interview",
+    "play_quality": 4,
+    "line": "Such an amazing kid man.",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "A wholesome compliment for a player, but lacks gameplay or big reaction punch."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788757566420_rwm1",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 556,
+   "end": 570,
+   "judged": {
+    "id": "c11",
+    "play": "Interviewer looks around the crowd searching for Asuna",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Minor interview setup moment with no notable play or joke."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788757566420_e47i",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.71,
+   "start": 624,
+   "end": 655,
+   "judged": {
+    "id": "c12",
+    "play": "Bang holds the Finals MVP trophy during the closing segment",
+    "play_quality": 6,
+    "line": "I love my team, God bless these guys.",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "A heartfelt moment watching the MVP presentation, though less punchy than the trophy lift itself."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788757566420_070a",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 667,
+   "end": 700,
+   "judged": {
+    "id": "c13",
+    "play": "Broadcast displays Shanghai Champions schedule graphics",
+    "play_quality": 5,
+    "line": "You'd think I got paid by 100 Thieves to come do this!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Amusing self-aware commentary on his intense fandom, but secondary to the top highlights."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788757566420_10x4",
+   "decision": "approved",
+   "reasons": [
+    "no-reaction",
+    "nothing-happens"
+   ],
+   "confidence": 0.65,
+   "start": 733,
+   "end": 754,
+   "judged": {
+    "id": "c14",
+    "play": "Tournament promo video highlights Shanghai food, transit, and culture",
+    "play_quality": 7,
+    "line": "Great food, great transit... I'm sold!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "A genuinely funny comedy moment where he gets instantly sold on the tournament location based on food and transit."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788757566420_q825",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens",
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.55,
+   "start": 760,
+   "end": 775,
+   "judged": {
+    "id": "c15",
+    "play": "Broadcast shows group draw graphics board",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Simple segment of the streamer figuring out the tournament schedule structure."
+   }
+  }
+ ]
+}

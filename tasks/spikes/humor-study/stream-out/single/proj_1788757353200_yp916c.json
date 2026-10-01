@@ -1,0 +1,266 @@
+{
+ "projectId": "proj_1788757353200_yp916c",
+ "name": "2026-09-06 100T Day4 Pt11",
+ "mode": "single",
+ "cost": 0.11545649999999998,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788757566420_0y3h",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 28,
+   "end": 58,
+   "judged": {
+    "play": "100 Thieves wins the final match point round in overtime to secure the match victory.",
+    "play_quality": 9,
+    "line": "LET'S GO!",
+    "keep_score": 95,
+    "reason": "This is a prime highlight as 100 Thieves clinches the match win in overtime, resulting in an explosive celebration from the creator."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788757566420_d3io",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.97,
+   "start": 58,
+   "end": 80,
+   "judged": {
+    "play": "100 Thieves wins the match and celebrates on stage as they secure the trophy.",
+    "play_quality": 8,
+    "line": "Look how silent the crowd is, oh my god!",
+    "keep_score": 90,
+    "reason": "He passionately celebrates 100 Thieves' major victory while pulling out his team jersey and mocking the silent crowd."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788757566420_838f",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.86,
+   "start": 89,
+   "end": 128,
+   "judged": {
+    "play": "100 Thieves walks out onto stage as VCT Americas Stage 2 winners to lift the trophy.",
+    "play_quality": 8,
+    "line": "We're bringing it home!",
+    "keep_score": 85,
+    "reason": "The creator enthusiastically celebrates his favorite team winning a major VCT stage title and lifting the trophy."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788757566420_c5xk",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 150,
+   "end": 183,
+   "judged": {
+    "play": "100 Thieves players lift the championship trophy on stage under falling confetti.",
+    "play_quality": 8,
+    "line": "We waited for times like these!",
+    "keep_score": 95,
+    "reason": "His passionate, emotional reaction to 100 Thieves lifting the trophy serves as a peak narrative highlight."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788757566420_bf55",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 213,
+   "end": 241,
+   "judged": {
+    "play": "100 Thieves celebrates on stage with confetti and signs autographs for fans after winning the championship.",
+    "play_quality": 8,
+    "line": "Nah, 100 Thieves is taking it all this year. I told you guys!",
+    "keep_score": 85,
+    "reason": "This emotional story beat captures the creator's overwhelming pride and joy as his team celebrates a major victory."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788757566420_qgad",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.79,
+   "start": 252,
+   "end": 262,
+   "judged": {
+    "play": "Post-match interview broadcast showing fans and interviewer on stage",
+    "play_quality": 0,
+    "line": "Here are your VCT Americas Champions!",
+    "keep_score": 20,
+    "reason": "This is routine post-game reaction with no gameplay or particularly noteworthy story beat."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788757566420_ro44",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 281,
+   "end": 304,
+   "judged": {
+    "play": "None (post-match interview celebrating 100 Thieves' VCT Americas Stage 2 victory)",
+    "play_quality": 0,
+    "line": "Chili we won! We won!",
+    "keep_score": 55,
+    "reason": "While there is no gameplay play, the streamer's joyful reaction to 100 Thieves winning Stage 2 during the post-match interview serves as a nice emotional story beat."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788757566420_f7dn",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.77,
+   "start": 360,
+   "end": 399,
+   "judged": {
+    "play": "Post-match stage interview and fan interactions with 100 Thieves players after winning Stage 2.",
+    "play_quality": 0,
+    "line": "Come on baby!",
+    "keep_score": 15,
+    "reason": "This is routine post-match interview watching without gameplay or a standout clip-worthy streamer reaction."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788757566420_5632",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 431,
+   "end": 451,
+   "judged": {
+    "play": "Post-match broadcast showing 100 Thieves player Asuna signing autographs and high-fiving fans.",
+    "play_quality": 0,
+    "line": "Let's go, let's go, let's go.",
+    "keep_score": 15,
+    "reason": "This clip contains no gameplay and features only a mild, low-energy reaction from the streamer to post-match coverage."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788757566420_95y0",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 505,
+   "end": 528,
+   "judged": {
+    "play": "Post-match interview segment showing 100 Thieves player interacting with fans and holding the trophy",
+    "play_quality": 0,
+    "line": "Such an amazing kid man",
+    "keep_score": 15,
+    "reason": "This clip features casual reaction commentary to a post-match interview without any gameplay or high-energy highlight moment."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788757566420_rwm1",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 556,
+   "end": 570,
+   "judged": {
+    "play": "Post-match interview broadcast showing 100 Thieves celebrating their Stage 2 win while the interviewer calls for Asuna.",
+    "play_quality": 0,
+    "line": "Nah, nah, nah. I can't. Where's Asuna?",
+    "keep_score": 25,
+    "reason": "This is post-match broadcast interview footage without gameplay or a standout, high-energy reaction from the creator."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788757566420_e47i",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.71,
+   "start": 624,
+   "end": 655,
+   "judged": {
+    "play": "Post-match stage coverage showing 100 Thieves player eevey holding an MVP award amidst the crowd.",
+    "play_quality": 0,
+    "line": "I love my team, I love my team. God bless these guys.",
+    "keep_score": 25,
+    "reason": "There is no gameplay present, and while the creator shows genuine pride for his team, he quickly shifts to thanking a subscriber."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788757566420_070a",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 667,
+   "end": 700,
+   "judged": {
+    "play": "Streamer reacts emotionally to 100 Thieves winning, watching post-match crowd shots, trophy lifts, and tournament graphics.",
+    "play_quality": 2,
+    "line": "We prayed for times like this!",
+    "keep_score": 70,
+    "reason": "Although there is no active gameplay, his genuine emotional story beat celebrating 100 Thieves' victory serves as a great wrap-up reaction moment."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788757566420_10x4",
+   "decision": "approved",
+   "reasons": [
+    "no-reaction",
+    "nothing-happens"
+   ],
+   "confidence": 0.65,
+   "start": 733,
+   "end": 754,
+   "judged": {
+    "play": "The creator watches a VCT Champions Shanghai promotional teaser highlighting local food and public transit.",
+    "play_quality": 0,
+    "line": "Great food, great transit! I'm sold!",
+    "keep_score": 15,
+    "reason": "This is just a lighthearted reaction to a promo teaser without any gameplay or significant tournament moment."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788757566420_q825",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens",
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.55,
+   "start": 760,
+   "end": 775,
+   "judged": {
+    "play": "Streamer watches the broadcast segment explaining the tournament structure and clarifies context to chat.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This clip contains no gameplay or exciting streamer reactions, only routine commentary explaining tournament context."
+   }
+  }
+ ]
+}

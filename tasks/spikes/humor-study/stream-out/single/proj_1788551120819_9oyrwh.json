@@ -1,0 +1,137 @@
+{
+ "projectId": "proj_1788551120819_9oyrwh",
+ "name": "2026-09-04 100T Day3 Pt2",
+ "mode": "single",
+ "cost": 0.0685755,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788551277519_we54",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 79,
+   "end": 124,
+   "judged": {
+    "play": "100T plants the spike on A site and bang sets up to hold the post-plant after losing a teammate.",
+    "play_quality": 4,
+    "line": "Just relax, relax buddy.",
+    "keep_score": 25,
+    "reason": "The clip features standard round setup and mild commentary without any big multi-kills or clutch moments."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788551277518_gwm7",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 147,
+   "end": 173,
+   "judged": {
+    "play": "Replay highlights of 100T Bang getting multiple kills as 100 Thieves leads 10-3 against NRG.",
+    "play_quality": 7,
+    "line": "100 Thieves are the best in the world!",
+    "keep_score": 75,
+    "reason": "The creator passionately hypes Bang's play and declares 100 Thieves the best in the world during a dominant match lead."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788551277518_6azl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 223,
+   "end": 250,
+   "judged": {
+    "play": "100T Vora kills NRG Brock in a 1v1 on site to win the round on Sunset.",
+    "play_quality": 7,
+    "line": "GET HIM OUT OF HERE! I said it, he's not that guy, bro!",
+    "keep_score": 85,
+    "reason": "His aggressive pre-kill trash-talk pays off instantly with a round-winning kill and high-energy celebration."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788551277519_xhy5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 306,
+   "end": 327,
+   "judged": {
+    "play": "100 Thieves comfortably wins the round to reach match point at 12-3 on Sunset.",
+    "play_quality": 4,
+    "line": "IT'S SO EASY BRO!",
+    "keep_score": 25,
+    "reason": "While 100 Thieves dominates to reach match point, the gameplay on screen is standard round cleanup without an extraordinary highlight play."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788551277519_uxp7",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.86,
+   "start": 329,
+   "end": 358,
+   "judged": {
+    "play": "100 Thieves reaches map point with a dominant 12-3 lead against NRG",
+    "play_quality": 4,
+    "line": "This is clinical, bro.",
+    "keep_score": 70,
+    "reason": "Although no live multi-kill play is shown, his ecstatic reaction and taunts at the 12-3 scoreline make for a fun story moment."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788551277518_jsn8",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 360,
+   "end": 404,
+   "judged": {
+    "play": "bang gets a 3k to win the round and secure the map 13-3 for 100 Thieves",
+    "play_quality": 9,
+    "line": "3k from Bang!",
+    "keep_score": 95,
+    "reason": "Bang secures a 3k to close out a dominant map victory for 100 Thieves, triggering an explosive and celebratory reaction from the streamer."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788551277519_0hte",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 416,
+   "end": 434,
+   "judged": {
+    "play": "Streamer talks about Ethan's quote during match downtime and round transition",
+    "play_quality": 3,
+    "line": "Are you sure about that?",
+    "keep_score": 25,
+    "reason": "This clip consists mostly of casual commentary and laughter during downtime rather than an active high-stakes play."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788551277519_lyw3",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 438,
+   "end": 477,
+   "judged": {
+    "play": "No gameplay shown; broadcast displays VCT Americas intermission graphics and team intros.",
+    "play_quality": 0,
+    "line": "Can we get to map 2 already?",
+    "keep_score": 10,
+    "reason": "This is purely stream filler between maps without any active gameplay or standout moment."
+   }
+  }
+ ]
+}

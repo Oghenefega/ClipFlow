@@ -1,0 +1,366 @@
+{
+ "projectId": "proj_1787975114669_npo6tw",
+ "name": "2026-08-28 100T Day2 Pt4",
+ "mode": "stream",
+ "cost": 0.104457,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787975501781_hkws",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 31,
+   "end": 61,
+   "judged": {
+    "id": "c01",
+    "play": "Pre-match agent selection screen while the creator holds up a Phoenix action figure.",
+    "play_quality": 2,
+    "line": "I want a Phoenix ace tonight, Asuna.",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Pre-match filler holding a figurine without any actual gameplay."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787975501781_3j06",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "flat-delivery"
+   ],
+   "confidence": 0.61,
+   "start": 123,
+   "end": 136,
+   "judged": {
+    "id": "c02",
+    "play": "LEV player switches off Phoenix during agent pick screen.",
+    "play_quality": 2,
+    "line": "He knows he's no match for Asuna!",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Mild banter during agent pick screen before match starts."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787975501781_ouno",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 172,
+   "end": 188,
+   "judged": {
+    "id": "c03",
+    "play": "Early round setup on site with confusing positioning.",
+    "play_quality": 3,
+    "line": "I don't know what I've just seen in the past 15 seconds.",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Low-action setup round with minimal payoff on screen."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787975501780_d0re",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.86,
+   "start": 264,
+   "end": 299,
+   "judged": {
+    "id": "c04",
+    "play": "Round ends rapidly as LEV players fall in quick succession.",
+    "play_quality": 4,
+    "line": "Why did that happen so fast?",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Amusing quick round win, but lacks a clear highlight play on camera."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787975501780_yg0x",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 319,
+   "end": 335,
+   "judged": {
+    "id": "c05",
+    "play": "100T sets up mid-round while creator predicts a blowout score.",
+    "play_quality": 2,
+    "line": "I'm thinking 13-3.",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Routine prediction during quiet mid-round gameplay."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787975501780_q03i",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 410,
+   "end": 456,
+   "judged": {
+    "id": "c06",
+    "play": "LEV calls a timeout and their coach dramatically slams the huge illuminated timeout button on stage.",
+    "play_quality": 6,
+    "line": "That is so dramatic for no reason! Look at it shining!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "Hilarious stage observation reacting to the oversized timeout button."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788149370220_gqno",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 410,
+   "end": 456,
+   "judged": {
+    "id": "c07",
+    "play": "Duplicate broadcast clip showing LEV timeout button press.",
+    "play_quality": 6,
+    "line": "That is so dramatic for no reason!",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Duplicate candidate clip of the timeout button moment already covered in c06."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787975501781_htbz",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "flat-delivery"
+   ],
+   "confidence": 0.63,
+   "start": 578,
+   "end": 597,
+   "judged": {
+    "id": "c08",
+    "play": "100T executes onto site under Harbor cove and plants spike.",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Standard site execute without major duel highlights."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787975501781_v3b5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 614,
+   "end": 646,
+   "judged": {
+    "id": "c09",
+    "play": "Bang locks down the site with clean kills to secure the round.",
+    "play_quality": 5,
+    "line": "Get him out of there!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Solid round win with creator's usual catchphrase, but standard for this watch party."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787975501780_b2y7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 683,
+   "end": 712,
+   "judged": {
+    "id": "c10",
+    "play": "LEV delivers a devastating flawless round wiping out 100T instantly.",
+    "play_quality": 8,
+    "line": "Oh my god! God damn!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Unfiltered shock with hands on head reacting to an overwhelming flawless round."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1787975501781_gpzd",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny"
+   ],
+   "confidence": 0.75,
+   "start": 811,
+   "end": 835,
+   "judged": {
+    "id": "c11",
+    "play": "100T aggressively takes map control and closes out another round win.",
+    "play_quality": 5,
+    "line": "Let's go baby! Another one!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Good team round win cheer, but lacks an extraordinary individual outplay."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787975501780_taum",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 930,
+   "end": 975,
+   "judged": {
+    "id": "c12",
+    "play": "100T shuts down LEV push with multi-kills and clean aim.",
+    "play_quality": 7,
+    "line": "It's too easy!",
+    "keep_score": 78,
+    "stands_out": true,
+    "reason": "High-energy reaction shouting and clutching head after a dominant round shut-down."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1787975501781_hioy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 1057,
+   "end": 1070,
+   "judged": {
+    "id": "c13",
+    "play": "100T sets up retake utility near A site.",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Brief setup clip with limited action before the action unfolds."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1787975501781_yhst",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 1084,
+   "end": 1121,
+   "judged": {
+    "id": "c14",
+    "play": "Round replay reveals a player firing an entire magazine into a wall in panic.",
+    "play_quality": 6,
+    "line": "He was out here emptying that clip against that wall!",
+    "keep_score": 72,
+    "stands_out": true,
+    "reason": "Genuinely funny spectator moment catching a severe whiff on replay."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1787975501781_jmat",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.82,
+   "start": 1183,
+   "end": 1207,
+   "judged": {
+    "id": "c15",
+    "play": "Replay review of Yoru flash mechanics while creator comments on patch balance.",
+    "play_quality": 4,
+    "line": "Glory to God, because that was super broken!",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Analytic stream discussion about game balancing rather than a hype play."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1787975501781_m6qa",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 1298,
+   "end": 1339,
+   "judged": {
+    "id": "c16",
+    "play": "LEV secures a tense round win despite 100T's defense effort.",
+    "play_quality": 6,
+    "line": "Look at he's lucky!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Expressive reaction to a round loss, but less dramatic than c10 or c19."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1787975501781_dt63",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.69,
+   "start": 1368,
+   "end": 1407,
+   "judged": {
+    "id": "c17",
+    "play": "Creator reviews scoreboards and discusses player agent choices between rounds.",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Downtime commentary and player stats review."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1787975501781_7zc2",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.67,
+   "start": 1461,
+   "end": 1499,
+   "judged": {
+    "id": "c18",
+    "play": "LEV continues a 4-round winning streak to bring the score close.",
+    "play_quality": 6,
+    "line": "What the freak? It was looking dominant for 100 Thieves!",
+    "keep_score": 68,
+    "stands_out": false,
+    "reason": "Good dramatic tension as LEV mounts a comeback, but secondary to c19."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1787975501781_q9ka",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.71,
+   "start": 1571,
+   "end": 1602,
+   "judged": {
+    "id": "c19",
+    "play": "LEV completes a 5-round streak comeback to close the half, player cam shows hyped reactions.",
+    "play_quality": 7,
+    "line": "Oh my goodness! These guys woke up, what the heck!",
+    "keep_score": 76,
+    "stands_out": true,
+    "reason": "Great vocal disbelief and head-grabbing reaction as the opposing team completes a huge half comeback."
+   }
+  }
+ ]
+}

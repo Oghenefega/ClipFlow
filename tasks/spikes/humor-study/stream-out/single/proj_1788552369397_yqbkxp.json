@@ -1,0 +1,208 @@
+{
+ "projectId": "proj_1788552369397_yqbkxp",
+ "name": "2026-09-04 100T Day3 Pt4",
+ "mode": "single",
+ "cost": 0.08337750000000001,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788552826516_lzqy",
+   "decision": "rejected",
+   "reasons": [
+    "no-stakes",
+    "live-only"
+   ],
+   "confidence": 0.71,
+   "start": 279,
+   "end": 306,
+   "judged": {
+    "play": "100 Thieves finishes off the round in mid to take an 8-5 lead over NRG.",
+    "play_quality": 3,
+    "line": "Too easy. Too easy.",
+    "keep_score": 20,
+    "reason": "It is a standard round victory without any standout kills or high-energy streamer reaction."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788552826516_z13t",
+   "decision": "rejected",
+   "reasons": [
+    "no-reaction",
+    "live-only"
+   ],
+   "confidence": 0.65,
+   "start": 367,
+   "end": 377,
+   "judged": {
+    "play": "100 Thieves secures a round win as time runs out without any active play or kills shown on screen.",
+    "play_quality": 2,
+    "line": "What are we doing Scoop? Absolutely nothing!",
+    "keep_score": 20,
+    "reason": "There is no gameplay action or kill in the clip, only brief post-round taunting from the creator."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788552826515_6zf0",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 383,
+   "end": 412,
+   "judged": {
+    "play": "100 Thieves wins the round to reach match point at 12-5, putting them on the verge of qualifying for Champions.",
+    "play_quality": 3,
+    "line": "Ladies and gentlemen, Champs!",
+    "keep_score": 80,
+    "reason": "This is a major story beat for the creator's favorite team as 100 Thieves reaches match point to secure a spot at Champions."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788552826516_at16",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 510,
+   "end": 523,
+   "judged": {
+    "play": "Asuna secures a multi-kill on A Site to win the round for 100 Thieves.",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 85,
+    "reason": "Asuna hits a huge multi-kill round-winner for 100T, causing the creator to jump out of his chair and shout his signature line."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788552826516_dzji",
+   "decision": "rejected",
+   "reasons": [
+    "no-stakes"
+   ],
+   "confidence": 0.89,
+   "start": 606,
+   "end": 634,
+   "judged": {
+    "play": "Streamer hypes up 100 Thieves leading 10-5 against former champions NRG as they near Shanghai qualification during a round pause",
+    "play_quality": 1,
+    "line": "Give me my ticket to Shanghai, bro!",
+    "keep_score": 45,
+    "reason": "While it captures an energetic story beat about 100 Thieves dominating to qualify for Shanghai, no actual gameplay action occurs in the clip."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788552826516_pd1n",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 647,
+   "end": 662,
+   "judged": {
+    "play": "100T easily shuts down Mazik as he tries to stun and push into them.",
+    "play_quality": 3,
+    "line": "What was Mazik thinking?",
+    "keep_score": 25,
+    "reason": "It's a routine single kill on an opponent misplay, lacking the big highlight energy or play quality needed for a clip."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788552826516_kaf4",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.67,
+   "start": 692,
+   "end": 718,
+   "judged": {
+    "play": "Bang is left alone in a clutch situation rotating onto A site, but no kills or resolution occur in the clip.",
+    "play_quality": 2,
+    "line": "If there's anybody that could and would, it is bang!",
+    "keep_score": 15,
+    "reason": "The clip shows the build-up to a potential clutch without any actual kills or play taking place."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788552826516_lo5a",
+   "decision": "rejected",
+   "reasons": [
+    "flat-delivery",
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.77,
+   "start": 846,
+   "end": 884,
+   "judged": {
+    "play": "100T sets up their round positioning and holds angles on Sunset without any major kills occurring.",
+    "play_quality": 3,
+    "line": "There we go, there we go, there we go!",
+    "keep_score": 20,
+    "reason": "This clip shows routine round setup and standard cheering without any high-impact play or clutch moment."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788552826516_2v8q",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.69,
+   "start": 988,
+   "end": 1001,
+   "judged": {
+    "play": "A replay clip shows a brief overview of a player rotating and clearing site during a round.",
+    "play_quality": 3,
+    "line": "Oh that was phenomenal.",
+    "keep_score": 20,
+    "reason": "This is just a short replay transition with very little play shown and low streamer involvement."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788552826515_cryc",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "needs-context"
+   ],
+   "confidence": 0.94,
+   "start": 1163,
+   "end": 1186,
+   "judged": {
+    "play": "Fnatic celebrates on stage after winning the match and qualifying for VCT Champions.",
+    "play_quality": 8,
+    "line": "Fnatic are going to Champions!",
+    "keep_score": 85,
+    "reason": "This is a major story beat as Fnatic secures their spot at Champions, eliciting genuine excitement and hype from the streamer."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788552826515_sjg8",
+   "decision": "rejected",
+   "reasons": [
+    "no-stakes",
+    "live-only"
+   ],
+   "confidence": 0.97,
+   "start": 1242,
+   "end": 1279,
+   "judged": {
+    "play": "100 Thieves players walk onto stage and take photos with fans",
+    "play_quality": 0,
+    "line": "We made it to Champs, boys!",
+    "keep_score": 60,
+    "reason": "While there is no gameplay in this clip, the streamer's genuine excitement for 100 Thieves qualifying for Champions creates a great celebratory moment."
+   }
+  }
+ ]
+}

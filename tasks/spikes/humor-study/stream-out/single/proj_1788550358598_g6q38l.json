@@ -1,0 +1,349 @@
+{
+ "projectId": "proj_1788550358598_g6q38l",
+ "name": "2026-09-04 100T Day3 Pt1",
+ "mode": "single",
+ "cost": 0.191598,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788550913587_y2zf",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 0,
+   "end": 34,
+   "judged": {
+    "play": "Map veto results showing Abyss, Sunset, and Summit.",
+    "play_quality": 0,
+    "line": "Talk about the three worst maps bro, what the heck!",
+    "keep_score": 10,
+    "reason": "This clip is just pre-match map veto commentary with no gameplay or notable event occurring."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788550913586_8opy",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 303,
+   "end": 336,
+   "judged": {
+    "play": "100 Thieves wins a round against MIBR, prompting player celebrations on camera.",
+    "play_quality": 6,
+    "line": "Let's go baby! Come on! That is insane!",
+    "keep_score": 65,
+    "reason": "The creator reacts with genuine hype to a 100 Thieves round win, but the gameplay shown is a fairly standard round victory."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788550913587_ecju",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 443,
+   "end": 474,
+   "judged": {
+    "play": "100 Thieves wins a round against NRG on their buy round to take a 3-1 lead, forcing an NRG timeout.",
+    "play_quality": 5,
+    "line": "We are actually cooking right now, bro.",
+    "keep_score": 45,
+    "reason": "It is a solid hype moment celebrating a round win that forces a timeout, but lacks a dramatic single play or multi-kill."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788550913586_6c9m",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 479,
+   "end": 507,
+   "judged": {
+    "play": "NRG calls an early tactical timeout down 1-3 against 100 Thieves.",
+    "play_quality": 6,
+    "line": "We're in their heads!",
+    "keep_score": 80,
+    "reason": "The streamer hilariously taunts the opposition for burning an early timeout while behind on the scoreboard."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788550913587_dfx5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 575,
+   "end": 598,
+   "judged": {
+    "play": "100T eeiu lands two quick Operator kills in Mid to shutdown NRG's push.",
+    "play_quality": 6,
+    "line": "GET HIM OUT OF HERE! NEVER A DOUBT BRO, YOU CAN'T CATCH HIM OFF GUARD!",
+    "keep_score": 65,
+    "reason": "The streamer hype-reacts and stands up after eeiu's crisp Operator double kill, making for a solid energetic highlight."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788550913587_25zf",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.76,
+   "start": 629,
+   "end": 664,
+   "judged": {
+    "play": "Asuna catches an opponent off-guard at close range for a kill, surprising the enemy player on facecam.",
+    "play_quality": 4,
+    "line": "He didn't expect him to be there!",
+    "keep_score": 35,
+    "reason": "While the streamer finds the player's jump scare reaction funny, it's a routine kill during a tactical phase."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788550913587_tnuy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 727,
+   "end": 745,
+   "judged": {
+    "play": "NRG xeta gets a quick double kill on 100 Thieves at A Site.",
+    "play_quality": 3,
+    "line": "WHAT?! WHAT?!",
+    "keep_score": 15,
+    "reason": "This is just a standard double pick against his team with a basic reaction of shock, which isn't strong enough for a highlight."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788550913587_tv95",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 840,
+   "end": 868,
+   "judged": {
+    "play": "Ethan clutches a 1v2 round to win the round.",
+    "play_quality": 8,
+    "line": "OH MY GOD!",
+    "keep_score": 88,
+    "reason": "The creator has an energetic stand-up reaction to an intense 1v2 clutch play in a VCT match."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788645603331_v2om",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 840,
+   "end": 868,
+   "judged": {
+    "play": "100T Ethan pulls off a clutch round win after a tense fake-defuse sequence.",
+    "play_quality": 8,
+    "line": "This is crazy!",
+    "keep_score": 90,
+    "reason": "Ethan secures a crucial clutch round, triggering a massive, hype reaction from the creator who leaps out of his chair."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788550913587_a813",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 961,
+   "end": 1012,
+   "judged": {
+    "play": "100T Asuna gets a kill to secure a 4v2 round advantage, forcing NRG into a save.",
+    "play_quality": 5,
+    "line": "Read him like a book!",
+    "keep_score": 35,
+    "reason": "While the creator is very hype and taunting the enemy team, the gameplay is a routine round-closing situation rather than an exceptional play."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788645584705_toae",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 961,
+   "end": 1012,
+   "judged": {
+    "play": "100 Thieves secures site control and plants the spike in a 4v2 situation, forcing NRG to save.",
+    "play_quality": 4,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 35,
+    "reason": "While the creator brings high energy mocking the opponent's need to save, the clip shows standard team round execution rather than a standout play."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788550913586_73lp",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 1069,
+   "end": 1099,
+   "judged": {
+    "play": "NRG calls their second timeout of the first half while trailing 3-5 against 100T",
+    "play_quality": 3,
+    "line": "We're in their heads, I'm telling you!",
+    "keep_score": 75,
+    "reason": "The streamer delivers a hype taunt as the opposing team is forced to burn both timeouts early in the first half."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788645608198_or5d",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 1069,
+   "end": 1099,
+   "judged": {
+    "play": "NRG calls their second timeout of the first half while trailing 3-5 against 100 Thieves.",
+    "play_quality": 3,
+    "line": "Bro, we're in their heads! I'm telling you!",
+    "keep_score": 70,
+    "reason": "He enthusiastically hypes up 100 Thieves forcing the opposing team to burn both timeouts early in the match."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788550913587_hz1a",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 1146,
+   "end": 1193,
+   "judged": {
+    "play": "NRG Timotan0 kills 100T Ethan, and later NRG mada kills bang and Asuna.",
+    "play_quality": 4,
+    "line": "I said he's not that good, get him out of here bro!",
+    "keep_score": 25,
+    "reason": "The streamer trash-talks the opposition early on, but 100 Thieves ends up losing key players, resulting in a low-value highlight."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788550913587_4gi9",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.67,
+   "start": 1241,
+   "end": 1260,
+   "judged": {
+    "play": "100 Thieves closes out a round to go up 6-3, sparking a energetic celebration.",
+    "play_quality": 6,
+    "line": "Wait a minute, I think I'm rooting for the wrong person!",
+    "keep_score": 75,
+    "reason": "His funny moment of confusion followed by an explosive celebration makes for a great watch party highlight."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788550913587_sln5",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.79,
+   "start": 1304,
+   "end": 1335,
+   "judged": {
+    "play": "100T bang gets a headshot kill in Mid after the streamer predicts the enemy's location.",
+    "play_quality": 5,
+    "line": "GET HIM OUT OF THERE!",
+    "keep_score": 45,
+    "reason": "Although the streamer predicts the enemy position and gives a energetic reaction, it is ultimately just a routine single kill."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788550913586_itlm",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.87,
+   "start": 1365,
+   "end": 1406,
+   "judged": {
+    "play": "100 Thieves wins a round clutch, but the players' nonchalant reactions on camera briefly convince the creator they lost.",
+    "play_quality": 6,
+    "line": "Everyone's clutching up, bro! That is insane!",
+    "keep_score": 80,
+    "reason": "The creator's hilarious confusion and reaction to how stone-faced the players were after clutching a round makes for an entertaining highlight."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788645556274_jk17",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.87,
+   "start": 1365,
+   "end": 1406,
+   "judged": {
+    "play": "100 Thieves clutches a VCT round, but the streamer is confused because the player on camera looks like he lost.",
+    "play_quality": 7,
+    "line": "Everyone's clutching up, bro!",
+    "keep_score": 85,
+    "reason": "The streamer's genuine confusion and hilarious commentary over a player's somber reaction after actually winning a clutch makes for a great moment."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788550913587_hzft",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 1427,
+   "end": 1452,
+   "judged": {
+    "play": "100T wins the round to extend their lead to 8-3, forcing MIBR to call another timeout.",
+    "play_quality": 5,
+    "line": "What do you need, a third timeout?",
+    "keep_score": 85,
+    "reason": "His energetic standing taunt mocking the opponent for needing another timeout creates a memorable story beat."
+   }
+  },
+  {
+   "id": "c20",
+   "clipId": "clip_1788550913586_47ny",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 1501,
+   "end": 1546,
+   "judged": {
+    "play": "100T runs a 3-Operator defense comp as Cryo shuts down the enemy Phoenix's ultimate.",
+    "play_quality": 8,
+    "line": "You're not that guy! You're not the Phoenix, okay?",
+    "keep_score": 85,
+    "reason": "His hilarious taunt at the opposing Phoenix alongside 100T's wild 3-Operator comp makes for an entertaining highlight."
+   }
+  },
+  {
+   "id": "c21",
+   "clipId": "clip_1788550913587_0lqq",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1581,
+   "end": 1618,
+   "judged": {
+    "play": "100 Thieves holds a 9-3 halftime lead over NRG as the broadcast transitions into intermission and ads.",
+    "play_quality": 2,
+    "line": "We are going to champs, man! We are winning it all!",
+    "keep_score": 15,
+    "reason": "The streamer gets hyped over his team's halftime lead during an intermission and ad break, with no active gameplay taking place."
+   }
+  }
+ ]
+}

@@ -1,0 +1,248 @@
+{
+ "projectId": "proj_1788756119788_v6jwln",
+ "name": "2026-09-06 100T Day4 Pt9",
+ "mode": "stream",
+ "cost": 0.06548999999999999,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788756538965_erkn",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 199,
+   "end": 236,
+   "judged": {
+    "id": "c01",
+    "play": "Vora gets a multi-kill through smoke while completely blind on an eco round",
+    "play_quality": 8,
+    "line": "What?! Let's go baby!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "The impressive multi-kill blind spray combined with his hilarious sandwich-and-drink celebration makes this the best play reaction of the stream."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788756538966_ukka",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.9,
+   "start": 429,
+   "end": 478,
+   "judged": {
+    "id": "c02",
+    "play": "100 Thieves win a round, followed by replay highlight",
+    "play_quality": 6,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "His signature shout and dance are energetic, but it is a fairly routine round win compared to the top highlights."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788756538966_b3zt",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 513,
+   "end": 533,
+   "judged": {
+    "id": "c03",
+    "play": "Chaotic utility dump and firefight on C site",
+    "play_quality": 4,
+    "line": "Oh my goodness",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "The play is messy utility usage without a standout individual multi-kill or clutch."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788756538966_mz7c",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 550,
+   "end": 596,
+   "judged": {
+    "id": "c04",
+    "play": "100 Thieves lose a round due to a friendly flash accident",
+    "play_quality": 5,
+    "line": "How did we lose that?",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "While his frustration is genuine, standard round losses like this happen frequently across the stream."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788756538966_mib9",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.58,
+   "start": 651.8,
+   "end": 658.8,
+   "judged": {
+    "id": "c05",
+    "play": "Streamer encourages the team during crowd replay",
+    "play_quality": 2,
+    "line": "We're gonna bring it home",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "This is basic filler dialogue between rounds with no gameplay happening on screen."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788756538966_mtdg",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 746,
+   "end": 776,
+   "judged": {
+    "id": "c06",
+    "play": "100 Thieves tie up the match 3-3 on defense",
+    "play_quality": 4,
+    "line": "Nice baby!",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "A generic round win callout that repeats many times throughout the stream."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788756538966_j8t3",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 791,
+   "end": 828,
+   "judged": {
+    "id": "c07",
+    "play": "Tech pause occurs on stage and streamer observes players warming their hands",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "It is downtime banter during a technical pause without any action."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788756538966_z8qj",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.66,
+   "start": 992,
+   "end": 1013,
+   "judged": {
+    "id": "c08",
+    "play": "Streamer analyzes Bang's confident player movement during a tech pause",
+    "play_quality": 4,
+    "line": "He moves like he's the best in the lobby",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Good commentary beat about player mental, but lacks a live gameplay play to back it up."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788756538966_38dj",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 1233,
+   "end": 1255,
+   "judged": {
+    "id": "c09",
+    "play": "Streamer praises player Timotino for staying positive after a lost round",
+    "play_quality": 3,
+    "line": "That's the spirit, man",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Routine positive commentary between rounds without an exciting highlight play."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788756538966_i588",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1338,
+   "end": 1372,
+   "judged": {
+    "id": "c10",
+    "play": "Chaotic site defense featuring a shorty kill and a successful defuse clutch",
+    "play_quality": 7,
+    "line": "I don't even know how the other guy died, but we don't care!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "His confused, triumphant reaction to the chaotic final defuse kill stands out as a memorable moment."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788756538966_wh64",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.63,
+   "start": 1481,
+   "end": 1504,
+   "judged": {
+    "id": "c11",
+    "play": "Replay showing LOUD setting up a three-player stack",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Standard replay breakdown of an opponent setup without significant hype or play quality."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788756538966_o2j5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 1665,
+   "end": 1695,
+   "judged": {
+    "id": "c12",
+    "play": "Streamer complains about and physically acts out the long delay on Neon's stun",
+    "play_quality": 5,
+    "line": "I feel like the Neon stun is so late!",
+    "keep_score": 60,
+    "stands_out": true,
+    "reason": "His funny physical dance and sound effects mimicking the slow stun animation make this a uniquely funny non-play moment."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788756538966_vgci",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 1719,
+   "end": 1750,
+   "judged": {
+    "id": "c13",
+    "play": "100 Thieves hold down C site to secure the round win",
+    "play_quality": 5,
+    "line": "There we go, baby!",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "A solid defense win, but his reaction is identical to many other standard round wins in the stream."
+   }
+  }
+ ]
+}

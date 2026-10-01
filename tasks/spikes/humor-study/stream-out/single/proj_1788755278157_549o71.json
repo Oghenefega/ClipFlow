@@ -1,0 +1,294 @@
+{
+ "projectId": "proj_1788755278157_549o71",
+ "name": "2026-09-06 100T Day4 Pt6",
+ "mode": "single",
+ "cost": 0.16560899999999998,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788755772242_1ero",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 28,
+   "end": 62,
+   "judged": {
+    "play": "100 Thieves secures a round defuse, after which the streamer talks to chat about letting his team cook.",
+    "play_quality": 2,
+    "line": "I got to just let the team cook, okay?",
+    "keep_score": 15,
+    "reason": "The clip consists primarily of post-round commentary and chat interaction without a notable play."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788755772242_g6y6",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 154,
+   "end": 190,
+   "judged": {
+    "play": "100 Thieves secures a Flawless round to lead 4-0 on Ascent.",
+    "play_quality": 4,
+    "line": "GET HIM OUT OF MY FACE BRO!",
+    "keep_score": 65,
+    "reason": "While no specific gameplay multi-kill is highlighted, his energetic trash-talking of the enemy Neon during a Flawless round win provides great fan entertainment."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788755772243_ceau",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.77,
+   "start": 229,
+   "end": 283,
+   "judged": {
+    "play": "100T eeiu wins a 1v1 clutch to secure the round for 100 Thieves.",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 90,
+    "reason": "The streamer erupts and stands up shouting his catchphrase after a tense 1v1 clutch round win."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788755772242_vbrk",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "live-only"
+   ],
+   "confidence": 0.85,
+   "start": 321,
+   "end": 377,
+   "judged": {
+    "play": "No gameplay on screen; the broadcast shows casters and the trophy during a LOUD timeout while discussing a potential 100T comeback.",
+    "play_quality": 0,
+    "line": "Why are you in my party, bro?",
+    "keep_score": 70,
+    "reason": "He hilariously calls out the casters for jumping on the 100 Thieves bandwagon during a timeout break."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788755772243_e1hk",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 452,
+   "end": 488,
+   "judged": {
+    "play": "100T secures a round win to go up 6-1, followed by a replay showing Asuna locking down A site.",
+    "play_quality": 5,
+    "line": "We got Bang smiling! Oh, it's over!",
+    "keep_score": 65,
+    "reason": "The streamer turns a standard round win into a memorable moment by reacting excitedly to player cam footage of Bang smiling."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788755772242_gw3j",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 583,
+   "end": 622,
+   "judged": {
+    "play": "eeiu (Timotino) hits an incredible Operator shot while holding B main solo during a round replay.",
+    "play_quality": 8,
+    "line": "What is that op shot from Timotino?",
+    "keep_score": 85,
+    "reason": "The streamer gives a high-energy reaction to an impressive Operator play from his team."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788755772242_ntfi",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.95,
+   "start": 735,
+   "end": 775,
+   "judged": {
+    "play": "100 Thieves stops LOUD's execute and forces a save round at 11-7, putting 100T two rounds away from winning the championship.",
+    "play_quality": 7,
+    "line": "I want to cry... tears of joy, cause we're about to lift the trophy, I think I just saw it man!",
+    "keep_score": 90,
+    "reason": "A genuine emotional story beat where the streamer gets teary-eyed as he realizes 100 Thieves is on the verge of lifting the trophy."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788755772243_1zoj",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.74,
+   "start": 900,
+   "end": 935,
+   "judged": {
+    "play": "100 Thieves secures a flawless round win against Levatan to close the score gap to 11-9.",
+    "play_quality": 7,
+    "line": "Let's go boys!",
+    "keep_score": 80,
+    "reason": "His hype reaction perfectly mirrors the team's celebratory player cam after a crucial flawless round."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788755772242_h8g5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 984,
+   "end": 1037,
+   "judged": {
+    "play": "Replay shows Asuna using Phoenix ultimate to secure a key kill and round save, followed by post-round caster praise.",
+    "play_quality": 6,
+    "line": "WHAT A SAVE FROM ASUNA! LET'S GO!",
+    "keep_score": 65,
+    "reason": "The streamer hypes up a replay of Asuna's clutch Phoenix play and praises his performance during the timeout."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788755772242_mhlx",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.96,
+   "start": 1106,
+   "end": 1137,
+   "judged": {
+    "play": "100T clutches a high-stakes round on B site to tie the match at 11-11.",
+    "play_quality": 8,
+    "line": "LET'S GO! Oh my god! Wake up, baby!",
+    "keep_score": 90,
+    "reason": "A crucial, game-tying round win for his team triggers an energetic, jumping-out-of-his-chair reaction."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788755772243_2w1h",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1170,
+   "end": 1198,
+   "judged": {
+    "play": "100T Cryo sets up Cypher utility on A site during the round setup without any kills or combat taking place.",
+    "play_quality": 2,
+    "line": "The cam is so good, he's not even gonna know when he's getting spammed.",
+    "keep_score": 15,
+    "reason": "This is routine commentary during utility setup without any kills or impactful action occurring."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788755772242_p3lp",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 1238,
+   "end": 1262,
+   "judged": {
+    "play": "100 Thieves secures a clutch round win on defense to reach map point at 12-11.",
+    "play_quality": 8,
+    "line": "Job's not done, boys!",
+    "keep_score": 90,
+    "reason": "100 Thieves winning a high-stakes round to secure map point triggers an extremely hype and memorable reaction from the creator."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788755772242_72xl",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "live-only"
+   ],
+   "confidence": 0.83,
+   "start": 1335,
+   "end": 1373,
+   "judged": {
+    "play": "LEV wins the round while hiding in smoke to send the map to overtime at 12-12.",
+    "play_quality": 8,
+    "line": "Let's give the people a show.",
+    "keep_score": 88,
+    "reason": "The tense round outcome sending the match into overtime paired with his humorous copium reaction makes this a prime highlight."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788755772243_s6lg",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 1380,
+   "end": 1396,
+   "judged": {
+    "play": "Replay showing crisp headshot kills while the streamer comments on the enemy player's insane aim.",
+    "play_quality": 5,
+    "line": "He quite literally turned on the cheats again.",
+    "keep_score": 35,
+    "reason": "This is post-round replay commentary rather than a live reaction to a high-stakes multi-kill or clutch moment."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788755772242_y72y",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 1484,
+   "end": 1539,
+   "judged": {
+    "play": "100 Thieves wins a tense overtime round on Ascent to take the lead 13-12.",
+    "play_quality": 9,
+    "line": "Job's not done... but it really is though!",
+    "keep_score": 95,
+    "reason": "His genuine excitement and funny post-round celebration over 100 Thieves securing map point makes this a top highlight."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788891781302_e2m7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 1552,
+   "end": 1561,
+   "judged": {
+    "play": "100T sets up at the start of an overtime round against LEV with no combat occurring yet.",
+    "play_quality": 1,
+    "line": "We're not afraid man. We're Thieves for a reason.",
+    "keep_score": 15,
+    "reason": "This is just pre-round hype chatter before any gameplay action or kills take place."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788755772242_fegu",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "reaction-adds-nothing"
+   ],
+   "confidence": 0.98,
+   "start": 1644,
+   "end": 1734,
+   "judged": {
+    "play": "Cryo secures a round- and match-winning 4-kill multi-kill on A site to clinch the series for 100 Thieves.",
+    "play_quality": 9,
+    "line": "Look at that from Cryo! GET HIM OUT OF HERE! With a 4 piece baby!",
+    "keep_score": 95,
+    "reason": "Cryo seals an incredible comeback victory for 100 Thieves with a match-winning 4-kill, triggering maximum hype from the creator."
+   }
+  }
+ ]
+}

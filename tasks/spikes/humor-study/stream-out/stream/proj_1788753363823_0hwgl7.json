@@ -1,0 +1,244 @@
+{
+ "projectId": "proj_1788753363823_0hwgl7",
+ "name": "2026-09-06 100T Day4 Pt4",
+ "mode": "stream",
+ "cost": 0.073848,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788753729569_zagl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.6,
+   "start": 158,
+   "end": 185,
+   "judged": {
+    "id": "c01",
+    "play": "LOUD gets a double kill on Split to win the round",
+    "play_quality": 5,
+    "line": "Oh my goodness",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "A routine enemy round win with a standard disbelieving reaction."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1789185416777_7tbz",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 296,
+   "end": 315,
+   "judged": {
+    "id": "c02",
+    "play": "Replay of Cryo pulling off a fast Operator flick headshot",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE! Look at that flick bro!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "Cryo's incredible Operator flick replay prompts an enthusiastic reaction."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788753729569_6tdv",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "chat-banter",
+    "not-funny"
+   ],
+   "confidence": 0.65,
+   "start": 433,
+   "end": 458,
+   "judged": {
+    "id": "c03",
+    "play": "Pre-round scoreboard display while streamer discusses player stats",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 10,
+    "stands_out": false,
+    "reason": "Casual pre-round banter without any play on screen."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788753729569_21wo",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 512,
+   "end": 552,
+   "judged": {
+    "id": "c04",
+    "play": "Replay showing a player getting stunned by utility and still landing an Operator headshot kill",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE! No he won't!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "His funny rant about how absurd it is to hit a headshot while stunned makes this play standout."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788753729569_mhwd",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny"
+   ],
+   "confidence": 0.79,
+   "start": 562,
+   "end": 616,
+   "judged": {
+    "id": "c05",
+    "play": "Timeout screen while casters talk about LOUD stats and streamer jokes about home crowd advantage",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "A somewhat amusing observation during a timeout, but lacks any gameplay action."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788753729569_ymm4",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny"
+   ],
+   "confidence": 0.93,
+   "start": 659,
+   "end": 699,
+   "judged": {
+    "id": "c06",
+    "play": "100 Thieves secures a 2v3 site hold to take round 20",
+    "play_quality": 6,
+    "line": "Let's go Asuna!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "A solid round win, but fairly standard compared to the match-climaxing moments later."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788753729569_adc6",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "reaction-adds-nothing"
+   ],
+   "confidence": 0.84,
+   "start": 706,
+   "end": 742,
+   "judged": {
+    "id": "c07",
+    "play": "100T executes a clean round win right after LOUD calls a timeout",
+    "play_quality": 5,
+    "line": "Get him out of there!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Decent banter taunting the opponent's failed timeout strategy."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788753729569_ykic",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 863,
+   "end": 893,
+   "judged": {
+    "id": "c08",
+    "play": "100T wins round 22 to reach map point at 12-10",
+    "play_quality": 7,
+    "line": "NO!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "High-stakes round victory that gets a big head-clutching reaction, but outshone by the final map win."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788753729569_9tdm",
+   "decision": "rejected",
+   "reasons": [
+    "no-payoff",
+    "live-only"
+   ],
+   "confidence": 0.82,
+   "start": 903,
+   "end": 924,
+   "judged": {
+    "id": "c09",
+    "play": "Replay of Bang securing a multi-kill in a previous round",
+    "play_quality": 7,
+    "line": "LET'S GO BANG! LET'S GO!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Good highlight replay reaction, though similar hype repeats throughout the stream."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788753729569_4yyz",
+   "decision": "rejected",
+   "reasons": [
+    "no-reaction",
+    "nothing-happens"
+   ],
+   "confidence": 0.67,
+   "start": 1076,
+   "end": 1092,
+   "judged": {
+    "id": "c10",
+    "play": "100T takes a timeout on map point",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Streamer shows support by tugging his 100T hoodie during a pause, but no gameplay occurs."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788753729568_qi0p",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 1206,
+   "end": 1260,
+   "judged": {
+    "id": "c11",
+    "play": "Asuna clutches the final 1v1 to secure map 2 for 100 Thieves 13-11",
+    "play_quality": 9,
+    "line": "COME ON! LET'S GO! OH MY GOODNESS!",
+    "keep_score": 95,
+    "stands_out": true,
+    "reason": "The map-winning clutch moment where he explodes with excitement and grabs his figurine to celebrate."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788753729569_l4hv",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.94,
+   "start": 1269,
+   "end": 1300,
+   "judged": {
+    "id": "c12",
+    "play": "Replay of the match-winning clutch with streamer taunting the opponent's ultimate usage",
+    "play_quality": 8,
+    "line": "Get him out of here! We don't care what ult you're using!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "A high-energy post-match victory celebration taunting the opponent's failed ultimate."
+   }
+  }
+ ]
+}

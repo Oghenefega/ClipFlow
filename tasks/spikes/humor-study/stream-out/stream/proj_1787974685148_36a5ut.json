@@ -1,0 +1,148 @@
+{
+ "projectId": "proj_1787974685148_36a5ut",
+ "name": "2026-08-28 100T Day2 Pt2",
+ "mode": "stream",
+ "cost": 0.041151,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787974788113_o6f4",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "needs-context"
+   ],
+   "confidence": 0.68,
+   "start": 6,
+   "end": 35,
+   "judged": {
+    "id": "c01",
+    "play": "Creator hype-talks his team during the halftime break showing a 10-2 score.",
+    "play_quality": 0,
+    "line": "You got this on defense, man.",
+    "keep_score": 15,
+    "stands_out": false,
+    "reason": "Just an intermission pep talk with no actual gameplay action."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787974788113_0ezk",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 54,
+   "end": 82,
+   "judged": {
+    "id": "c02",
+    "play": "100 Thieves secures a clutch round win on defense to extend their lead to 11-2.",
+    "play_quality": 6,
+    "line": "Get him out of here!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Solid clutch round win with a standing flex reaction, though outshined by the map finish."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787974788113_0y2o",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.82,
+   "start": 89,
+   "end": 119,
+   "judged": {
+    "id": "c03",
+    "play": "Replay shows Bang clutching a round while surviving on just 1 HP.",
+    "play_quality": 7,
+    "line": "One HP bro!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "An impressive 1 HP clutch highlight replay that triggers a passionate flex celebration."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787974788112_bem5",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.88,
+   "start": 129,
+   "end": 147,
+   "judged": {
+    "id": "c04",
+    "play": "100 Thieves wins another round to reach map point at 12-2.",
+    "play_quality": 5,
+    "line": "Too easy! Get him out of here!",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Standard round win callout that lacks the top-tier energy of the final winning round."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787974788112_ri1a",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 174,
+   "end": 203,
+   "judged": {
+    "id": "c05",
+    "play": "100 Thieves shuts down the enemy push to win the map 13-2 in dominant fashion.",
+    "play_quality": 8,
+    "line": "Oh my goodness!",
+    "keep_score": 90,
+    "stands_out": true,
+    "reason": "The decisive map-winning play featuring the creator's peak laugh and head-in-hands reaction."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787974788112_dnka",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context",
+    "nothing-happens"
+   ],
+   "confidence": 0.91,
+   "start": 209,
+   "end": 233,
+   "judged": {
+    "id": "c06",
+    "play": "100 Thieves players walk off stage after winning as victory graphics display.",
+    "play_quality": 1,
+    "line": "That's my boys, man!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Post-match stage reaction without any live gameplay."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1787974788113_8chu",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "needs-context"
+   ],
+   "confidence": 0.84,
+   "start": 279,
+   "end": 304,
+   "judged": {
+    "id": "c07",
+    "play": "Post-game scoreboard displays player stats before transitioning into a promotional video.",
+    "play_quality": 0,
+    "line": "We make it look too easy, bro!",
+    "keep_score": 15,
+    "stands_out": false,
+    "reason": "Out-of-game scoreboard viewing and commercial playback."
+   }
+  }
+ ]
+}

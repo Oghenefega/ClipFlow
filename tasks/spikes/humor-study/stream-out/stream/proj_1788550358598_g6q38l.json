@@ -1,0 +1,391 @@
+{
+ "projectId": "proj_1788550358598_g6q38l",
+ "name": "2026-09-04 100T Day3 Pt1",
+ "mode": "stream",
+ "cost": 0.1184865,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788550913587_y2zf",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 0,
+   "end": 34,
+   "judged": {
+    "id": "c01",
+    "play": "The streamer reviews the map veto choices before the match starts.",
+    "play_quality": 1,
+    "line": "Talk about the three worst maps, bro.",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Routine pre-game map veto reaction with no gameplay action."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788550913586_8opy",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 303,
+   "end": 336,
+   "judged": {
+    "id": "c02",
+    "play": "100T secures a round win on Sunset.",
+    "play_quality": 5,
+    "line": "Let's go baby!",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Standard round win reaction that repeats frequently throughout the stream."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788550913587_ecju",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 443,
+   "end": 474,
+   "judged": {
+    "id": "c03",
+    "play": "100T wins an anti-eco round cleanly to take a 3-1 lead.",
+    "play_quality": 5,
+    "line": "We are actually cooking right now, boys.",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Solid team play, but one of many early round hype moments."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788550913586_6c9m",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 479,
+   "end": 507,
+   "judged": {
+    "id": "c04",
+    "play": "NRG calls an early timeout at 1-3, and the streamer points to his head in triumph.",
+    "play_quality": 4,
+    "line": "We're in their heads!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "A fun story beat highlighting how quickly 100T forced the opposing team to pause."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788550913587_dfx5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 575,
+   "end": 598,
+   "judged": {
+    "id": "c05",
+    "play": "Asuna gets an Operator pick through Mid on Sunset.",
+    "play_quality": 6,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 55,
+    "stands_out": false,
+    "reason": "Nice sniper kill, but his signature shout triggers on many similar plays."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788550913587_25zf",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.76,
+   "start": 629,
+   "end": 664,
+   "judged": {
+    "id": "c06",
+    "play": "100T wins a Flawless round, and the replay shows a funny jump scare encounter.",
+    "play_quality": 5,
+    "line": "It was a jump scare!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Amusing replay moment, but less impactful than the bigger clutches in this stream."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788550913587_tnuy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 727,
+   "end": 745,
+   "judged": {
+    "id": "c07",
+    "play": "Bang and Ethan trade kills through smokes on site.",
+    "play_quality": 6,
+    "line": null,
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Decent team fight, though outshone by cleaner multi-kill highlights later."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788550913587_tv95",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 840,
+   "end": 868,
+   "judged": {
+    "id": "c08",
+    "play": "Asuna pulls off an intense multi-kill under heavy pressure, forcing the streamer out of his chair.",
+    "play_quality": 8,
+    "line": "Oh my God!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "High-quality multi-kill play with peak streamer energy and a physical reaction."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788645603331_v2om",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 840,
+   "end": 868,
+   "judged": {
+    "id": "c09",
+    "play": "Asuna pulls off an intense multi-kill under heavy pressure (duplicate clip).",
+    "play_quality": 8,
+    "line": "Oh my God!",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Exact duplicate of clip c08."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788550913587_a813",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 961,
+   "end": 1012,
+   "judged": {
+    "id": "c10",
+    "play": "100T reads NRG's push and forces them to save weapons.",
+    "play_quality": 6,
+    "line": "Get him out of here, they gotta save!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Good round breakdown, but repetitive compared to bigger moments."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788645584705_toae",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 961,
+   "end": 1012,
+   "judged": {
+    "id": "c11",
+    "play": "100T reads NRG's push and forces them to save weapons (duplicate clip).",
+    "play_quality": 6,
+    "line": "Get him out of here, they gotta save!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Exact duplicate of clip c10."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788550913586_73lp",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 1069,
+   "end": 1099,
+   "judged": {
+    "id": "c12",
+    "play": "NRG calls their second timeout of the half, and the streamer proudly points to his 100T shirt.",
+    "play_quality": 4,
+    "line": "Two timeouts in one half! We're in their heads!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "Great narrative moment showing complete mental dominance in the match."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788645608198_or5d",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 1069,
+   "end": 1099,
+   "judged": {
+    "id": "c13",
+    "play": "NRG calls their second timeout of the half (duplicate clip).",
+    "play_quality": 4,
+    "line": "Two timeouts in one half! We're in their heads!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Exact duplicate of clip c12."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788550913587_hz1a",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 1146,
+   "end": 1193,
+   "judged": {
+    "id": "c14",
+    "play": "Bang wins a critical duel to seal a 2v1 advantage.",
+    "play_quality": 7,
+    "line": "Bang! 2v1!",
+    "keep_score": 70,
+    "stands_out": false,
+    "reason": "Strong play, but falls slightly behind the top-tier clutches of the match."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788550913587_4gi9",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.67,
+   "start": 1241,
+   "end": 1260,
+   "judged": {
+    "id": "c15",
+    "play": "100T wins a chaotic round, causing the streamer to briefly get confused before celebrating.",
+    "play_quality": 7,
+    "line": "Wait a minute, I think I'm rooting for the wrong person!",
+    "keep_score": 82,
+    "stands_out": true,
+    "reason": "Hilarious self-aware mix-up during a high-stakes round win."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788550913587_sln5",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.79,
+   "start": 1304,
+   "end": 1335,
+   "judged": {
+    "id": "c16",
+    "play": "Bang hits a crisp multi-kill to close out a round, launching the streamer out of his seat.",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 78,
+    "stands_out": true,
+    "reason": "Clean execution matched with top-level energetic physical reaction."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788550913586_itlm",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.87,
+   "start": 1365,
+   "end": 1406,
+   "judged": {
+    "id": "c17",
+    "play": "100T wins a round, but both teams look expressionless on camera, bewildering the streamer.",
+    "play_quality": 6,
+    "line": "Did we win or did we lose? I'm so confused!",
+    "keep_score": 88,
+    "stands_out": true,
+    "reason": "Extremely funny and unique observation of deadpan player reactions."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788645556274_jk17",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.87,
+   "start": 1365,
+   "end": 1406,
+   "judged": {
+    "id": "c18",
+    "play": "100T wins a round, but both teams look expressionless on camera (duplicate clip).",
+    "play_quality": 6,
+    "line": "Did we win or did we lose? I'm so confused!",
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Exact duplicate of clip c17."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788550913587_hzft",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.82,
+   "start": 1427,
+   "end": 1452,
+   "judged": {
+    "id": "c19",
+    "play": "An enemy player carelessly runs through a Viper wall and gets instantly eliminated.",
+    "play_quality": 6,
+    "line": "What do you need, a third timeout?!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "Great comical blunder by the opponent with a perfect callback line about timeouts."
+   }
+  },
+  {
+   "id": "c20",
+   "clipId": "clip_1788550913586_47ny",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 1501,
+   "end": 1546,
+   "judged": {
+    "id": "c20",
+    "play": "100T executes an insane retake featuring triple Operator setups and clean headshots.",
+    "play_quality": 9,
+    "line": "It's too easy bro! You're not that guy!",
+    "keep_score": 92,
+    "stands_out": true,
+    "reason": "The highest quality play of the match paired with unhinged peak excitement from the streamer."
+   }
+  },
+  {
+   "id": "c21",
+   "clipId": "clip_1788550913587_0lqq",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 1581,
+   "end": 1618,
+   "judged": {
+    "id": "c21",
+    "play": "100T secures a dominant half, and the streamer celebrates before chuckling at a stadium ad.",
+    "play_quality": 5,
+    "line": "We are going to Champs man! We are winning it all!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Fun halftime milestone hype, though less dramatic than live in-round highlights."
+   }
+  }
+ ]
+}

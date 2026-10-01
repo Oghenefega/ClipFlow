@@ -1,0 +1,328 @@
+{
+ "projectId": "proj_1787975114669_npo6tw",
+ "name": "2026-08-28 100T Day2 Pt4",
+ "mode": "single",
+ "cost": 0.1521045,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1787975501781_hkws",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 31,
+   "end": 61,
+   "judged": {
+    "play": "Pre-game agent select phase prior to the match starting",
+    "play_quality": 0,
+    "line": "I want a Phoenix ace tonight, Asuna.",
+    "keep_score": 10,
+    "reason": "This is pre-match agent selection chatter without any gameplay action or notable highlight moment."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1787975501781_3j06",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "flat-delivery"
+   ],
+   "confidence": 0.61,
+   "start": 123,
+   "end": 136,
+   "judged": {
+    "play": "No gameplay action; streamer watches player cams during agent select phase",
+    "play_quality": 0,
+    "line": "Man said, you know what, I'mma just step down, pick something else.",
+    "keep_score": 15,
+    "reason": "This is minor pre-match banter about agent picks with no actual gameplay occurring."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1787975501781_ouno",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 172,
+   "end": 188,
+   "judged": {
+    "play": "100T plants the spike on B site without any engagements or kills occurring on screen.",
+    "play_quality": 2,
+    "line": "I don't know what I've just seen in the past 15 seconds",
+    "keep_score": 10,
+    "reason": "The clip shows routine positioning and a spike plant without any kills or high-stakes action to make it a highlight."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1787975501780_d0re",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.86,
+   "start": 264,
+   "end": 299,
+   "judged": {
+    "play": "The creator notices on the HUD that LEV players died unusually fast during an eco round while spectating buy phase setups.",
+    "play_quality": 2,
+    "line": "Did they just kill themselves? What?",
+    "keep_score": 20,
+    "reason": "This is just casual commentary during round downtime without any actual gameplay action or highlight play."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1787975501780_yg0x",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 319,
+   "end": 335,
+   "judged": {
+    "play": "Early round setup with no engagement or kills occurring on screen.",
+    "play_quality": 1,
+    "line": "I'm thinking 13-3.",
+    "keep_score": 5,
+    "reason": "The clip consists entirely of casual score predictions between rounds with no active gameplay or dramatic moments."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1787975501780_q03i",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 410,
+   "end": 456,
+   "judged": {
+    "play": "Lev's coach slams the physical red timeout button on stage",
+    "play_quality": 2,
+    "line": "Yo, did he just hit the big red button?!",
+    "keep_score": 75,
+    "reason": "It is a genuinely funny observation about the overly dramatic physical timeout button on stage that makes for entertaining reaction content."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788149370220_gqno",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 410,
+   "end": 456,
+   "judged": {
+    "play": "Leviathan calls a timeout against 100 Thieves, showing the coach camera hitting the stage timeout button.",
+    "play_quality": 3,
+    "line": "That is so dramatic for no reason!",
+    "keep_score": 78,
+    "reason": "The streamer delivers a funny and entertaining reaction observing the dramatic big red timeout button on stage."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1787975501781_htbz",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "flat-delivery"
+   ],
+   "confidence": 0.63,
+   "start": 578,
+   "end": 597,
+   "judged": {
+    "play": "100T takes A site and plants the spike cleanly with no active gunfights or kills shown.",
+    "play_quality": 2,
+    "line": "Bro, like I was going to be like, can we...",
+    "keep_score": 5,
+    "reason": "This is a routine spike plant round without any kills or hype reactions from the creator."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1787975501781_v3b5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 614,
+   "end": 646,
+   "judged": {
+    "play": "100T bang gets a single kill on Tex to secure the round win.",
+    "play_quality": 3,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 15,
+    "reason": "A routine single kill to close out a round is not a highlight, even when accompanied by his signature hype line."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1787975501780_b2y7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.92,
+   "start": 683,
+   "end": 712,
+   "judged": {
+    "play": "LEV gets a rapid Flawless round against 100 Thieves to close out the round instantly.",
+    "play_quality": 8,
+    "line": "Oh my god! God damn!",
+    "keep_score": 80,
+    "reason": "The sudden flawless round wipeout of his team leaves him in utter disbelief with his hands on his head."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1787975501781_gpzd",
+   "decision": "rejected",
+   "reasons": [
+    "not-funny"
+   ],
+   "confidence": 0.75,
+   "start": 811,
+   "end": 835,
+   "judged": {
+    "play": "100 Thieves secures a round victory to go up 5-1, followed by post-round reactions and replay analysis.",
+    "play_quality": 3,
+    "line": "LET'S GO BABY!",
+    "keep_score": 20,
+    "reason": "This clip consists mostly of routine round-end celebration and tactical analysis during a replay without an impressive live play."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1787975501780_taum",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 930,
+   "end": 975,
+   "judged": {
+    "play": "100 Thieves cleanly executes on A site and eliminates Leviatán to win round 9.",
+    "play_quality": 6,
+    "line": "IT'S TOO EASY! IT'S TOO EASY!",
+    "keep_score": 70,
+    "reason": "His enthusiastic celebration and signature team loyalty make this a solid fan moment for his channel."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1787975501781_hioy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 1057,
+   "end": 1070,
+   "judged": {
+    "play": "100 Thieves plants the spike in a 3v3 post-plant setup on Lotus with minimal engagement.",
+    "play_quality": 2,
+    "line": null,
+    "keep_score": 5,
+    "reason": "Nothing notable or exciting occurs during this clip, and the creator barely reacts while watching the round setup."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1787975501781_yhst",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 1084,
+   "end": 1121,
+   "judged": {
+    "play": "A player blindly sprays into a smoke wall during a replay before getting eliminated.",
+    "play_quality": 3,
+    "line": "emptying that clip against that wall",
+    "keep_score": 25,
+    "reason": "The streamer laughs at a player's failed wall-bang, but it lacks a high-quality play or standout story beat to be a memorable highlight."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1787975501781_jmat",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.82,
+   "start": 1183,
+   "end": 1207,
+   "judged": {
+    "play": "Streamer watches replay footage while discussing Valorant flash mechanics and patch changes with caster commentary.",
+    "play_quality": 2,
+    "line": "Glory to God, because that was super broken",
+    "keep_score": 15,
+    "reason": "This clip features casual commentary on game patch changes over replay footage without any high-stakes gameplay or highlight-worthy reaction."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1787975501781_m6qa",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 1298,
+   "end": 1339,
+   "judged": {
+    "play": "Leviatán rapidly wipes out 100 Thieves at B site to secure the round victory.",
+    "play_quality": 6,
+    "line": "NO!",
+    "keep_score": 50,
+    "reason": "The streamer's hilarious, head-in-hands reaction to his team getting suddenly wiped makes for a decent reaction moment despite the play being a loss."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1787975501781_dt63",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.69,
+   "start": 1368,
+   "end": 1407,
+   "judged": {
+    "play": "No active play; routine round setup without kills or combat action.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 0,
+    "reason": "This is quiet background commentary during round setup with no combat plays or notable reaction."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1787975501781_7zc2",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.67,
+   "start": 1461,
+   "end": 1499,
+   "judged": {
+    "play": "100 Thieves loses another round to LEV, falling behind 4-7.",
+    "play_quality": 2,
+    "line": "Yo, what the heck? What the freak?",
+    "keep_score": 15,
+    "reason": "This is just routine frustration over his team losing a round without any notable play or standout moment."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1787975501781_q9ka",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.71,
+   "start": 1571,
+   "end": 1602,
+   "judged": {
+    "play": "100 Thieves wins a round to reach 7-4, followed by player reactions and replay footage.",
+    "play_quality": 4,
+    "line": "Oh my goodness!",
+    "keep_score": 25,
+    "reason": "The clip features a standard round end transition and commentary without a standout multi-kill or clutch play."
+   }
+  }
+ ]
+}

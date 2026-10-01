@@ -1,0 +1,153 @@
+{
+ "projectId": "proj_1788551120819_9oyrwh",
+ "name": "2026-09-04 100T Day3 Pt2",
+ "mode": "stream",
+ "cost": 0.048146999999999995,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788551277519_we54",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 79,
+   "end": 124,
+   "judged": {
+    "id": "c01",
+    "play": "100T executes on A site and secures the spike plant in a post-plant scenario.",
+    "play_quality": 3,
+    "line": null,
+    "keep_score": 25,
+    "stands_out": false,
+    "reason": "Standard post-plant positioning without any major multi-kills or extraordinary clutch plays."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788551277518_gwm7",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 147,
+   "end": 173,
+   "judged": {
+    "id": "c02",
+    "play": "Replay showing Bang's impressive clutch play extending 100T's massive lead to 10-3.",
+    "play_quality": 7,
+    "line": "100 Thieves are the best in the world!",
+    "keep_score": 75,
+    "stands_out": true,
+    "reason": "Captures a high-energy, confident reaction to a dominant performance replay from Bang."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788551277518_6azl",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 223,
+   "end": 250,
+   "judged": {
+    "id": "c03",
+    "play": "100T Vora closes out a tense 1v1 diffusal/clutch round.",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Featured an intense clutch kill accompanied by his signature hype line while standing up."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788551277519_xhy5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 306,
+   "end": 327,
+   "judged": {
+    "id": "c04",
+    "play": "100T pushes site effectively to secure round 12.",
+    "play_quality": 5,
+    "line": "It's so easy bro!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Good team execution, but overshadowed by the definitive map-winning plays that follow."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788551277519_uxp7",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.86,
+   "start": 329,
+   "end": 358,
+   "judged": {
+    "id": "c05",
+    "play": "100T finishes off Map 1 with a commanding 13-3 scoreline.",
+    "play_quality": 8,
+    "line": "This is clinical, bro.",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "A major story milestone as 100T complete a blowout map victory."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788551277518_jsn8",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.97,
+   "start": 360,
+   "end": 404,
+   "judged": {
+    "id": "c06",
+    "play": "Bang delivers a crisp 3K multi-kill through smoke to seal Map 1.",
+    "play_quality": 9,
+    "line": "OH MY GOODNESS! 3K FROM BANG!",
+    "keep_score": 92,
+    "stands_out": true,
+    "reason": "The absolute highlight of the map, pairing a clean triple kill with intense creator excitement."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788551277519_0hte",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 416,
+   "end": 434,
+   "judged": {
+    "id": "c07",
+    "play": "The creator mocks opponent/analyst predictions during the post-map sequence.",
+    "play_quality": 4,
+    "line": "Are you sure about that?",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Fun banter taunting opponents, but lacks gameplay drama compared to the main map moments."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788551277519_lyw3",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.89,
+   "start": 438,
+   "end": 477,
+   "judged": {
+    "id": "c08",
+    "play": "The creator talks through the upcoming map match-ups during the broadcast break.",
+    "play_quality": 2,
+    "line": "Another trophy is coming home!",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "General stream chat and intermission speculation without gameplay."
+   }
+  }
+ ]
+}

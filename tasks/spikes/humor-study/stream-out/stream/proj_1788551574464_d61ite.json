@@ -1,0 +1,409 @@
+{
+ "projectId": "proj_1788551574464_d61ite",
+ "name": "2026-09-04 100T Day3 Pt3",
+ "mode": "stream",
+ "cost": 0.1350225,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788552092102_udlx",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.68,
+   "start": 71,
+   "end": 137,
+   "judged": {
+    "id": "c01",
+    "play": "Post-map desk review showing Map 1 stats and MVP votes for 100 Thieves after a 13-3 victory.",
+    "play_quality": 3,
+    "line": "Come on man, you can't have an ace like that...",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Post-game breakdown with low gameplay action compared to the live hype rounds later in the stream."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788552092101_d0pi",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 189,
+   "end": 239,
+   "judged": {
+    "id": "c02",
+    "play": "Agent pick screen for Map 2 (Sunset) showing Asuna on Phoenix and Timotino on Neon as streamer taunts NRG fans.",
+    "play_quality": 5,
+    "line": "If you're an NRG fan, go home!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Fun pre-match trash talk, but lacks live in-game plays."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788552092102_npra",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 281,
+   "end": 333,
+   "judged": {
+    "id": "c03",
+    "play": "Caster commentary before the match starts while the streamer talks about feeling energy surging through his veins.",
+    "play_quality": 2,
+    "line": "I've got so much energy surging through my veins right now guys.",
+    "keep_score": 20,
+    "stands_out": false,
+    "reason": "Routine pre-game hype talk with no game action happening on screen."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788552092102_tuc3",
+   "decision": "rejected",
+   "reasons": [
+    "needs-context"
+   ],
+   "confidence": 0.85,
+   "start": 438,
+   "end": 467,
+   "judged": {
+    "id": "c04",
+    "play": "Streamer mocks caster comments about NRG's experience before Map 2 starts.",
+    "play_quality": 4,
+    "line": "We're not on your level, Mata, okay?!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Amusing fan banter, but lacks the excitement of actual round wins."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788552092102_50ut",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 534,
+   "end": 560,
+   "judged": {
+    "id": "c05",
+    "play": "100 Thieves win the pistol round on Sunset and streamer jumps up screaming.",
+    "play_quality": 4,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Standard pistol round win reaction that repeats similar energy seen throughout the watch party."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788552092102_24dr",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 609,
+   "end": 657,
+   "judged": {
+    "id": "c06",
+    "play": "NRG wins an eco round against 100T on Sunset and streamer rationalizes the loss.",
+    "play_quality": 3,
+    "line": "We were winning a little bit too easy, so we needed to just...",
+    "keep_score": 40,
+    "stands_out": false,
+    "reason": "Streamer copes with a round loss; low play quality for 100T."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788552092102_1qm0",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.72,
+   "start": 682,
+   "end": 717,
+   "judged": {
+    "id": "c07",
+    "play": "100T eco round setup with classics in A Main.",
+    "play_quality": 3,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "Generic eco round setup with his default kill callout."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788552092102_pwp5",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 742,
+   "end": 775,
+   "judged": {
+    "id": "c08",
+    "play": "Streamer jokes about player Ethan's nose strip while waiting between rounds.",
+    "play_quality": 2,
+    "line": "You see that stuff on Ethan's nose? It's the lack of oxygen man.",
+    "keep_score": 30,
+    "stands_out": false,
+    "reason": "Minor commentary beat during round downtime."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788552092101_rf4i",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 815,
+   "end": 841,
+   "judged": {
+    "id": "c09",
+    "play": "Vora secures a clean multi-kill round win for 100T.",
+    "play_quality": 7,
+    "line": "THAT'S MY IGL! ARE YOU NOT ENTERTAINED?!",
+    "keep_score": 85,
+    "stands_out": true,
+    "reason": "Combines a great multi-kill round win by Vora with one of his most iconic, quotable reactions."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788552092102_b4tv",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.79,
+   "start": 938,
+   "end": 959,
+   "judged": {
+    "id": "c10",
+    "play": "Replay of a 100T team ace round win as streamer laughs at NRG celebrating single round wins.",
+    "play_quality": 5,
+    "line": "A round is not a match, all right? Calm down!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Decent team play replay, but lacks the raw hype of live multi-kills."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788552092102_m6lg",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.84,
+   "start": 963,
+   "end": 997,
+   "judged": {
+    "id": "c11",
+    "play": "NRG takes another timeout, prompting streamer to mock their desperation.",
+    "play_quality": 5,
+    "line": "This is our qualification match, ladies and gentlemen!",
+    "keep_score": 65,
+    "stands_out": false,
+    "reason": "Good comedic story beat mocking timeouts, but no active gameplay."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788552092102_vjka",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.7,
+   "start": 1151,
+   "end": 1183,
+   "judged": {
+    "id": "c12",
+    "play": "100T executes a 5v5 retake win on B site with Asuna getting key frags.",
+    "play_quality": 5,
+    "line": "GET HIM OUT OF THERE ASUNA!",
+    "keep_score": 50,
+    "stands_out": false,
+    "reason": "Solid retake win, but surrounded by higher quality multi-kill highlights in this stream."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788552092102_cc9m",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.62,
+   "start": 1212,
+   "end": 1245,
+   "judged": {
+    "id": "c13",
+    "play": "Bang lands a rapid multi-kill to secure the round for 100T.",
+    "play_quality": 7,
+    "line": "BANG! BANG! YEAH BANG! BANG! THE BIGGEST OF THEM ALL BANG!",
+    "keep_score": 80,
+    "stands_out": true,
+    "reason": "An explosive play from Bang accompanied by an energetic name-pun reaction."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788552092101_ckfy",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 1282,
+   "end": 1324,
+   "judged": {
+    "id": "c14",
+    "play": "100T dismantles NRG in a fast, flawless round win.",
+    "play_quality": 8,
+    "line": "They're all dropping like flies! Left and right!",
+    "keep_score": 92,
+    "stands_out": true,
+    "reason": "Peak stream moment featuring a flawless round and top-tier explosive excitement."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788552092102_xksx",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.87,
+   "start": 1331,
+   "end": 1353,
+   "judged": {
+    "id": "c15",
+    "play": "100T tries to hunt down saving NRG players at the end of a round.",
+    "play_quality": 4,
+    "line": "Why are you running, bro?",
+    "keep_score": 45,
+    "stands_out": false,
+    "reason": "Routine post-round saving chase with moderate energy."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788552092102_2qd4",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.76,
+   "start": 1383,
+   "end": 1415,
+   "judged": {
+    "id": "c16",
+    "play": "NRG calls another tactical timeout as streamer mocks them again.",
+    "play_quality": 5,
+    "line": "They're begging Valorant, 'Can we have one more, please?!'",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Repeats the timeout taunt trope from earlier in the watch party."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788552092101_4cgx",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.91,
+   "start": 1491,
+   "end": 1510,
+   "judged": {
+    "id": "c17",
+    "play": "Bang gets a predicted Sheriff headshot entry on A site.",
+    "play_quality": 6,
+    "line": "I said it! I called it! Oh my goodness!",
+    "keep_score": 70,
+    "stands_out": false,
+    "reason": "Nice prediction and clean shot, but shorter and less impactful than full multi-kill rounds."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788552092102_f0up",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 1529,
+   "end": 1560,
+   "judged": {
+    "id": "c18",
+    "play": "Asuna pops Run It Back ultimate and gets aggressive multi-kills to shut down NRG on A site.",
+    "play_quality": 8,
+    "line": "ASUNA BABY! WHAT'S UP ETHAN?",
+    "keep_score": 88,
+    "stands_out": true,
+    "reason": "High play quality with Asuna's Phoenix ult entry play paired with peak hype clapping and yelling."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788552092102_q5rg",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.77,
+   "start": 1568,
+   "end": 1591,
+   "judged": {
+    "id": "c19",
+    "play": "Replay showing Cryo's crisp Operator flicks in A Link.",
+    "play_quality": 7,
+    "line": "Snappy without adjustment! I love that bro!",
+    "keep_score": 75,
+    "stands_out": false,
+    "reason": "Great Operator multi-kill replay, though it is a replay rather than live reaction."
+   }
+  },
+  {
+   "id": "c20",
+   "clipId": "clip_1788552092102_vvz5",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.88,
+   "start": 1642,
+   "end": 1671,
+   "judged": {
+    "id": "c20",
+    "play": "Cryo hits a key Operator shot on B site during live play to seal the round.",
+    "play_quality": 6,
+    "line": "GET HIM OUT OF THERE!",
+    "keep_score": 60,
+    "stands_out": false,
+    "reason": "Good single Op pick and round finish, but less impactful than the multi-kill clips."
+   }
+  },
+  {
+   "id": "c21",
+   "clipId": "clip_1788552092102_86n8",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 1678,
+   "end": 1704,
+   "judged": {
+    "id": "c21",
+    "play": "Replay of 100T completely shutting down NRG's site push.",
+    "play_quality": 7,
+    "line": "Oh my goodness! You can't stop us, bro!",
+    "keep_score": 70,
+    "stands_out": false,
+    "reason": "Strong defensive hold replay, but overshadowed by live reactions to full team stomps."
+   }
+  },
+  {
+   "id": "c22",
+   "clipId": "clip_1788552092102_qjj3",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.63,
+   "start": 1740,
+   "end": 1792,
+   "judged": {
+    "id": "c22",
+    "play": "NRG wins a round using Sova ultimate on B site.",
+    "play_quality": 4,
+    "line": null,
+    "keep_score": 35,
+    "stands_out": false,
+    "reason": "A round loss for 100T with calm analysis from the streamer."
+   }
+  }
+ ]
+}

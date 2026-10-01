@@ -1,0 +1,333 @@
+{
+ "projectId": "proj_1788751209888_a7egg9",
+ "name": "2026-09-06 100T Day4 Pt1",
+ "mode": "single",
+ "cost": 0.18644100000000002,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788751719527_k32v",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.65,
+   "start": 313,
+   "end": 358,
+   "judged": {
+    "play": "Pre-game intro and map veto showing player cams and crowd shots before the match starts",
+    "play_quality": 0,
+    "line": "100 Thieves, we're getting the job done!",
+    "keep_score": 10,
+    "reason": "This is just pre-game setup and intro narration without any gameplay action or highlight-worthy moments."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788751719527_ps0t",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.61,
+   "start": 453,
+   "end": 494,
+   "judged": {
+    "play": "Pre-match broadcast footage showing player camera clips and the stage trophy without any gameplay.",
+    "play_quality": 0,
+    "line": null,
+    "keep_score": 5,
+    "reason": "This is pre-match broadcast narration and team commentary without any gameplay action or notable highlight moment."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788751719526_b6qf",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.87,
+   "start": 521,
+   "end": 552,
+   "judged": {
+    "play": "Pre-match broadcast showing the crowd and players getting ready before the match starts",
+    "play_quality": 0,
+    "line": "We're about to silence this arena.",
+    "keep_score": 10,
+    "reason": "This is just pre-match intro narration and hype before any gameplay action takes place."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788751719527_2gnz",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter"
+   ],
+   "confidence": 0.74,
+   "start": 666,
+   "end": 713,
+   "judged": {
+    "play": "Map veto reveals Split as the first map during agent selection",
+    "play_quality": 0,
+    "line": "We're playing Split first! We're loading up boys!",
+    "keep_score": 10,
+    "reason": "This is pre-match commentary during map pick and agent selection with no gameplay action."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788751719527_8b83",
+   "decision": "rejected",
+   "reasons": [
+    "chat-banter",
+    "nothing-happens"
+   ],
+   "confidence": 0.58,
+   "start": 763,
+   "end": 797,
+   "judged": {
+    "play": "Pre-match broadcast screen showing player cams and team statistics before the game starts",
+    "play_quality": 0,
+    "line": "Grab your popcorn, okay? It's a best of 5.",
+    "keep_score": 5,
+    "reason": "This is just routine pre-match commentary and statistics analysis with no active gameplay or notable stream moment."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788751719526_0km1",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 852,
+   "end": 914,
+   "judged": {
+    "play": "LOUD rapidly executes onto A site and wipes out three 100 Thieves players instantly before closing out the pistol round.",
+    "play_quality": 7,
+    "line": "OH MY GOD! HE JUST WIPED US! NOOO!",
+    "keep_score": 85,
+    "reason": "His explosive, hands-on-head reaction to his team getting instantly decimated in the opening round is funny and memorable."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788808189421_z88s",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.85,
+   "start": 852,
+   "end": 914,
+   "judged": {
+    "play": "LOUD rapidly shuts down 100 Thieves on A site to win pistol round cleanly.",
+    "play_quality": 4,
+    "line": "Damn, how the heck did three of us fall like that?",
+    "keep_score": 15,
+    "reason": "His team gets wiped early in pistol round and his copium reaction is standard, making it a weak highlight candidate."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788751719527_40ee",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.72,
+   "start": 929,
+   "end": 968,
+   "judged": {
+    "play": "LOUD secures a flawless round win against 100T and buys Phantoms in the following round.",
+    "play_quality": 2,
+    "line": "You've got to be a maniac to buy a Phantom!",
+    "keep_score": 10,
+    "reason": "This is routine buy-phase commentary and downtime reaction without any notable play or standout highlight moment."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788751719526_m17s",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.79,
+   "start": 1042,
+   "end": 1084,
+   "judged": {
+    "play": "100 Thieves loses another round to go down 0-3 against LOUD, followed by round replay analysis.",
+    "play_quality": 2,
+    "line": "We're getting dropped, man, what the heck?",
+    "keep_score": 15,
+    "reason": "This is routine match commentary and disappointment over his team getting dominated rather than a highlight play or standout moment."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788751719526_764l",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 1097,
+   "end": 1146,
+   "judged": {
+    "play": "100 Thieves wins round 4 after traded kills to get their first point on the board.",
+    "play_quality": 5,
+    "line": "Get him out of my face, bro!",
+    "keep_score": 40,
+    "reason": "Although the creator gets hyped and stands up for 100 Thieves getting on the board, the round itself is routine with standard trades rather than a standout play."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788751719527_sdv0",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.7,
+   "start": 1168,
+   "end": 1210,
+   "judged": {
+    "play": "100T Cryo gets a clean Operator pick mid while playing Yoru.",
+    "play_quality": 7,
+    "line": "WOOOOOO! LET'S GO!",
+    "keep_score": 85,
+    "reason": "The streamer stands up out of his chair and screams in excitement following a great Operator pick by Cryo."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788751719526_r7o7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.9,
+   "start": 1267,
+   "end": 1318,
+   "judged": {
+    "play": "100 Thieves win round 5 against LOUD to make it 2-3, followed by the buy phase for round 6.",
+    "play_quality": 2,
+    "line": "Remember it's a heist! When you're doing a heist, you don't make a lot of noise, guys!",
+    "keep_score": 70,
+    "reason": "While there is no clip-worthy gameplay moment on screen, his creative 'heist' speech about 100 Thieves quietly stealing the match makes for a funny commentary clip."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788751719527_67ug",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "needs-context"
+   ],
+   "confidence": 0.63,
+   "start": 1328,
+   "end": 1370,
+   "judged": {
+    "play": "Routine mid-round rotations and utility positioning during a 2v2 situation with no kills taking place.",
+    "play_quality": 2,
+    "line": "I promise you it's a 2v2.",
+    "keep_score": 5,
+    "reason": "The clip features standard map movements and mid-round analysis without any kills or action highlights."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788751719526_l3ls",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.81,
+   "start": 1408,
+   "end": 1421,
+   "judged": {
+    "play": "The creator reacts to the scoreboard showing player eeiu going 11-2 during a match transition.",
+    "play_quality": 1,
+    "line": "Who is this guy? Where did they find this dude?",
+    "keep_score": 15,
+    "reason": "This is merely commentary on scoreboard statistics during a broadcast break without any actual gameplay or highlight action."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788751719526_st53",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.95,
+   "start": 1447,
+   "end": 1525,
+   "judged": {
+    "play": "LOUD's Tuyz clutches a 1v3 round against 100 Thieves on B site.",
+    "play_quality": 8,
+    "line": "WHY ARE WE GIVING HIM A 1v3?!",
+    "keep_score": 88,
+    "reason": "A clutch 1v3 play against 100 Thieves triggers an intensely frantic and passionate reaction from the streamer."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788751719526_g1ky",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 1549,
+   "end": 1603,
+   "judged": {
+    "play": "100 Thieves call a tactical timeout while down 2-5 against LOUD.",
+    "play_quality": 2,
+    "line": "Why are we looking downcast already?",
+    "keep_score": 15,
+    "reason": "This clip features only stream pep talk during a tactical timeout without any gameplay action or notable highlight."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788751719527_vd0e",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "not-funny"
+   ],
+   "confidence": 0.68,
+   "start": 1599,
+   "end": 1625,
+   "judged": {
+    "play": "100T executes standard utility setups in garage and mid during a round with no kills recorded.",
+    "play_quality": 1,
+    "line": "It's all part of the plan, ladies and gentlemen.",
+    "keep_score": 10,
+    "reason": "This is purely analytical commentary over standard setup play with no kills or notable action."
+   }
+  },
+  {
+   "id": "c18",
+   "clipId": "clip_1788751719526_tw1u",
+   "decision": "rejected",
+   "reasons": [],
+   "confidence": 0.77,
+   "start": 1702,
+   "end": 1731,
+   "judged": {
+    "play": "No active play shown; video features crowd reactions, player facecams, and round downtime with LOUD leading 6-2.",
+    "play_quality": 1,
+    "line": "It's all good squad.",
+    "keep_score": 10,
+    "reason": "This clip consists entirely of round downtime commentary and coping without any highlight-worthy gameplay moments."
+   }
+  },
+  {
+   "id": "c19",
+   "clipId": "clip_1788751719527_hoez",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 1789,
+   "end": 1802,
+   "judged": {
+    "play": "Replay showing an Iso player getting a single kill while the streamer reacts to the loud home crowd environment.",
+    "play_quality": 3,
+    "line": "What is this home advantage buff, bro?",
+    "keep_score": 25,
+    "reason": "The clip only features a standard replay kill while the creator makes a minor observation about the home crowd."
+   }
+  }
+ ]
+}

@@ -1,0 +1,299 @@
+{
+ "projectId": "proj_1788752621083_0c18l9",
+ "name": "2026-09-06 100T Day4 Pt3",
+ "mode": "single",
+ "cost": 0.1693305,
+ "missing": [],
+ "clips": [
+  {
+   "id": "c01",
+   "clipId": "clip_1788753143966_7m3g",
+   "decision": "approved",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.95,
+   "start": 67,
+   "end": 153,
+   "judged": {
+    "play": "100T Cryo secures multiple kills on the pistol round while eeiu intensely celebrates on stage.",
+    "play_quality": 8,
+    "line": "This guy is giving me Eren vibes!",
+    "keep_score": 85,
+    "reason": "Cryo's crisp pistol play combined with eeiu's passionate stage celebration sparks an extremely energetic reaction from the streamer."
+   }
+  },
+  {
+   "id": "c02",
+   "clipId": "clip_1788753143967_4ybr",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens"
+   ],
+   "confidence": 0.88,
+   "start": 162,
+   "end": 190,
+   "judged": {
+    "play": "100T Cryo lands a fast, precise Operator pick on a moving enemy as 100 Thieves secure a Flawless round.",
+    "play_quality": 6,
+    "line": "You think you're moving fast? I'll show you fast, bro!",
+    "keep_score": 55,
+    "reason": "It is a solid, high-energy reaction to a sharp Operator pick, though it is ultimately just a single opening kill."
+   }
+  },
+  {
+   "id": "c03",
+   "clipId": "clip_1788753143967_qw13",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.93,
+   "start": 220,
+   "end": 273,
+   "judged": {
+    "play": "Cryo secures a 4K round for 100 Thieves using Chamber's Operator.",
+    "play_quality": 8.5,
+    "line": "GET HIM OUT OF MY FACE BRO! GET HIM OUT OF HERE!",
+    "keep_score": 88,
+    "reason": "A multi-kill play by Cryo wins a critical round, driving a massive hyped reaction from the streamer."
+   }
+  },
+  {
+   "id": "c04",
+   "clipId": "clip_1788753143967_6sbn",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.73,
+   "start": 387,
+   "end": 425,
+   "judged": {
+    "play": "Cryo gets peeked and eliminated early in the round, taking down 100T's star player.",
+    "play_quality": 2,
+    "line": "How come he saw Cryo before Cryo saw him?",
+    "keep_score": 15,
+    "reason": "A routine early pick resulting in his team's player dying is not a highlight-worthy play."
+   }
+  },
+  {
+   "id": "c05",
+   "clipId": "clip_1788753143968_clib",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.61,
+   "start": 563,
+   "end": 592,
+   "judged": {
+    "play": "100 Thieves secures trade kills in Mid and cleans up LOUD to win the round",
+    "play_quality": 5,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 55,
+    "reason": "The streamer shows good excitement as his team wins the round, but the action consists of routine trade kills rather than an extraordinary individual play."
+   }
+  },
+  {
+   "id": "c06",
+   "clipId": "clip_1788753143967_pys7",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.8,
+   "start": 619,
+   "end": 674,
+   "judged": {
+    "play": "LOUD calls an early tactical timeout while down 4-2, prompting the creator to taunt them.",
+    "play_quality": 0,
+    "line": "Pockets empty, wallets gone, trophies gone!",
+    "keep_score": 85,
+    "reason": "The opposing team calling an early timeout sparks an energetic and entertaining rant about making the enemy uncomfortable."
+   }
+  },
+  {
+   "id": "c07",
+   "clipId": "clip_1788753143967_tzie",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.74,
+   "start": 689,
+   "end": 711,
+   "judged": {
+    "play": "Asuna gets instantly eliminated by LOUD right as the streamer is praising his gameplay.",
+    "play_quality": 3,
+    "line": "What? What? I was just talking about Asuna just now! What? What the flip?",
+    "keep_score": 70,
+    "reason": "The hilarious streamer-curse timing of Asuna dying right after receiving praise makes for a great funny clip."
+   }
+  },
+  {
+   "id": "c08",
+   "clipId": "clip_1788753143967_bazd",
+   "decision": "rejected",
+   "reasons": [
+    "live-only"
+   ],
+   "confidence": 0.84,
+   "start": 803,
+   "end": 849,
+   "judged": {
+    "play": "vorax gets a single kill in B Main while 100T sets up B site defense",
+    "play_quality": 2,
+    "line": "What did I say? What did I say, guys?",
+    "keep_score": 10,
+    "reason": "The clip shows only a single routine kill without a big play on screen to back up the streamer's reaction."
+   }
+  },
+  {
+   "id": "c09",
+   "clipId": "clip_1788753143967_7fmy",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.78,
+   "start": 933,
+   "end": 970,
+   "judged": {
+    "play": "Tactical timeout during the VCT match",
+    "play_quality": 0,
+    "line": "Nah, it was even worse the second time!",
+    "keep_score": 20,
+    "reason": "This is minor downtime filler where the creator jokes about fumbling his own motivational speech during a timeout."
+   }
+  },
+  {
+   "id": "c10",
+   "clipId": "clip_1788753143967_x5hb",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.83,
+   "start": 1031,
+   "end": 1063,
+   "judged": {
+    "play": "Timotino executes a clean double-kill spray transfer over a Sage wall to win the engagement.",
+    "play_quality": 8,
+    "line": "GET HIM OUT OF HERE!",
+    "keep_score": 90,
+    "reason": "His electric reaction matching a spectacular multi-kill spray transfer by 100 Thieves makes this an ideal highlight."
+   }
+  },
+  {
+   "id": "c11",
+   "clipId": "clip_1788753143967_u92w",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.75,
+   "start": 1103,
+   "end": 1154,
+   "judged": {
+    "play": "100T Cryo shuts down the final LOUD player to win the round 6-4.",
+    "play_quality": 5,
+    "line": "Can't give these boys any sense of belief and hope!",
+    "keep_score": 65,
+    "reason": "The final kill is straightforward, but his dramatic silent build-up and humorous taunting after the opponent's revive make for a fun moment."
+   }
+  },
+  {
+   "id": "c12",
+   "clipId": "clip_1788753143967_i9qc",
+   "decision": "rejected",
+   "reasons": [
+    "nothing-happens",
+    "no-payoff"
+   ],
+   "confidence": 0.71,
+   "start": 1177,
+   "end": 1203,
+   "judged": {
+    "play": "100T Cryo holds A main with an Operator at the start of the round while LOUD hesitates to peek.",
+    "play_quality": 2,
+    "line": "Come against my Op, I'm gonna show you what's up, bro!",
+    "keep_score": 75,
+    "reason": "Although no kills occur during this clip, his energetic taunting and boxing stance directed at the opposing player make for a stand-out comedic moment."
+   }
+  },
+  {
+   "id": "c13",
+   "clipId": "clip_1788753143968_6b55",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.63,
+   "start": 1288,
+   "end": 1311,
+   "judged": {
+    "play": "Streamer watches player cams and a replay after a round ends, commenting on crowd noise.",
+    "play_quality": 2,
+    "line": "The crowd gave that away, bro!",
+    "keep_score": 15,
+    "reason": "This is mild post-round reaction and replay commentary without an impressive play or high-energy moment."
+   }
+  },
+  {
+   "id": "c14",
+   "clipId": "clip_1788753143967_s8zh",
+   "decision": "rejected",
+   "reasons": [
+    "live-only",
+    "no-reaction"
+   ],
+   "confidence": 0.69,
+   "start": 1336,
+   "end": 1374,
+   "judged": {
+    "play": "LOUD cauanzin picks off 100T Bang in Mid, taking site control.",
+    "play_quality": 3,
+    "line": "Oh my goodness! How, bro? We literally knew where he was.",
+    "keep_score": 20,
+    "reason": "A routine pickoff against 100T causes the creator to react in dismay, but the play itself lacks any highlight-worthy execution."
+   }
+  },
+  {
+   "id": "c15",
+   "clipId": "clip_1788753143968_ilsk",
+   "decision": "rejected",
+   "reasons": [
+    "no-reaction",
+    "live-only",
+    "nothing-happens"
+   ],
+   "confidence": 0.55,
+   "start": 1558,
+   "end": 1570,
+   "judged": {
+    "play": "Pre-round buy phase commentary as the match transitions to the second half pistol round with the score tied 6-6.",
+    "play_quality": 0,
+    "line": "They're young squad, they think they know what they're doing, but they don't.",
+    "keep_score": 10,
+    "reason": "This clip consists entirely of casual pre-round banter during a buy phase with no gameplay action or highlight-worthy play."
+   }
+  },
+  {
+   "id": "c16",
+   "clipId": "clip_1788753143968_qyns",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.67,
+   "start": 1589,
+   "end": 1619,
+   "judged": {
+    "play": "LOUD tuyz connects incredible Sheriff headshots to secure a 4K pistol round against 100 Thieves.",
+    "play_quality": 8,
+    "line": "Jesus, that was insane.",
+    "keep_score": 80,
+    "reason": "An incredible multi-kill Sheriff play that leaves the streamer in utter disbelief, even though it was against his team."
+   }
+  },
+  {
+   "id": "c17",
+   "clipId": "clip_1788753143968_lgo0",
+   "decision": "approved",
+   "reasons": [],
+   "confidence": 0.65,
+   "start": 1736,
+   "end": 1765,
+   "judged": {
+    "play": "LOUD wins the round after Tuyz hits an unbelievable multi-headshot spray with the Bulldog, leaving the creator in total disbelief.",
+    "play_quality": 7,
+    "line": "How is that even possible, fam?",
+    "keep_score": 65,
+    "reason": "The creator is left completely bewildered by an absurd Bulldog headshot burst from the enemy team, offering a genuinely funny reaction of disbelief."
+   }
+  }
+ ]
+}
