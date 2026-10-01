@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 282): 0.5.0-alpha.18 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.18 and the installer published to the update feed.** This build ships everything since alpha.17 (`e5e47f7..HEAD`): edit tracking with the Settings → Diagnostics "How much you edit" line (#479), and clip detection on Sonnet 5.5 at effort high with the clip count stated per recording (#480). Fega asked for this cut explicitly. The What's New entry was stamped with this version.
+
 ## [Unreleased] 2026-10-01 (session 282): clip-finding switched to Sonnet 5.5
 
 ### Changed

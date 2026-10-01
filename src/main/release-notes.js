@@ -12,8 +12,8 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.18",
+    date: "2026-10-01",
     added: [
       "Corva now keeps track of how much you edit each clip it makes before you post it, so it can learn to need less of your time. Settings → Diagnostics shows your average editing minutes per posted clip and how many go out with no edits. It fills in as you post.",
     ],
