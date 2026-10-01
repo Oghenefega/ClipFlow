@@ -1,57 +1,40 @@
-# HANDOFF — Session 280 (2026-09-29)
+# HANDOFF — Session 281 (2026-10-01)
 
 ## Current State
 
-**0.5.0-alpha.16 is on the update feed, and Fega installed it.** It carries:
-- the React switch (#474)
-- rename/retag/type switch with history (#475)
-- fixes #472, #476, #477
+**0.5.0-alpha.17 is on the update feed.** It carries two changes:
+- the YouTube layout starter (s280)
+- the Rename tab's relink tip for Resolve and Premiere (#473)
 
-**One change is committed but unreleased:** new games and reaction shows copy Fega's own YouTube layout and channel tags. Its What's New line is written under "unreleased".
-
-**Fega's library was edited by hand this session**, with Corva closed:
-- Fall Guys (`FG`) and Fall Guys Reacts (`FG-R`) were added by Fega.
-- I rebuilt their YouTube descriptions and tags from his layout. Backup: `%APPDATA%\Corva\data\backup-2026-09-29-fallguys-yt.json`.
-
-**Status of the issues:**
-- #472, #474, #475, #476 and #477 are closed with `status: untested`. Remove the label once Fega confirms.
-- #478 is filed: game-change split parts land in the recordings folder root, with no Pt number, and the original is kept.
+Fega has been told to relaunch and click Install. Nothing is unreleased.
 
 ## Key Decisions
 
-- **Reacting switch UI:**
-  - The Rename session header uses a "tight" switch that spells out only the active side. The full switch overflowed the header.
-  - The header wraps rather than clipping text.
-  - In the tight switch, ▾ shows only while Reacting is on.
-- **Links are editable in Settings:** a content type's Edit window has a "Reacts to" list (link, unlink, relink) and Make default. The boot link (`_migrated_reactsTo_v1`) runs once, so later edits stick.
-- **Content-type Edit window:** Research Game stays (GTA6 Reacts existed before GTA 6). Find on Steam and Play Style Auto-Update are hidden for content types.
-- **Starter YouTube text copies the user's layout.** The source is the main game's description: its first paragraph is swapped for the new blurb and its hashtag for the new one. New entries also get the "channel tags" found on at least half of the user's entries. A user with no descriptions still gets the generic starter, so no one inherits another person's links (#262 holds).
-- **Fall Guys taxonomy:** a reaction to Fega's own old Fall Guys stream goes under Fall Guys Reacts, not Just Chatting. An old gameplay clip imported to post goes under Fall Guys.
+- **#473 "Keep original file name" is parked, not built.** Fega can now relink Resolve himself: his editing agent Dizzy ran a Resolve script that calls `MediaPoolItem.ReplaceClip(newPath)` once per source file, which brings every cut back. The steps are in a comment on #473.
+- **Customers get a tip instead.** It's a closable strip on the Rename tab's Pending list, with the Resolve and Premiere steps (store key `relinkTipDismissed`). Build the full feature only if beta testers hit the problem.
+- **Fega asked for this cut explicitly**, with two changes waiting. The ~10-change batch rule was overridden on his request.
 
 ## Next Steps
 
-1. **Ask Fega whether the React switch works on his installed app.** Suggested wording:
+1. **Ask Fega to check the Resolve wording in the tip.** Suggested wording:
+   > "Next time you're in Resolve, right-click a clip in the Media Pool. Is there an option called 'Replace Selected Clip'? The new Rename tab tip tells people to use it, and nobody has clicked through it yet. If it's named differently, I'll fix the text."
+2. **Ask Fega whether the React switch works on his installed app** (carried over from s280). Suggested wording:
    > "Did flipping Reacting on a real reaction recording give the right name and Day, and do your reaction shows sit under their games in Settings? If yes, I'll clear the untested flags on #472 and #474-#477."
-2. **Keep original file name (#473):** still waiting for the plain-words explanation. Ask him the question from the s279 handoff, roughly:
-   > "One click 'Keep file name' on the Rename row sends a recording to clipping without renaming it, so Resolve's links keep working. Want that?"
 3. **#478 (split quirks):** a code fix with no question for Fega. Plan it when there's room: month folder, Pt numbering, and what to do with the original.
-4. **Next installer:** ship when about 10 changes have piled up or Fega asks. The only change waiting right now is the YouTube layout starter.
 
 ## Watch Out For
 
-- **The Day counter reuses the current Day for dates on or before `lastDayDate`.** When testing numbering, use dates after the entry's last Day. This is lesson s280; I nearly "fixed" correct code twice.
-- **A rare Day collision remains:** a whole reaction row plus a split reaction part for the same entry on different dates, renamed in one batch, can share a Day. `renumberRows` doesn't look inside scrubber markers. It's noted in the changelog.
-- **The game-change split** (`gameSwitchSplitAndRename`) gives each part its own entry's Day and collects the batch's parts up front (`batchSegRows`). Keep both if you touch #478.
-- **`src/shared/reactions.js` now requires `./ytDescriptionTemplate`.** That's fine for the renderer: `trackerRow.js` and `resolveSubtitles.js` do the same.
-- **The Bash tool eats backslashes** in heredoc JS patches. `/\s+/` became `/s+/` once this session (CaptionsView, fixed). Use the Edit tool for regex lines, and grep the diff for `/s+/`.
+- **The Premiere steps in the tip are also unverified:** Link Media, then untick File Name under "Match File Properties". They come from general knowledge. Fega doesn't use Premiere.
+- **The dev profile watches the real Recordings folder.** To test anything on the Rename tab, repoint `watchFolder` at a scratch folder and put it back afterwards (see Logs). Never click Rename there otherwise.
+- **The Day counter reuses the current Day for dates on or before `lastDayDate`.** Test numbering with dates after the entry's last Day.
+- **A rare Day collision remains:** a whole reaction row plus a split reaction part for the same entry, renamed in one batch, can share a Day (`renumberRows` doesn't look inside scrubber markers).
+- **The Bash tool eats backslashes** in inline JS. Write CDP scripts that contain Windows paths to a file, then run `node cdp.js "$(cat file)"`.
 
 ## Logs / Debugging
 
-- The boot link logs `Reaction entries linked to their games (#474): …` (system module) once per profile.
-- **Dev-profile test setup:**
-  - Scripts live in this session's scratchpad: `setup*.js` points the dev profile at scratch folders with Fega's library copied in, and `devbackup/` holds the pristine dev settings, tokens and DB.
-  - **The dev profile has been restored from `devbackup`.**
-  - Scratch `watch*`/`lib*` folders are left behind; they're harmless.
-- **Driving the app over CDP:**
-  - `cdp.js raw '["Input.dispatchDragEvent", …]'` simulates a file drop. Build the JSON in node (see `drop.js`); inline Windows paths lose their backslashes.
-  - Quit the dev app with `window.close()` over CDP. `taskkill` was blocked.
+- **Rename-tab test recipe used this session:**
+  1. `ffmpeg` testsrc makes a 3 s file named `2026-09-29 20-00-00.mp4` in a scratch folder.
+  2. Point dev `watchFolder` at that folder with `storeSet`, then restart the dev app; the file shows as pending a few seconds after boot.
+  3. Afterwards, restore `watchFolder` to `W:\YouTube Gaming Recordings Onward\Recordings` and `relinkTipDismissed` to false. Both are already restored.
+- **The What's New modal covers the dev window** on the first boot after a version change. Click "Got it" over CDP before taking screenshots.
+- `taskkill //F //IM electron.exe` worked this session. Never use it on `Corva.exe`.
