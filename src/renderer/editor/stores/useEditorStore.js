@@ -15,6 +15,8 @@ import { normalizeMix, setLevel as setMixLevel, resolveClipAudioMix } from "../m
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight, rollCut } from "../models/segmentOps";
 import { resolveReframeStyle, resolveClipReframe, resolveSegmentReframe } from "../utils/reframeStyle";
 import { mergeSourceRanges } from "../utils/replaceWordsInRange";
+import { groupFingerprints } from "../utils/editGroups"; // #479
+import { beginEditSession, noteEditSave, endEditSession } from "../utils/editTracker"; // #479
 
 // ── Autosave internals (module-closure, NOT in state) ──
 // Kept outside Zustand state to avoid infinite subscribe loops when the timer is (re)set.
@@ -345,6 +347,9 @@ const useEditorStore = create((set, get) => ({
       return;
     }
 
+    // #479: the previous clip's visit ends here (its last save was already noted).
+    endEditSession();
+
     // Claim this load generation. Any earlier in-flight run is now stale and will
     // bail at its next checkpoint instead of clobbering the state we're about to set.
     const myGen = ++_loadGen;
@@ -509,6 +514,18 @@ const useEditorStore = create((set, get) => ({
       }
       // Clear undo/redo stacks — user should not be able to undo past initial state
       useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
+      // #479: the clip as opened is the baseline; edits are counted against it.
+      if (clip && project) {
+        try {
+          beginEditSession({
+            clipId: clip.id,
+            projectId: project.id,
+            game: clip.gameTag || project.gameTag || null,
+            fingerprints: get()._editFingerprints(),
+            isPlaying: () => usePlaybackStore.getState().playing,
+          });
+        } catch (e) { console.error("[edit-tracker] begin failed:", e); }
+      }
     };
 
     // Merge per-clip saved segmentMode into the template before applying, so
@@ -1977,95 +1994,113 @@ const useEditorStore = create((set, get) => ({
     }
   },
 
+  // #479: what a save of the current state would write, and its per-kind
+  // fingerprints for the edit tracker (clip.reframe and the unfiltered
+  // subtitles live outside the payload).
+  _editFingerprints: (payload = get()._buildSavePayload()) => groupFingerprints(payload, {
+    clipReframe: get().clip?.reframe,
+    subtitles: useSubtitleStore.getState().editSegments,
+  }),
+
+  // The clip fields a save writes, built from live store state.
+  _buildSavePayload: () => {
+    const { clipTitle } = get();
+    const subState = useSubtitleStore.getState();
+    const editSegments = subState.editSegments;
+    const capState = useCaptionStore.getState();
+    const layState = useLayoutStore.getState();
+    const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, musicTrackCount, sfxTrackCount, laneEnabled, sourceAudioMuted, audioMix } = get();
+    // Save subtitle styling snapshot for preview rendering
+    const subtitleStyle = {
+      fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
+      fontSize: subState.fontSize, bold: subState.subBold, italic: subState.subItalic,
+      underline: subState.subUnderline, subColor: subState.subColor,
+      strokeOn: subState.strokeOn, strokeWidth: subState.strokeWidth,
+      strokeColor: subState.strokeColor, strokeOpacity: subState.strokeOpacity,
+      strokeBlur: subState.strokeBlur, strokeOffsetX: subState.strokeOffsetX, strokeOffsetY: subState.strokeOffsetY,
+      shadowOn: subState.shadowOn, shadowBlur: subState.shadowBlur,
+      shadowColor: subState.shadowColor, shadowOpacity: subState.shadowOpacity,
+      shadowOffsetX: subState.shadowOffsetX, shadowOffsetY: subState.shadowOffsetY,
+      glowOn: subState.glowOn, glowColor: subState.glowColor, glowOpacity: subState.glowOpacity,
+      glowIntensity: subState.glowIntensity, glowBlur: subState.glowBlur, glowBlend: subState.glowBlend,
+      glowOffsetX: subState.glowOffsetX, glowOffsetY: subState.glowOffsetY,
+      bgOn: subState.bgOn, bgOpacity: subState.bgOpacity, bgColor: subState.bgColor,
+      bgPaddingX: subState.bgPaddingX, bgPaddingY: subState.bgPaddingY, bgRadius: subState.bgRadius,
+      yPercent: layState.subYPercent ?? 80,
+      highlightColor: subState.highlightColor, punctuationRemove: subState.punctuationRemove,
+      animateOn: subState.animateOn, animateScale: subState.animateScale,
+      animateGrowFrom: subState.animateGrowFrom, animateSpeed: subState.animateSpeed,
+      segmentMode: subState.segmentMode,
+      syncOffset: subState.syncOffset || 0,
+      highlightMode: subState.highlightMode,
+      effectOrder: subState.effectOrder,
+      // #296: the Subtitle lane's switch. Saved here so it belongs to the
+      // clip like every other subtitle setting, instead of leaking across
+      // clips for the rest of the session.
+      showSubs: subState.showSubs,
+    };
+    const captionStyle = {
+      fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
+      fontSize: capState.captionFontSize, bold: capState.captionBold, italic: capState.captionItalic,
+      underline: capState.captionUnderline, color: capState.captionColor,
+      lineSpacing: capState.captionLineSpacing,
+      strokeOn: capState.captionStrokeOn, strokeColor: capState.captionStrokeColor,
+      strokeWidth: capState.captionStrokeWidth, strokeOpacity: capState.captionStrokeOpacity,
+      strokeBlur: capState.captionStrokeBlur, strokeOffsetX: capState.captionStrokeOffsetX, strokeOffsetY: capState.captionStrokeOffsetY,
+      shadowOn: capState.captionShadowOn, shadowColor: capState.captionShadowColor,
+      shadowBlur: capState.captionShadowBlur, shadowOpacity: capState.captionShadowOpacity,
+      shadowOffsetX: capState.captionShadowOffsetX, shadowOffsetY: capState.captionShadowOffsetY,
+      glowOn: capState.captionGlowOn, glowColor: capState.captionGlowColor,
+      glowOpacity: capState.captionGlowOpacity, glowIntensity: capState.captionGlowIntensity,
+      glowBlur: capState.captionGlowBlur, glowBlend: capState.captionGlowBlend,
+      glowOffsetX: capState.captionGlowOffsetX, glowOffsetY: capState.captionGlowOffsetY,
+      bgOn: capState.captionBgOn, bgColor: capState.captionBgColor,
+      bgOpacity: capState.captionBgOpacity, bgPaddingX: capState.captionBgPaddingX,
+      bgPaddingY: capState.captionBgPaddingY, bgRadius: capState.captionBgRadius,
+      yPercent: layState.capYPercent ?? 15,
+      widthPercent: layState.capWidthPercent ?? 90,
+      effectOrder: capState.captionEffectOrder,
+    };
+    // #84: persist only subtitles that fall within the clip's CURRENT nleSegments
+    // source range (covers trims + extends). editSegments also carries source-wide
+    // "extras" merged in for extend-coverage (useSubtitleStore.initSegments) — those
+    // must NOT be written to sub1 or it gets polluted with the whole recording. They
+    // are re-derived live from project.transcription on every open.
+    const persistedSubs = (nleSegments && nleSegments.length > 0)
+      ? editSegments.filter((s) =>
+          nleSegments.some((n) => s.startSec < n.sourceEnd && s.endSec > n.sourceStart)
+        )
+      : editSegments;
+    return {
+      title: clipTitle,
+      caption: capState.captionText,
+      captionSegments: capState.captionSegments,
+      subtitles: { sub1: persistedSubs, sub2: [], _format: "source-absolute" },
+      nleSegments: nleSegments,
+      sfx: audioPlacements, // #202: SFX/music placements (Sounds lane)
+      media: mediaPlacements, // #310: image/GIF overlays (Media lanes)
+      mediaTrackCount, // how many overlay lanes this clip shows
+      musicTrackCount, // #312: how many Music lanes this clip shows
+      sfxTrackCount, //   #312: how many SFX lanes this clip shows
+      laneEnabled, // #296: Caption / Music / SFX lane switches
+      sourceAudioMuted, // #296: Audio lane mute (the clip's own sound)
+      audioMix, // #272: this clip's recording levels (null = inherit the recording's)
+      audioSegments: audioSegments, // legacy — kept for backwards compatibility
+      subtitleStyle,
+      captionStyle,
+    };
+  },
+
   // ── Silent save: persistence only, no UI side effects. Shared by handleSave + autosave. ──
   _doSilentSave: async () => {
-    const { clip, project, clipTitle } = get();
+    const { clip, project } = get();
     if (!clip || !project) return false;
     try {
-      const subState = useSubtitleStore.getState();
-      const editSegments = subState.editSegments;
-      const capState = useCaptionStore.getState();
-      const layState = useLayoutStore.getState();
-      const { nleSegments, audioSegments, audioPlacements, mediaPlacements, mediaTrackCount, musicTrackCount, sfxTrackCount, laneEnabled, sourceAudioMuted, audioMix } = get();
-      // Save subtitle styling snapshot for preview rendering
-      const subtitleStyle = {
-        fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
-        fontSize: subState.fontSize, bold: subState.subBold, italic: subState.subItalic,
-        underline: subState.subUnderline, subColor: subState.subColor,
-        strokeOn: subState.strokeOn, strokeWidth: subState.strokeWidth,
-        strokeColor: subState.strokeColor, strokeOpacity: subState.strokeOpacity,
-        strokeBlur: subState.strokeBlur, strokeOffsetX: subState.strokeOffsetX, strokeOffsetY: subState.strokeOffsetY,
-        shadowOn: subState.shadowOn, shadowBlur: subState.shadowBlur,
-        shadowColor: subState.shadowColor, shadowOpacity: subState.shadowOpacity,
-        shadowOffsetX: subState.shadowOffsetX, shadowOffsetY: subState.shadowOffsetY,
-        glowOn: subState.glowOn, glowColor: subState.glowColor, glowOpacity: subState.glowOpacity,
-        glowIntensity: subState.glowIntensity, glowBlur: subState.glowBlur, glowBlend: subState.glowBlend,
-        glowOffsetX: subState.glowOffsetX, glowOffsetY: subState.glowOffsetY,
-        bgOn: subState.bgOn, bgOpacity: subState.bgOpacity, bgColor: subState.bgColor,
-        bgPaddingX: subState.bgPaddingX, bgPaddingY: subState.bgPaddingY, bgRadius: subState.bgRadius,
-        yPercent: layState.subYPercent ?? 80,
-        highlightColor: subState.highlightColor, punctuationRemove: subState.punctuationRemove,
-        animateOn: subState.animateOn, animateScale: subState.animateScale,
-        animateGrowFrom: subState.animateGrowFrom, animateSpeed: subState.animateSpeed,
-        segmentMode: subState.segmentMode,
-        syncOffset: subState.syncOffset || 0,
-        highlightMode: subState.highlightMode,
-        effectOrder: subState.effectOrder,
-        // #296: the Subtitle lane's switch. Saved here so it belongs to the
-        // clip like every other subtitle setting, instead of leaking across
-        // clips for the rest of the session.
-        showSubs: subState.showSubs,
-      };
-      const captionStyle = {
-        fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
-        fontSize: capState.captionFontSize, bold: capState.captionBold, italic: capState.captionItalic,
-        underline: capState.captionUnderline, color: capState.captionColor,
-        lineSpacing: capState.captionLineSpacing,
-        strokeOn: capState.captionStrokeOn, strokeColor: capState.captionStrokeColor,
-        strokeWidth: capState.captionStrokeWidth, strokeOpacity: capState.captionStrokeOpacity,
-        strokeBlur: capState.captionStrokeBlur, strokeOffsetX: capState.captionStrokeOffsetX, strokeOffsetY: capState.captionStrokeOffsetY,
-        shadowOn: capState.captionShadowOn, shadowColor: capState.captionShadowColor,
-        shadowBlur: capState.captionShadowBlur, shadowOpacity: capState.captionShadowOpacity,
-        shadowOffsetX: capState.captionShadowOffsetX, shadowOffsetY: capState.captionShadowOffsetY,
-        glowOn: capState.captionGlowOn, glowColor: capState.captionGlowColor,
-        glowOpacity: capState.captionGlowOpacity, glowIntensity: capState.captionGlowIntensity,
-        glowBlur: capState.captionGlowBlur, glowBlend: capState.captionGlowBlend,
-        glowOffsetX: capState.captionGlowOffsetX, glowOffsetY: capState.captionGlowOffsetY,
-        bgOn: capState.captionBgOn, bgColor: capState.captionBgColor,
-        bgOpacity: capState.captionBgOpacity, bgPaddingX: capState.captionBgPaddingX,
-        bgPaddingY: capState.captionBgPaddingY, bgRadius: capState.captionBgRadius,
-        yPercent: layState.capYPercent ?? 15,
-        widthPercent: layState.capWidthPercent ?? 90,
-        effectOrder: capState.captionEffectOrder,
-      };
-      // #84: persist only subtitles that fall within the clip's CURRENT nleSegments
-      // source range (covers trims + extends). editSegments also carries source-wide
-      // "extras" merged in for extend-coverage (useSubtitleStore.initSegments) — those
-      // must NOT be written to sub1 or it gets polluted with the whole recording. They
-      // are re-derived live from project.transcription on every open.
-      const persistedSubs = (nleSegments && nleSegments.length > 0)
-        ? editSegments.filter((s) =>
-            nleSegments.some((n) => s.startSec < n.sourceEnd && s.endSec > n.sourceStart)
-          )
-        : editSegments;
-      const res = await window.clipflow.projectUpdateClip(project.id, clip.id, {
-        title: clipTitle,
-        caption: capState.captionText,
-        captionSegments: capState.captionSegments,
-        subtitles: { sub1: persistedSubs, sub2: [], _format: "source-absolute" },
-        nleSegments: nleSegments,
-        sfx: audioPlacements, // #202: SFX/music placements (Sounds lane)
-        media: mediaPlacements, // #310: image/GIF overlays (Media lanes)
-        mediaTrackCount, // how many overlay lanes this clip shows
-        musicTrackCount, // #312: how many Music lanes this clip shows
-        sfxTrackCount, //   #312: how many SFX lanes this clip shows
-        laneEnabled, // #296: Caption / Music / SFX lane switches
-        sourceAudioMuted, // #296: Audio lane mute (the clip's own sound)
-        audioMix, // #272: this clip's recording levels (null = inherit the recording's)
-        audioSegments: audioSegments, // legacy — kept for backwards compatibility
-        subtitleStyle,
-        captionStyle,
-      });
+      const updates = get()._buildSavePayload();
+      // #479: before the await, so a flush on unmount is counted before the visit ends.
+      // Tracking must never cost a save.
+      try { noteEditSave(clip.id, get()._editFingerprints(updates)); } catch (e) { console.error("[edit-tracker] note failed:", e); }
+      const res = await window.clipflow.projectUpdateClip(project.id, clip.id, updates);
       // #188: `clip` is a snapshot taken when the clip was opened, and the render
       // payload spreads it (renderPayload.js). Retitling only moves `clipTitle`,
       // so without refreshing the snapshot a render is stamped with the title the

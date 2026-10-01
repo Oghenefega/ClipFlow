@@ -53,6 +53,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../../components/ui/tooltip";
+import { endEditSession } from "../utils/editTracker"; // #479
 
 
 // ── Timeline track definitions ──
@@ -1256,6 +1257,8 @@ export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = 
       window.removeEventListener("blur", onBlur);
       // Final flush on editor unmount (e.g., navigating away from editor view).
       useEditorStore.getState().flushAutosave();
+      // #479: the flush above noted its save synchronously, so the visit can close now.
+      endEditSession();
     };
   }, []);
 

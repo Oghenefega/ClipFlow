@@ -404,6 +404,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   // either side. Main builds the row so a headless publish and a Queue publish produce
   // the identical record - see src/shared/trackerRow.js.
   trackerRecordPublish: (params) => ipcRenderer.invoke("tracker:recordPublish", params),
+  // #479: editor visits and the "how much did you edit" readout
+  editLogSession: (session) => ipcRenderer.invoke("editLog:session", session),
+  editLogSummary: (days) => ipcRenderer.invoke("editLog:summary", days),
   onTrackerAppended: (callback) => {
     ipcRenderer.on("tracker:appended", (_, row) => callback(row));
   },

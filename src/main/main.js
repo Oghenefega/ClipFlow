@@ -180,6 +180,7 @@ require("./ai/providers/openai-compat");
 // directly for video input (#193) — it never replaces the active llmProvider.
 const geminiProvider = require("./ai/providers/gemini");
 const aiCallLog = require("./ai/ai-call-log");
+const editLog = require("./edit-log"); // #479
 const costTracker = require("./ai/cost-tracker");
 require("./ai/transcription/stable-ts");
 const { uuid } = require("./uuid");
@@ -4111,6 +4112,18 @@ function recordPublishedClip(row, { training } = {}) {
     }
   }
 
+  // #479: the finished clip against the AI's draft, once per clip. `training` is set
+  // only for clips that may teach (no imports, no reposts), the same fence as above.
+  if (training?.clipId && training?.projectId) {
+    try {
+      const proj = projects.loadProject(libraryRoot(), training.projectId);
+      const clip = (proj?.clips || []).find((c) => c.id === training.clipId);
+      if (clip) editLog.recordOutcome(clip, { project: proj, projectId: training.projectId, game: row.game });
+    } catch (err) {
+      logger.warn(logger.MODULES.system, `Edit outcome row failed: ${err.message}`);
+    }
+  }
+
   // #461: a repost going out stamps its row in the reposts table.
   if (row.repostOf) repostLog.markPosted(row);
 
@@ -4120,6 +4133,10 @@ function recordPublishedClip(row, { training } = {}) {
 
 // The Queue routes its own publishes through here so the row is built by the same code
 // the scheduler uses — one shape, whether or not a window exists.
+// #479: one editor visit (editTracker.js), and the Diagnostics readout.
+ipcMain.handle("editLog:session", (_e, session) => ({ success: editLog.recordSession(session || {}) }));
+ipcMain.handle("editLog:summary", (_e, days) => editLog.summary(days));
+
 ipcMain.handle("tracker:recordPublish", (_e, { clip, captured, date, day, time, isScheduled, training } = {}) => {
   try {
     if (!clip) return { error: "No clip" };

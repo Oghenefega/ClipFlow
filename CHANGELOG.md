@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 282): how much each AI clip gets edited
+
+### Added
+- **Corva now records how much you edit each AI clip before it publishes (#479).** Every editor visit writes one `edit_sessions` row: active minutes (time with input in the last minute or playback running, window focused, so a clip left open doesn't inflate it) and a count of edits by kind: cuts, layout, subtitle words, subtitle timing, subtitle style, captions, sounds, overlays, audio levels and title. Edits are counted by comparing autosaves by kind (`src/renderer/editor/utils/editGroups.js`, `editTracker.js`) rather than hooking each edit action, so the setters that skip undo count too, opening a clip counts as zero, a cut that adds a section isn't a layout edit, and a typed word that re-times its line isn't also a timing edit. Database migration v15 adds both tables.
+- **On a clip's first publish, Corva records how the finished clip differs from the AI's draft (`edit_outcomes`).** Start and end moved against the AI's window, sections, subtitle words changed (compared with what the editor first showed, via the shared subtitle resolver, inside the kept footage only), layout, sounds, overlays, audio levels, plus the summed editor visits. Written once per clip from `recordPublishedClip`, so the scheduler and the Queue both reach it. Imports and reposts are left out, the same as for title training (`src/main/edit-outcome.js`, `edit-log.js`).
+- **Settings → Diagnostics has a "How much you edit" line:** minutes of editing per published clip and the share posted with no edits, over the last 30 days. It starts empty and fills as clips publish, because there is no history of editor time to backfill. Run once over the 202 clips already published, the diff alone found 1 posted with no changes at all. Almost all had the start or end moved, and the typical clip had 2 subtitle words fixed.
+- Checked in the dev app on a copied project with only rejected clips: opening a clip and leaving it idle for 90 seconds recorded 0 edits and stopped counting time after a minute. A cut, a font-size change, a subtitle edit, muting the audio and hiding the caption were each counted once under their own kind. Visits closed on clip switch, on leaving the editor and on reload. The publish-time write was run inside the app's main process against the edited copy: one row, and a second publish left it alone.
+
 ## [Unreleased] 2026-10-01: 0.5.0-alpha.17 on the feed
 
 ### Changed

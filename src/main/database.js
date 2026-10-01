@@ -364,6 +364,55 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_reposts_original ON reposts(original_clip_id)`);
     },
   },
+  {
+    version: 15,
+    description: "Create edit_sessions and edit_outcomes: how much each AI clip was edited before it published (#479)",
+    up(database) {
+      // Written by src/main/edit-log.js. One edit_sessions row per editor visit;
+      // edits is a JSON object of counts per kind (editGroups.js EDIT_GROUPS).
+      // Times are UTC, same as datetime('now').
+      database.run(`
+        CREATE TABLE edit_sessions (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          clip_id     TEXT NOT NULL,
+          project_id  TEXT,
+          game        TEXT,
+          opened_at   TEXT NOT NULL,
+          closed_at   TEXT NOT NULL,
+          active_ms   INTEGER NOT NULL,
+          edits_total INTEGER NOT NULL,
+          edits       TEXT
+        )
+      `);
+      database.run(`CREATE INDEX idx_edit_sessions_clip ON edit_sessions(clip_id)`);
+      // One row per clip, written once on its first publish: the finished clip
+      // compared with the AI's draft (edit-outcome.js), plus the summed sessions.
+      database.run(`
+        CREATE TABLE edit_outcomes (
+          clip_id                TEXT PRIMARY KEY,
+          project_id             TEXT,
+          game                   TEXT,
+          published_at           TEXT NOT NULL DEFAULT (datetime('now')),
+          ai_seconds             REAL,
+          kept_seconds           REAL,
+          start_moved_s          REAL,
+          end_moved_s            REAL,
+          sections               INTEGER,
+          subtitle_words_ai      INTEGER,
+          subtitle_words_changed INTEGER,
+          layout_changed         INTEGER,
+          sounds                 INTEGER,
+          overlays               INTEGER,
+          levels_changed         INTEGER,
+          sessions               INTEGER,
+          active_ms              INTEGER,
+          edits_total            INTEGER,
+          edits                  TEXT,
+          untouched              INTEGER NOT NULL
+        )
+      `);
+    },
+  },
 ];
 
 /**

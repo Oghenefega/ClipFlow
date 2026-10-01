@@ -449,6 +449,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "set-whisper",   section: "tools",       title: "BetterWhisperX Configuration", kw: "python path venv model transcription calibration" },
     { id: "set-keys",      section: "tools",       title: "API Credentials",             kw: "keys anthropic gemini youtube client id secret meta tiktok gateway token" },
     { id: "set-analytics", section: "diagnostics", title: "Anonymous Usage Analytics",   kw: "opt out telemetry posthog privacy tracking" },
+    { id: "set-editing",   section: "diagnostics", title: "How Much You Edit",           kw: "editing time minutes per clip untouched ai draft fixes" },
     { id: "set-logs",      section: "diagnostics", title: "Pipeline Logs",               kw: "cost tracking runs errors ai spend history" },
     { id: "set-report",    section: "diagnostics", title: "Report an Issue",             kw: "bug feedback send diagnostics screenshot github" },
     { id: "set-subs",      section: "diagnostics", title: "Subtitle Debug Log",          kw: "word timestamps whisper repair segmentation" },
@@ -2077,6 +2078,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {/* Analytics Opt-Out */}
       <div id="set-analytics"><AnalyticsToggle /></div>
 
+      {/* #479: editing time per published clip */}
+      <div id="set-editing"><EditingStatsCard /></div>
+
       {/* Pipeline Logs & Cost Tracking */}
       <div id="set-logs"><PipelineLogsSection /></div>
 
@@ -2244,6 +2248,29 @@ function RecordingLayoutSection() {
 }
 
 // ============ ANALYTICS TOGGLE ============
+// #479: is Corva becoming the editor? Minutes of editing per published clip
+// and the share that went out with no edits, from edit_outcomes (edit-log.js).
+function EditingStatsCard() {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    window.clipflow?.editLogSummary?.(30).then(setStats).catch(() => setStats({ clips: 0 }));
+  }, []);
+
+  if (!stats) return null;
+  const has = stats.clips > 0;
+  return (
+    <Card style={{ padding: 24, margin: "16px 0" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>How much you edit</div>
+      <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 2 }}>
+        {has
+          ? `Last 30 days: ${stats.avgEditMinutes} min of editing per published clip · ${stats.untouchedPct}% posted with no edits · ${stats.clips} clip${stats.clips === 1 ? "" : "s"}`
+          : "Starts with your next published clip: the minutes you spend editing each one, and how many go out with no edits."}
+      </div>
+    </Card>
+  );
+}
+
 function AnalyticsToggle() {
   const [enabled, setEnabled] = useState(true);
   const [loaded, setLoaded] = useState(false);
