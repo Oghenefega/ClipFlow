@@ -391,6 +391,35 @@ Possible re-test, not scheduled: the prompt was tuned on 4.6 over #183/#238/#245
 read instructions more literally. A 5.5-specific prompt cell (pick budget wording first) would be
 the next thing to try, scored the same way.
 
+### Step 6b: prompt cells for Sonnet 5.5 · STOPPED on credit balance (session 282)
+
+Edits live in `tasks/spikes/replay-score/prompt-variants.js` (harness `--prompt-variant`), applied
+to the built prompt with asserted anchors; `src/main/ai-prompt.js` untouched. Rendered prompts were
+read before any spend (`--dry` now writes `_tmp/prompt-<label>.txt`); that read caught a stated
+count of 14 contradicting the "don't settle at 14-15" line and the recall text contradicting the
+rejected section's "do NOT pick", both fixed before the runs.
+
+- `count`: "return at least N clips for this ~M-minute recording" at one per 80 s (matches what
+  4.6 actually returns: 21 min -> 16, 30 -> 23); recordings too short for 10 keep the original rule.
+- `recall`: "first of two passes, a missed moment costs more than a weak pick", rejected examples
+  lower confidence instead of excluding.
+- `high`: base prompt at effort high.
+
+| Arm (Sonnet 5.5) | Recall | Rejected-hit | Coverage | Picks/run | $/run |
+|---|---|---|---|---|---|
+| base @low (Step 6) | 76/90 = 84% | 54% | 78% | 13.4 | $0.070 |
+| count @low | **79/90 = 88%** | 51% | 78% | 17.2 | $0.073 |
+| recall @low | 74/90 = 82% | 57% | 76% | 13.3 | $0.071 |
+| base @high (16 of 18 runs) | 72/82 = 88% | 49% | 77% | 16.0 | $0.073 |
+| Sonnet 4.6 (Step 6) | 83/90 = 92% | 51% | 83% | 15.9 | $0.100 |
+
+Per recording, `count` beats 4.6 on EO Day3 (27/27 vs 24/27), ties RL Day8/Day9/Day10, and loses
+on EO Day4 (16/21 vs 20/21) and DD Day2 (12/15 vs 15/15): the whole remaining gap sits on two
+recordings. `recall` framing made things worse (more rejected hits, no recall). Effort high
+helped as much as `count`, with the best precision of any arm. Not yet run: `count` + effort
+high together, the obvious next cell (~$1.40). The Anthropic prepaid balance ran out on the
+`high` arm's RL Day8 runs 2-3; no arm passes the gate yet.
+
 ## Decisions locked (do not re-litigate without flagging Fega)
 
 - Engine variants are judged by replay scores against Fega's history, not vibes.

@@ -26,6 +26,7 @@
  *   node harness.js "<videoName>" [--frames N] [--no-rejected] [--no-approved]
  *                   [--no-playstyle] [--no-gamecontext] [--runs N] [--label name] [--dry]
  *                   [--model claude-sonnet-5-5] [--effort low|medium|high]   (#480)
+ *                   [--prompt-variant count,recall]   (#480, prompt-variants.js)
  *
  * Scoring (per run):
  *   approved recall  — approved rows matched by any pick / approved rows
@@ -93,6 +94,7 @@ const variant = {
   gemini: flag("gemini"), // #235 variant D: merge gemini-watch.js visual events
   model: opt("model", null), // #480: null = the provider's default model
   effort: opt("effort", null), // #480: output_config.effort (Sonnet 5.5's thinking control)
+  promptVariant: opt("prompt-variant", null), // #480: prompt-variants.js cells, comma-separated
 };
 const runs = parseInt(opt("runs", "1"), 10);
 const label = opt("label", [
@@ -289,7 +291,7 @@ function score(picks, truth) {
 
   if (!variant.playstyle) gameProfiles.getProfile = () => null;
 
-  const systemPrompt = aiPrompt.buildSystemPrompt({
+  const builtPrompt = aiPrompt.buildSystemPrompt({
     gameTag,
     gameName: gameEntry.name || gameTag,
     // #245: same field + cap as shipped code (buildSystemPrompt caps at 1,500)
@@ -300,6 +302,9 @@ function score(picks, truth) {
     creatorProfile: settings.creatorProfile,
     sourceDuration: eventTimeline.source_duration_seconds || Math.max(...energyJson.map((s) => s.end || 0)),
   });
+  const systemPrompt = variant.promptVariant
+    ? require("./prompt-variants").applyPromptVariants(builtPrompt, variant.promptVariant)
+    : builtPrompt;
 
   const frames = deriveFrames(videoName, energyJson, eventTimeline, variant.frames);
   const userContent = aiPrompt.buildUserContent({ claudeReadyText, frames, eventTimeline });
@@ -310,6 +315,8 @@ function score(picks, truth) {
 
   if (dry) {
     console.log("\n--dry: prompt assembled, no API call. Sections:");
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+    fs.writeFileSync(path.join(TMP_DIR, `prompt-${label}.txt`), systemPrompt); // read what the model will see
     for (const s of systemPrompt.split("\n\n---\n\n")) console.log(`  ${String(s.trim().split("\n")[0]).padEnd(50)} ${s.length} chars`);
     return;
   }
