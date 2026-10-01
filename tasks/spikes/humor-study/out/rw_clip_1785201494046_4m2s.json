@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1785201494046_4m2s",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785201494046_4m2s",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2878,
+  "outputTokens": 1017,
+  "thoughtTokens": 575
+ },
+ "cost": 0.011944499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer confidently insists he will win his Rocket League match despite trailing by three goals, then silently focuses on playing.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Opponent scores, leaving the score at 5-8 with 1:20 left."
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Streamer declares 'When I win this game, not if, when I win this game'."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "The kickoff starts and he repeats his statement with high confidence."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "He plays in dead silence with full focus while still behind."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "deadpan",
+   "silence"
+  ],
+  "key_line": "When I win this game, not if, when I win this game.",
+  "key_line_t": 2,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The contrast between his high-stakes confidence and being down three goals creates mild irony. However, the clip cuts off before a definitive win or fail payoff occurs."
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1789795588723_kqmy",
+ "set": "published_render",
+ "clip_id": "clip_1789795588723_kqmy",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1162,
+  "thoughtTokens": 704
+ },
+ "cost": 0.011359500000000002,
+ "watch": {
+  "format": "talking",
+  "summary": "The creator notices a lobby that has been open for over 15 hours and jokingly asks if the players are mining Bitcoin inside.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator points out a lobby with 19 out of 24 players waiting."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "He highlights that the room timer shows 15 hours and 28 minutes."
+   },
+   {
+    "t": 4.5,
+    "type": "payoff",
+    "what": "He jokes asking if the players in the room are mining Bitcoin."
+   },
+   {
+    "t": 7,
+    "type": "aftermath",
+    "what": "He expresses total disbelief and confusion about what they are doing."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "I don't know if these guys are mining Bitcoin...",
+  "key_line_t": 4.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The absurdity of seeing a video game lobby timer active for 15 hours makes for good observational humor. The creator's quick joke about Bitcoin mining delivers a concise, amusing punchline."
+ }
+}

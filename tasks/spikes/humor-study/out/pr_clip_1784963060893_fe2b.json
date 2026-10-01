@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1784963060893_fe2b",
+ "set": "published_render",
+ "clip_id": "clip_1784963060893_fe2b",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 1278,
+  "thoughtTokens": 795
+ },
+ "cost": 0.0130485,
+ "watch": {
+  "format": "gameplay",
+  "summary": "While complaining about his constant losses, the streamer reads a chat comment telling him to shut up and lock in, proving the chat right as he fails again.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer wonders what he is doing wrong after trying both positivity and negativity."
+   },
+   {
+    "t": 5.5,
+    "type": "trigger",
+    "what": "Streamer reads a chat comment telling him to stop talking and lock in."
+   },
+   {
+    "t": 7.5,
+    "type": "payoff",
+    "what": "Streamer laughs in disbelief as his egg falls off the track while he responds."
+   },
+   {
+    "t": 12.5,
+    "type": "aftermath",
+    "what": "Streamer concedes chat might be right, then banteringly tells them not to suggest it."
+   }
+  ],
+  "payoff_t": 7.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "You need to stop talking and lock in.",
+  "key_line_t": 5.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant back-and-forth between chat roasting the streamer and his immediate fail while talking proves the chat completely right. His hesitant realization and mock outrage add a good comedic punchline."
+ }
+}

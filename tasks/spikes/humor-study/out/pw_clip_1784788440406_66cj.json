@@ -1,0 +1,57 @@
+{
+ "key": "pw_clip_1784788440406_66cj",
+ "set": "published_raw",
+ "clip_id": "clip_1784788440406_66cj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3769,
+  "outputTokens": 1191,
+  "thoughtTokens": 790
+ },
+ "cost": 0.014586,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After getting scored on in Rocket League, the creator jokingly vents his outrage at his opponent before missing a boost pad on kickoff.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Opponent scores a goal, taking a 5-2 lead."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Creator laughingly vents mock outrage about being scored on on live television."
+   },
+   {
+    "t": 22,
+    "type": "escalation",
+    "what": "Creator misses the boost pad right after kickoff and yells."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "mock_outrage",
+   "yelling"
+  ],
+  "key_line": "How dare you do that to me on live television",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The streamer's joyful energy and theatrical indignation turn getting scored on into a lighthearted moment. However, it is a standard gaming clip without a major twist or punchline."
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1788550913587_tv95",
+ "set": "published_raw",
+ "clip_id": "clip_1788550913587_tv95",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3121,
+  "outputTokens": 1422,
+  "thoughtTokens": 987
+ },
+ "cost": 0.0153465,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer watches a high-stakes Valorant tournament match and jumps out of his chair in excitement during a clutch play.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer comments on Ethan playing exceptionally well in the match."
+   },
+   {
+    "t": 13,
+    "type": "trigger",
+    "what": "Ethan pulls off a tense clutch maneuver on screen."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "The streamer screams in total shock and leaps out of his seat."
+   },
+   {
+    "t": 20,
+    "type": "aftermath",
+    "what": "He paces around his room celebrating the incredible play."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "OH MY GOD!",
+  "key_line_t": 14,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is driven by hype and competitive excitement rather than traditional comedy. Without knowing Valorant esports context, a stranger will only see an energetic overreaction to gameplay."
+ }
+}

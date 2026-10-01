@@ -1,0 +1,61 @@
+{
+ "key": "rw_clip_1785454905644_7cax",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785454905644_7cax",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3040,
+  "outputTokens": 936,
+  "thoughtTokens": 533
+ },
+ "cost": 0.01158,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer quits a game he didn't enjoy, asking for his $6 back while browsing Steam for a new game.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer looks at the main menu of the game Meccha Chameleon."
+   },
+   {
+    "t": 1,
+    "type": "payoff",
+    "what": "Streamer states he wants his $6 back for the game."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Streamer quits the game to desktop."
+   },
+   {
+    "t": 18,
+    "type": "aftermath",
+    "what": "Streamer opens Steam to look for a more palatable game to play."
+   }
+  ],
+  "payoff_t": 1,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "deadpan",
+   "narrating"
+  ],
+  "key_line": "I want my $6 back, you know.",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This is a casual stream transition where the creator gives a mild review after quitting a game. It lacks dynamic comedy beats or a strong punchline."
+ }
+}

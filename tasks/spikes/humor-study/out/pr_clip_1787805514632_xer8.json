@@ -1,0 +1,73 @@
+{
+ "key": "pr_clip_1787805514632_xer8",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_xer8",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6217,
+  "outputTokens": 1755,
+  "thoughtTokens": 1290
+ },
+ "cost": 0.022488,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A creator reacts with hysterical laughter to a video of synchronized cheerleader robots malfunctioning and crashing face-first into the floor.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator introduces the video of cheerleader robots."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "The robots perform a routine and instantly faceplant onto the floor."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Creator bursts into wheezing laughter as the robots lie motionless."
+   },
+   {
+    "t": 28,
+    "type": "escalation",
+    "what": "Slow-motion replay shows all the robots jumping in sync and crashing down together."
+   },
+   {
+    "t": 43,
+    "type": "escalation",
+    "what": "Creator realizes multiple robots are failing, including one still rogue-dancing."
+   },
+   {
+    "t": 55,
+    "type": "reaction",
+    "what": "Creator holds his head in disbelief, dying of laughter."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "none",
+  "mechanisms": [
+   "glitch_or_physics",
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Ain't no way bro",
+  "key_line_t": 55,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The visual slapstick of expensive robots failing in unison is inherently funny. The creator's genuine wheezing laughter and observational commentary make the clip even more infectious."
+ }
+}

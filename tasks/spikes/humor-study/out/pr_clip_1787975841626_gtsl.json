@@ -1,0 +1,58 @@
+{
+ "key": "pr_clip_1787975841626_gtsl",
+ "set": "published_render",
+ "clip_id": "clip_1787975841626_gtsl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1504,
+  "thoughtTokens": 1086
+ },
+ "cost": 0.0150165,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator watches in awe as pro Valorant player Vora lands a lightning-fast flick headshot to secure a round win.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Caster commentates as Vora holds an angle in a Valorant match."
+   },
+   {
+    "t": 10,
+    "type": "trigger",
+    "what": "Vora rapidly flicks onto an enemy player who peaks."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "The headshot kill lands instantly to secure the round win."
+   },
+   {
+    "t": 12,
+    "type": "reaction",
+    "what": "The creator reacts with quiet disbelief, saying 'oh man'."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "disbelief"
+  ],
+  "key_line": "oh man",
+  "key_line_t": 12,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This clip showcases impressive mechanical skill from a professional player rather than comedic content. The creator offers a brief, impressed reaction to the high-level gameplay."
+ }
+}

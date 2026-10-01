@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1787805514632_qdya",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_qdya",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1166,
+  "thoughtTokens": 652
+ },
+ "cost": 0.013163999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with hilarity to footage of a robot landing a kick in a boxing ring and immediately collapsing face-first.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator asks how the robot landed a kick and died."
+   },
+   {
+    "t": 2,
+    "type": "payoff",
+    "what": "Footage shows the robot kicking and immediately falling flat."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Creator physically reenacts the robot hyping itself up before kicking."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "Creator bursts out laughing at his own reenactment."
+   },
+   {
+    "t": 17,
+    "type": "aftermath",
+    "what": "Creator points out the opponent robot cheering while the other lies motionless."
+   }
+  ],
+  "payoff_t": 2,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "glitch_or_physics",
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "How do you land the kick and then die?",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The physical comedy of a high-tech robot instantly failing and collapsing after landing a move is universally funny. The creator's physical reenactment of the robot's pompous pre-kick routine adds a hilarious layer of personification."
+ }
+}

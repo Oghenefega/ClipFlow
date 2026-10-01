@@ -1,0 +1,65 @@
+{
+ "key": "rw_clip_1786068340476_he3f",
+ "set": "rejected_raw",
+ "clip_id": "clip_1786068340476_he3f",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3445,
+  "outputTokens": 1498,
+  "thoughtTokens": 1012
+ },
+ "cost": 0.0164025,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After conceding a goal and jokingly claiming 'it's all part of the plan,' the streamer immediately scores off the kickoff to tie the game.",
+  "beats": [
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Opponent scores a goal against the streamer."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Streamer laughs it off and sarcastically claims 'it's all part of the plan'."
+   },
+   {
+    "t": 21,
+    "type": "trigger",
+    "what": "Streamer shoots straight from kickoff."
+   },
+   {
+    "t": 23,
+    "type": "payoff",
+    "what": "The ball goes straight into the opponent's net for an instant goal."
+   },
+   {
+    "t": 24,
+    "type": "reaction",
+    "what": "Streamer hypes himself up for predicting the outcome."
+   }
+  ],
+  "payoff_t": 23,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "yelling"
+  ],
+  "key_line": "When I say it's all part of the plan boys, I mean it!",
+  "key_line_t": 20,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedy works through perfect timing and accidental triumph. Sarcastically covering up a mistake with 'it's all part of the plan' usually leads to further failure, but scoring instantly off kickoff makes the streamer look like an accidental mastermind."
+ }
+}

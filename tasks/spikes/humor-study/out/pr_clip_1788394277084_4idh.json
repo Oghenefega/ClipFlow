@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_1788394277084_4idh",
+ "set": "published_render",
+ "clip_id": "clip_1788394277084_4idh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2214,
+  "outputTokens": 1239,
+  "thoughtTokens": 720
+ },
+ "cost": 0.0126135,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator compares an opponent's sleek hiding spot to his own hilariously oversized, bulging prop model.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator wonders how the opponent fits so flat against the wall."
+   },
+   {
+    "t": 2.5,
+    "type": "escalation",
+    "what": "He notes the opponent chose a normal-sized prop."
+   },
+   {
+    "t": 5.5,
+    "type": "trigger",
+    "what": "He questions why he chose a massive prop that stuck out."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Camera cuts to a side view showing his prop bulging wildly out of the wall frame."
+   },
+   {
+    "t": 9.5,
+    "type": "reaction",
+    "what": "Creator laughs describing how huge his character's backside was."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "calm_explaining"
+  ],
+  "key_line": "My butt was the size of this guy's whole entire body.",
+  "key_line_t": 9,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedy stems from the visual contrast between the opponent's stealthy hiding spot and the streamer's absurdly thick prop bulging out of the wall. His self-deprecating commentary highlights how terrible his hiding strategy was."
+ }
+}

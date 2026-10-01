@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1788752392261_y27o",
+ "set": "published_render",
+ "clip_id": "clip_1788752392261_y27o",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2941,
+  "outputTokens": 1351,
+  "thoughtTokens": 913
+ },
+ "cost": 0.014544,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer frantically shouts to check a pro Valorant player's computer for cheats while mocking a spectator's bewildered reaction.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "trigger",
+    "what": "Creator screams at the match video to check LOUD's PC for wallhacks."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Creator notices a fan in the crowd looking amazed."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Creator imitates the fan's expression and claps absurdly."
+   },
+   {
+    "t": 17,
+    "type": "aftermath",
+    "what": "Creator quietly questions how they lost the advantage as the video plays."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "Check his computer, bro!",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The creator's loud delivery and comedic imitation of a crowd member provide quick energy. Without understanding Valorant esports context, the humor feels somewhat forced and loud."
+ }
+}

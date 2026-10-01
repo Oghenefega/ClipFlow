@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1785908334594_4nhn",
+ "set": "published_render",
+ "clip_id": "clip_1785908334594_4nhn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1443,
+  "thoughtTokens": 957
+ },
+ "cost": 0.014559,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer meticulously counts while rolling a fragile egg across narrow planks, only for it to suddenly shatter and send him screaming out of his chair.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer talks about being left alone on this difficult level."
+   },
+   {
+    "t": 5.5,
+    "type": "setup",
+    "what": "Streamer begins carefully counting paces as he rolls the egg."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "He continues counting rhythmically to guide the fragile egg."
+   },
+   {
+    "t": 13,
+    "type": "trigger",
+    "what": "The egg drops a small distance and shatters completely."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "Streamer screams in outrage and jumps out of his chair."
+   }
+  ],
+  "payoff_t": 13.5,
+  "hook_t": 0.5,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "rage",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "OH MY",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The calm, rhythmic counting builds tension and a false sense of control right before the sudden failure. The explosive rage reaction and physical exit from the frame immediately capitalize on the sudden failure."
+ }
+}

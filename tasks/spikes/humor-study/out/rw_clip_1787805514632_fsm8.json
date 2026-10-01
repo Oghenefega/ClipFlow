@@ -1,0 +1,54 @@
+{
+ "key": "rw_clip_1787805514632_fsm8",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_fsm8",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5956,
+  "outputTokens": 1066,
+  "thoughtTokens": 654
+ },
+ "cost": 0.016929,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator watches videos of parkour robots, imagining a chaotic future Robot Olympics filled with cyberattacks before concluding that humanity is doomed.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator says he would pay good money to watch a Robot Olympics where robots crash and glitch out."
+   },
+   {
+    "t": 22,
+    "type": "escalation",
+    "what": "He speculates that teams would start hacking each other's robots with DDoS attacks during competitions."
+   },
+   {
+    "t": 58,
+    "type": "payoff",
+    "what": "Watching the robot jump seamlessly over obstacles, he holds his head and admits humans are cooked."
+   }
+  ],
+  "payoff_t": 59,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "Guys, we're in trouble man, we're cooked.",
+  "key_line_t": 59,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The creator constructs a funny hypothetical about robot sports turning into cyberwarfare. His humorous scenario contrasts nicely with his final realization of how advanced the tech actually is."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1790094024511_qd40",
+ "set": "published_render",
+ "clip_id": "clip_1790094024511_qd40",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2117,
+  "outputTokens": 1370,
+  "thoughtTokens": 943
+ },
+ "cost": 0.013450499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer playing Prop Hunt is stumped trying to find an opponent until he looks up and discovers them hiding high on the ceiling.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer admits he cannot figure out where the hidden player is."
+   },
+   {
+    "t": 5.5,
+    "type": "trigger",
+    "what": "He tilts his camera up towards the roof structure."
+   },
+   {
+    "t": 6.5,
+    "type": "payoff",
+    "what": "He shoots the hidden player clinging directly to the ceiling structure."
+   },
+   {
+    "t": 7.5,
+    "type": "reaction",
+    "what": "Streamer laughs in disbelief at the absurd hiding spot."
+   }
+  ],
+  "payoff_t": 6.5,
+  "hook_t": 0,
+  "author": "opponent",
+  "mechanisms": [
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "how can you stay on the wall on the roof bro",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual surprise of finding a player sticking to the high ceiling provides a fast, satisfying comedic reveal. The creator's genuine laughter and disbelief make the reaction infectious."
+ }
+}

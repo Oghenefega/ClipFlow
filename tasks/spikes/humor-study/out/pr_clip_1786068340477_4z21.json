@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1786068340477_4z21",
+ "set": "published_render",
+ "clip_id": "clip_1786068340477_4z21",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3943,
+  "outputTokens": 1206,
+  "thoughtTokens": 728
+ },
+ "cost": 0.0149595,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player shouts in utter disbelief when an opponent somehow speeds past him to score a goal.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator complains about his opponent being annoying."
+   },
+   {
+    "t": 14,
+    "type": "setup",
+    "what": "Creator takes a shot on goal and yells for it to go in."
+   },
+   {
+    "t": 20,
+    "type": "trigger",
+    "what": "Opponent catches up unexpectedly fast and scores."
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "Creator explodes in outrage and disbelief."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "Creator gesticulates wildly, arguing they were moving at the same speed."
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "rage"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "it's no freaking way! We're moving at the same speed!",
+  "key_line_t": 20,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The sudden shift from confident excitement to high-energy outrage and laughter makes the clip funny to anyone. His expressive body language and genuine disbelief sell the comedic surprise."
+ }
+}

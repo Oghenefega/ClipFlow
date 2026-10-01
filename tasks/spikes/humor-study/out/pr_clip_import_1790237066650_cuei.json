@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_import_1790237066650_cuei",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237066650_cuei",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2123,
+  "outputTokens": 1524,
+  "thoughtTokens": 1019
+ },
+ "cost": 0.014614499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer excitedly brags to his viewers after a female teammate promises to check out his stream, only to get killed instantly when the round starts.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A teammate asks if the creator is streaming right now."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Teammate says she'll check him out, and the creator excitedly turns to camera to brag to his chat."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "The round starts and he pushes aggressively down the corridor."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "He gets shot and killed instantly without landing a hit."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "The creator deadpans that he still sucks regardless of who checks him out."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "deadpan"
+  ],
+  "key_line": "Guys, they're coming to check me out!",
+  "key_line_t": 4,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant flip from premature pride to immediate failure is a classic comedy beat. His deadpan self-deprecation right after dying lands the joke perfectly."
+ }
+}

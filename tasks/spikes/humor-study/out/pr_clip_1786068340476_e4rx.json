@@ -1,0 +1,73 @@
+{
+ "key": "pr_clip_1786068340476_e4rx",
+ "set": "published_render",
+ "clip_id": "clip_1786068340476_e4rx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3765,
+  "outputTokens": 1302,
+  "thoughtTokens": 729
+ },
+ "cost": 0.015412499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player adds dramatic movie music to hype up a last-minute comeback, only to completely fail and lose.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "The opponent scores, putting the score at 4-7 with less than a minute left."
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "The creator turns his hat back and gets serious."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "Cinematic epic orchestra music starts playing as he hypes himself up."
+   },
+   {
+    "t": 14,
+    "type": "escalation",
+    "what": "He declares 'If there's anyone who can, it's me.'"
+   },
+   {
+    "t": 20,
+    "type": "trigger",
+    "what": "He whiffs his play and loses control of the ball."
+   },
+   {
+    "t": 26,
+    "type": "payoff",
+    "what": "The dramatic music swells to a climax as the timer hits zero and he loses."
+   }
+  ],
+  "payoff_t": 28,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "If there's anyone who can, it's me",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The edit uses grand cinematic opera music to build up a heroic comeback narrative that immediately collapses in failure. The ironic contrast between his unearned confidence and the final loss creates effective physical and audio comedy."
+ }
+}

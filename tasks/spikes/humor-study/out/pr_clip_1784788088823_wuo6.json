@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1784788088823_wuo6",
+ "set": "published_render",
+ "clip_id": "clip_1784788088823_wuo6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1062,
+  "thoughtTokens": 637
+ },
+ "cost": 0.011292,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer completely whiffs a high aerial hit in Rocket League and bursts into laughter while addressing his teammate.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer flies into the air aiming for the ball."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Streamer whiffs completely and the opponent scores a goal."
+   },
+   {
+    "t": 7.5,
+    "type": "reaction",
+    "what": "Streamer bursts out laughing and jokes about just flying around."
+   },
+   {
+    "t": 11.5,
+    "type": "aftermath",
+    "what": "Streamer asks his teammate if they are going to talk about what just happened."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Are we gonna talk about what that was?",
+  "key_line_t": 11.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's genuine, infectious laughter and self-deprecating commentary immediately following a total whiff make a simple gaming mistake funny."
+ }
+}

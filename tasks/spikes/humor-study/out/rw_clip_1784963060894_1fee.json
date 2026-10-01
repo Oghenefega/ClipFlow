@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1784963060894_1fee",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784963060894_1fee",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4402,
+  "outputTokens": 982,
+  "thoughtTokens": 512
+ },
+ "cost": 0.013968,
+ "watch": {
+  "format": "gameplay",
+  "summary": "While playing an egg-rolling physics game, the streamer tries to remember the number five by listing things that come in fives, accidentally saying he has five fingers before realizing he has ten.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer counts as the egg rolls along narrow tracks."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "He gets frustrated at failing early and tries to memorize rolling off at count five."
+   },
+   {
+    "t": 13,
+    "type": "trigger",
+    "what": "He says 'You have five fingers... wait, I have ten!'"
+   },
+   {
+    "t": 16.5,
+    "type": "payoff",
+    "what": "He bursts into uncontrollable laughter at his own stupidity."
+   },
+   {
+    "t": 21,
+    "type": "aftermath",
+    "what": "He attempts to fix his logic while still chuckling and continuing the run."
+   }
+  ],
+  "payoff_t": 16.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "mock_outrage"
+  ],
+  "key_line": "Five... no, I have ten, sorry!",
+  "key_line_t": 16,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedy stems from a natural brain fart and the creator's immediate, contagious laughter at his own lapse in logic. It requires no context about the game to appreciate the human moment."
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1785566928375_zafy",
+ "set": "published_render",
+ "clip_id": "clip_1785566928375_zafy",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2938,
+  "outputTokens": 1188,
+  "thoughtTokens": 736
+ },
+ "cost": 0.013316999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer expresses a total lack of faith in his team, but immediately erupts in hype when a teammate scores a goal right as he demands conviction.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator admits he has zero confidence in his team or his own play."
+   },
+   {
+    "t": 13,
+    "type": "escalation",
+    "what": "Creator begs his team for power and conviction behind their shots."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "A teammate scores a goal right on cue."
+   },
+   {
+    "t": 19,
+    "type": "reaction",
+    "what": "Creator screams in triumph, completely changing his tone."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "deadpan"
+  ],
+  "key_line": "I need conviction!",
+  "key_line_t": 17.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant timing of the goal right as he begs for conviction creates a classic ironic flip. His rapid shift from hopeless complaining to explosive hyping makes the moment instantly funny."
+ }
+}

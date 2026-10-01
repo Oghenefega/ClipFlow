@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1784688841533_kub7",
+ "set": "published_raw",
+ "clip_id": "clip_1784688841533_kub7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6131,
+  "outputTokens": 1036,
+  "thoughtTokens": 515
+ },
+ "cost": 0.0169665,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer hesitates during a delicate egg-rolling jump, falls and cracks his egg, then amusingly blames his live chat for not giving him enough emotional support.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "The streamer hesitates right at the edge of a gap."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "The egg tumbles off the edge and cracks open."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "He facesamples and groans about his hesitation."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "He begins lecturing his chat for not hyping him up properly."
+   },
+   {
+    "t": 47,
+    "type": "callback",
+    "what": "He laughs and admits he was just looking for someone to point fingers at."
+   }
+  ],
+  "payoff_t": 3.5,
+  "hook_t": 1.5,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "roast_or_banter",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "I kind of feel like you people are the reason why I fell just now.",
+  "key_line_t": 11,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's instant, shameless pivot from a clumsy mistake to dramatically scolding his chat for lack of support is genuinely funny. His playful self-awareness at the end caps off a solid comedic moment."
+ }
+}

@@ -1,0 +1,49 @@
+{
+ "key": "pr_clip_1787860936676_3epl",
+ "set": "published_render",
+ "clip_id": "clip_1787860936676_3epl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1762,
+  "outputTokens": 1329,
+  "thoughtTokens": 1003
+ },
+ "cost": 0.0126105,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator discusses GTA 6 footage while explaining rumors about character body weight and muscle customization.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator begins explaining that GTA 6 will feature weight mechanics."
+   },
+   {
+    "t": 4.5,
+    "type": "context",
+    "what": "Creator notes that characters can get fat or muscular while showing footage."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "So apparently you can add weight in this game",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is purely informational gaming commentary rather than comedy. There is no punchline, comedic timing, or joke delivery present."
+ }
+}

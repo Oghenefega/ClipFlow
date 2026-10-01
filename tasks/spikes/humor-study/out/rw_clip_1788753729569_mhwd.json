@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1788753729569_mhwd",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788753729569_mhwd",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5227,
+  "outputTokens": 1121,
+  "thoughtTokens": 619
+ },
+ "cost": 0.016248,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with mock outrage to official esports casters giving all the credit to the opposing team and endlessly praising their stats.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "The casters list dominant stats for LOUD player Lukxo against 100 Thieves."
+   },
+   {
+    "t": 16,
+    "type": "trigger",
+    "what": "The creator calls out the casters for not saying anything good about 100 Thieves."
+   },
+   {
+    "t": 20,
+    "type": "payoff",
+    "what": "The creator bursts out laughing and parodies the casters' overly dramatic, doom-filled commentary."
+   },
+   {
+    "t": 44,
+    "type": "aftermath",
+    "what": "The creator jokingly suggests playing matches on the moon to eliminate home crowd advantage."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 16,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "These guys have barely said any good thing about 100 Thieves!",
+  "key_line_t": 16,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": true,
+  "why": "The creator's dramatic parody of the broadcast casters turns a standard esports commentary segment into a funny rant. His absurd suggestion to play games on the moon gives the rant a memorable comedic landing."
+ }
+}

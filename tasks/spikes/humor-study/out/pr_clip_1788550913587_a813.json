@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788550913587_a813",
+ "set": "published_render",
+ "clip_id": "clip_1788550913587_a813",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 1326,
+  "thoughtTokens": 896
+ },
+ "cost": 0.013408499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator passionately cheers and reacts as pro Valorant player Cryo anticipates and eliminates an opponent in a match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches Cryo holding an angle during a pro match."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Creator shouts enthusiastically at the team to get the enemy player."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "Cryo executes the kill as predicted."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Creator stands up, laughing and clapping hysterically."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Read him like a book!",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip relies on high energy hype and esports excitement rather than genuine comedy. There is no setup or comedic punchline, just pure enthusiasm for a great gameplay read."
+ }
+}

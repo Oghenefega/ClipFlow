@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1788757566420_f7dn",
+ "set": "published_render",
+ "clip_id": "clip_1788757566420_f7dn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 963,
+  "thoughtTokens": 463
+ },
+ "cost": 0.010686,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator bursts into laughter while watching a Valorant post-match interview and pokes fun at fan reactions.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "An esports player says 'it feels really good to win' in a post-match interview."
+   },
+   {
+    "t": 0.02,
+    "type": "trigger",
+    "what": "The creator starts laughing hysterically at the clip."
+   },
+   {
+    "t": 0.04,
+    "type": "escalation",
+    "what": "The creator jokes that fans aren't going to know what winning feels like."
+   },
+   {
+    "t": 0.07,
+    "type": "payoff",
+    "what": "The creator makes an explosive high-pitched laugh and covers his mouth."
+   },
+   {
+    "t": 0.1,
+    "type": "reaction",
+    "what": "The creator playfully apologizes and admits he was out of line."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "They're not gonna know, they're just gonna have to take your word for it though.",
+  "key_line_t": 5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": true,
+  "why": "The creator's high-energy laughter and humorous roast deliver great comedy timing. However, understanding the joke requires context about Valorant esports teams and fan rivalries."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787974788113_0ezk",
+ "set": "published_render",
+ "clip_id": "clip_1787974788113_0ezk",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3037,
+  "outputTokens": 1623,
+  "thoughtTokens": 1183
+ },
+ "cost": 0.016728,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer passionately watches a tight Valorant esports match and celebrates loudly when the team clutches the round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer tracks the player count during a chaotic 3v2 round."
+   },
+   {
+    "t": 0.14,
+    "type": "escalation",
+    "what": "The round turns into an advantageous 2v1 situation."
+   },
+   {
+    "t": 0.2,
+    "type": "payoff",
+    "what": "The team secures the final kill and wins the round."
+   },
+   {
+    "t": 0.21,
+    "type": "reaction",
+    "what": "The streamer stands up and yells in excitement."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating"
+  ],
+  "key_line": "Let's go baby! Get him out of here!",
+  "key_line_t": 21,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is driven by genuine excitement for an esports clutch rather than comedic intent. It functions as high-energy esports commentary rather than a comedy bit."
+ }
+}

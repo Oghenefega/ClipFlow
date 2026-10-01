@@ -1,0 +1,54 @@
+{
+ "key": "rw_clip_1785454905645_51as",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785454905645_51as",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3121,
+  "outputTokens": 1040,
+  "thoughtTokens": 652
+ },
+ "cost": 0.0124815,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer casually talks to his chat about his experience playing Phasmophobia with a friend and how scary it was.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer discusses playing two-player games like Phasmophobia."
+   },
+   {
+    "t": 10,
+    "type": "setup",
+    "what": "He recalls feeling scared and confused while trying to move a body in the game."
+   },
+   {
+    "t": 24,
+    "type": "aftermath",
+    "what": "He notes he never made highlights from it and wraps up his thought."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "I was like, what the heck is going on right now?",
+  "key_line_t": 18,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip features casual conversational talk rather than a comedic setup and punchline. It serves as relaxed stream commentary without any visual or comedic payoff."
+ }
+}

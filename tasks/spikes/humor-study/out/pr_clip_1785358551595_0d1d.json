@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1785358551595_0d1d",
+ "set": "published_render",
+ "clip_id": "clip_1785358551595_0d1d",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3487,
+  "outputTokens": 1167,
+  "thoughtTokens": 685
+ },
+ "cost": 0.013982999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player arrogantly claims he won't lose and taunts his opponents, only to be instantly demolished seconds later.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer confidently claims 'We are not losing tonight, mark my words.'"
+   },
+   {
+    "t": 15,
+    "type": "escalation",
+    "what": "Streamer taunts the opponent for bumping him, asking 'Is that what I'm meant to be scared of?'"
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "Streamer's car gets instantly blown up mid-sentence."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "Streamer screams and laughs at the instant karma."
+   }
+  ],
+  "payoff_t": 21.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "laughing"
+  ],
+  "key_line": "Is that what I'm meant to be scared of?",
+  "key_line_t": 20,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_music"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip hits a textbook instant karma trope. The creator's sudden transition from cocky taunting to immediate destruction delivers a universally funny comedic beat."
+ }
+}

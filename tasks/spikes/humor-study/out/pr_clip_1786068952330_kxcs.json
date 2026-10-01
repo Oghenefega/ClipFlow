@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1786068952330_kxcs",
+ "set": "published_render",
+ "clip_id": "clip_1786068952330_kxcs",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1581,
+  "outputTokens": 1412,
+  "thoughtTokens": 993
+ },
+ "cost": 0.0129615,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator defiantly claims the game cannot break his spirit, only to reveal with a laugh that it is already broken.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator declares that the game is not going to break his spirit."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "He pauses dramatically and says 'Because...'"
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "He screams 'It's already broken!' as he is losing 1-7."
+   },
+   {
+    "t": 6,
+    "type": "reaction",
+    "what": "He laughs hysterically at his own defeated state."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Because it's already broken!",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The fast subversion of a typical motivational gamer speech creates quick, relatable humor. His immediate breakdown into hysterical laughter sells the self-deprecating punchline instantly."
+ }
+}

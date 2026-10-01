@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788753143967_pys7",
+ "set": "published_render",
+ "clip_id": "clip_1788753143967_pys7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1434,
+  "thoughtTokens": 958
+ },
+ "cost": 0.015173999999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer passionately hypes up his team's momentum in a Valorant esports match while mocking the opposing team's panic timeout.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer calls out LOUD taking a timeout."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Streamer compares LOUD's panic to their previous match against NRG."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "Streamer acts out LOUD getting uncomfortable under pressure."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "Streamer exaggerates robbing LOUD of their pockets, wallets, and trophies."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "Pockets empty, wallets gone, trophies gone!",
+  "key_line_t": 20,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": true,
+  "why": "The streamer's animated trash-talk metaphor about robbing the opposing team's pockets and trophies provides energetic comedic flair. However, the clip relies heavily on Valorant esports match context to be fully appreciated."
+ }
+}

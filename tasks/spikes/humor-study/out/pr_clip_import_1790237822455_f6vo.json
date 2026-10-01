@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_import_1790237822455_f6vo",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237822455_f6vo",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2208,
+  "outputTokens": 1277,
+  "thoughtTokens": 775
+ },
+ "cost": 0.012889499999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator passionately screams and jumps in excitement as pro Valorant player Asuna clutches an explosive ace.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches the pro match silently with full concentration."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Asuna gets rapid multi-kills through the choke point."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Creator throws his hands up and starts screaming in disbelief."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Asuna secures the final kill for the Ace while creator screams 'Give me the ace baby!'."
+   },
+   {
+    "t": 10,
+    "type": "aftermath",
+    "what": "Creator celebrates as the Ace graphic flashes on screen."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 3,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Give me the ace baby! Boom!",
+  "key_line_t": 7.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "dead_air",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "This is a hype/excitement clip rather than a comedy bit, driven by the creator's high-energy shouting reaction to a impressive esports play. While visually engaging, it lacks a comedic punchline or traditional setup-payoff structure."
+ }
+}

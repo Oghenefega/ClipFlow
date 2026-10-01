@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1785566928375_y2i6",
+ "set": "published_render",
+ "clip_id": "clip_1785566928375_y2i6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1581,
+  "outputTokens": 1079,
+  "thoughtTokens": 595
+ },
+ "cost": 0.010464000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator boasts about how clean his Rocket League competitive ranks look, only to point out a single embarrassingly low Plat rank among his Champ ranks.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator brags about how good his ranks look"
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Navigates to the competitive playlist screen"
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "Lists off Champ and Champ ranks in 3v3 and 2v2"
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "Points out 'freaking Plat' in 1v1"
+   },
+   {
+    "t": 6.5,
+    "type": "reaction",
+    "what": "Bursts out laughing at his own uneven ranks"
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "irony_says_x_then_opposite",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "Champ, Champ, freaking Plat.",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The contrast between his high Champ ranks and his lonely Plat rank creates a quick, relatable moment of self-deprecation. His genuine laugh makes the joke land cleanly."
+ }
+}

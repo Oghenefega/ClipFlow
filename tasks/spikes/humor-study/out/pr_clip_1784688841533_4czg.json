@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841533_4czg",
+ "set": "published_render",
+ "clip_id": "clip_1784688841533_4czg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3128,
+  "outputTokens": 1024,
+  "thoughtTokens": 505
+ },
+ "cost": 0.012372,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer aggressively hypes up his egg-rolling skills and claims he mastered the sideways jump, only to immediately fail and fall.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer claims the sideways jump is unlocked and hypes himself up."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He boasts that the game is so easy and he makes it look effortless."
+   },
+   {
+    "t": 18,
+    "type": "trigger",
+    "what": "The egg loses balance on a plank structure."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "The egg falls off the track completely."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "Streamer screams in anguish and throws his hands up."
+   }
+  ],
+  "payoff_t": 22,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "It's so easy! It's so easy! I make it look so easy man, let's go!",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip follows a classic hubris-to-immediate-failure comedy structure that anyone can understand. His intense overconfidence directly before the tragic fall makes the sudden mistake instant comedic payoff."
+ }
+}

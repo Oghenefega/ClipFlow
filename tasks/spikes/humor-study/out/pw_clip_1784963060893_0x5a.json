@@ -1,0 +1,72 @@
+{
+ "key": "pw_clip_1784963060893_0x5a",
+ "set": "published_raw",
+ "clip_id": "clip_1784963060893_0x5a",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4129,
+  "outputTokens": 1301,
+  "thoughtTokens": 727
+ },
+ "cost": 0.015951,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer preaches positivity toward the egg he is controlling in a physics game, but immediately drops to a menacing whisper when it falls.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer rolls the egg while talking about how aggressive he used to be."
+   },
+   {
+    "t": 8,
+    "type": "setup",
+    "what": "Streamer claims he now understands positivity is the way to go and will stop threatening the egg."
+   },
+   {
+    "t": 14,
+    "type": "trigger",
+    "what": "The egg falls off the wooden beam."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "Streamer drops his cheerful tone and menacingly whispers to the egg."
+   },
+   {
+    "t": 24,
+    "type": "escalation",
+    "what": "Streamer immediately resumes his sweet, positive voice as if nothing happened."
+   },
+   {
+    "t": 33,
+    "type": "reaction",
+    "what": "The egg stumbles again and the streamer breaks into laughter."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "calm_explaining",
+   "laughing"
+  ],
+  "key_line": "Fall one more time... you'll see what a threat is, okay?",
+  "key_line_t": 18,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant switch from preachy, wholesome advice to a low-voiced, passive-aggressive threat creates hilarious tonal irony. Switching right back to his sweet persona after the threat completes the joke effortlessly."
+ }
+}

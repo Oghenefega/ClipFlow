@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_import_1790718092586_abdl",
+ "set": "published_render",
+ "clip_id": "clip_import_1790718092586_abdl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2673,
+  "outputTokens": 2006,
+  "thoughtTokens": 1468
+ },
+ "cost": 0.0190545,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer watches his teammate make a round-losing mistake in Valorant and tries a calm breathing exercise before immediately bursting into a scream of rage.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Teammate Sage walls off and pushes in alone."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Sage dies, leaving the round in jeopardy."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "The team loses the round as the streamer questions Sage."
+   },
+   {
+    "t": 11,
+    "type": "setup",
+    "what": "In the buy menu, the streamer slowly instructs himself to breathe in, hold, and exhale."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "He immediately abandons calm and screams out in full anger about throwing."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "rage",
+   "overreaction",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "calm_explaining"
+  ],
+  "key_line": "TALK ABOUT THROWING THE GODDAMN ROUND!",
+  "key_line_t": 15,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedy stems from the sudden subversion of expectations when the streamer's zen meditation exercise instantly snaps into explosive gamer rage. Anyone who plays team games can relate to the struggle of staying calm through bad plays."
+ }
+}

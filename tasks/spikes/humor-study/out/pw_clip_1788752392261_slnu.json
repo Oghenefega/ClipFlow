@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1788752392261_slnu",
+ "set": "published_raw",
+ "clip_id": "clip_1788752392261_slnu",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2311,
+  "outputTokens": 1112,
+  "thoughtTokens": 658
+ },
+ "cost": 0.011806500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer jokingly accuses the opposing pro Valorant team of cheating after they easily win a round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches replay footage of a Valorant pro match."
+   },
+   {
+    "t": 1.5,
+    "type": "setup",
+    "what": "Streamer starts claiming the winning team must be cheating."
+   },
+   {
+    "t": 7.5,
+    "type": "escalation",
+    "what": "He predicts a scandal will reveal their cheats two years from now."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "Streamer shouts with mock outrage that something is not right."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 1.5,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "These guys have cheats. I promise.",
+  "key_line_t": 1.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The creator uses hyperbolic accusations of cheating to express playful disbelief at the enemy team's dominance. It relies on casual banter and mock outrage that mostly appeals to fans of the competitive scene."
+ }
+}

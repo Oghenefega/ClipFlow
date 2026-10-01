@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788753143967_6sbn",
+ "set": "published_render",
+ "clip_id": "clip_1788753143967_6sbn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1415,
+  "thoughtTokens": 981
+ },
+ "cost": 0.0139395,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer screams and falls completely out of his chair while reacting to a pro Valorant player missing a clutch shot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches pro player Cryo holding an angle with an Operator."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Cryo fires and gets instantly eliminated."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "Streamer screams in agony and drops out of his chair onto the floor."
+   },
+   {
+    "t": 12,
+    "type": "aftermath",
+    "what": "Streamer climbs back into his chair in complete shock and disbelief."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "rage"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "NO!",
+  "key_line_t": 4,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip relies on physical slapstick as the streamer dramatically tumbles completely out of frame. The sharp contrast between high caster tension and the sudden failed play fuels his over-the-top shock."
+ }
+}

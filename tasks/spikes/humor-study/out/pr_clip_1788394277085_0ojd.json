@@ -1,0 +1,73 @@
+{
+ "key": "pr_clip_1788394277085_0ojd",
+ "set": "published_render",
+ "clip_id": "clip_1788394277085_0ojd",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2763,
+  "outputTokens": 1355,
+  "thoughtTokens": 831
+ },
+ "cost": 0.014307,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer accidentally alters his character's hiding pose while camouflaged against a wall painting, leading to a panicked attempt to fix it.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer accidentally presses the pose key while hidden."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "He changes pose, breaking his seamless camouflage."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He panics and frantically cycles through the pose menu trying to remember his original position."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "He gets an out-of-bounds warning and screams as his character clips awkwardly."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "He finds a pose that works and settles back into the wall."
+   },
+   {
+    "t": 18,
+    "type": "reaction",
+    "what": "He laughs nervously in relief, admitting he doesn't know what to do."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "overreaction",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Hey, I'm in trouble!",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedic value comes from his immediate panic after accidentally ruining a perfect hiding spot. His frantic cycling through silly poses creates a classic slapstick situation."
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1788552092102_m6lg",
+ "set": "published_render",
+ "clip_id": "clip_1788552092102_m6lg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5765,
+  "outputTokens": 1233,
+  "thoughtTokens": 733
+ },
+ "cost": 0.017895,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer confidently discredits a pro Valorant player's skill right before watching him execute an impressive clutch.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator doubts pro player Keiko's talent."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "Creator confidently claims Keiko won't hit any shots."
+   },
+   {
+    "t": 28,
+    "type": "trigger",
+    "what": "Keiko lands a shot and secures the clutch."
+   },
+   {
+    "t": 36,
+    "type": "payoff",
+    "what": "Creator quietly gets out of his seat in total shock."
+   },
+   {
+    "t": 44,
+    "type": "aftermath",
+    "what": "Creator begrudgingly admits 'That was a round.'"
+   }
+  ],
+  "payoff_t": 36,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "deadpan"
+  ],
+  "key_line": "He's not gonna hit no shot.",
+  "key_line_t": 9,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "jump_cuts",
+   "text_overlay",
+   "added_music"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The classic setup of supreme confidence followed by immediate instant karma works universally. The streamer's silent physical reaction of walking away from his desk heightens the ironic comedic punch."
+ }
+}

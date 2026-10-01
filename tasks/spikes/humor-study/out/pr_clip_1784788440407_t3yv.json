@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1784788440407_t3yv",
+ "set": "published_render",
+ "clip_id": "clip_1784788440407_t3yv",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1490,
+  "outputTokens": 917,
+  "thoughtTokens": 548
+ },
+ "cost": 0.009112499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer notices a player with zero ping in Rocket League and jokes that NASA must be their internet provider.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer views the scoreboard mid-match."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "He spots a player maintaining zero ping."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "He expresses disbelief and jokes about NASA being their dad."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Who's your dad? NASA?",
+  "key_line_t": 4,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The joke is brief, relatable to anyone who understands gaming ping, and delivers a quick punchline. The hyperbole about NASA provides a solid funny moment."
+ }
+}

@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1788394277084_i0f6",
+ "set": "published_render",
+ "clip_id": "clip_1788394277084_i0f6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2400,
+  "outputTokens": 1338,
+  "thoughtTokens": 848
+ },
+ "cost": 0.013635000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator bursts into hysterical laughter while watching a player disguise themselves perfectly as wall art in a game.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches footage of hiding spots and comments on the player's potential."
+   },
+   {
+    "t": 3.5,
+    "type": "trigger",
+    "what": "Creator notices a player completely disguised as part of a mural on the wall."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "Creator breaks down into infectious laughter at how seamless the camouflage is."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Creator holds his head in disbelief, declaring how good the spot is."
+   },
+   {
+    "t": 15,
+    "type": "aftermath",
+    "what": "Creator concludes that the hider will never be found."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 1,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Yeah, they're not finding him.",
+  "key_line_t": 15.2,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual gag of a player perfectly camouflaged inside a wall painting is instantly understandable and funny. The streamer's genuinely ecstatic laughter turns a simple clip into an entertaining reaction."
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "key": "rw_clip_1787202782989_p83v",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202782989_p83v",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5470,
+  "outputTokens": 1547,
+  "thoughtTokens": 1110
+ },
+ "cost": 0.0198075,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts to a Valorant esports broadcast, praising the stage design that places coaches directly behind players.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator notices coaches sitting behind players on the stage."
+   },
+   {
+    "t": 11,
+    "type": "context",
+    "what": "He explains how coaches used to be kept hidden off-stage."
+   },
+   {
+    "t": 28,
+    "type": "context",
+    "what": "He compares the visibility of coaches to traditional sports like soccer."
+   },
+   {
+    "t": 47,
+    "type": "escalation",
+    "what": "He jokes about past esports setups looking like coaches trapped in dark rooms with headlamps."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining",
+   "laughing"
+  ],
+  "key_line": null,
+  "key_line_t": null,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is an insightful commentary on esports broadcast production rather than a comedy beat. Although the streamer laughs at a hyperbolic mental image of past setups, the clip is primarily informational."
+ }
+}

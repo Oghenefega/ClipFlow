@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1788552092102_pwp5",
+ "set": "published_raw",
+ "clip_id": "clip_1788552092102_pwp5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3526,
+  "outputTokens": 1174,
+  "thoughtTokens": 661
+ },
+ "cost": 0.014093999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer gives absurd sarcastic commentary over a Valorant pro esports replay, claiming a player's nose appearance is due to a lack of oxygen.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator sarcastically explains why they let the enemy team get breathing room."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "He jokes about seeing the light leave their eyes during the round."
+   },
+   {
+    "t": 20,
+    "type": "payoff",
+    "what": "He points out pro player Ethan on screen and claims the spot on his nose is from lack of oxygen."
+   },
+   {
+    "t": 23,
+    "type": "aftermath",
+    "what": "He folds his hands together in mock prayer while watching the next round start."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "narrating",
+   "mock_outrage",
+   "laughing"
+  ],
+  "key_line": "You see that stuff on Ethan's nose? It's the lack of oxygen, man.",
+  "key_line_t": 20,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The clip relies on the creator's playful commentary and ridiculous explanation for a player's physical appearance on camera. It is moderately amusing, but requires familiarity with the esports team and match context to fully appreciate."
+ }
+}

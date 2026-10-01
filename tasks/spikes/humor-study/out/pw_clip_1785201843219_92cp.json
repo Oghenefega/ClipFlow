@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1785201843219_92cp",
+ "set": "published_raw",
+ "clip_id": "clip_1785201843219_92cp",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1137,
+  "thoughtTokens": 681
+ },
+ "cost": 0.012601500000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer confidently claims he was born to catch an incoming Rocket League shot, only to get immediately scored on and fall out of his chair laughing.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer repositions after a missed shot opportunity."
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "Streamer boasts 'I was born to catch this man' as the ball comes toward his net."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "The opponent dunks the ball into his net instantly."
+   },
+   {
+    "t": 10,
+    "type": "reaction",
+    "what": "Streamer screams and collapses out of his chair in hysterics."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 4,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "I was born to catch this, man.",
+  "key_line_t": 7.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The extreme hubris right before instant failure creates a perfect comedic timing beat. His dramatic physical reaction and shrieking laughter elevate a simple gameplay fail into a hilarious moment."
+ }
+}

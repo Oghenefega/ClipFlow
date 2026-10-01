@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1787974608296_c8l2",
+ "set": "published_render",
+ "clip_id": "clip_1787974608296_c8l2",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3128,
+  "outputTokens": 1428,
+  "thoughtTokens": 883
+ },
+ "cost": 0.015402,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator condescendingly tells a pro Valorant player that he's 'not that guy', only to be instantly proven wrong when the player lands an absurd jump shot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator tells the player to put the knives away because he's 'not the chef'."
+   },
+   {
+    "t": 9.5,
+    "type": "escalation",
+    "what": "Creator says 'I have not approved for you to be that guy, so relax chief'."
+   },
+   {
+    "t": 18.5,
+    "type": "trigger",
+    "what": "The player launches around the corner and hits an incredible headshot."
+   },
+   {
+    "t": 20,
+    "type": "payoff",
+    "what": "Creator yells 'Ayo!' in total shock at being instantly subverted."
+   },
+   {
+    "t": 23,
+    "type": "aftermath",
+    "what": "Creator laughs off the play as the player dies."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "unexpected_outcome",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "I have not approved for you to be that guy, so relax chief.",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedic timing relies on instant subversion of authority. The creator condescendingly tries to put down the player's ego right before the player delivers a highlight kill, leaving the creator speechless."
+ }
+}

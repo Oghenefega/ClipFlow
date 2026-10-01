@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788891781302_e2m7",
+ "set": "published_render",
+ "clip_id": "clip_1788891781302_e2m7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3669,
+  "outputTokens": 1368,
+  "thoughtTokens": 925
+ },
+ "cost": 0.0157635,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer screams in intense excitement as pro Valorant player Cryo clutches a round to win the match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches Cryo navigate a crucial overtime round in Valorant."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "Cryo flashes and gets a kill, prompting an excited 'Oh' from the streamer."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Cryo secures the final kill and round win, causing the streamer to scream 'Let's go!'."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Streamer jumps around and yells in celebration along with the broadcast footage."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 7,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "LET'S FREAKING GO!",
+  "key_line_t": 21,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is focused on esports excitement and hype rather than comedic humor. The entertainment value comes from the high-energy celebration of an impressive match win."
+ }
+}

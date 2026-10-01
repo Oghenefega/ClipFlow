@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841533_8iy0",
+ "set": "published_render",
+ "clip_id": "clip_1784688841533_8iy0",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2673,
+  "outputTokens": 1521,
+  "thoughtTokens": 1016
+ },
+ "cost": 0.015417,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer playing an egg physics game celebrates prematurely by jumping out of his chair, only to frantically scramble back when the egg keeps rolling unpredictably.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer counts his egg's bounces as he attempts a difficult jump."
+   },
+   {
+    "t": 0.5,
+    "type": "trigger",
+    "what": "The egg hits a huge bounce up into a higher level."
+   },
+   {
+    "t": 0.6,
+    "type": "payoff",
+    "what": "He yells in victory and jumps out of his chair to celebrate."
+   },
+   {
+    "t": 0.9,
+    "type": "escalation",
+    "what": "He notices the egg is still rolling dangerously close to the edge."
+   },
+   {
+    "t": 1.2,
+    "type": "reaction",
+    "what": "He hurries back to his chair, pleading with the egg in complete disbelief."
+   }
+  ],
+  "payoff_t": 0.6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "LET'S FREAKING GO BABY",
+  "key_line_t": 0.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The energetic premature victory celebration followed immediately by sheer panic as the physics keep going creates high-energy slapstick comedy. His physical jump out of the frame and awkward scramble back into his seat heightens the humor."
+ }
+}

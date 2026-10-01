@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787974608295_uhda",
+ "set": "published_render",
+ "clip_id": "clip_1787974608295_uhda",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2032,
+  "outputTokens": 1687,
+  "thoughtTokens": 1285
+ },
+ "cost": 0.0157005,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer screams in shock after watching a pro Valorant player land an incredible headshot kill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer watches Sato holding a tight angle in a pro Valorant match."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "Sato instantly headshots the enemy player through a tight gap."
+   },
+   {
+    "t": 6.5,
+    "type": "reaction",
+    "what": "The streamer screams and puts both hands on his head in complete shock."
+   },
+   {
+    "t": 10.5,
+    "type": "aftermath",
+    "what": "The streamer asks in disbelief what he just watched."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "What did I just watch?",
+  "key_line_t": 10.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This is an esports hype clip centered on high-skill gameplay rather than comedic beats. The streamer's explosive reaction serves to highlight the insane shot rather than deliver a joke."
+ }
+}

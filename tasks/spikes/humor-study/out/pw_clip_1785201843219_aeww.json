@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1785201843219_aeww",
+ "set": "published_raw",
+ "clip_id": "clip_1785201843219_aeww",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2230,
+  "outputTokens": 1662,
+  "thoughtTokens": 1150
+ },
+ "cost": 0.01581,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer rejects a high-ranked Rocket League player's 1v1 chat offer, lamenting that he only wants to play against bad, low-ranked players.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer scores a goal in Rocket League."
+   },
+   {
+    "t": 2.5,
+    "type": "setup",
+    "what": "Streamer reads a viewer's chat challenge proposing a 1v1 as a Champ 3."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Streamer rests his head in disappointment, saying he only wants to hear they are Bronze level."
+   },
+   {
+    "t": 13,
+    "type": "aftermath",
+    "what": "He jokes about wanting to fight players with 2,000 hours who are still in Bronze."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 2.5,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "deadpan"
+  ],
+  "key_line": "That is not what I want to hear. I want to hear I'm Bronze 4",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer hilariously turns down a high-skill 1v1 challenge by shamelessly admitting he only wants to play against low-ranked players. His deadpan reaction to someone being good at the game creates an amusing subversion of typical gamer confidence."
+ }
+}

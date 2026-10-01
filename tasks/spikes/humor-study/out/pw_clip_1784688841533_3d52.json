@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1784688841533_3d52",
+ "set": "published_raw",
+ "clip_id": "clip_1784688841533_3d52",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3765,
+  "outputTokens": 1035,
+  "thoughtTokens": 564
+ },
+ "cost": 0.013409999999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer laments fumbling his best run while rolling an egg, finding himself stuck in a strange glitched area of the map.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer asks how he fumbled his best run ever."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He realizes he fell into an unfamiliar part of the map."
+   },
+   {
+    "t": 20,
+    "type": "context",
+    "what": "He casually greets a chat viewer while still confused about his location."
+   },
+   {
+    "t": 26,
+    "type": "payoff",
+    "what": "He realizes it's a known glitched area and declares it won't affect him today."
+   }
+  ],
+  "payoff_t": 26,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "confusion",
+   "glitch_or_physics"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "How do I fumble my best run ever?",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip consists of mild streamer self-deprecation and confusion over falling into a map glitch. Without context on the game's difficulty or the stakes of his run, it lacks a punchy comedic payoff."
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788394277085_7o4p",
+ "set": "published_render",
+ "clip_id": "clip_1788394277085_7o4p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2117,
+  "outputTokens": 1130,
+  "thoughtTokens": 690
+ },
+ "cost": 0.0116505,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with explosive shock and laughter as a seeker in a prop hunt game stares directly at a player hidden in plain sight as a painting.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator holds his head in hands yelling in disbelief."
+   },
+   {
+    "t": 0.4,
+    "type": "escalation",
+    "what": "The green character turns and stares right at the wall painting."
+   },
+   {
+    "t": 0.8,
+    "type": "payoff",
+    "what": "The seeker strikes the disguised player on the wall."
+   },
+   {
+    "t": 0.9,
+    "type": "reaction",
+    "what": "Creator screams 'WHAT THE FLI-' in utter shock."
+   }
+  ],
+  "payoff_t": 0.8,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "WHAT THE FLI-",
+  "key_line_t": 0.9,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's high-energy disbelief combined with the hilarious visual of a seeker staring straight at an obvious prop creates an instant, easy-to-understand gag."
+ }
+}

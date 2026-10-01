@@ -1,0 +1,56 @@
+{
+ "key": "rw_clip_1787974608296_o88g",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787974608296_o88g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2635,
+  "outputTokens": 987,
+  "thoughtTokens": 554
+ },
+ "cost": 0.011355,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator admits that watching esports pros gives him the delusional urge to play, naively believing he will somehow aim like them.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator explains why he hates watching pros."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "He describes how watching pros makes him want to immediately jump into a game."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "He laughs at his foolish logic that he will somehow have aim like the pros."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "narrating",
+   "laughing"
+  ],
+  "key_line": "Just maybe if I get in my game, I also will have aim like that.",
+  "key_line_t": 16,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "It captures a very relatable gamer experience where watching professional gameplay tricks your brain into thinking you can play just as well. It relies on casual self-deprecation and lighthearted commentary rather than a big punchline."
+ }
+}

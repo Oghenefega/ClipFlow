@@ -1,0 +1,64 @@
+{
+ "key": "pr_clip_import_1790238166941_z419",
+ "set": "published_render",
+ "clip_id": "clip_import_1790238166941_z419",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3037,
+  "outputTokens": 1238,
+  "thoughtTokens": 725
+ },
+ "cost": 0.0138405,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer almost misidentifies the language spoken in Brazil, secretly Googles it on screen, and then loudly claims he knew it was Portuguese all along.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts to refer to a Brazilian viewer's language as Spanish."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Streamer pauses and Googles 'what do they speak in brazil' with a dial-up sound effect."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "After seeing the Google result, streamer immediately confidently claims everybody knows they speak Portuguese."
+   },
+   {
+    "t": 17,
+    "type": "reaction",
+    "what": "Streamer breaks into laughter while denying he was about to say 'Brazilian'."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "laughing",
+   "deadpan",
+   "mock_outrage"
+  ],
+  "key_line": "Everybody knows they speak Portuguese in Brazil bro, I definitely wasn't going to say that's Brazilian.",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The relatable panic of secretly Googling basic trivia mid-sentence creates a funny beat. His immediate switch to smug confidence after finding the answer completes the joke."
+ }
+}

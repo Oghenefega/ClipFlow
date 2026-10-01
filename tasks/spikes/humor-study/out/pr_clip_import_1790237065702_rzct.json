@@ -1,0 +1,79 @@
+{
+ "key": "pr_clip_import_1790237065702_rzct",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237065702_rzct",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3298,
+  "outputTokens": 1838,
+  "thoughtTokens": 1360
+ },
+ "cost": 0.018732,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer uses the OP sniper rifle in Valorant for the first time, repeatedly missing easy shots before finally landing a kill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer boasts about helping his team with the OP sniper rifle."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Streamer misses his first shot completely."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "He misses another shot on a nearby target."
+   },
+   {
+    "t": 9,
+    "type": "context",
+    "what": "A Mr. Bean waiting meme cutaway highlights his struggle."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He whiffs another close-range shot."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "He finally lands a headshot kill and screams in triumph."
+   },
+   {
+    "t": 22,
+    "type": "reaction",
+    "what": "Streamer laughs with his teammate in disbelief."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Get him out of my face!",
+  "key_line_t": 19,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "jump_cuts",
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip works due to the dynamic shift between the streamer's initial confidence and his repeated inability to hit static targets. The pop-culture edit inserts and dramatic payoff cheer create a fun, relatable gaming fail clip."
+ }
+}

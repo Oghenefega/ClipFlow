@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1784788440406_66cj",
+ "set": "published_render",
+ "clip_id": "clip_1784788440406_66cj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2844,
+  "outputTokens": 1142,
+  "thoughtTokens": 681
+ },
+ "cost": 0.012831,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer scores a stylish goal in Rocket League, prompting a hilarious over-dramatic breakdown from his opponent on voice chat.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer dribbles the ball downfield in Rocket League with text overlay context."
+   },
+   {
+    "t": 6.5,
+    "type": "payoff",
+    "what": "Streamer jukes the defender and scores into the open net."
+   },
+   {
+    "t": 7.5,
+    "type": "reaction",
+    "what": "Streamer bursts out laughing while gloating."
+   },
+   {
+    "t": 16.5,
+    "type": "escalation",
+    "what": "Opponent screams on voice chat about being done dirty on live television."
+   }
+  ],
+  "payoff_t": 6.5,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "mock_outrage",
+   "yelling"
+  ],
+  "key_line": "HOW DARE YOU DO THAT TO ME ON LIVE TELEVISION",
+  "key_line_t": 17.5,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The slick Rocket League goal sets up the clip, but the genuine comedy comes from the opponent's hilariously dramatic rage reaction over voice chat. The streamer's contagious laughter ties the moment together perfectly."
+ }
+}

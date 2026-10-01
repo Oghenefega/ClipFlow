@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1788755772243_fq1a",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788755772243_fq1a",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1825,
+  "outputTokens": 1330,
+  "thoughtTokens": 899
+ },
+ "cost": 0.0127125,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with hype and utter disbelief as a pro Valorant player pulls off an insane play.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches a tense Valorant match with caster commentary."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "The pro player aggressively glides through smoke into site."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "The pro player gets the kill mid-glide."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Streamer yells in disbelief with his hands up."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 5,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "No freaking way, bro!",
+  "key_line_t": 8,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip relies on esports hype and impressive skill rather than pure comedy. The creator's outburst of shock highlights a wild play that primarily appeals to Valorant fans."
+ }
+}

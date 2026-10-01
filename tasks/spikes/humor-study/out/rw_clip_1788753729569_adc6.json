@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1788753729569_adc6",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788753729569_adc6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3769,
+  "outputTokens": 973,
+  "thoughtTokens": 496
+ },
+ "cost": 0.012951,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer aggressively hypes and roasts an opposing Valorant team while watching match replays.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches match footage while explaining his team's strategy."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "Creator mocks the opponent Neon player's fast movement as they get eliminated."
+   },
+   {
+    "t": 26,
+    "type": "payoff",
+    "what": "Creator laughs and shouts about the enemy team calling a timeout that didn't help them."
+   },
+   {
+    "t": 34,
+    "type": "aftermath",
+    "what": "Creator continues hyping up the play as his team stays dominant."
+   }
+  ],
+  "payoff_t": 26,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "They took a time out, thought it was gonna work out, absolutely not!",
+  "key_line_t": 26,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The clip relies on esports watch-party hype rather than traditional comedy beats. The energy comes from the streamer's expressive roasting of the opponent's failed tactical timeout."
+ }
+}

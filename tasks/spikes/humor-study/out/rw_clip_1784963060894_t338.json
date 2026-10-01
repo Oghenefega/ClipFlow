@@ -1,0 +1,59 @@
+{
+ "key": "rw_clip_1784963060894_t338",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784963060894_t338",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3037,
+  "outputTokens": 1252,
+  "thoughtTokens": 832
+ },
+ "cost": 0.013945500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer carefully times his movements to navigate an egg through a tricky platforming section and boasts about making it look easy.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer counts down timing to clear a moving platform"
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "The egg successfully lands on the upper wooden track"
+   },
+   {
+    "t": 10.5,
+    "type": "reaction",
+    "what": "Streamer brags about making the trick look easy"
+   },
+   {
+    "t": 18,
+    "type": "escalation",
+    "what": "Streamer continues rolling up a long slope while talking about making strides"
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "Made it look easy, man.",
+  "key_line_t": 12,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip showcases successful gameplay execution rather than a comedic setup or fail. Without a surprise or humorous punchline, it functions more as progress footage."
+ }
+}

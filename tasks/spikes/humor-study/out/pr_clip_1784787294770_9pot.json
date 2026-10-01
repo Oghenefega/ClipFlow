@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1784787294770_9pot",
+ "set": "published_render",
+ "clip_id": "clip_1784787294770_9pot",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4129,
+  "outputTokens": 1195,
+  "thoughtTokens": 753
+ },
+ "cost": 0.015156,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer whiffs a Rocket League shot and sarcastically claims he missed on purpose because he doesn't like cheap goals.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer playing Rocket League match"
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "Gets demolished by an opponent"
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Whiffs the ball and claims it was intentional to avoid a cheap goal"
+   },
+   {
+    "t": 20,
+    "type": "reaction",
+    "what": "Makes a save and taunts the opponent"
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 4,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "self_own_fail",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "deadpan",
+   "narrating"
+  ],
+  "key_line": "I missed that because that was obviously my intention. I don't like cheap goals, bro.",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy comes from the streamer's sarcastic cover-up after missing a simple play. His deadpan tone claiming it was a point of honor not to take 'cheap goals' makes the self-own amusing."
+ }
+}

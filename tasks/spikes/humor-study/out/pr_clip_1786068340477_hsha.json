@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1786068340477_hsha",
+ "set": "published_render",
+ "clip_id": "clip_1786068340477_hsha",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1581,
+  "outputTokens": 1230,
+  "thoughtTokens": 756
+ },
+ "cost": 0.011596500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer hypes himself up as he scores an aerial goal in Rocket League and screams in celebration.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer trash-talks after a scored goal, yelling 'get him outta here'."
+   },
+   {
+    "t": 2.5,
+    "type": "setup",
+    "what": "Streamer pushes the ball down the field towards the opponent's net."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "Streamer hits the ball into the top corner past the defender."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "The goal explodes into purple effects."
+   },
+   {
+    "t": 6.5,
+    "type": "reaction",
+    "what": "Streamer screams at the top of his lungs in hype."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Get him outta here, bro!",
+  "key_line_t": 0.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This is a competitive gameplay highlight driven by high energy and skill rather than comedy. The loudness and excitement function as excitement rather than a structured joke or funny moment."
+ }
+}

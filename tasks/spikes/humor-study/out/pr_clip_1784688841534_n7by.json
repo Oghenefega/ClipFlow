@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841534_n7by",
+ "set": "published_render",
+ "clip_id": "clip_1784688841534_n7by",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6040,
+  "outputTokens": 1125,
+  "thoughtTokens": 630
+ },
+ "cost": 0.0174975,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator hype-celebrates a genius timing strategy suggested by chat, only to immediately fail and shout at chat for lying to him.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator counts rhythmically trying to time his egg game movement based on chat advice."
+   },
+   {
+    "t": 14,
+    "type": "escalation",
+    "what": "Creator prematurely celebrates chat's strategy as a 'big brain' move."
+   },
+   {
+    "t": 38,
+    "type": "setup",
+    "what": "Creator recalibrates his strategy and counts down to execute the movement."
+   },
+   {
+    "t": 50,
+    "type": "trigger",
+    "what": "He makes his move based on the timing and immediately falls to his demise."
+   },
+   {
+    "t": 53,
+    "type": "payoff",
+    "what": "Creator stands up from his chair in disbelief and yells 'Who lied to me?!'"
+   }
+  ],
+  "payoff_t": 55,
+  "hook_t": 14,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "overreaction",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Who lied to me?",
+  "key_line_t": 55,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The premature hype over 'big brain' tactics sets up classic hubris. The sudden failure and explosive physical outrage at chat deliver a great comedy payoff."
+ }
+}

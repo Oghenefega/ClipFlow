@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1785201494046_u10g",
+ "set": "published_render",
+ "clip_id": "clip_1785201494046_u10g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1330,
+  "thoughtTokens": 939
+ },
+ "cost": 0.012619499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer completely whiffs a routine Rocket League kickoff touch and laughs in disbelief as the opponent immediately scores.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer goes for a routine kickoff flip in Rocket League."
+   },
+   {
+    "t": 3,
+    "type": "payoff",
+    "what": "He whiffs completely, letting the ball roll straight into his goal."
+   },
+   {
+    "t": 4,
+    "type": "reaction",
+    "what": "Streamer laughs in disbelief at how badly he messed up."
+   }
+  ],
+  "payoff_t": 3,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "I don't want to talk about that bro, cause what?",
+  "key_line_t": 3,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The sudden whiff on a routine kickoff is instantly relatable to anyone who plays games. His amused disbelief at his own mistake keeps the mood light and funny."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787974608296_6mqc",
+ "set": "published_render",
+ "clip_id": "clip_1787974608296_6mqc",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 1316,
+  "thoughtTokens": 872
+ },
+ "cost": 0.014152499999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hypes up pro Valorant player Bang right before he completes an impressive 2v1 clutch.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator confidently predicts that Bang will pull off the play."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Bang gets the first headshot and creator shouts in hype."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "Bang hits the final headshot to win the clutch."
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "Creator jumps out of his chair, yelling and celebrating."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "If anybody that could and would, it is freaking Bang, bro.",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip relies on hype esports action and accurate prediction rather than intentional comedy. The creator's high-energy reaction captures genuine excitement rather than a joke."
+ }
+}

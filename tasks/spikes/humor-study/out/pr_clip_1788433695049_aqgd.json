@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788433695049_aqgd",
+ "set": "published_render",
+ "clip_id": "clip_1788433695049_aqgd",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1618,
+  "thoughtTokens": 1152
+ },
+ "cost": 0.0150525,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer attempts to camouflage his character in plain sight between two bottles by painting himself to match them.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer hears voice chat laughing at his hiding spot."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "He finishes painting his body half-white and half-brown to match the two condiment bottles."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "He stands still right between the bottles, looking blatantly obvious."
+   },
+   {
+    "t": 9.5,
+    "type": "reaction",
+    "what": "He chuckles and hopes the seeker is 'probably blind'."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "whisper_or_mutter"
+  ],
+  "key_line": "JP's probably blind",
+  "key_line_t": 10,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual visual gag of a human character painting himself to blend in between two bottles in plain sight is instantly funny. His quiet insistence that the seeker might just be blind adds a nice bit of comedic denial."
+ }
+}

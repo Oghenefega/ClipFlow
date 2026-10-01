@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1785566426951_sgwv",
+ "set": "published_render",
+ "clip_id": "clip_1785566426951_sgwv",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1315,
+  "thoughtTokens": 782
+ },
+ "cost": 0.013052999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer laughs as he recounts a chat message from a kid demanding to play Rocket League with him because he is his 'only viewer'.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer starts reading a chat message from a viewer."
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Streamer counters that he has other viewers."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Streamer quotes the kid bluntly saying no one else is watching."
+   },
+   {
+    "t": 8.5,
+    "type": "payoff",
+    "what": "Streamer quotes the kid's ultimatium: 'What are you gonna do, just stream to nobody?'"
+   },
+   {
+    "t": 12,
+    "type": "reaction",
+    "what": "Streamer admits the kid's hilarious logic was very compelling."
+   }
+  ],
+  "payoff_t": 8.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "narrating",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "What are you going to do, just stream to nobody?",
+  "key_line_t": 10.5,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The viewer's absurdly bold guilt-trip attempt creates a funny moment that anyone familiar with internet culture can enjoy. The streamer's genuine amusement in retelling the story lands the punchline well."
+ }
+}

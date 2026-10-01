@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788149370220_gqno",
+ "set": "published_render",
+ "clip_id": "clip_1788149370220_gqno",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2485,
+  "outputTokens": 1087,
+  "thoughtTokens": 579
+ },
+ "cost": 0.01188,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically after noticing a Valorant esports coach press a giant, dramatic red button on stage just to call a timeout.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches Valorant esports broadcast footage while casters talk."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "The coach slams a giant glowing red button on stage to call a timeout."
+   },
+   {
+    "t": 4.5,
+    "type": "payoff",
+    "what": "Creator bursts into uncontrollable laughter at the size of the button."
+   },
+   {
+    "t": 6.5,
+    "type": "escalation",
+    "what": "Creator jokes about why they need a giant red button instead of a small button."
+   },
+   {
+    "t": 13,
+    "type": "aftermath",
+    "what": "Creator points out how unnecessarily dramatic and shiny the button is."
+   }
+  ],
+  "payoff_t": 4.5,
+  "hook_t": 3,
+  "author": "mixed",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Not the big red button!",
+  "key_line_t": 6.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip succeeds because the visual absurdity of an oversized red emergency button on an esports stage is universally funny. The streamer's infectious laughter and sharp commentary highlight how ridiculously dramatic the setup is."
+ }
+}

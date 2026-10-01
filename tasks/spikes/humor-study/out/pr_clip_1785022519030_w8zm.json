@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1785022519030_w8zm",
+ "set": "published_render",
+ "clip_id": "clip_1785022519030_w8zm",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3128,
+  "outputTokens": 932,
+  "thoughtTokens": 493
+ },
+ "cost": 0.011682,
+ "watch": {
+  "format": "talking",
+  "summary": "The creator passionately explains why hate-watching a team is so satisfying when they lose, comically exaggerating them as 'corrupt, wicked, evil.'",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator talks about how beautiful it is to hate watch Argentina"
+   },
+   {
+    "t": 13,
+    "type": "escalation",
+    "what": "Lists an increasingly ridiculous chain of insult adjectives (corrupt, wicked, evil, bad, horrible)"
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "Concludes that it's satisfying to see 'evil lose' and bursts into laughter"
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "calm_explaining"
+  ],
+  "key_line": "it's so satisfying to finally see evil lose",
+  "key_line_t": 21,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedic escalation of describing a sports team with extreme villainous labels leads to a funny punchline about seeing 'evil lose'. His deadpan seriousness turning into self-aware laughter sells the joke."
+ }
+}

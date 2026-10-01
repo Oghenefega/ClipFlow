@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1785908333797_i3qf",
+ "set": "published_raw",
+ "clip_id": "clip_1785908333797_i3qf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4220,
+  "outputTokens": 1069,
+  "thoughtTokens": 563
+ },
+ "cost": 0.0143475,
+ "watch": {
+  "format": "gameplay",
+  "summary": "While the streamer distractedly looks around to inspect his next path in a physics platformer, his egg character starts rolling backward off the plank.",
+  "beats": [
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Streamer tells the egg to stop being wobbly and let him look around."
+   },
+   {
+    "t": 17,
+    "type": "context",
+    "what": "Streamer thanks the egg for settling down and points at the obstacles ahead."
+   },
+   {
+    "t": 23,
+    "type": "trigger",
+    "what": "The egg suddenly begins rolling backward off the wooden board."
+   },
+   {
+    "t": 24,
+    "type": "payoff",
+    "what": "Streamer realizes the egg is falling and screams in panic."
+   },
+   {
+    "t": 28,
+    "type": "reaction",
+    "what": "Streamer complains in disbelief as the egg continues to slide down."
+   }
+  ],
+  "payoff_t": 24,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "unexpected_outcome",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Hey! No! No! Wait, wait, wait, wait!",
+  "key_line_t": 24,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedic timing of the egg falling the exact second he takes his focus off it creates a classic instant-regret scenario. His frantic reaction adds to the relatable frustration of playing difficult physics games."
+ }
+}

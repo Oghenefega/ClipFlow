@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1788550913586_47ny",
+ "set": "published_render",
+ "clip_id": "clip_1788550913586_47ny",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 1357,
+  "thoughtTokens": 840
+ },
+ "cost": 0.0156885,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer hypes up and reacts with loud disbelief as 100 Thieves dominates a round in a professional Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts chanting and hyping up 100 Thieves before the play unfolds."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "Cryo gets a clean headshot pick on site."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "100 Thieves aggressively overwhelms NRG as the streamer screams in disbelief."
+   },
+   {
+    "t": 24,
+    "type": "escalation",
+    "what": "Cryo lines up another kill through a smoke as the streamer leans in close."
+   },
+   {
+    "t": 29,
+    "type": "payoff",
+    "what": "100T wins the round with a 'FLAWLESS' screen and the streamer stands up yelling in hype."
+   }
+  ],
+  "payoff_t": 29,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Oh my God, it's too easy bro!",
+  "key_line_t": 11,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip relies entirely on hype and high-level esports gameplay rather than comedic beats. The streamer's energetic reaction is meant to amplify excitement rather than deliver humor."
+ }
+}

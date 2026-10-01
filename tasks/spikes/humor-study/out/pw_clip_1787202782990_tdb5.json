@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1787202782990_tdb5",
+ "set": "published_raw",
+ "clip_id": "clip_1787202782990_tdb5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2068,
+  "outputTokens": 971,
+  "thoughtTokens": 503
+ },
+ "cost": 0.0103845,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator dramatically celebrates and over-hypes 100 Thieves' chances of winning VCT while watching footage.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator starts singing about world champions while watching footage."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Creator throws his head back and laughs joyfully about 100 Thieves winning."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Creator throws his hands up exclaiming it is going to be the best year ever."
+   },
+   {
+    "t": 12,
+    "type": "aftermath",
+    "what": "Creator smiles and keeps watching the gameplay unfold."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "100 Thieves about to win the VCT!",
+  "key_line_t": 3.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The creator uses mock euphoria and extreme hype while reacting to Valorant gameplay clips. The joke relies on esports fan context regarding 100 Thieves' team expectations."
+ }
+}

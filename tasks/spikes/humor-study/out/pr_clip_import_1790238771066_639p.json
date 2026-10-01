@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_import_1790238771066_639p",
+ "set": "published_render",
+ "clip_id": "clip_import_1790238771066_639p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1854,
+  "outputTokens": 1018,
+  "thoughtTokens": 487
+ },
+ "cost": 0.010416,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer lines up a guaranteed kill on a blinded enemy in Valorant while a confident meme plays, only to immediately get killed instead.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer peaks around a corner in Valorant."
+   },
+   {
+    "t": 1.5,
+    "type": "escalation",
+    "what": "He spots a blinded enemy standing right in front of him."
+   },
+   {
+    "t": 2.5,
+    "type": "trigger",
+    "what": "Meme insert of Gambit saying 'You know how long I've been waiting for this'."
+   },
+   {
+    "t": 5.8,
+    "type": "payoff",
+    "what": "Cut back to gameplay where the streamer is instantly headshot and dead on the floor."
+   },
+   {
+    "t": 7,
+    "type": "reaction",
+    "what": "Streamer screams in complete disbelief that the blinded enemy killed him."
+   }
+  ],
+  "payoff_t": 5.8,
+  "hook_t": 1.5,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "She's blind, bro! She's blind!",
+  "key_line_t": 7.2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "jump_cuts",
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The contrast between the extreme confidence build-up from the Gambit meme and the instant, unceremonive death creates perfect comedic subversion. His loud, hilarious reaction tops off the fail perfectly."
+ }
+}

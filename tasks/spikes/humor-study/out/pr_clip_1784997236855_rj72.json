@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1784997236855_rj72",
+ "set": "published_render",
+ "clip_id": "clip_1784997236855_rj72",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3035,
+  "outputTokens": 1059,
+  "thoughtTokens": 596
+ },
+ "cost": 0.012495,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer tries to keep a calm composure while controlling a fragile rolling egg, but panics and screams as it tumbles off a ledge and cracks.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer tells himself to relax while balancing the egg."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "The egg wobbles unpredictable near the edge as the streamer repeatedly mutters 'wait a minute'."
+   },
+   {
+    "t": 20,
+    "type": "trigger",
+    "what": "The egg rolls off the platform into open air."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "Streamer screams in panic as the egg falls and cracks on the ground."
+   }
+  ],
+  "payoff_t": 22,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "glitch_or_physics",
+   "hubris_then_fail",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "whisper_or_mutter",
+   "mock_outrage"
+  ],
+  "key_line": "WAIT! WAIT!",
+  "key_line_t": 21,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The contrast between the streamer's gentle muttering to stay calm and his sudden desperate scream as the clumsy egg physics send it falling makes for a quick, relatable comedy fail."
+ }
+}

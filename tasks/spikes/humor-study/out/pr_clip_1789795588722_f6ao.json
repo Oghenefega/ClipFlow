@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1789795588722_f6ao",
+ "set": "published_render",
+ "clip_id": "clip_1789795588722_f6ao",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4310,
+  "outputTokens": 1679,
+  "thoughtTokens": 1139
+ },
+ "cost": 0.019057499999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer playing a prop hunt game is bewildered when opponents hide in ridiculous spots, including clipped inside a thin metal shelf rack.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer wonders how anyone is supposed to spot a player hiding on the ceiling."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "Streamer shoots the player stuck high up near the roof."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "Streamer desperately searches for the last player before time expires."
+   },
+   {
+    "t": 22,
+    "type": "trigger",
+    "what": "Time runs out, giving the hiding team the win."
+   },
+   {
+    "t": 26,
+    "type": "payoff",
+    "what": "Streamer discovers the last player was clipped directly inside a hollow metal shelf pillar."
+   },
+   {
+    "t": 29,
+    "type": "reaction",
+    "what": "Streamer shouts in disbelief that the opponent was hiding inside the frame."
+   }
+  ],
+  "payoff_t": 26,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "glitch_or_physics",
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "He's literally inside the freaking thing!",
+  "key_line_t": 35,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip works due to the sheer absurdity of the opponent's unfindable hiding spot inside a tiny shelf column. The streamer's bewildered escalation from searching normally to discovering the glitchy spot delivers a clean comedic payoff."
+ }
+}

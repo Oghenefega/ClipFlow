@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1788757102761_9kag",
+ "set": "published_render",
+ "clip_id": "clip_1788757102761_9kag",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7405,
+  "outputTokens": 1358,
+  "thoughtTokens": 908
+ },
+ "cost": 0.0212925,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator intensely watches and reacts to a nail-biting final round of a Valorant match between 100T and LOUD.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator highlights 100T having four ultimates available in a crucial round."
+   },
+   {
+    "t": 11,
+    "type": "trigger",
+    "what": "100T initiates site execute, triggering creator's excited shout."
+   },
+   {
+    "t": 43,
+    "type": "escalation",
+    "what": "Creator stretches his shirt in intense anxiety as round narrows down to 3v3."
+   },
+   {
+    "t": 65,
+    "type": "payoff",
+    "what": "100T closes out the round, creator screams and jumps out of his chair."
+   }
+  ],
+  "payoff_t": 65,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Oh my God!",
+  "key_line_t": 65,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip delivers high esports hype and suspense rather than intentional comedy. Its appeal comes entirely from the intense match moment and the creator's passionate reaction."
+ }
+}

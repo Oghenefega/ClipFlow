@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1785455230241_1vcw",
+ "set": "published_render",
+ "clip_id": "clip_1785455230241_1vcw",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2391,
+  "outputTokens": 1185,
+  "thoughtTokens": 698
+ },
+ "cost": 0.012474,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator claims he is a decent driver before immediately crashing and ruining his time trial run.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator tells chat he is not a bad driver."
+   },
+   {
+    "t": 4,
+    "type": "context",
+    "what": "The driving race starts as creator mutters 'Oh my goodness'."
+   },
+   {
+    "t": 6.5,
+    "type": "escalation",
+    "what": "Creator crashes into roadside obstacles and flies airborne."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Creator realizes the run is ruined and yells 'I ruined it!'"
+   },
+   {
+    "t": 13.5,
+    "type": "reaction",
+    "what": "Creator laughs out loud seeing his final time of 21 seconds."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "I'm not so bad.",
+  "key_line_t": 3,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant contrast between his boastful reassurance and immediate disastrous driving creates an effortless comedic payoff. His infectious burst of laughter at his own failure keeps the clip lighthearted."
+ }
+}

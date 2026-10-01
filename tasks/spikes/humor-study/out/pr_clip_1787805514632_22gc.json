@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1787805514632_22gc",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_22gc",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3208,
+  "outputTokens": 1799,
+  "thoughtTokens": 1201
+ },
+ "cost": 0.0183045,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts to footage of cheerleading robots, narrating a rogue robot climbing steps to watch them right before it tumbles off the platform.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator shows footage of cheerleading robots doing a pom-pom routine."
+   },
+   {
+    "t": 7,
+    "type": "setup",
+    "what": "A humanoid robot begins climbing up yellow steps towards the stage."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator narrating the robot's funny thoughts as it climbs up to get a better view."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "The robot misses its footing and tumbles off the platform off-screen."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Creator doubles over in laughter at the robot's sudden drop."
+   },
+   {
+    "t": 17,
+    "type": "aftermath",
+    "what": "Creator jokes about the robot doing anything to check out ladies."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 7,
+  "author": "mixed",
+  "mechanisms": [
+   "unexpected_outcome",
+   "absurd_commentary",
+   "glitch_or_physics"
+  ],
+  "delivery": [
+   "narrating",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "Be a freaking man, be a freaking animal, be a freaking robot... we like ladies, man.",
+  "key_line_t": 17,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The visual slapstick of the robot awkwardly taking a spill is hilarious on its own, and the creator's voiceover giving it a hilarious motivation elevates the joke."
+ }
+}

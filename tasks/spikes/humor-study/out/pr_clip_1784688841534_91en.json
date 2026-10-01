@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841534_91en",
+ "set": "published_render",
+ "clip_id": "clip_1784688841534_91en",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1080,
+  "thoughtTokens": 569
+ },
+ "cost": 0.012518999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer complains about the absurd difficulty of an egg-rolling game's obstacle course before deciding to 'freestyle' it, only to instantly fall and break the egg.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer explains the convoluted path he is expected to take."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "He laughs in disbelief, calling the level design a 'sick joke'."
+   },
+   {
+    "t": 15,
+    "type": "trigger",
+    "what": "He announces he will just 'freestyle it' and rolls forward."
+   },
+   {
+    "t": 19,
+    "type": "payoff",
+    "what": "The egg immediately rolls off the side platform."
+   },
+   {
+    "t": 21,
+    "type": "reaction",
+    "what": "He yells as the egg falls and splatters on the ground."
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "I'm just gonna freestyle it.",
+  "key_line_t": 15.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedic setup relies on classic hubris followed by immediate failure. His confident claim to 'freestyle' the impossible route instantly backfires in less than three seconds."
+ }
+}

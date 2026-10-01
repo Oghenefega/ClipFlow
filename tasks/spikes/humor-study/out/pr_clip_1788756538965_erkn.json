@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1788756538965_erkn",
+ "set": "published_render",
+ "clip_id": "clip_1788756538965_erkn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2479,
+  "outputTokens": 1382,
+  "thoughtTokens": 918
+ },
+ "cost": 0.014083499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator wildly screams in excitement over a match win while holding a sandwich and a soda, then instantly goes quiet to eat.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches the gameplay footage intently while holding food."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "The round ends in a victory on screen."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "Creator screams 'LET'S GO!' at full volume while waving his burger and bottle."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "He yells 'AWESOME BABY!' celebrating intensely."
+   },
+   {
+    "t": 12,
+    "type": "aftermath",
+    "what": "Creator instantly cuts his screaming and calmly takes a bite of his burger."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "yelling",
+   "silence"
+  ],
+  "key_line": "LET'S GO!",
+  "key_line_t": 4,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The contrast between the creator's full-volume hype screaming and the food in his hands creates visual comedy. His immediate transition back to quietly eating a burger completes the joke."
+ }
+}

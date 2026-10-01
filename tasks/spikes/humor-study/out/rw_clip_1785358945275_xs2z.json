@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1785358945275_xs2z",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785358945275_xs2z",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2878,
+  "outputTokens": 1131,
+  "thoughtTokens": 703
+ },
+ "cost": 0.0127995,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator gets unexpectedly demolished right after complimenting a play, leading directly to an opponent goal.",
+  "beats": [
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Creator praises the play and mentions pre-jumping."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "Creator gets suddenly demolished by the opponent."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The opponent scores immediately while creator is respawning."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "Creator reacts with chuckles and mild disbelief."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 3,
+  "author": "opponent",
+  "mechanisms": [
+   "unexpected_outcome",
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "calm_explaining"
+  ],
+  "key_line": "Oof. Damn, okay.",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The instant karma of getting blown up and conceding a goal right after talking about his positioning provides a quick, ironic comedy beat. The creator's calm, laughing reaction keeps the clip lighthearted."
+ }
+}

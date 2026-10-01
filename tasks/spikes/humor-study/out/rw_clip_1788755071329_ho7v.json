@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1788755071329_ho7v",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788755071329_ho7v",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3445,
+  "outputTokens": 1279,
+  "thoughtTokens": 763
+ },
+ "cost": 0.01476,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator sarcastically coping with a 2-8 score deficit by dramatically shouting that the map is 'defense-sided' and everything is fine.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer looks at the score during a timeout."
+   },
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer starts animatedly shouting that it's a defense-sided map."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He continues passionately insisting not to worry about the score."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "He breaks out into sarcastic laughter while promising a 100% comeback on defense."
+   },
+   {
+    "t": 24,
+    "type": "aftermath",
+    "what": "He calmly wraps up his sarcastic cope saying 'it makes sense, we're good'."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "laughing"
+  ],
+  "key_line": "Oh, it's a defense sided map!",
+  "key_line_t": 1,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's energetic copium rant over a huge score deficit relies on classic ironic sarcasm. His animated physical gestures and mock confidence make the aggressive denial immediately readable and funny."
+ }
+}

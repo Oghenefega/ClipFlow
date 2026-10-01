@@ -1,0 +1,72 @@
+{
+ "key": "pw_clip_1788433695048_or2y",
+ "set": "published_raw",
+ "clip_id": "clip_1788433695048_or2y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3931,
+  "outputTokens": 1268,
+  "thoughtTokens": 731
+ },
+ "cost": 0.0154065,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator tries to hide inside a wall cutout during a party game, but bursts into wheezing laughter when he realizes his character's limbs and body stick out completely.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "The creator checks the countdown timer and attempts to fit into the wall hole."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "He turns the camera and spots his character's head awkwardly protruding through the wall."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "He explodes into wheezing laughter at how bad the fit is."
+   },
+   {
+    "t": 18,
+    "type": "escalation",
+    "what": "He inspects the other side and sees his arm sticking out just as badly."
+   },
+   {
+    "t": 25,
+    "type": "escalation",
+    "what": "He looks behind and notices his butt sticking entirely out of the wall."
+   },
+   {
+    "t": 33,
+    "type": "aftermath",
+    "what": "He accepts defeat and accepts that he is cooked."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 9,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "glitch_or_physics"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Oh my god! Hold on!",
+  "key_line_t": 10,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedy stems from the visual absurdity of his character failing to hide, paired with the creator's extremely contagious wheezing laugh."
+ }
+}

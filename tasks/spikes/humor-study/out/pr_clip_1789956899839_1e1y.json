@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1789956899839_1e1y",
+ "set": "published_render",
+ "clip_id": "clip_1789956899839_1e1y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1267,
+  "thoughtTokens": 807
+ },
+ "cost": 0.012693,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer laughs heartily while watching a hiding player stand completely in the open, miraculously unnoticed by the seeker until a sudden face-to-face realization.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer watches a player in bright clothes standing exposed near stairs."
+   },
+   {
+    "t": 2.5,
+    "type": "escalation",
+    "what": "The hider marvels in voice chat that he hasn't been spotted yet."
+   },
+   {
+    "t": 8.5,
+    "type": "trigger",
+    "what": "The seeker turns around and realizes the hider is standing right next to him."
+   },
+   {
+    "t": 9.5,
+    "type": "payoff",
+    "what": "The seeker shouts in surprise as the streamer cracks up laughing."
+   }
+  ],
+  "payoff_t": 9.5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "How has he not seen me yet?",
+  "key_line_t": 2.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The dramatic irony of a player hiding in plain sight generates great tension, yielding a hilarious visual payoff when the seeker finally turns around."
+ }
+}

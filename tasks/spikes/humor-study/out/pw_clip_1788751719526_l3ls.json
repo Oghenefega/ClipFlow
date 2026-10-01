@@ -1,0 +1,57 @@
+{
+ "key": "pw_clip_1788751719526_l3ls",
+ "set": "published_raw",
+ "clip_id": "clip_1788751719526_l3ls",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1906,
+  "outputTokens": 1344,
+  "thoughtTokens": 928
+ },
+ "cost": 0.012938999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts in animated disbelief to a pro Valorant player dominating the scoreboard.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "The creator notices a pro player's impressive scoreline on the broadcast."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "The creator asks who the player is and where they found him."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The creator shouts the scoreline again in total disbelief as the casters highlight it."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "yelling"
+  ],
+  "key_line": "Who is this guy? Where did they find this dude?",
+  "key_line_t": 2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The creator's high-energy disbelief at a pro player's dominant stats is engaging. However, it relies on sports hype and banter rather than a narrative comedy joke."
+ }
+}

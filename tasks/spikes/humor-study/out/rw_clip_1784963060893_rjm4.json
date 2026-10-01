@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1784963060893_rjm4",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784963060893_rjm4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3128,
+  "outputTokens": 1764,
+  "thoughtTokens": 1288
+ },
+ "cost": 0.017922,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer rolls his egg into a hidden game trap, instantly causing him to rage quit to the main menu in frustration.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator comfortably guides his egg along a wooden obstacle track."
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "The egg rolls directly onto a mechanical launcher platform."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "The trap triggers, launching and ruining the egg instantly."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Creator yells in anger and swiftly exits the game to a black screen."
+   },
+   {
+    "t": 12,
+    "type": "aftermath",
+    "what": "Creator sits back in his chair complaining about how close he was."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "game_itself",
+  "mechanisms": [
+   "unexpected_outcome",
+   "rage",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "You've got to be freaking kidding me... get me out of here.",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The sudden turn from careful navigation to complete failure creates instant shock value. The speed of his rage quit adds a relatable comedic punctuation mark to the failure."
+ }
+}

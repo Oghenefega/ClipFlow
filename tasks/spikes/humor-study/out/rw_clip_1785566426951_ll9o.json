@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1785566426951_ll9o",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785566426951_ll9o",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3364,
+  "outputTokens": 1591,
+  "thoughtTokens": 1092
+ },
+ "cost": 0.0169785,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer forfeits a Rocket League match, expresses utter confusion over why he gave up, and quietly re-queues while taking a drink.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "trigger",
+    "what": "Quits and forfeits his match."
+   },
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Admits he just randomly gave up."
+   },
+   {
+    "t": 13,
+    "type": "escalation",
+    "what": "Expresses utter confusion at his own lack of motivation."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "Claims 'That's not me' and takes a long sip from his water bottle."
+   },
+   {
+    "t": 26,
+    "type": "aftermath",
+    "what": "Loads into a 3v3 match to reset."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "confusion",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "disbelief",
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "I don't understand what happened to me, bro.",
+  "key_line_t": 13,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The streamer's mild existential confusion over why he forfeits mid-game is amusingly relatable. However, it lacks a strong punchline or high-energy joke to make it truly memorable."
+ }
+}

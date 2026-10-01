@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_import_1790612877401_n3c7",
+ "set": "published_render",
+ "clip_id": "clip_import_1790612877401_n3c7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1672,
+  "outputTokens": 1022,
+  "thoughtTokens": 541
+ },
+ "cost": 0.010173,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer and an enemy player engage in a prolonged, painfully inaccurate gunfight in Valorant before the streamer finally secures a low-skill kill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Text overlay declares 'The WORST Players in Valorant meet' as the streamer turns the corner."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "Both players spray an entire magazine at each other from point-blank range and miss almost every bullet."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "The streamer finally lands the killing shot after a prolonged, clumsy duel."
+   },
+   {
+    "t": 5.8,
+    "type": "reaction",
+    "what": "The streamer bursts out laughing at how terrible both of them played."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Oh my god that was the worst",
+  "key_line_t": 5.8,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedy stems from the absurd lack of skill displayed by both players in a high-stakes shooter, making the long Whiff-fest genuinely funny. The streamer's immediate self-aware laughter enhances the joke without needing deeper game knowledge."
+ }
+}

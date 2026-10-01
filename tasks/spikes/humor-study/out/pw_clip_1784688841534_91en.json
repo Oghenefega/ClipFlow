@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1784688841534_91en",
+ "set": "published_raw",
+ "clip_id": "clip_1784688841534_91en",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4675,
+  "outputTokens": 1313,
+  "thoughtTokens": 797
+ },
+ "cost": 0.01686,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer realizes the absurdly precise sequence of jumps required to progress in an egg obstacle game and dramatically gives up before laughing at the level design.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer interrupts himself and thanks a new subscriber."
+   },
+   {
+    "t": 11,
+    "type": "setup",
+    "what": "Streamer looks closely at the path ahead and begins tracing the required maneuvers."
+   },
+   {
+    "t": 15,
+    "type": "escalation",
+    "what": "He realizes he has to roll down, time a jump, and land on a tiny narrow ledge."
+   },
+   {
+    "t": 20,
+    "type": "payoff",
+    "what": "He throws his hands in the air and announces he quits."
+   },
+   {
+    "t": 31,
+    "type": "reaction",
+    "what": "He bursts into laughter at the ridiculous level design."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "yelling"
+  ],
+  "key_line": "I'm out man! Sign me out guys!",
+  "key_line_t": 20,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's animated breakdown of the absurd precision required by the game leads to an amusingly dramatic refusal to try. His quick shift from utter disbelief to laughing at the developer's cruelty makes the clip relatable and funny."
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788755071328_dohh",
+ "set": "published_render",
+ "clip_id": "clip_1788755071328_dohh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2582,
+  "outputTokens": 1276,
+  "thoughtTokens": 778
+ },
+ "cost": 0.013443,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator intensely hypes up pro Valorant player Vora during a high-stakes clutch attempt.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator screams in disbelief at a previous round outcome before resetting to the footage."
+   },
+   {
+    "t": 0.04,
+    "type": "setup",
+    "what": "Footage shows Vora sneaking around enemies in a clutch scenario."
+   },
+   {
+    "t": 0.13,
+    "type": "escalation",
+    "what": "Creator begins rapidly hyping Vora as the best IGL in the world."
+   },
+   {
+    "t": 0.18,
+    "type": "payoff",
+    "what": "Creator screams for Vora to push right as the high-tension engagement begins."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "It's Vora, it's literally our IGL, the best in the world, he's gonna show you how it's done!",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip is built on esports hype and intense commentary rather than standard comedy beats. Without knowledge of Valorant competitive play, a casual viewer won't find much humor beyond the streamer's high energy."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787860936675_jg32",
+ "set": "published_render",
+ "clip_id": "clip_1787860936675_jg32",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4038,
+  "outputTokens": 1205,
+  "thoughtTokens": 757
+ },
+ "cost": 0.015094499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer reacts with excitement while watching GTA 6 gameplay footage demonstrating a seamless character switch during a chase sequence.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Gameplay footage shows characters in a getaway vehicle inside a garage."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "The perspective switches characters mid-drive as the car speeds into the sunlight."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "The streamer praises the smoothness of the character switch mechanic."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "The streamer jokes about how recklessly he will drive when playing the game."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "narrating",
+   "laughing"
+  ],
+  "key_line": "I like that switch.",
+  "key_line_t": 15,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip is geared toward gaming hype and commentary rather than comedic setups or payoffs. The light humor comes from the streamer's casual banter about how recklessly he plans to drive."
+ }
+}

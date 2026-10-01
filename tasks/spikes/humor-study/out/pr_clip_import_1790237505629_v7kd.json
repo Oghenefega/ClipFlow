@@ -1,0 +1,74 @@
+{
+ "key": "pr_clip_import_1790237505629_v7kd",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237505629_v7kd",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2666,
+  "outputTokens": 1245,
+  "thoughtTokens": 647
+ },
+ "cost": 0.013336500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer confidently flexes about securing Match MVP after winning a Valorant game, only to look at the scoreboard and realize a teammate beat him by two points.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer finishes off the final round in Valorant."
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "Streamer wins the match and immediately brags about getting Match MVP."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Streamer leans back triumphantly, boasting about his performance."
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "The final summary screen appears showing teammate Patamon won Match MVP with 264 combat score over his 262."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "Added edit zooms in on Patamon's MVP banner with a record-scratch sound."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Streamer leans back in toward the screen, dumbfounded, repeatedly saying 'Wait a minute'."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Can't steal my Match MVP, man!",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "zoom_or_reframe",
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip relies on classic hubris followed by an immediate reality check. The contrast between his grandiose bragging and his instant, confused silence when he checks the actual numbers makes the comedy work universally."
+ }
+}

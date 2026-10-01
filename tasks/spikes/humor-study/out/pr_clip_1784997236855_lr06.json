@@ -1,0 +1,53 @@
+{
+ "key": "pr_clip_1784997236855_lr06",
+ "set": "published_render",
+ "clip_id": "clip_1784997236855_lr06",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1280,
+  "thoughtTokens": 909
+ },
+ "cost": 0.012244500000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer carefully times a jump in a physics platforming game as an egg and loudly celebrates successfully making it across.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer counts aloud as the egg rolls along a tight obstacle course."
+   },
+   {
+    "t": 3.2,
+    "type": "trigger",
+    "what": "The egg lands smoothly on the far wooden platform."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "The streamer yells in hype, celebrating how clean the jump was."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling"
+  ],
+  "key_line": "LET'S FREAKING GO!",
+  "key_line_t": 4,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is focused on a skill victory and genuine excitement rather than comedic intent. There is no joke or subversion, just a straightforward moment of gamer hype."
+ }
+}

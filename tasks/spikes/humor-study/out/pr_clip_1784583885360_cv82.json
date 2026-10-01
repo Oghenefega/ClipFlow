@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1784583885360_cv82",
+ "set": "published_render",
+ "clip_id": "clip_1784583885360_cv82",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2025,
+  "outputTokens": 1055,
+  "thoughtTokens": 619
+ },
+ "cost": 0.01095,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator gets cleanly outplayed and scored on in Rocket League, reacting with quiet, embarrassed disbelief.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator approaches the ball on defense in Rocket League."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "Opponent flips over the creator and scores easily."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "Goal flashes on screen as creator misses completely."
+   },
+   {
+    "t": 7.5,
+    "type": "reaction",
+    "what": "Creator quietly mutters wow in disbelief and says he doesn't want to talk about it."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "opponent",
+  "mechanisms": [
+   "self_own_fail",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "whisper_or_mutter",
+   "deadpan"
+  ],
+  "key_line": "I don't want to talk about it.",
+  "key_line_t": 8,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on a straightforward gaming fail where the opponent completely tricks the streamer. The subdued, muted reaction is mildly relatable, though it lacks a high-energy punchline."
+ }
+}

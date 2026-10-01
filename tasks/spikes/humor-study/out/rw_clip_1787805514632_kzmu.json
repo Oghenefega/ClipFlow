@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1787805514632_kzmu",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_kzmu",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4660,
+  "outputTokens": 1157,
+  "thoughtTokens": 695
+ },
+ "cost": 0.0156675,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator jokes about future robot dystopias before laughing at current footage of a humanoid robot attempting a long jump.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator ponders how robots today crumble under pressure but might chase people for jaywalking in 5 years."
+   },
+   {
+    "t": 27,
+    "type": "escalation",
+    "what": "He says until then, we should enjoy how silly current robots look."
+   },
+   {
+    "t": 36,
+    "type": "trigger",
+    "what": "He clicks on a video clip of a humanoid robot attempting a long jump."
+   },
+   {
+    "t": 41,
+    "type": "payoff",
+    "what": "He questions why a robot would ever need to perform a long jump in real life."
+   }
+  ],
+  "payoff_t": 41,
+  "hook_t": 6,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "narrating",
+   "laughing"
+  ],
+  "key_line": "When would the robot need to do a long jump in real life?",
+  "key_line_t": 41,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip works due to the humorous contrast between the creator's dystopian future warning and the harmless absurdity of a robot failing a long jump. His commentary highlights how unnecessary the robot's athletic training seems."
+ }
+}

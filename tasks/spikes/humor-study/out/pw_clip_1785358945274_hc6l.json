@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1785358945274_hc6l",
+ "set": "published_raw",
+ "clip_id": "clip_1785358945274_hc6l",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4417,
+  "outputTokens": 1410,
+  "thoughtTokens": 919
+ },
+ "cost": 0.0172005,
+ "watch": {
+  "format": "gameplay",
+  "summary": "While hyping himself up for a late-game comeback in Rocket League, the streamer accidentally scores an own goal instead.",
+  "beats": [
+   {
+    "t": 1.5,
+    "type": "setup",
+    "what": "Streamer hypes himself up down 9-5 with 17 seconds remaining."
+   },
+   {
+    "t": 17.5,
+    "type": "escalation",
+    "what": "Declares 'If there's anyone who could do it to you, bro...'"
+   },
+   {
+    "t": 28,
+    "type": "payoff",
+    "what": "Accidentally pinches the ball directly into his own goal."
+   },
+   {
+    "t": 30,
+    "type": "reaction",
+    "what": "Bursts out laughing and buries his face in his hands at the irony."
+   }
+  ],
+  "payoff_t": 28,
+  "hook_t": 1.5,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "If there's anyone who could do it to you, bro.",
+  "key_line_t": 17.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The textbook setup of immense self-belief immediately followed by a catastrophic self-sabotage creates instant comedic irony. His genuine laughter and head-in-hands disbelief make the clip universally funny even to non-gamers."
+ }
+}

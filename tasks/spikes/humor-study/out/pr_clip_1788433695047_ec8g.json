@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1788433695047_ec8g",
+ "set": "published_render",
+ "clip_id": "clip_1788433695047_ec8g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2400,
+  "outputTokens": 1343,
+  "thoughtTokens": 806
+ },
+ "cost": 0.0136725,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator attempts to hide in a prop hunt game but dangles uselessly in plain sight, asking his teammate how to flatten against the wall.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator complains that he is obviously not hiding inside the wall properly."
+   },
+   {
+    "t": 2.5,
+    "type": "escalation",
+    "what": "Camera zooms in to show his avatar hanging completely exposed in the middle of the room."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "Creator bursts out laughing at his own ridiculous position."
+   },
+   {
+    "t": 9.5,
+    "type": "trigger",
+    "what": "Creator asks his teammate how to make his body flatten into the wall."
+   },
+   {
+    "t": 14.5,
+    "type": "payoff",
+    "what": "Teammate calmly informs him 'You can't', leaving him in disbelief."
+   }
+  ],
+  "payoff_t": 14.5,
+  "hook_t": 2.5,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "How do I make myself like flatten into the wall?",
+  "key_line_t": 9.5,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The visual visual contrast of his character dangling helplessly in the open while asking to 'flatten' is immediately funny. His teammate's blunt shut-down at the end provides a clean, satisfying punchline."
+ }
+}

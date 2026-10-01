@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788432440146_fhip",
+ "set": "published_render",
+ "clip_id": "clip_1788432440146_fhip",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1372,
+  "thoughtTokens": 921
+ },
+ "cost": 0.0134805,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer searches for hidden players in a prop hunt game and bursts into ecstatic laughter upon catching an opponent disguised as a framed portrait.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer scans the room walls, wondering if someone can hide as artwork."
+   },
+   {
+    "t": 5.5,
+    "type": "trigger",
+    "what": "He shoots a portrait on the wall and hits a hidden player."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "He realizes he found the enemy and screams in utter excitement."
+   },
+   {
+    "t": 9,
+    "type": "reaction",
+    "what": "He claps his hands and laughs hysterically while celebrating the hit."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Oh, did I get him?",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's sudden discovery of a player seamlessly disguised as a wall painting leads to an infectious, high-energy outburst. His genuine excitement and hysterical laughter make the simple prop hunt catch entertaining."
+ }
+}

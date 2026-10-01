@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1785455230241_6u4x",
+ "set": "published_raw",
+ "clip_id": "clip_1785455230241_6u4x",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4174,
+  "outputTokens": 1348,
+  "thoughtTokens": 909
+ },
+ "cost": 0.016371,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer accidentally flies off a cliff into the woods during a driving race, somehow navigates through the trees to cross the finish line, but refuses to count it as a real victory.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer drives along a winding forest road in a rally game."
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "He loses control and flies off the cliff edge into the trees."
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "He drives through bushes and hits the finish line from an unintended path."
+   },
+   {
+    "t": 31,
+    "type": "reaction",
+    "what": "He realizes it was a messy fluke and refuses to count the win."
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 16,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "That is not an actual win.",
+  "key_line_t": 35,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The clip works on gameplay visual chaos as the streamer flies off-road and survives. His self-imposed standard of rejecting the win adds a funny finishing button to the clip."
+ }
+}

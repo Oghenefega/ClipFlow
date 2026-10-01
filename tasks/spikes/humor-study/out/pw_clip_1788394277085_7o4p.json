@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1788394277085_7o4p",
+ "set": "published_raw",
+ "clip_id": "clip_1788394277085_7o4p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3607,
+  "outputTokens": 1358,
+  "thoughtTokens": 880
+ },
+ "cost": 0.0155955,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator loudly reacts while spectating a player who hilariously fails to notice or eliminate an enemy standing right in front of them.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator screams in shock with hands on his head while spectating the game."
+   },
+   {
+    "t": 8.5,
+    "type": "escalation",
+    "what": "The hunter jumps completely past the enemy, leaving the creator screaming in disbelief."
+   },
+   {
+    "t": 25,
+    "type": "trigger",
+    "what": "The hunter shoots laser beams wildly all around the stationary target."
+   },
+   {
+    "t": 26.5,
+    "type": "payoff",
+    "what": "Creator bursts into laughter asking how the opponent isn't dead."
+   },
+   {
+    "t": 30.5,
+    "type": "aftermath",
+    "what": "Creator concludes that the player is just actually terrible."
+   }
+  ],
+  "payoff_t": 26,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "How is this guy not dead?",
+  "key_line_t": 25,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The absurdity of a player repeatedly missing an easy target creates instant comedy. The streamer's expressive disbelief and sudden laughter amplify the hilarious gameplay fail."
+ }
+}

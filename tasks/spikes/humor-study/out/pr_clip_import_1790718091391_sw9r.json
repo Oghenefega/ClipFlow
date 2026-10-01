@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_import_1790718091391_sw9r",
+ "set": "published_render",
+ "clip_id": "clip_import_1790718091391_sw9r",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1242,
+  "thoughtTokens": 738
+ },
+ "cost": 0.012369000000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "While using Phoenix's ultimate in Valorant, the streamer returns to his spawn point only to find an enemy Jett waiting behind him.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer navigates the map while tracking enemy positions."
+   },
+   {
+    "t": 5.5,
+    "type": "setup",
+    "what": "Streamer activates Phoenix's ultimate ability to safely push forward."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Streamer's ult ends and he snaps back to his body, revealing Jett right behind him."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Streamer panics and gets instantly shot dead."
+   },
+   {
+    "t": 10.5,
+    "type": "reaction",
+    "what": "Streamer laughs hysterically at the surprise trap."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 5.5,
+  "author": "opponent",
+  "mechanisms": [
+   "unexpected_outcome",
+   "jumpscare",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Yo Jett Jett Jett Jett behind me!",
+  "key_line_t": 8.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant realization of returning from an ultimate directly into an enemy ambush creates a great jumpscare beat. His sudden shift from tactical play to panicked screaming makes it punchy and funny."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1788552826516_8acx",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788552826516_8acx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2230,
+  "outputTokens": 1457,
+  "thoughtTokens": 996
+ },
+ "cost": 0.0142725,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer laughs hysterically when a broadcast caster points out a pro Valorant player's abysmal stat line of 6 kills and 19 deaths.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Caster highlights a pro player's struggling performance."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Caster announces '6 frags and 19 deaths'."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "Streamer bursts out laughing and exclaims 'Oh my goodness'."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Streamer giggles joyfully as the game continues."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 3,
+  "author": "mixed",
+  "mechanisms": [
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "6 frags and 19 deaths",
+  "key_line_t": 3,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The caster's blunt callout of a pro player's atrocious scoreline triggers instant, contagious laughter from the streamer. It works universally because anyone familiar with shooters understands how severe a 6-19 stat line is."
+ }
+}

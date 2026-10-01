@@ -1,0 +1,72 @@
+{
+ "key": "rw_clip_1788394277085_gie3",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788394277085_gie3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3607,
+  "outputTokens": 1848,
+  "thoughtTokens": 1313
+ },
+ "cost": 0.019270500000000003,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer accidentally exits a game lobby while mods are downloading and dramatically laments having to restart the entire process.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer sits waiting while game mods download in the server lobby."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "The screen unexpectedly kicks back to the main menu."
+   },
+   {
+    "t": 7,
+    "type": "reaction",
+    "what": "The streamer is confused and asks what happened."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "He realizes he accidentally backed out while waiting."
+   },
+   {
+    "t": 15,
+    "type": "escalation",
+    "what": "He groans loudly and complains about having to restart the download."
+   },
+   {
+    "t": 30,
+    "type": "aftermath",
+    "what": "He holds his head in hands in defeated silence."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 4,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "yelling"
+  ],
+  "key_line": "Now I gotta start again? I mistakenly backed out!",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on a universally relatable gaming mistake where a simple misclick undoes loading progress, prompting dramatic lamenting. While honest and mildly entertaining, it is a standard stream reaction without a unique punchline."
+ }
+}

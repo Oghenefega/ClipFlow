@@ -1,0 +1,61 @@
+{
+ "key": "rw_clip_1788755772243_1zoj",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788755772243_1zoj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3688,
+  "outputTokens": 1147,
+  "thoughtTokens": 682
+ },
+ "cost": 0.014134500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer energetically reacts to and hypes up a professional Valorant team winning a round flawless.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer trash-talks the opposing team as the round wraps up."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "The round ends in a 'Flawless' victory screen."
+   },
+   {
+    "t": 6.5,
+    "type": "reaction",
+    "what": "Streamer yells in celebration, mocking the defeated team."
+   },
+   {
+    "t": 29.5,
+    "type": "escalation",
+    "what": "The pro player on screen screams in celebration, and the streamer hypes up alongside him."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Get him out of my face, you're not that guy.",
+  "key_line_t": 1,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip relies on esports hype and energetic commentary rather than explicit comedic beats or punchlines. The comedy comes mostly from the streamer's intense trash talk and exaggerated enthusiasm for the pro team."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1784963060894_vj5g",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784963060894_vj5g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3492,
+  "outputTokens": 1217,
+  "thoughtTokens": 715
+ },
+ "cost": 0.0143655,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator plays a delicate egg-rolling game while lightheartedly bantering with chat and counting down his jumps.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator pretends to give up and asks why viewers are still watching."
+   },
+   {
+    "t": 10,
+    "type": "context",
+    "what": "Creator jokes that chat should go play the game themselves."
+   },
+   {
+    "t": 13,
+    "type": "escalation",
+    "what": "Creator begins intently counting down every step and jump for the egg."
+   },
+   {
+    "t": 23,
+    "type": "payoff",
+    "what": "The egg almost slips off course while creator frantically counts."
+   },
+   {
+    "t": 27,
+    "type": "aftermath",
+    "what": "Creator laughs nervously and apologizes for the stress."
+   }
+  ],
+  "payoff_t": 23,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "comedic_timing_pause",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "narrating",
+   "mock_outrage",
+   "laughing"
+  ],
+  "key_line": "How about you go play the game, huh?",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The comedy stems from the streamer's intense rhythmic counting over a silly egg-rolling physics game. Without understanding the high stakes of losing progress in the game, a casual viewer won't feel the tension."
+ }
+}

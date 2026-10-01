@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787975841626_yuv6",
+ "set": "published_render",
+ "clip_id": "clip_1787975841626_yuv6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3037,
+  "outputTokens": 1005,
+  "thoughtTokens": 563
+ },
+ "cost": 0.012093,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator passionately hypes up and celebrates a winning round by 100 Thieves in a professional Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches intense gameplay in a pro Valorant match."
+   },
+   {
+    "t": 10,
+    "type": "trigger",
+    "what": "100 Thieves seals the round win."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Creator explodes into loud celebration shouting 'Let's go baby!'"
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "Creator laughs and dances in his chair as the pro player camera shows Asuna celebrating."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Let's go baby! Come on!",
+  "key_line_t": 11,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip focuses on high-energy esports fan celebration rather than comedic structure or jokes. It appeals mostly to viewers invested in the competitive Valorant scene."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1789524996681_z76g",
+ "set": "published_render",
+ "clip_id": "clip_1789524996681_z76g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1756,
+  "outputTokens": 1073,
+  "thoughtTokens": 629
+ },
+ "cost": 0.0106815,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically as a sad fan in an esports crowd instantly changes her expression upon realizing she is on camera.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Crowd footage shows a girl looking distressed and emotional."
+   },
+   {
+    "t": 0.02,
+    "type": "trigger",
+    "what": "The girl notices she is on the big screen and instantly fixes her face."
+   },
+   {
+    "t": 0.04,
+    "type": "payoff",
+    "what": "The creator bursts into laughter at the instant expression switch."
+   },
+   {
+    "t": 0.05,
+    "type": "reaction",
+    "what": "The creator acts out her internal thought process of wanting to look pretty."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "She's like ah, gotta look pretty.",
+  "key_line_t": 5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip relies on a universally relatable visual gag of someone catching themselves on camera and instantly posing. The streamer's quick imitation and loud laugh deliver a great comedic punch."
+ }
+}

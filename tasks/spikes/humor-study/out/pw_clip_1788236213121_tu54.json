@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1788236213121_tu54",
+ "set": "published_raw",
+ "clip_id": "clip_1788236213121_tu54",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4741,
+  "outputTokens": 1468,
+  "thoughtTokens": 963
+ },
+ "cost": 0.0181215,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A creator laughs uncontrollably while watching footage of a robot soccer match where the goalie robot has a hilariously delayed reaction to a goal.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches footage of humanoid robots playing soccer."
+   },
+   {
+    "t": 10,
+    "type": "trigger",
+    "what": "A robot scores a powerful goal while the robot goalie stands entirely motionless."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "The creator bursts out laughing at the goalie robot standing frozen."
+   },
+   {
+    "t": 19,
+    "type": "escalation",
+    "what": "The creator physicalizes the joke by imitating the robot standing rigid and reacting seconds late."
+   },
+   {
+    "t": 37,
+    "type": "aftermath",
+    "what": "The creator rewatches the clip, pointing out the exact three-second delay in processing."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 10,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "glitch_or_physics",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "The dude scored, that robot stood like this.",
+  "key_line_t": 19,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip succeeds through visual comedy in the footage paired with the creator's infectious laughter. His physical act-out of the robot's delayed reaction emphasizes the absurdity of the moment."
+ }
+}

@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1788755772242_y72y",
+ "set": "published_render",
+ "clip_id": "clip_1788755772242_y72y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3492,
+  "outputTokens": 1003,
+  "thoughtTokens": 521
+ },
+ "cost": 0.0127605,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator intensely reacts to 100 Thieves completing a 10-2 comeback against LOUD in Valorant, screaming in hype before showing off his team jersey.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator watches the crucial Valorant round intently, shouting 'Let's go!'"
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "100 Thieves starts securing kills, causing the creator to scream in excitement."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "The creator holds his head in disbelief and screams as 100 Thieves secures the round win."
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "The creator jumps up and briefly leaves the frame celebrating the victory."
+   },
+   {
+    "t": 18,
+    "type": "aftermath",
+    "what": "The creator returns to his chair, holding up a 100 Thieves jersey while repeating 'Jobs not done'."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Get him out of my face bro!",
+  "key_line_t": 15,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip is driven by high-energy esports hype and fandom excitement rather than structured comedy setups. The humor is minimal, relying mostly on the creator's explosive physical reaction and celebratory jersey flex."
+ }
+}

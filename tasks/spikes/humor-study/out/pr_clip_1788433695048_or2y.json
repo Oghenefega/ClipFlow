@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1788433695048_or2y",
+ "set": "published_render",
+ "clip_id": "clip_1788433695048_or2y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2576,
+  "outputTokens": 1027,
+  "thoughtTokens": 512
+ },
+ "cost": 0.0115665,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer attempts to camouflage his character inside a wall cutout prop but laughs uncontrollably as he discovers his limbs and butt are blatantly sticking out.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "The streamer inspects his character positioning against a wall cutout."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "He zooms in and realizes his leg is sticking out."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "He bursts into laughter seeing how visible he is."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "He checks the right side and sees his arm sticking out too."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "He sees his character's butt completely protruding from the wall."
+   },
+   {
+    "t": 17,
+    "type": "aftermath",
+    "what": "He laughs and accepts that he is cooked as the hide timer ends."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "oh my butt!",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The visual visual failure of his character's body sticking out everywhere paired with his genuine, infectious laughter creates instant visual humor that anyone can enjoy."
+ }
+}

@@ -1,0 +1,55 @@
+{
+ "key": "pw_clip_1787860936675_jg32",
+ "set": "published_raw",
+ "clip_id": "clip_1787860936675_jg32",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4012,
+  "outputTokens": 1082,
+  "thoughtTokens": 671
+ },
+ "cost": 0.014133,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator plays through a GTA driving escape sequence while casually narrating his aggressive driving style.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator takes control of the character driving out of an alley into a police chase."
+   },
+   {
+    "t": 17,
+    "type": "escalation",
+    "what": "He jokes about not knowing how to drive carefully and admits he will just blaze through everything."
+   },
+   {
+    "t": 32,
+    "type": "payoff",
+    "what": "He successfully hides the getaway car in a parking structure to drop police vision."
+   }
+  ],
+  "payoff_t": 32,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "narrating",
+   "laughing"
+  ],
+  "key_line": "Do I know how to drive this carefully? Nah I don't know man",
+  "key_line_t": 17,
+  "other_voices": "game_characters",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The clip features pleasant, casual commentary during a game play-through, but lacks a distinct comedic beat, high-stakes fail, or punchline. It serves more as standard gameplay highlights than a comedic edit."
+ }
+}

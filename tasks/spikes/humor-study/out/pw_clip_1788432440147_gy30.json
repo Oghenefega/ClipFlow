@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1788432440147_gy30",
+ "set": "published_raw",
+ "clip_id": "clip_1788432440147_gy30",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5470,
+  "outputTokens": 1289,
+  "thoughtTokens": 809
+ },
+ "cost": 0.0178725,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer customizes his character with bright paint while playfully hyping up how intimidating his 'camouflage' outfit will look to opponents.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer claims he is an artist making a camo outfit."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Streamer laughs, admitting it looks like he poured mud/manure on himself."
+   },
+   {
+    "t": 28,
+    "type": "escalation",
+    "what": "He adds bright green paint and boasts that he has the ultimate army look now."
+   },
+   {
+    "t": 35,
+    "type": "escalation",
+    "what": "He humorously predicts opponents will panic and feel his aura when they see him."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "hubris_then_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "It's looking like I actually just poured manure on myself.",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The streamer's mild self-awareness and ironic hyping of a goofy, brightly colored character model creates pleasant lighthearted commentary. It relies on relaxed banter rather than a high-energy punchline."
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "key": "pr_clip_1787860936676_q7n6",
+ "set": "published_render",
+ "clip_id": "clip_1787860936676_q7n6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3492,
+  "outputTokens": 1202,
+  "thoughtTokens": 679
+ },
+ "cost": 0.014252999999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer reacts with shock to an intense video game fight cutscene that takes an abrupt turn.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Cutscene begins with a character walking down stairs"
+   },
+   {
+    "t": 0.01,
+    "type": "escalation",
+    "what": "An attacker tackles the character down the stairs"
+   },
+   {
+    "t": 0.06,
+    "type": "context",
+    "what": "Streamer comments that he wants to see how she overcomes this"
+   },
+   {
+    "t": 0.15,
+    "type": "trigger",
+    "what": "The character fights back using her high heels and crawls toward a gun"
+   },
+   {
+    "t": 0.24,
+    "type": "payoff",
+    "what": "A sudden violent turn cuts the scene off abruptly"
+   },
+   {
+    "t": 0.26,
+    "type": "reaction",
+    "what": "Streamer stares at the screen with wide eyes and open mouth in total shock"
+   }
+  ],
+  "payoff_t": 0.24,
+  "hook_t": 0.01,
+  "author": "game_itself",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Hurts, right? Try wearing them, bitch.",
+  "key_line_t": 0.16,
+  "other_voices": "game_characters",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The clip relies on the dramatic tension and unexpected violence of a cinematic game fight cutscene. The creator's dumbfounded expression at the abrupt ending provides a simple, relatable reaction beat."
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "key": "pr_clip_1788552826516_at16",
+ "set": "published_render",
+ "clip_id": "clip_1788552826516_at16",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1942,
+  "outputTokens": 1421,
+  "thoughtTokens": 943
+ },
+ "cost": 0.0135705,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with intense hype and excitement to an impressive Valorant gameplay highlight by pro player Asuna.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator hype-introduces the clip declaring Asuna as the best Phoenix."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Replay footage begins as Asuna aggressively flashes into site."
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "Creator shouts excitedly as Asuna lands kills."
+   },
+   {
+    "t": 8.5,
+    "type": "payoff",
+    "what": "Asuna finishes the multi-kill sequence."
+   },
+   {
+    "t": 9.5,
+    "type": "reaction",
+    "what": "Creator yells 'Jeez!' in complete awe of the play."
+   }
+  ],
+  "payoff_t": 8.5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Asuna is the best Phoenix",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is designed to show off hype gameplay skill rather than comedic moments. The creator's hype energy drives the video, but there is no joke or comedic subversion present."
+ }
+}

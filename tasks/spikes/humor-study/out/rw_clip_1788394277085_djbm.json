@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1788394277085_djbm",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788394277085_djbm",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3283,
+  "outputTokens": 1379,
+  "thoughtTokens": 929
+ },
+ "cost": 0.015267000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer tests key bindings in an indie game and gets amused after realizing he can paint color directly onto his character model.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "The streamer tests pressing the control key in the game."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "He expresses confusion when the key input doesn't do anything."
+   },
+   {
+    "t": 20,
+    "type": "trigger",
+    "what": "He opens the color palette menu and tries clicking on his character model."
+   },
+   {
+    "t": 27,
+    "type": "payoff",
+    "what": "He chuckles playfully as he begins painting color onto his character."
+   }
+  ],
+  "payoff_t": 27,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "confusion",
+   "unexpected_outcome",
+   "wholesome"
+  ],
+  "delivery": [
+   "narrating",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Can I paint myself here? Yes I can.",
+  "key_line_t": 19.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The clip mostly captures basic gameplay exploration and control testing rather than a sharp comedic joke. The streamer's mild amusement at painting his character is pleasant, but lacks a high-stakes punchline."
+ }
+}

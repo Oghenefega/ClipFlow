@@ -1,0 +1,1271 @@
+{
+ "published_render": {
+  "n": 256,
+  "format": {
+   "reaction_to_footage": 0.551,
+   "gameplay": 0.434,
+   "talking": 0.016
+  },
+  "author": {
+   "creator": 0.711,
+   "pro_player_in_footage": 0.152,
+   "mixed": 0.098,
+   "game_itself": 0.02,
+   "opponent": 0.012,
+   "teammate": 0.004,
+   "none": 0.004
+  },
+  "mechanisms": {
+   "overreaction": 0.473,
+   "unexpected_outcome": 0.383,
+   "absurd_commentary": 0.301,
+   "hype_skill_not_comedy": 0.293,
+   "irony_says_x_then_opposite": 0.223,
+   "self_own_fail": 0.203,
+   "hubris_then_fail": 0.18,
+   "roast_or_banter": 0.121,
+   "confusion": 0.098,
+   "comedic_timing_pause": 0.047,
+   "rage": 0.043,
+   "deadpan_underreaction": 0.031,
+   "glitch_or_physics": 0.031,
+   "wholesome": 0.023,
+   "informational_not_comedy": 0.016,
+   "jumpscare": 0.012,
+   "mock_outrage": 0.008,
+   "teammate_chaos": 0.004
+  },
+  "delivery": {
+   "disbelief": 0.672,
+   "yelling": 0.621,
+   "laughing": 0.465,
+   "mock_outrage": 0.332,
+   "narrating": 0.273,
+   "deadpan": 0.074,
+   "calm_explaining": 0.074,
+   "whisper_or_mutter": 0.043,
+   "silence": 0.02,
+   "singing_or_voice": 0.008
+  },
+  "opens_with": {
+   "context_talk": 0.523,
+   "action": 0.359,
+   "mid_sentence": 0.113,
+   "dead_air": 0.004
+  },
+  "ends_with": {
+   "on_reaction": 0.613,
+   "lingers_after_reaction": 0.23,
+   "on_payoff": 0.074,
+   "callback_or_button": 0.047,
+   "mid_action": 0.035
+  },
+  "other_voices": {
+   "caster_or_footage_audio": 0.477,
+   "none": 0.465,
+   "friends_or_teammates": 0.047,
+   "game_characters": 0.008,
+   "mixed": 0.004
+  },
+  "edit_traces": {
+   "text_overlay": 1.0,
+   "zoom_or_reframe": 0.156,
+   "added_sound_effect": 0.109,
+   "jump_cuts": 0.098,
+   "added_music": 0.051
+  },
+  "needs_context": 0.176,
+  "no_payoff": 0.02,
+  "stranger_funny_median": 6.0,
+  "duration_median": 18.39,
+  "payoff_t_median": 10,
+  "hook_t_median": 0.0,
+  "after_payoff_median": 6.44,
+  "payoff_position_median": 0.59
+ },
+ "published_raw": {
+  "n": 79,
+  "format": {
+   "reaction_to_footage": 0.595,
+   "gameplay": 0.392,
+   "talking": 0.013
+  },
+  "author": {
+   "creator": 0.848,
+   "pro_player_in_footage": 0.101,
+   "mixed": 0.038,
+   "game_itself": 0.013
+  },
+  "mechanisms": {
+   "overreaction": 0.532,
+   "absurd_commentary": 0.456,
+   "unexpected_outcome": 0.241,
+   "hype_skill_not_comedy": 0.228,
+   "roast_or_banter": 0.19,
+   "irony_says_x_then_opposite": 0.177,
+   "self_own_fail": 0.177,
+   "hubris_then_fail": 0.127,
+   "confusion": 0.089,
+   "glitch_or_physics": 0.063,
+   "informational_not_comedy": 0.051,
+   "deadpan_underreaction": 0.038,
+   "comedic_timing_pause": 0.038,
+   "wholesome": 0.038,
+   "teammate_chaos": 0.013,
+   "rage": 0.013
+  },
+  "delivery": {
+   "laughing": 0.658,
+   "disbelief": 0.557,
+   "yelling": 0.506,
+   "narrating": 0.354,
+   "mock_outrage": 0.304,
+   "calm_explaining": 0.152,
+   "deadpan": 0.063,
+   "whisper_or_mutter": 0.063,
+   "silence": 0.051
+  },
+  "opens_with": {
+   "context_talk": 0.633,
+   "action": 0.266,
+   "mid_sentence": 0.101
+  },
+  "ends_with": {
+   "lingers_after_reaction": 0.57,
+   "on_reaction": 0.316,
+   "callback_or_button": 0.063,
+   "mid_action": 0.051
+  },
+  "other_voices": {
+   "caster_or_footage_audio": 0.532,
+   "none": 0.443,
+   "game_characters": 0.013,
+   "friends_or_teammates": 0.013
+  },
+  "edit_traces": {
+   "none_visible": 0.987,
+   "text_overlay": 0.013
+  },
+  "needs_context": 0.291,
+  "no_payoff": 0.038,
+  "stranger_funny_median": 5,
+  "duration_median": 34,
+  "payoff_t_median": 13.5,
+  "hook_t_median": 1,
+  "after_payoff_median": 16.25,
+  "payoff_position_median": 0.48
+ },
+ "rejected_raw": {
+  "n": 71,
+  "format": {
+   "reaction_to_footage": 0.521,
+   "gameplay": 0.394,
+   "talking": 0.085
+  },
+  "author": {
+   "creator": 0.845,
+   "pro_player_in_footage": 0.099,
+   "opponent": 0.028,
+   "game_itself": 0.014,
+   "mixed": 0.014
+  },
+  "mechanisms": {
+   "absurd_commentary": 0.324,
+   "hype_skill_not_comedy": 0.282,
+   "unexpected_outcome": 0.268,
+   "self_own_fail": 0.211,
+   "overreaction": 0.211,
+   "informational_not_comedy": 0.197,
+   "irony_says_x_then_opposite": 0.169,
+   "roast_or_banter": 0.169,
+   "confusion": 0.127,
+   "hubris_then_fail": 0.07,
+   "comedic_timing_pause": 0.056,
+   "wholesome": 0.042,
+   "rage": 0.028,
+   "deadpan_underreaction": 0.014
+  },
+  "delivery": {
+   "narrating": 0.592,
+   "disbelief": 0.465,
+   "laughing": 0.366,
+   "calm_explaining": 0.352,
+   "yelling": 0.324,
+   "mock_outrage": 0.225,
+   "whisper_or_mutter": 0.07,
+   "deadpan": 0.056,
+   "silence": 0.014
+  },
+  "opens_with": {
+   "context_talk": 0.662,
+   "action": 0.254,
+   "mid_sentence": 0.085
+  },
+  "ends_with": {
+   "lingers_after_reaction": 0.592,
+   "on_reaction": 0.239,
+   "mid_action": 0.127,
+   "on_payoff": 0.028,
+   "callback_or_button": 0.014
+  },
+  "other_voices": {
+   "none": 0.507,
+   "caster_or_footage_audio": 0.451,
+   "friends_or_teammates": 0.028,
+   "game_characters": 0.014
+  },
+  "edit_traces": {
+   "none_visible": 0.958,
+   "jump_cuts": 0.014,
+   "text_overlay": 0.014,
+   "zoom_or_reframe": 0.014
+  },
+  "needs_context": 0.338,
+  "no_payoff": 0.197,
+  "stranger_funny_median": 4,
+  "duration_median": 30,
+  "payoff_t_median": 18,
+  "hook_t_median": 1,
+  "after_payoff_median": 12,
+  "payoff_position_median": 0.57
+ },
+ "published_by_game": {
+  "100T": {
+   "n": 103,
+   "format": {
+    "reaction_to_footage": 0.99,
+    "talking": 0.01
+   },
+   "author": {
+    "creator": 0.573,
+    "pro_player_in_footage": 0.35,
+    "mixed": 0.078
+   },
+   "mechanisms": {
+    "overreaction": 0.699,
+    "hype_skill_not_comedy": 0.573,
+    "absurd_commentary": 0.223,
+    "unexpected_outcome": 0.194,
+    "roast_or_banter": 0.155,
+    "irony_says_x_then_opposite": 0.107,
+    "confusion": 0.078,
+    "hubris_then_fail": 0.058,
+    "wholesome": 0.039,
+    "comedic_timing_pause": 0.039,
+    "rage": 0.029,
+    "self_own_fail": 0.019,
+    "deadpan_underreaction": 0.01,
+    "informational_not_comedy": 0.01,
+    "mock_outrage": 0.01
+   },
+   "delivery": {
+    "yelling": 0.757,
+    "disbelief": 0.699,
+    "mock_outrage": 0.35,
+    "laughing": 0.34,
+    "narrating": 0.194,
+    "whisper_or_mutter": 0.029,
+    "deadpan": 0.029,
+    "calm_explaining": 0.019,
+    "silence": 0.019,
+    "singing_or_voice": 0.01
+   },
+   "opens_with": {
+    "context_talk": 0.495,
+    "action": 0.398,
+    "mid_sentence": 0.097,
+    "dead_air": 0.01
+   },
+   "ends_with": {
+    "on_reaction": 0.602,
+    "lingers_after_reaction": 0.272,
+    "on_payoff": 0.058,
+    "callback_or_button": 0.039,
+    "mid_action": 0.029
+   },
+   "other_voices": {
+    "caster_or_footage_audio": 0.99,
+    "none": 0.01
+   },
+   "edit_traces": {
+    "text_overlay": 1.0,
+    "jump_cuts": 0.126,
+    "zoom_or_reframe": 0.126,
+    "added_music": 0.01,
+    "added_sound_effect": 0.01
+   },
+   "needs_context": 0.437,
+   "no_payoff": 0.019,
+   "stranger_funny_median": 4,
+   "duration_median": 18.71,
+   "payoff_t_median": 11,
+   "hook_t_median": 0,
+   "after_payoff_median": 6.44,
+   "payoff_position_median": 0.6
+  },
+  "RL": {
+   "n": 43,
+   "format": {
+    "gameplay": 0.977,
+    "talking": 0.023
+   },
+   "author": {
+    "creator": 0.884,
+    "mixed": 0.07,
+    "opponent": 0.023,
+    "teammate": 0.023
+   },
+   "mechanisms": {
+    "irony_says_x_then_opposite": 0.488,
+    "self_own_fail": 0.419,
+    "unexpected_outcome": 0.326,
+    "overreaction": 0.279,
+    "hubris_then_fail": 0.233,
+    "absurd_commentary": 0.209,
+    "roast_or_banter": 0.209,
+    "hype_skill_not_comedy": 0.163,
+    "deadpan_underreaction": 0.07,
+    "rage": 0.07,
+    "confusion": 0.047,
+    "wholesome": 0.047,
+    "comedic_timing_pause": 0.047
+   },
+   "delivery": {
+    "yelling": 0.674,
+    "laughing": 0.535,
+    "disbelief": 0.512,
+    "mock_outrage": 0.279,
+    "narrating": 0.233,
+    "deadpan": 0.186,
+    "calm_explaining": 0.14,
+    "whisper_or_mutter": 0.047,
+    "silence": 0.023
+   },
+   "opens_with": {
+    "context_talk": 0.488,
+    "action": 0.419,
+    "mid_sentence": 0.093
+   },
+   "ends_with": {
+    "on_reaction": 0.512,
+    "lingers_after_reaction": 0.186,
+    "on_payoff": 0.163,
+    "mid_action": 0.07,
+    "callback_or_button": 0.07
+   },
+   "other_voices": {
+    "none": 0.93,
+    "friends_or_teammates": 0.047,
+    "mixed": 0.023
+   },
+   "edit_traces": {
+    "text_overlay": 1.0,
+    "added_music": 0.209,
+    "jump_cuts": 0.047,
+    "added_sound_effect": 0.047,
+    "zoom_or_reframe": 0.023
+   },
+   "needs_context": 0.0,
+   "no_payoff": 0.0,
+   "stranger_funny_median": 6,
+   "duration_median": 16.93,
+   "payoff_t_median": 8,
+   "hook_t_median": 0,
+   "after_payoff_median": 7.46,
+   "payoff_position_median": 0.55
+  },
+  "ROBOT": {
+   "n": 24,
+   "format": {
+    "reaction_to_footage": 1.0
+   },
+   "author": {
+    "creator": 0.625,
+    "mixed": 0.292,
+    "none": 0.042,
+    "pro_player_in_footage": 0.042
+   },
+   "mechanisms": {
+    "absurd_commentary": 1.0,
+    "unexpected_outcome": 0.875,
+    "overreaction": 0.375,
+    "glitch_or_physics": 0.208,
+    "confusion": 0.125,
+    "roast_or_banter": 0.042,
+    "self_own_fail": 0.042
+   },
+   "delivery": {
+    "disbelief": 0.833,
+    "laughing": 0.792,
+    "narrating": 0.75,
+    "mock_outrage": 0.25,
+    "yelling": 0.208
+   },
+   "opens_with": {
+    "context_talk": 0.708,
+    "action": 0.167,
+    "mid_sentence": 0.125
+   },
+   "ends_with": {
+    "lingers_after_reaction": 0.5,
+    "on_reaction": 0.375,
+    "on_payoff": 0.083,
+    "callback_or_button": 0.042
+   },
+   "other_voices": {
+    "none": 0.583,
+    "caster_or_footage_audio": 0.417
+   },
+   "edit_traces": {
+    "text_overlay": 1.0,
+    "added_sound_effect": 0.25,
+    "jump_cuts": 0.167,
+    "zoom_or_reframe": 0.167
+   },
+   "needs_context": 0.0,
+   "no_payoff": 0.0,
+   "stranger_funny_median": 7.0,
+   "duration_median": 22.29,
+   "payoff_t_median": 8.0,
+   "hook_t_median": 0.0,
+   "after_payoff_median": 12.62,
+   "payoff_position_median": 0.5
+  },
+  "MC": {
+   "n": 24,
+   "format": {
+    "gameplay": 0.792,
+    "reaction_to_footage": 0.167,
+    "talking": 0.042
+   },
+   "author": {
+    "creator": 0.708,
+    "mixed": 0.125,
+    "pro_player_in_footage": 0.083,
+    "game_itself": 0.042,
+    "opponent": 0.042
+   },
+   "mechanisms": {
+    "unexpected_outcome": 0.667,
+    "absurd_commentary": 0.583,
+    "self_own_fail": 0.458,
+    "confusion": 0.375,
+    "overreaction": 0.292,
+    "irony_says_x_then_opposite": 0.125,
+    "hubris_then_fail": 0.083,
+    "roast_or_banter": 0.042,
+    "glitch_or_physics": 0.042,
+    "comedic_timing_pause": 0.042,
+    "jumpscare": 0.042
+   },
+   "delivery": {
+    "disbelief": 0.875,
+    "laughing": 0.875,
+    "yelling": 0.417,
+    "narrating": 0.292,
+    "mock_outrage": 0.292,
+    "calm_explaining": 0.083,
+    "whisper_or_mutter": 0.042
+   },
+   "opens_with": {
+    "context_talk": 0.583,
+    "mid_sentence": 0.292,
+    "action": 0.125
+   },
+   "ends_with": {
+    "on_reaction": 0.833,
+    "lingers_after_reaction": 0.125,
+    "on_payoff": 0.042
+   },
+   "other_voices": {
+    "none": 0.792,
+    "friends_or_teammates": 0.125,
+    "caster_or_footage_audio": 0.083
+   },
+   "edit_traces": {
+    "text_overlay": 1.0,
+    "zoom_or_reframe": 0.25,
+    "added_sound_effect": 0.25,
+    "jump_cuts": 0.083,
+    "added_music": 0.042
+   },
+   "needs_context": 0.0,
+   "no_payoff": 0.0,
+   "stranger_funny_median": 6.0,
+   "duration_median": 17.62,
+   "payoff_t_median": 11.5,
+   "hook_t_median": 0.0,
+   "after_payoff_median": 5.53,
+   "payoff_position_median": 0.68
+  },
+  "EO": {
+   "n": 22,
+   "format": {
+    "gameplay": 1.0
+   },
+   "author": {
+    "creator": 0.909,
+    "mixed": 0.091
+   },
+   "mechanisms": {
+    "hubris_then_fail": 0.682,
+    "irony_says_x_then_opposite": 0.409,
+    "overreaction": 0.409,
+    "unexpected_outcome": 0.409,
+    "self_own_fail": 0.364,
+    "rage": 0.136,
+    "deadpan_underreaction": 0.091,
+    "comedic_timing_pause": 0.091,
+    "roast_or_banter": 0.091,
+    "glitch_or_physics": 0.091,
+    "hype_skill_not_comedy": 0.045,
+    "confusion": 0.045,
+    "absurd_commentary": 0.045
+   },
+   "delivery": {
+    "yelling": 0.773,
+    "disbelief": 0.682,
+    "mock_outrage": 0.5,
+    "laughing": 0.273,
+    "narrating": 0.227,
+    "whisper_or_mutter": 0.136,
+    "deadpan": 0.136,
+    "calm_explaining": 0.091
+   },
+   "opens_with": {
+    "context_talk": 0.636,
+    "action": 0.227,
+    "mid_sentence": 0.136
+   },
+   "ends_with": {
+    "on_reaction": 0.864,
+    "callback_or_button": 0.045,
+    "lingers_after_reaction": 0.045,
+    "on_payoff": 0.045
+   },
+   "other_voices": {
+    "none": 1.0
+   },
+   "edit_traces": {
+    "text_overlay": 1.0,
+    "added_sound_effect": 0.045,
+    "zoom_or_reframe": 0.045,
+    "added_music": 0.045
+   },
+   "needs_context": 0.0,
+   "no_payoff": 0.0,
+   "stranger_funny_median": 6.0,
+   "duration_median": 17.27,
+   "payoff_t_median": 12.25,
+   "hook_t_median": 0.0,
+   "after_payoff_median": 4.41,
+   "payoff_position_median": 0.73
+  },
+  "VAL": {
+   "n": 20,
+   "format": {
+    "gameplay": 0.95,
+    "reaction_to_footage": 0.05
+   },
+   "author": {
+    "creator": 0.9,
+    "mixed": 0.05,
+    "opponent": 0.05
+   },
+   "mechanisms": {
+    "unexpected_outcome": 0.65,
+    "self_own_fail": 0.55,
+    "hubris_then_fail": 0.45,
+    "irony_says_x_then_opposite": 0.45,
+    "overreaction": 0.25,
+    "rage": 0.1,
+    "deadpan_underreaction": 0.1,
+    "confusion": 0.05,
+    "comedic_timing_pause": 0.05,
+    "roast_or_banter": 0.05,
+    "mock_outrage": 0.05,
+    "jumpscare": 0.05,
+    "absurd_commentary": 0.05,
+    "teammate_chaos": 0.05
+   },
+   "delivery": {
+    "yelling": 0.7,
+    "disbelief": 0.65,
+    "mock_outrage": 0.55,
+    "laughing": 0.4,
+    "deadpan": 0.15,
+    "calm_explaining": 0.1,
+    "whisper_or_mutter": 0.05,
+    "singing_or_voice": 0.05,
+    "narrating": 0.05
+   },
+   "opens_with": {
+    "action": 0.55,
+    "context_talk": 0.45
+   },
+   "ends_with": {
+    "on_reaction": 0.75,
+    "callback_or_button": 0.15,
+    "lingers_after_reaction": 0.1
+   },
+   "other_voices": {
+    "none": 0.6,
+    "friends_or_teammates": 0.35,
+    "caster_or_footage_audio": 0.05
+   },
+   "edit_traces": {
+    "text_overlay": 1.0,
+    "zoom_or_reframe": 0.7,
+    "added_sound_effect": 0.6,
+    "jump_cuts": 0.2,
+    "added_music": 0.05
+   },
+   "needs_context": 0.0,
+   "no_payoff": 0.0,
+   "stranger_funny_median": 6.5,
+   "duration_median": 14.62,
+   "payoff_t_median": 8.5,
+   "hook_t_median": 0.0,
+   "after_payoff_median": 5.52,
+   "payoff_position_median": 0.55
+  },
+  "GTA6-R": {
+   "n": 10,
+   "format": {
+    "reaction_to_footage": 1.0
+   },
+   "author": {
+    "creator": 0.5,
+    "game_itself": 0.4,
+    "mixed": 0.1
+   },
+   "mechanisms": {
+    "absurd_commentary": 0.4,
+    "hype_skill_not_comedy": 0.4,
+    "informational_not_comedy": 0.3,
+    "unexpected_outcome": 0.3,
+    "overreaction": 0.2,
+    "irony_says_x_then_opposite": 0.1
+   },
+   "delivery": {
+    "narrating": 0.6,
+    "disbelief": 0.4,
+    "laughing": 0.4,
+    "calm_explaining": 0.4,
+    "silence": 0.1
+   },
+   "opens_with": {
+    "action": 0.8,
+    "context_talk": 0.2
+   },
+   "ends_with": {
+    "on_reaction": 0.4,
+    "lingers_after_reaction": 0.3,
+    "mid_action": 0.3
+   },
+   "other_voices": {
+    "caster_or_footage_audio": 0.7,
+    "game_characters": 0.2,
+    "none": 0.1
+   },
+   "edit_traces": {
+    "text_overlay": 1.0
+   },
+   "needs_context": 0.0,
+   "no_payoff": 0.3,
+   "stranger_funny_median": 3.0,
+   "duration_median": 21.92,
+   "payoff_t_median": 11.5,
+   "hook_t_median": 0.0,
+   "after_payoff_median": 13.95,
+   "payoff_position_median": 0.42
+  }
+ },
+ "keep_vs_reject_auc_stranger_funny": 0.699,
+ "rejected_by_reason": {
+  "bad-cut": {
+   "n": 10,
+   "stranger_funny_median": 2.5,
+   "mechanisms": {
+    "unexpected_outcome": 0.4,
+    "informational_not_comedy": 0.4,
+    "self_own_fail": 0.2,
+    "hype_skill_not_comedy": 0.2,
+    "roast_or_banter": 0.2,
+    "confusion": 0.2,
+    "rage": 0.1,
+    "hubris_then_fail": 0.1,
+    "irony_says_x_then_opposite": 0.1
+   }
+  },
+  "chat-banter": {
+   "n": 6,
+   "stranger_funny_median": 4.5,
+   "mechanisms": {
+    "self_own_fail": 0.5,
+    "absurd_commentary": 0.5,
+    "irony_says_x_then_opposite": 0.5,
+    "informational_not_comedy": 0.333,
+    "overreaction": 0.333,
+    "confusion": 0.167,
+    "hubris_then_fail": 0.167
+   }
+  },
+  "duplicate": {
+   "n": 12,
+   "stranger_funny_median": 3.5,
+   "mechanisms": {
+    "hype_skill_not_comedy": 0.417,
+    "irony_says_x_then_opposite": 0.25,
+    "self_own_fail": 0.25,
+    "absurd_commentary": 0.25,
+    "overreaction": 0.25,
+    "comedic_timing_pause": 0.167,
+    "roast_or_banter": 0.167,
+    "hubris_then_fail": 0.083,
+    "deadpan_underreaction": 0.083,
+    "rage": 0.083,
+    "wholesome": 0.083
+   }
+  },
+  "flat-delivery": {
+   "n": 1,
+   "stranger_funny_median": 5,
+   "mechanisms": {
+    "roast_or_banter": 1.0,
+    "absurd_commentary": 1.0
+   }
+  },
+  "live-only": {
+   "n": 6,
+   "stranger_funny_median": 3.5,
+   "mechanisms": {
+    "overreaction": 0.667,
+    "hype_skill_not_comedy": 0.5,
+    "roast_or_banter": 0.333,
+    "absurd_commentary": 0.333,
+    "informational_not_comedy": 0.167,
+    "unexpected_outcome": 0.167,
+    "irony_says_x_then_opposite": 0.167
+   }
+  },
+  "needs-context": {
+   "n": 11,
+   "stranger_funny_median": 3,
+   "mechanisms": {
+    "informational_not_comedy": 0.364,
+    "hype_skill_not_comedy": 0.364,
+    "self_own_fail": 0.182,
+    "absurd_commentary": 0.182,
+    "irony_says_x_then_opposite": 0.182,
+    "roast_or_banter": 0.182,
+    "overreaction": 0.182,
+    "confusion": 0.091,
+    "comedic_timing_pause": 0.091,
+    "rage": 0.091,
+    "hubris_then_fail": 0.091,
+    "wholesome": 0.091
+   }
+  },
+  "no-payoff": {
+   "n": 5,
+   "stranger_funny_median": 5,
+   "mechanisms": {
+    "unexpected_outcome": 0.6,
+    "self_own_fail": 0.4,
+    "informational_not_comedy": 0.4,
+    "confusion": 0.2,
+    "roast_or_banter": 0.2,
+    "hubris_then_fail": 0.2,
+    "irony_says_x_then_opposite": 0.2
+   }
+  },
+  "no-reaction": {
+   "n": 1,
+   "stranger_funny_median": 4,
+   "mechanisms": {
+    "unexpected_outcome": 1.0,
+    "overreaction": 1.0,
+    "hype_skill_not_comedy": 1.0
+   }
+  },
+  "no-stakes": {
+   "n": 1,
+   "stranger_funny_median": 5,
+   "mechanisms": {
+    "overreaction": 1.0,
+    "hype_skill_not_comedy": 1.0
+   }
+  },
+  "not-funny": {
+   "n": 22,
+   "stranger_funny_median": 4.5,
+   "mechanisms": {
+    "absurd_commentary": 0.409,
+    "self_own_fail": 0.364,
+    "unexpected_outcome": 0.364,
+    "irony_says_x_then_opposite": 0.227,
+    "confusion": 0.182,
+    "comedic_timing_pause": 0.182,
+    "hype_skill_not_comedy": 0.136,
+    "roast_or_banter": 0.136,
+    "overreaction": 0.136,
+    "hubris_then_fail": 0.091,
+    "informational_not_comedy": 0.091,
+    "deadpan_underreaction": 0.045,
+    "rage": 0.045
+   }
+  },
+  "nothing-happens": {
+   "n": 34,
+   "stranger_funny_median": 3.0,
+   "mechanisms": {
+    "informational_not_comedy": 0.382,
+    "unexpected_outcome": 0.353,
+    "self_own_fail": 0.294,
+    "confusion": 0.176,
+    "absurd_commentary": 0.176,
+    "irony_says_x_then_opposite": 0.147,
+    "hype_skill_not_comedy": 0.147,
+    "roast_or_banter": 0.118,
+    "hubris_then_fail": 0.088,
+    "comedic_timing_pause": 0.088,
+    "rage": 0.059,
+    "wholesome": 0.059
+   }
+  },
+  "reaction-adds-nothing": {
+   "n": 1,
+   "stranger_funny_median": 4,
+   "mechanisms": {
+    "roast_or_banter": 1.0,
+    "absurd_commentary": 1.0,
+    "overreaction": 1.0
+   }
+  },
+  "repetitive": {
+   "n": 2,
+   "stranger_funny_median": 2.0,
+   "mechanisms": {
+    "hype_skill_not_comedy": 1.0,
+    "overreaction": 1.0
+   }
+  },
+  "setup-talk": {
+   "n": 1,
+   "stranger_funny_median": 2,
+   "mechanisms": {
+    "informational_not_comedy": 1.0,
+    "self_own_fail": 1.0
+   }
+  },
+  "wrong-content": {
+   "n": 1,
+   "stranger_funny_median": 2,
+   "mechanisms": {
+    "informational_not_comedy": 1.0
+   }
+  }
+ },
+ "perf_n": 225,
+ "perf_top_quartile": {
+  "n": 56,
+  "format": {
+   "reaction_to_footage": 0.857,
+   "gameplay": 0.143
+  },
+  "author": {
+   "creator": 0.482,
+   "pro_player_in_footage": 0.339,
+   "mixed": 0.161,
+   "game_itself": 0.018
+  },
+  "mechanisms": {
+   "overreaction": 0.643,
+   "hype_skill_not_comedy": 0.536,
+   "unexpected_outcome": 0.286,
+   "absurd_commentary": 0.214,
+   "irony_says_x_then_opposite": 0.143,
+   "self_own_fail": 0.089,
+   "roast_or_banter": 0.071,
+   "comedic_timing_pause": 0.054,
+   "hubris_then_fail": 0.054,
+   "confusion": 0.036,
+   "rage": 0.036,
+   "jumpscare": 0.018,
+   "wholesome": 0.018,
+   "informational_not_comedy": 0.018,
+   "glitch_or_physics": 0.018
+  },
+  "delivery": {
+   "disbelief": 0.75,
+   "yelling": 0.696,
+   "laughing": 0.429,
+   "mock_outrage": 0.232,
+   "narrating": 0.196,
+   "whisper_or_mutter": 0.036,
+   "calm_explaining": 0.036,
+   "deadpan": 0.036,
+   "silence": 0.018
+  },
+  "opens_with": {
+   "action": 0.482,
+   "context_talk": 0.429,
+   "mid_sentence": 0.089
+  },
+  "ends_with": {
+   "on_reaction": 0.643,
+   "lingers_after_reaction": 0.25,
+   "callback_or_button": 0.071,
+   "mid_action": 0.036
+  },
+  "other_voices": {
+   "caster_or_footage_audio": 0.821,
+   "none": 0.161,
+   "friends_or_teammates": 0.018
+  },
+  "edit_traces": {
+   "text_overlay": 1.0,
+   "zoom_or_reframe": 0.125,
+   "jump_cuts": 0.071,
+   "added_sound_effect": 0.036
+  },
+  "needs_context": 0.393,
+  "no_payoff": 0.036,
+  "stranger_funny_median": 4.0,
+  "duration_median": 17.89,
+  "payoff_t_median": 10.5,
+  "hook_t_median": 0.0,
+  "after_payoff_median": 6.99,
+  "payoff_position_median": 0.57
+ },
+ "perf_bottom_quartile": {
+  "n": 56,
+  "format": {
+   "gameplay": 0.589,
+   "reaction_to_footage": 0.357,
+   "talking": 0.054
+  },
+  "author": {
+   "creator": 0.804,
+   "mixed": 0.089,
+   "pro_player_in_footage": 0.071,
+   "game_itself": 0.018,
+   "teammate": 0.018
+  },
+  "mechanisms": {
+   "unexpected_outcome": 0.464,
+   "overreaction": 0.429,
+   "absurd_commentary": 0.339,
+   "irony_says_x_then_opposite": 0.25,
+   "hubris_then_fail": 0.214,
+   "self_own_fail": 0.214,
+   "hype_skill_not_comedy": 0.196,
+   "roast_or_banter": 0.107,
+   "confusion": 0.089,
+   "comedic_timing_pause": 0.071,
+   "wholesome": 0.054,
+   "rage": 0.054,
+   "deadpan_underreaction": 0.036,
+   "glitch_or_physics": 0.036,
+   "jumpscare": 0.018,
+   "mock_outrage": 0.018
+  },
+  "delivery": {
+   "disbelief": 0.679,
+   "yelling": 0.518,
+   "laughing": 0.464,
+   "narrating": 0.321,
+   "mock_outrage": 0.304,
+   "calm_explaining": 0.125,
+   "deadpan": 0.107,
+   "whisper_or_mutter": 0.071,
+   "silence": 0.018
+  },
+  "opens_with": {
+   "context_talk": 0.625,
+   "mid_sentence": 0.196,
+   "action": 0.179
+  },
+  "ends_with": {
+   "on_reaction": 0.536,
+   "lingers_after_reaction": 0.286,
+   "on_payoff": 0.143,
+   "mid_action": 0.018,
+   "callback_or_button": 0.018
+  },
+  "other_voices": {
+   "none": 0.696,
+   "caster_or_footage_audio": 0.286,
+   "friends_or_teammates": 0.018
+  },
+  "edit_traces": {
+   "text_overlay": 1.0,
+   "jump_cuts": 0.107,
+   "added_music": 0.089,
+   "added_sound_effect": 0.089,
+   "zoom_or_reframe": 0.054
+  },
+  "needs_context": 0.071,
+  "no_payoff": 0.018,
+  "stranger_funny_median": 6.0,
+  "duration_median": 18.46,
+  "payoff_t_median": 10,
+  "hook_t_median": 0.0,
+  "after_payoff_median": 5.93,
+  "payoff_position_median": 0.66
+ },
+ "perf_top_titles": [
+  [
+   1.0,
+   "100T",
+   "Sato is a MONSTER! #valorant",
+   "What did I just watch?"
+  ],
+  [
+   0.98,
+   "100T",
+   "Asuna almost pulled off the impossible #valorant",
+   "oh my God"
+  ],
+  [
+   0.98,
+   "100T",
+   "The MOST DISRESPECTFUL Defuse in Valorant #valorant",
+   "GET HIM OUT OF HERE!"
+  ],
+  [
+   0.96,
+   "100T",
+   "100T Cryo WENT CRAZY #valorant",
+   "GET HIM OUT OF HERE!"
+  ],
+  [
+   0.9,
+   "100T",
+   "Dude thinks he's TenZ #valorant",
+   "I have not approved for you to be that guy, so relax chief."
+  ],
+  [
+   0.89,
+   "100T",
+   "100T threw the MOST UNLOSABLE round #valorant",
+   "Why are we giving him a 1v3?!"
+  ],
+  [
+   0.89,
+   "100T",
+   "100T Bang DESTROYS NRG Keiko #valorant",
+   "I said it! I called it! Oh my goodness!"
+  ],
+  [
+   0.88,
+   "100T",
+   "Valorant trying to BAIT the coaches #valorant",
+   "Not the big red button!"
+  ],
+  [
+   0.88,
+   "100T",
+   "Leviatan actually WOKE up #valorant",
+   "These guys woke up! What the heck!"
+  ],
+  [
+   0.87,
+   "100T",
+   "100T Cryo INSANE CLUTCH #valorant",
+   "Oh my goodness!"
+  ],
+  [
+   0.87,
+   "100T",
+   "Everyone knows they're using AIMBOT and WALLHACKS #valorant",
+   "Check his computer, bro!"
+  ],
+  [
+   0.87,
+   "MC",
+   "I found the Luckiest player in Meccha Chameleon #mecchachameleon",
+   "How is this guy not dead?"
+  ],
+  [
+   0.86,
+   "RL",
+   "How do I miss that #rocketleague",
+   "Ain't no way!"
+  ],
+  [
+   0.85,
+   "100T",
+   "VORA CLUCTHED THIS 1V2 AFTER HIS MOUSE DIED #Valorant",
+   "GET HIM OUT OF THERE!"
+  ],
+  [
+   0.85,
+   "100T",
+   "THIS PHOENIX ULT FROM ASUNA IS INSANE! #valorant",
+   "Oh my goodness, he just ulted, get him out of there!"
+  ]
+ ],
+ "perf_bottom_titles": [
+  [
+   0.09,
+   "ROBOT",
+   "They made a robot Ronaldo #humanoidrobots",
+   "And people say Ronaldo is not the GOAT!"
+  ],
+  [
+   0.11,
+   "BB",
+   "There's no more fall damage #bionicbay",
+   "Have I become so strong I can't die to fall damage anymore?"
+  ],
+  [
+   0.12,
+   "AR",
+   "I love the photoelectric cloak #arcraiders",
+   "YOU CAN'T SEE ME"
+  ],
+  [
+   0.12,
+   "AR",
+   "First time going topside in Arc Raiders\ud83d\ude02",
+   "Don't scan me!"
+  ],
+  [
+   0.12,
+   "DD",
+   "My DRIVING was put to the test #deadlinedelivery",
+   "I'm not so bad."
+  ],
+  [
+   0.13,
+   "AR",
+   "First time playing Arc Raiders #arcraiders",
+   "Did I lose everything?"
+  ],
+  [
+   0.13,
+   "100T",
+   "Bang INSANE 4K 100T vs Lev #valorant",
+   "I told you guys! He's insane!"
+  ],
+  [
+   0.17,
+   "EO",
+   "Things kept getting WORSE #eggingon",
+   "Are y'all seeing this?"
+  ],
+  [
+   0.17,
+   "MC",
+   "I TRIED HUNTING IN MECCHA CHAMELEON #mecchachameleon",
+   "I've got vision for days, okay? No one is getting past me."
+  ],
+  [
+   0.18,
+   "RL",
+   "I jinxed myself instantly #rocketleague",
+   "I can't believe I just missed that."
+  ]
+ ],
+ "perf_vs_stranger_funny_spearman": 0.023,
+ "perf_vs_duration_spearman": 0.012,
+ "perf_by_mechanism": {
+  "hubris_then_fail": {
+   "n": 36,
+   "median_perf": 0.52
+  },
+  "irony_says_x_then_opposite": {
+   "n": 48,
+   "median_perf": 0.53
+  },
+  "absurd_commentary": {
+   "n": 67,
+   "median_perf": 0.49
+  },
+  "unexpected_outcome": {
+   "n": 77,
+   "median_perf": 0.55
+  },
+  "rage": {
+   "n": 9,
+   "median_perf": 0.6
+  },
+  "hype_skill_not_comedy": {
+   "n": 73,
+   "median_perf": 0.62
+  },
+  "confusion": {
+   "n": 23,
+   "median_perf": 0.54
+  },
+  "overreaction": {
+   "n": 109,
+   "median_perf": 0.57
+  },
+  "self_own_fail": {
+   "n": 40,
+   "median_perf": 0.44
+  },
+  "comedic_timing_pause": {
+   "n": 11,
+   "median_perf": 0.54
+  },
+  "glitch_or_physics": {
+   "n": 8,
+   "median_perf": 0.63
+  },
+  "roast_or_banter": {
+   "n": 30,
+   "median_perf": 0.48
+  }
+ },
+ "perf_by_game": {
+  "EO": {
+   "n": 22,
+   "median_perf": 0.45
+  },
+  "ROBOT": {
+   "n": 16,
+   "median_perf": 0.4
+  },
+  "RL": {
+   "n": 43,
+   "median_perf": 0.43
+  },
+  "100T": {
+   "n": 102,
+   "median_perf": 0.64
+  },
+  "MC": {
+   "n": 23,
+   "median_perf": 0.53
+  },
+  "GTA6-R": {
+   "n": 10,
+   "median_perf": 0.67
+  }
+ },
+ "edit": {
+  "n": 256,
+  "ai_seconds_median": 33.0,
+  "kept_seconds_median": 18.39,
+  "shorter_than_ai": 0.77,
+  "longer_than_ai": 0.109,
+  "start_moved_median": 0.54,
+  "end_moved_median": -4.53,
+  "start_later": 0.504,
+  "start_earlier": 0.262,
+  "end_earlier": 0.641,
+  "end_later": 0.191,
+  "multi_section": 0.57,
+  "sections_median_when_cut": 3.0,
+  "with_sounds": 0.352,
+  "with_overlays": 0.055,
+  "raw_payoff_lead_in_median": 12.82,
+  "raw_payoff_tail_median": 7.36,
+  "ai_lead_in_median": 13.5,
+  "ai_tail_median": 16.25
+ }
+}

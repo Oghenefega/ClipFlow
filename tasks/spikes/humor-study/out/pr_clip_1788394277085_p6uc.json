@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1788394277085_p6uc",
+ "set": "published_render",
+ "clip_id": "clip_1788394277085_p6uc",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1310,
+  "thoughtTokens": 752
+ },
+ "cost": 0.014244,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer confidently boasts about his incredible eyesight before loading into a hide-and-seek match where the map is covered in complex Van Gogh paintings.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator boasts loudly that he has incredible vision and no one will get past him."
+   },
+   {
+    "t": 7.5,
+    "type": "escalation",
+    "what": "He spawns into the map and discovers the environment is covered in intricate Van Gogh paintings."
+   },
+   {
+    "t": 9.2,
+    "type": "trigger",
+    "what": "He immediately loses confidence upon seeing how confusing the visual textures are."
+   },
+   {
+    "t": 14.8,
+    "type": "payoff",
+    "what": "He screams in excitement thinking he found an opponent, only to realize a teammate got the spot."
+   },
+   {
+    "t": 18.5,
+    "type": "aftermath",
+    "what": "He complains in disbelief about how difficult the map visual textures are."
+   }
+  ],
+  "payoff_t": 14.8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "confusion",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "I've got vision for days, okay? No one is getting past me.",
+  "key_line_t": 0.7,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip relies on a classic hubris-before-the-fall trope, where high arrogance is immediately undercut by an absurdly hard game map. His frantic mistaking of a teammate's callout as his own adds a hilarious extra beat of failure."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1787805514632_omqt",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_omqt",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3401,
+  "outputTokens": 1622,
+  "thoughtTokens": 1104
+ },
+ "cost": 0.0172665,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically while reacting to footage of humanoid robots awkwardly sprinting and flailing down a track.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches footage of humanoid robots running a track race."
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Streamer doubts humans could run like that and comments on the unnatural twisting."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "The robot sways wildly out of its lane, triggering uncontrolled laughter from the streamer."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "Streamer points out how far out of line the robot is running while cracking up."
+   },
+   {
+    "t": 22,
+    "type": "aftermath",
+    "what": "Streamer notes they had to place a mattress at the finish line to catch the robot."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "absurd_commentary",
+   "glitch_or_physics",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "I think we're not made to twist the way they twist.",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The clip succeeds through the combination of visually hilarious footage of uncoordinated robots and the streamer's genuinely infectious laughter. His commentary pointing out the sheer absurdity of their movements enhances the physical comedy."
+ }
+}

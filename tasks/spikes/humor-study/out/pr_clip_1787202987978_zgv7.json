@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1787202987978_zgv7",
+ "set": "published_render",
+ "clip_id": "clip_1787202987978_zgv7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2573,
+  "outputTokens": 1461,
+  "thoughtTokens": 973
+ },
+ "cost": 0.014817,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer gets surprisingly emotional watching 100 Thieves celebrate their esports tournament victory.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches the 100 Thieves esports team hugging after winning."
+   },
+   {
+    "t": 1.5,
+    "type": "setup",
+    "what": "Streamer wonders out loud why he is feeling so emotional."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "Streamer wipes his eye as a player thanks the fans in the footage."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "The team lifts the trophy together in the video."
+   },
+   {
+    "t": 14.5,
+    "type": "reaction",
+    "what": "Streamer smiles and expresses how happy he is for the team."
+   }
+  ],
+  "payoff_t": 14.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Why am I feeling so emotional, bro?",
+  "key_line_t": 1.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip focuses on a wholesome, empathetic reaction to an esports championship win rather than a joke. Without knowledge of or investment in the team, there is little comedic payoff for a casual viewer."
+ }
+}

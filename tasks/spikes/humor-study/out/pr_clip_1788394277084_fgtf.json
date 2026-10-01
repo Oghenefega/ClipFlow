@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788394277084_fgtf",
+ "set": "published_render",
+ "clip_id": "clip_1788394277084_fgtf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 954,
+  "thoughtTokens": 488
+ },
+ "cost": 0.010343999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer playing a hiding game realizes his giant character choice makes hiding under tables impossible.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer admits he chose to play as a fat/large character."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Streamer runs around showing his huge avatar and realizes how easy he will be to spot."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Streamer tries to crouch and hide under a long dining table."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "He realizes he cannot crouch or fit under the table at all."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating",
+   "mock_outrage"
+  ],
+  "key_line": "Can I hide under the table? No I can't?",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The humor comes from the creator's self-inflicted handicap in a hide-and-seek game. His realization that his oversized avatar can't fit under simple tables creates a lighthearted, relatable moment of regret."
+ }
+}

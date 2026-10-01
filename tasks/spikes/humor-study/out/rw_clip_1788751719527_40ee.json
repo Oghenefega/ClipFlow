@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1788751719527_40ee",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788751719527_40ee",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4012,
+  "outputTokens": 1024,
+  "thoughtTokens": 584
+ },
+ "cost": 0.013697999999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with disbelief and excitement to a pro Valorant team buying expensive weapons early in a match.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator notices the weapons bought by the team in the match round."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "He exclaims in disbelief about buying Phantoms."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "He laughs as the team wins a flawless round."
+   },
+   {
+    "t": 20,
+    "type": "payoff",
+    "what": "He looks at the loadout again and tells them to relax."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "hype_skill_not_comedy",
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "You've got to be a maniac to buy a Phantom!",
+  "key_line_t": 3,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip is standard esports commentary and hype rather than structured comedy. A viewer without Valorant context will not understand why weapon buying choices are significant."
+ }
+}

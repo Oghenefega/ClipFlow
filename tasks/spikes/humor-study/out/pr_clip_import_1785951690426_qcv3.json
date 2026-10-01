@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_import_1785951690426_qcv3",
+ "set": "published_render",
+ "clip_id": "clip_import_1785951690426_qcv3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1401,
+  "thoughtTokens": 940
+ },
+ "cost": 0.013697999999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer dramatically shouts as he times a jump off a flying drone while playing as an egg.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator explains his plan to figure out how to jump off the drone."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "The drone flies into the building through a tight gap."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "Creator yells 'ALLOW ME OUT!' and jumps off."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The egg lands smoothly and safely on a wooden beam."
+   },
+   {
+    "t": 12,
+    "type": "reaction",
+    "what": "Creator praises himself and laughs at the smooth maneuver."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "ALLOW ME OUT!",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the streamer's intense, frantic vocal delivery over a silly egg video game. His desperate yell of 'ALLOW ME OUT!' creates a funny contrast with the surprisingly smooth landing."
+ }
+}

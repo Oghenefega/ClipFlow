@@ -1,0 +1,61 @@
+{
+ "key": "rw_clip_1788551277519_3rvx",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788551277519_3rvx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3445,
+  "outputTokens": 1478,
+  "thoughtTokens": 1047
+ },
+ "cost": 0.0162525,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer passionately hypes up 100T's dominant performance against NRG during a Valorant match broadcast.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator shouts about NRG lacking the energy to compete."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator laughs at player face cams and replay footage."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "Creator slams his desk shouting 'This is Champions caliber!'"
+   },
+   {
+    "t": 27,
+    "type": "aftermath",
+    "what": "Creator quietly watches the next round unfold in admiration."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "This is Champions caliber, ladies and gentlemen!",
+  "key_line_t": 16,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip relies on infectious esports hype and dramatic commentary rather than traditional comedic setups or jokes. It appeals primarily to fans who understand the teams and context of the match."
+ }
+}

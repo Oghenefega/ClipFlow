@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1784963060894_93hx",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784963060894_93hx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4584,
+  "outputTokens": 1061,
+  "thoughtTokens": 559
+ },
+ "cost": 0.014833500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer brags about how easy the game is and how he has the timing down, only to miscount and immediately fail.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer brags about how easy the game is and says he needs a challenge."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He claims he has the game on lockdown and knows how to time everything perfectly."
+   },
+   {
+    "t": 27,
+    "type": "trigger",
+    "what": "He counts down to time his movement: one, two, three, four..."
+   },
+   {
+    "t": 31,
+    "type": "payoff",
+    "what": "He moves on four and gets launched/fails instantly."
+   },
+   {
+    "t": 33,
+    "type": "reaction",
+    "what": "He puts his hand to his head and realizes it was supposed to be five."
+   }
+  ],
+  "payoff_t": 31,
+  "hook_t": 5,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining",
+   "disbelief"
+  ],
+  "key_line": "This game is too easy, bro.",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The contrast between his confident bragging and immediate mistiming failure creates classic hubris comedy. His understated realization that he miscounted rounds out the joke well."
+ }
+}

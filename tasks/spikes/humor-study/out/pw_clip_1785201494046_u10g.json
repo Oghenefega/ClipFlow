@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1785201494046_u10g",
+ "set": "published_raw",
+ "clip_id": "clip_1785201494046_u10g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2311,
+  "outputTokens": 1107,
+  "thoughtTokens": 622
+ },
+ "cost": 0.011768999999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After scoring a goal and gloating to his opponent, the streamer instantly concedes a kickoff goal seconds later.",
+  "beats": [
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "The streamer scores a goal to tie the game."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "The streamer gloats and taunts his opponent."
+   },
+   {
+    "t": 11.5,
+    "type": "trigger",
+    "what": "The opponent scores instantly off the kickoff."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "The opponent's goal announcement pops up."
+   },
+   {
+    "t": 12.5,
+    "type": "reaction",
+    "what": "The streamer stares blankly before laughing in disbelief."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "unexpected_outcome",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "deadpan"
+  ],
+  "key_line": "I don't want to talk about that, bro, cause what?",
+  "key_line_t": 12,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant karmic penalty for gloating makes the visual punchline clear without needing any stream context. His muted, stunned reaction perfectly contrasts with his bravado just seconds prior."
+ }
+}

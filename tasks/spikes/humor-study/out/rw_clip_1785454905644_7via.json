@@ -1,0 +1,61 @@
+{
+ "key": "rw_clip_1785454905644_7via",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785454905644_7via",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1194,
+  "thoughtTokens": 763
+ },
+ "cost": 0.013028999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer realizes he needs to download a custom map mod on Steam before starting a lobby and follows the on-screen prompts.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer gets confused by a pop-up saying a mod must be downloaded."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He reads the prompt and clicks through to open the Steam Workshop."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "He subscribes to download the Police Station map."
+   },
+   {
+    "t": 18,
+    "type": "aftermath",
+    "what": "He switches back to the game lobby where the download is confirmed."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "confusion",
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining",
+   "disbelief"
+  ],
+  "key_line": "Wait, what the flip?",
+  "key_line_t": 1,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip consists purely of administrative lobby setup as the creator navigates a Steam Workshop download. There is no joke or comedic punchline present."
+ }
+}

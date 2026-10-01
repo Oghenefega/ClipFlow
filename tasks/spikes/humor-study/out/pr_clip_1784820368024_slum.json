@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1784820368024_slum",
+ "set": "published_render",
+ "clip_id": "clip_1784820368024_slum",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 1413,
+  "thoughtTokens": 962
+ },
+ "cost": 0.0137865,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer completely whiffs an easy hit in Rocket League and screams in loud disbelief at his own mistake.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer lines up his vehicle to hit the ball in Rocket League."
+   },
+   {
+    "t": 4.5,
+    "type": "payoff",
+    "what": "He completely whiffs the ball, miscalculating his jump."
+   },
+   {
+    "t": 5.5,
+    "type": "reaction",
+    "what": "He screams in shock and disbelief at how bad the miss was."
+   },
+   {
+    "t": 12,
+    "type": "aftermath",
+    "what": "He calmly questions how he managed to miss that."
+   }
+  ],
+  "payoff_t": 4.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Ain't no way!",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual of completely missing an easy shot in Rocket League is immediately understandable to any viewer. His explosive, vocal reaction provides an entertaining energetic climax to a simple fail."
+ }
+}

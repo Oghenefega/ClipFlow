@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1785566928375_m2wz",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785566928375_m2wz",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3040,
+  "outputTokens": 1882,
+  "thoughtTokens": 1380
+ },
+ "cost": 0.018674999999999997,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer begs an opponent in Rocket League to stop hitting him, only to be instantly demolished.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer drives around questioning another player's play style."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "Streamer notices the opponent is target-bumping him."
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "He pleads 'Can you stop doing that, please, bro?'"
+   },
+   {
+    "t": 17,
+    "type": "payoff",
+    "what": "His car gets instantly blown up with a 'BOOM!' screen effect."
+   },
+   {
+    "t": 18,
+    "type": "aftermath",
+    "what": "Streamer sits in silent disbelief while respawning."
+   }
+  ],
+  "payoff_t": 17,
+  "hook_t": 10,
+  "author": "opponent",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "unexpected_outcome",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "deadpan"
+  ],
+  "key_line": "Can you stop doing that, please, bro?",
+  "key_line_t": 12,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant ironic payoff of getting blown up right after asking the opponent to stop creates great comedic timing. The streamer's quiet, stunned silence afterwards completes the joke."
+ }
+}

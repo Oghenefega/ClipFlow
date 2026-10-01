@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1784997236855_fo6t",
+ "set": "published_render",
+ "clip_id": "clip_1784997236855_fo6t",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1300,
+  "thoughtTokens": 842
+ },
+ "cost": 0.0126675,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer calmly counts as he carefully rolls an egg across a precarious obstacle course, only for it to fall and shatter right near the finish.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer calmly counts numbers as the egg slowly rolls along the narrow plank."
+   },
+   {
+    "t": 3.5,
+    "type": "trigger",
+    "what": "The egg misses the gap, falls through the structure, and smashes on impact."
+   },
+   {
+    "t": 4.2,
+    "type": "payoff",
+    "what": "Streamer screams 'NO!' and grabs his head in utter devastation."
+   },
+   {
+    "t": 9,
+    "type": "aftermath",
+    "what": "Streamer stares at the camera in disbelief and says 'That is insane.'"
+   }
+  ],
+  "payoff_t": 4.2,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "NO! My goodness!",
+  "key_line_t": 4.2,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The calm, rhythmic counting builds tense anticipation that is abruptly shattered when the egg drops. The streamer's immediate, explosive agony creates a classic, highly relatable gaming fail moment."
+ }
+}

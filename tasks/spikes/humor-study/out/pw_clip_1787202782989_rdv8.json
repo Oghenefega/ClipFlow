@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1787202782989_rdv8",
+ "set": "published_raw",
+ "clip_id": "clip_1787202782989_rdv8",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4174,
+  "outputTokens": 1126,
+  "thoughtTokens": 616
+ },
+ "cost": 0.014706,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator is baffled and amused after hearing an esports team perform a pre-game chant that sounds like 'Ding Dong!'.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches pre-match esports team footage."
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Creator pauses, asking if the team just chanted 'Ding Dong'."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Creator cracks up imitating the chant as 'Ding Dong Chief!'."
+   },
+   {
+    "t": 18.5,
+    "type": "escalation",
+    "what": "The clip audio clearly plays the team shouting 'DING DONG!' together."
+   },
+   {
+    "t": 21,
+    "type": "reaction",
+    "what": "Creator bursts into laughter and asks his chat what their hype phrase actually is."
+   }
+  ],
+  "payoff_t": 18.5,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "confusion",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "What did they say, Ding Dong?",
+  "key_line_t": 2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's genuine bewilderment at a pro esports team using 'Ding Dong' as their hype chant is infectious. His laughter and attempt to decipher the chant create an amusing, accessible lighthearted moment."
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1788753143967_u92w",
+ "set": "published_raw",
+ "clip_id": "clip_1788753143967_u92w",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4984,
+  "outputTokens": 1350,
+  "thoughtTokens": 850
+ },
+ "cost": 0.017601,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer vows to shut up so he does not jinx the pro match round, sits in tense silence with his hands raised, and erupts in celebration when Cryo wins the clutch.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator taunts the opposing team while watching the Valorant pro round."
+   },
+   {
+    "t": 15,
+    "type": "escalation",
+    "what": "Creator realizes he might jinx it and swears to stop talking, holding his hands up in complete silence."
+   },
+   {
+    "t": 36,
+    "type": "trigger",
+    "what": "Cryocells gets the final kill on screen to win the round."
+   },
+   {
+    "t": 37,
+    "type": "payoff",
+    "what": "Creator breaks silence into hype laughter and thanks Cryo for clutching."
+   }
+  ],
+  "payoff_t": 37,
+  "hook_t": 15,
+  "author": "creator",
+  "mechanisms": [
+   "comedic_timing_pause",
+   "overreaction"
+  ],
+  "delivery": [
+   "silence",
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "You know what, I'm going to stop talking at this point. All right, I'm just going to shut up.",
+  "key_line_t": 15,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's self-imposed silence creates a funny, relatable tension about 'jinxing' a clutch round. The payoff comes from the sudden release of hype once the kill lands."
+ }
+}

@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1784788088823_scsc",
+ "set": "published_render",
+ "clip_id": "clip_1784788088823_scsc",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1032,
+  "thoughtTokens": 638
+ },
+ "cost": 0.010794,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After making an epic save in Rocket League and yelling triumphantly, the streamer whiffs the very next hit and admits he exhausted all his aura points.",
+  "beats": [
+   {
+    "t": 3.5,
+    "type": "setup",
+    "what": "Makes an epic save while shouting 'Not on my watch man, get him outta here!'"
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Completely whiffs the simple follow-up ball and screams in frustration."
+   },
+   {
+    "t": 10,
+    "type": "aftermath",
+    "what": "Calmly accepts defeat, stating he used up all his aura points on the save."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 3.5,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "deadpan",
+   "disbelief"
+  ],
+  "key_line": "I think I used up all my aura points to save that stuff man.",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant collapse from loud hubris after a great save to immediately whiffing an easy shot provides great comedic timing. His quiet, self-aware punchline delivers the perfect punch to close out the clip."
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "key": "pr_clip_import_1790237503929_5apg",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237503929_5apg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1576,
+  "outputTokens": 1344,
+  "thoughtTokens": 920
+ },
+ "cost": 0.012443999999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer challenges an enemy to push him, but gets instantly eliminated when he realizes his gun is completely out of ammo.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer whispers 'Push me. You got the balls?' while holding a corner."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "An enemy turns the corner and the streamer tries to fire."
+   },
+   {
+    "t": 3.8,
+    "type": "payoff",
+    "what": "He shoots a single bullet, runs out of ammo (0 bullets), and gets killed."
+   },
+   {
+    "t": 4.5,
+    "type": "reaction",
+    "what": "He sighs 'Bruh' before screaming in disbelief as Mario edits play."
+   }
+  ],
+  "payoff_t": 3.8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Push me. You got the balls?",
+  "key_line_t": 0.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "zoom_or_reframe",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip benefits from classic comedic timing: acting tough right before an embarrassing fail. The zoom-in edit on his empty ammo counter highlights the mistake instantly for the viewer."
+ }
+}

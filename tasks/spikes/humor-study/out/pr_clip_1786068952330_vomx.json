@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1786068952330_vomx",
+ "set": "published_render",
+ "clip_id": "clip_1786068952330_vomx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3310,
+  "outputTokens": 1363,
+  "thoughtTokens": 826
+ },
+ "cost": 0.0151875,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer ironically claims he played better than his opponent in Rocket League despite losing 12-2, using absurd shot-conversion math and save stats as cope.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer breaks down his opponent's stats of 22 shots and 12 goals."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Streamer reveals his own stats of 3 shots and 2 goals, calling it a better ratio."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Streamer smugly declares himself 'quite the better player'."
+   },
+   {
+    "t": 14,
+    "type": "escalation",
+    "what": "He doubles down, criticizing the opponent's accuracy."
+   },
+   {
+    "t": 22,
+    "type": "aftermath",
+    "what": "He highlights having 5 saves compared to the opponent's 1 save and laughs."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "absurd_commentary",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "I'm quite the better player.",
+  "key_line_t": 9,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The streamer uses funny cope logic to argue he played better despite getting crushed 12 to 2. His confident presentation of flawed stats creates a classic ironic contrast."
+ }
+}

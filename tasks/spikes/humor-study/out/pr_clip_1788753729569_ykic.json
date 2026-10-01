@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788753729569_ykic",
+ "set": "published_render",
+ "clip_id": "clip_1788753729569_ykic",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3219,
+  "outputTokens": 1158,
+  "thoughtTokens": 647
+ },
+ "cost": 0.013513500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with intense stress and shock as a Valorant pro player scores a game-changing double kill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer sits stressed with hands on his head watching a close pro Valorant round."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Streamer narrates the play as team pushes onto site."
+   },
+   {
+    "t": 16,
+    "type": "trigger",
+    "what": "The defending pro player lands a sudden, rapid double kill."
+   },
+   {
+    "t": 17,
+    "type": "payoff",
+    "what": "Streamer screams out in total shock at the sudden double kill."
+   },
+   {
+    "t": 22,
+    "type": "aftermath",
+    "what": "Streamer grabs his head again in disbelief as the round ends."
+   }
+  ],
+  "payoff_t": 17,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "WOAH!",
+  "key_line_t": 17,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip relies on esports hype and sudden gameplay tension rather than comedy. The streamer's loud shock reaction reflects the intense round outcome, appealing more to fans of the game."
+ }
+}

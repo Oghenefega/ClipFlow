@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788753143968_6b55",
+ "set": "published_render",
+ "clip_id": "clip_1788753143968_6b55",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 923,
+  "thoughtTokens": 464
+ },
+ "cost": 0.010386,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with loud outrage when a live tournament crowd cheers, giving away a player's stealth flank and costing him the kill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Caster narrates as a pro player sets up a sneaky flank in a match."
+   },
+   {
+    "t": 6.5,
+    "type": "setup",
+    "what": "The crowd starts roaring, alerting the opposing player."
+   },
+   {
+    "t": 8.5,
+    "type": "payoff",
+    "what": "The player turns around and instantly kills the flanker."
+   },
+   {
+    "t": 9.5,
+    "type": "reaction",
+    "what": "The creator screams in frustration that the crowd gave away the position."
+   }
+  ],
+  "payoff_t": 8.5,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "overreaction",
+   "rage",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "Damn it bro, the crowd gave that away!",
+  "key_line_t": 10.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The comedic value comes from the creator's passionate frustration over an infamous esports trope where loud crowds spoil sneak attacks. However, it requires prior knowledge of competitive gaming culture to fully appreciate the moment."
+ }
+}

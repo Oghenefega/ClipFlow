@@ -1,0 +1,56 @@
+{
+ "key": "pr_clip_1786434432375_u31b",
+ "set": "published_render",
+ "clip_id": "clip_1786434432375_u31b",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1278,
+  "thoughtTokens": 862
+ },
+ "cost": 0.0122295,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer tells chat he can handle straight constructive criticism about his Rocket League skills, only to get hit with a blunt 'You suck, dude.'",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A chat TTS voice says his rotations are a bit awkward."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "The streamer says to just tell him directly because he can take constructive criticism."
+   },
+   {
+    "t": 8.5,
+    "type": "payoff",
+    "what": "The TTS voice bluntly blurts out 'You suck, dude.'"
+   }
+  ],
+  "payoff_t": 8.5,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "deadpan"
+  ],
+  "key_line": "You suck, dude.",
+  "key_line_t": 8.5,
+  "other_voices": "mixed",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedic beat hits perfectly when the streamer asks for unfiltered honesty and immediately gets shut down with a three-word roast. The concise timing of the TTS voice delivers a clean, punchy payoff."
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1788753143968_qyns",
+ "set": "published_render",
+ "clip_id": "clip_1788753143968_qyns",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2764,
+  "outputTokens": 1394,
+  "thoughtTokens": 868
+ },
+ "cost": 0.014601000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with quiet awe as pro Valorant player LOUD Darker executes an incredible sequence of Sheriff kills.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Esports footage shows Darker holding a site with a Sheriff as casters build hype."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "Darker lands a quick headshot kill."
+   },
+   {
+    "t": 10,
+    "type": "reaction",
+    "what": "The creator quietly mutters 'oh my God' in awe."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "Darker lands another clean Sheriff kill."
+   },
+   {
+    "t": 14,
+    "type": "reaction",
+    "what": "The creator repeats 'oh my God' as the camera cuts to the player and crowd."
+   },
+   {
+    "t": 20,
+    "type": "aftermath",
+    "what": "The creator concludes 'That was insane'."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "disbelief"
+  ],
+  "key_line": "That was insane",
+  "key_line_t": 20,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This clip is focused on high-level esports skill and hype rather than comedic beats. The creator's understated reaction serves to emphasize how impressive the play was rather than to land a joke."
+ }
+}

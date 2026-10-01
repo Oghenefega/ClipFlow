@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1788753143968_lgo0",
+ "set": "published_render",
+ "clip_id": "clip_1788753143968_lgo0",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2673,
+  "outputTokens": 1451,
+  "thoughtTokens": 1012
+ },
+ "cost": 0.014891999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts in complete disbelief and shock to an unbelievable headshot burst kill in a Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "trigger",
+    "what": "Pro player in footage lands an absurd headshot burst kill."
+   },
+   {
+    "t": 2,
+    "type": "payoff",
+    "what": "Creator yells out in shock and disbelief."
+   },
+   {
+    "t": 3,
+    "type": "reaction",
+    "what": "Creator asks 'How the actual heck is that even possible bro?'"
+   },
+   {
+    "t": 11,
+    "type": "aftermath",
+    "what": "Replay shows the insane shot again while the creator mutters that it makes no sense."
+   }
+  ],
+  "payoff_t": 2,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "overreaction",
+   "confusion",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "How the actual heck is that even possible bro?",
+  "key_line_t": 3,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip functions primarily as a hype reaction to an insane gaming moment rather than intentional comedy. The entertainment relies on the creator's exaggerated shock at the pro player's impossible kill."
+ }
+}

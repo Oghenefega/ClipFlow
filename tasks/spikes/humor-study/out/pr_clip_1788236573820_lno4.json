@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1788236573820_lno4",
+ "set": "published_render",
+ "clip_id": "clip_1788236573820_lno4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1845,
+  "outputTokens": 1216,
+  "thoughtTokens": 818
+ },
+ "cost": 0.011887499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs as he watches technicians physically wrestle and subdue a small, malfunctioning robot thrashing on the ground.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator compares the thrashing robot to a cockroach trying to stand up in his house."
+   },
+   {
+    "t": 1,
+    "type": "payoff",
+    "what": "The robot flails uncontrollably on the floor as multiple handlers rush to grab it."
+   },
+   {
+    "t": 7.5,
+    "type": "reaction",
+    "what": "Creator laughs and points out that the technicians are having to physically subdue the robot."
+   }
+  ],
+  "payoff_t": 1,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "Not them having to subdue him.",
+  "key_line_t": 7.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual of grown men wrestling a tiny, frantic robot to the ground is inherently funny, and the creator's joke about a cockroach enhances the visual comedy."
+ }
+}

@@ -1,0 +1,59 @@
+{
+ "key": "pw_clip_1784004968559_t7c2",
+ "set": "published_raw",
+ "clip_id": "clip_1784004968559_t7c2",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1333,
+  "thoughtTokens": 919
+ },
+ "cost": 0.014416499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator sets up a clutch assist in Rocket League and pops off, standing up in hype celebration.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator drives ball along the wall toward opponent's goal."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "Teammate scores off his pass."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "Creator leaps out of his chair shouting in excitement."
+   },
+   {
+    "t": 19,
+    "type": "aftermath",
+    "what": "Creator sits back down, continuing to hype up the play."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 4,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling"
+  ],
+  "key_line": "Put it in! Come on! That's the pass!",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This is a hype gameplay clip rather than a comedy moment, driven by the streamer's energetic standing celebration after making a good pass. It lacks setup/payoff comedic subversion, relying purely on high excitement."
+ }
+}

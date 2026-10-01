@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788394277084_0979",
+ "set": "published_render",
+ "clip_id": "clip_1788394277084_0979",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1706,
+  "thoughtTokens": 1210
+ },
+ "cost": 0.015849000000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator spectates a player disguised as a wall painting who miraculously survives a flurry of close-range gunshots.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator predicts the spectated player hiding on the wall is about to get caught."
+   },
+   {
+    "t": 3.5,
+    "type": "trigger",
+    "what": "Enemies shoot furiously at the wall right next to the disguised player."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "The spectated player somehow survives the entire barrage without taking damage."
+   },
+   {
+    "t": 6.2,
+    "type": "reaction",
+    "what": "Creator reacts in wide-eyed shock and disbelief."
+   },
+   {
+    "t": 11.2,
+    "type": "aftermath",
+    "what": "Creator bursts out laughing, asking how the player is still alive."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "unexpected_outcome",
+   "irony_says_x_then_opposite",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "yelling"
+  ],
+  "key_line": "How is this guy not dead?",
+  "key_line_t": 11.2,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The creator's confident prediction of the player's demise is instantly subverted by a ridiculous stroke of luck. His wide-eyed, genuine disbelief perfectly mirrors the viewer's reaction."
+ }
+}

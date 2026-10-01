@@ -1,0 +1,65 @@
+{
+ "key": "rw_clip_1787860936676_tiwl",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787860936676_tiwl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2554,
+  "outputTokens": 1327,
+  "thoughtTokens": 857
+ },
+ "cost": 0.013783499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer laughs upon recognizing a Phil Collins song playing in an elevator before predicting impending trouble in his game.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A classic Phil Collins song plays in the game's elevator."
+   },
+   {
+    "t": 2.5,
+    "type": "payoff",
+    "what": "The streamer recognizes the song and bursts out laughing."
+   },
+   {
+    "t": 7,
+    "type": "context",
+    "what": "The elevator doors open while the streamer drinks water."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "In-game dialogue reveals the player character lost his guns."
+   },
+   {
+    "t": 18.5,
+    "type": "reaction",
+    "what": "Streamer casually observes that something bad is about to happen."
+   }
+  ],
+  "payoff_t": 2.5,
+  "hook_t": 2.5,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "Oh my goodness, Phil Collins!",
+  "key_line_t": 2.5,
+  "other_voices": "game_characters",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The joyful realization of a famous Phil Collins track playing in a video game elevator creates a funny contrast. His casual drinking and ominous prediction right after set a nice relaxed comedic mood."
+ }
+}

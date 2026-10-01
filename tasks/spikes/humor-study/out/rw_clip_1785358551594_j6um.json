@@ -1,0 +1,56 @@
+{
+ "key": "rw_clip_1785358551594_j6um",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785358551594_j6um",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1825,
+  "outputTokens": 1302,
+  "thoughtTokens": 891
+ },
+ "cost": 0.0125025,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator celebrates an easy Rocket League win by making a cheeky comparison to a sports match, then laughs off his own jab.",
+  "beats": [
+   {
+    "t": 0.5,
+    "type": "setup",
+    "what": "Creator celebrates an easy victory and asks who is up next."
+   },
+   {
+    "t": 3.5,
+    "type": "trigger",
+    "what": "He jokes that the game felt like 'Spain versus Argentina all over again'."
+   },
+   {
+    "t": 7.5,
+    "type": "payoff",
+    "what": "He smiles and chuckles, saying 'Too soon? My bad, my bad'."
+   }
+  ],
+  "payoff_t": 7.5,
+  "hook_t": 0.5,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "irony_says_x_then_opposite",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "This feels like Spain versus Argentina all over again.",
+  "key_line_t": 3.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The creator's playful confidence and self-aware smile deliver a mild, charismatic banter moment. While brief and light, his natural charismatic timing keeps it amusing."
+ }
+}

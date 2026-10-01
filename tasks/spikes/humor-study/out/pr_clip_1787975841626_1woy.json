@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1787975841626_1woy",
+ "set": "published_render",
+ "clip_id": "clip_1787975841626_1woy",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 1185,
+  "thoughtTokens": 774
+ },
+ "cost": 0.013170000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer laughs hysterically while watching a Valorant esports coach aggressively slam a giant red timeout button.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer watches footage of a Valorant coach preparing to hit a button."
+   },
+   {
+    "t": 3,
+    "type": "payoff",
+    "what": "The streamer bursts into laughter as the graphic displays 'TIMEOUT' after the slam."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "The streamer jokes that Valorant designed the button to be big, red, and shiny just to tempt angry coaches."
+   }
+  ],
+  "payoff_t": 3,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "yelling"
+  ],
+  "key_line": "Valorant knew what they were doing when they decided to make that button red, shiny, and large bro",
+  "key_line_t": 9,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual slapstick of a coach aggressively pounding a giant red button is universally understood. The streamer's energetic laugh and commentary about the button being designed as anger bait elevate the moment."
+ }
+}

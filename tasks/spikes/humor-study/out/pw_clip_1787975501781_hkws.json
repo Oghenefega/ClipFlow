@@ -1,0 +1,65 @@
+{
+ "key": "pw_clip_1787975501781_hkws",
+ "set": "published_raw",
+ "clip_id": "clip_1787975501781_hkws",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3283,
+  "outputTokens": 1704,
+  "thoughtTokens": 1214
+ },
+ "cost": 0.017704499999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer passionately begs a pro Valorant player to pick Phoenix during a tournament draft while holding up his Phoenix action figure.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "The streamer excitedly begs pro player Asuna to pick Phoenix."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "He repeatedly chants that he wants a Phoenix ace tonight."
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "He reaches down and pulls out a physical Phoenix action figure."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "He proudly holds the Phoenix figure up right next to the webcam."
+   },
+   {
+    "t": 20,
+    "type": "reaction",
+    "what": "He lovingly kisses the action figure on the head."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "whisper_or_mutter"
+  ],
+  "key_line": "I want a Phoenix ace tonight!",
+  "key_line_t": 5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The streamer's intense hype for a rare character pick reaches a funny visual peak when he pulls out a physical action figure to support the pick. It relies on Valorant esports context to get why picking Phoenix is significant."
+ }
+}

@@ -1,0 +1,73 @@
+{
+ "key": "pr_clip_1784788710056_ualf",
+ "set": "published_render",
+ "clip_id": "clip_1784788710056_ualf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3849,
+  "outputTokens": 1541,
+  "thoughtTokens": 961
+ },
+ "cost": 0.017331,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer gets dominated in Rocket League by an opponent who claimed to be 'washed' and playing his first game of the week.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer mentions his opponent claimed this is his first game this week."
+   },
+   {
+    "t": 0.05,
+    "type": "payoff",
+    "what": "The opponent instantly scores an impressive aerial goal."
+   },
+   {
+    "t": 0.08,
+    "type": "escalation",
+    "what": "Streamer shouts in mock outrage that players who claim to be rusty are always secretly pro."
+   },
+   {
+    "t": 0.16,
+    "type": "trigger",
+    "what": "Opponent scores another quick goal."
+   },
+   {
+    "t": 0.19,
+    "type": "reaction",
+    "what": "Streamer mockingly imitates typical gamer excuses like 'my controller broke'."
+   },
+   {
+    "t": 0.29,
+    "type": "aftermath",
+    "what": "Streamer vows to never trust an opponent's excuses again."
+   }
+  ],
+  "payoff_t": 0.05,
+  "hook_t": 0.02,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "Once they start telling you about how they haven't played in some minutes, just know that they're good.",
+  "key_line_t": 0.1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "jump_cuts",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The universal gamer experience of an opponent pleading fake rustiness before instantly dominating creates an funny, relatable moment. The streamer's expressive voice and energetic rant mockingly breaking down common excuses land the joke well."
+ }
+}

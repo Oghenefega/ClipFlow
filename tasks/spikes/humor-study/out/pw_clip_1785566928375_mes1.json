@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1785566928375_mes1",
+ "set": "published_raw",
+ "clip_id": "clip_1785566928375_mes1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3688,
+  "outputTokens": 1475,
+  "thoughtTokens": 997
+ },
+ "cost": 0.016594499999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After making a mistake in Rocket League, the creator resets his composure before setting up an aerial hit and dramatically shouting at his teammates to score it.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator calms himself down after a miss, whispering 'Relax, relax, my bad.'"
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "He resets with solemn focus, asking 'Shall we begin?' as he drives up the field."
+   },
+   {
+    "t": 25,
+    "type": "trigger",
+    "what": "He executes a clean aerial pass off the side wall."
+   },
+   {
+    "t": 29,
+    "type": "payoff",
+    "what": "He explodes with theatrical outrage, shouting for someone to finish the job."
+   }
+  ],
+  "payoff_t": 29,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "calm_explaining"
+  ],
+  "key_line": "Somebody be there to finish the job! I have already done... what more do you want from me?!",
+  "key_line_t": 29,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The sharp contrast between his calm, self-soothing composure at the start and his sudden dramatic outburst creates a fun comedic shift. His intense facial expressions and theatrical commentary elevate a routine gameplay situation."
+ }
+}

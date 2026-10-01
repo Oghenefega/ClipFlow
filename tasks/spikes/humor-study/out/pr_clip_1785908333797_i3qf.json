@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1785908333797_i3qf",
+ "set": "published_render",
+ "clip_id": "clip_1785908333797_i3qf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 1346,
+  "thoughtTokens": 853
+ },
+ "cost": 0.0135585,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer complains about an egg's unstable physics right before it unexpectedly rolls off a ledge, ruining his progress.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer questions why the egg won't stay still on the wooden plank."
+   },
+   {
+    "t": 5,
+    "type": "setup",
+    "what": "The egg stops moving and he breathes a sigh of relief, thanking it."
+   },
+   {
+    "t": 8.5,
+    "type": "escalation",
+    "what": "He starts analyzing where he needs to climb next."
+   },
+   {
+    "t": 12.5,
+    "type": "trigger",
+    "what": "The egg suddenly rolls off the edge of the plank."
+   },
+   {
+    "t": 13.5,
+    "type": "payoff",
+    "what": "He bursts into panicked screams as the egg plunges downward."
+   }
+  ],
+  "payoff_t": 13.5,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "hubris_then_fail",
+   "unexpected_outcome",
+   "rage"
+  ],
+  "delivery": [
+   "disbelief",
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Hey! No, no, wait wait wait!",
+  "key_line_t": 13,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedic timing of the egg falling right after he thought it had settled creates a classic jinx moment. His sudden transition from calm commentary to panicked shouting delivers a satisfying payoff."
+ }
+}

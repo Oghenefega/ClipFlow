@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1787202782989_3q3k",
+ "set": "published_raw",
+ "clip_id": "clip_1787202782989_3q3k",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2473,
+  "outputTokens": 1107,
+  "thoughtTokens": 686
+ },
+ "cost": 0.012011999999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer gets genuinely hyped and excited upon realizing 100 Thieves won their first international esports grand finals.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "context",
+    "what": "Streamer starts reacting to the video about 100 Thieves."
+   },
+   {
+    "t": 4.5,
+    "type": "setup",
+    "what": "Streamer expresses disbelief that this is their first international grand finals."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Streamer realizes they won and throws his hands up shouting in celebration."
+   },
+   {
+    "t": 15,
+    "type": "aftermath",
+    "what": "Streamer chuckles with a big smile, reveling in the win."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "They're 1 for 1 baby, let's go!",
+  "key_line_t": 10.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is driven by wholesome excitement and esports hype rather than comedic intent. While his genuine reaction is uplifting for fans, it lacks a punchline or funny outcome for a neutral viewer."
+ }
+}

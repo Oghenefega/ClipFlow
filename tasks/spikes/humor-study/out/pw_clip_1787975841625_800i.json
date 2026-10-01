@@ -1,0 +1,72 @@
+{
+ "key": "pw_clip_1787975841625_800i",
+ "set": "published_raw",
+ "clip_id": "clip_1787975841625_800i",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4903,
+  "outputTokens": 2004,
+  "thoughtTokens": 1470
+ },
+ "cost": 0.0223845,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator passionately celebrates and yells as 100 Thieves clinches a victory in a Valorant esports match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches the final enemy player trapped in a Valorant esports round."
+   },
+   {
+    "t": 7,
+    "type": "setup",
+    "what": "Creator mockingly pities the lone surviving enemy player."
+   },
+   {
+    "t": 11,
+    "type": "trigger",
+    "what": "100 Thieves secures the final kill to win the match."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "Creator leaps up shouting wildly in celebration."
+   },
+   {
+    "t": 31,
+    "type": "escalation",
+    "what": "Creator points to his head and boasts about being a loyal fan."
+   },
+   {
+    "t": 44,
+    "type": "aftermath",
+    "what": "Creator holds his head in pure joy over the 2-0 sweep."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "I'm that fan, baby!",
+  "key_line_t": 35,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The clip's entertainment value comes from energetic fan hype and playful taunting as an esports team wins. It is more hypetastic and celebratory than strictly comedic, requiring familiarity with the teams involved."
+ }
+}

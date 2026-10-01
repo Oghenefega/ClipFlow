@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1785358945274_t0d1",
+ "set": "published_render",
+ "clip_id": "clip_1785358945274_t0d1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3492,
+  "outputTokens": 819,
+  "thoughtTokens": 422
+ },
+ "cost": 0.011380499999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After getting scored on in Rocket League, the streamer hilariously schemes to report and ban his opponent out of pure salty frustration.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "trigger",
+    "what": "The opponent scores a goal and the creator screams in rage."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "The creator starts plotting to ban the opponent so he can never stream snipe again."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "The opponent scores yet another goal mid-rant while the creator is complaining."
+   },
+   {
+    "t": 20,
+    "type": "aftermath",
+    "what": "The creator insists he will report him to Epic Games to stop ruining his parade."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "rage",
+   "absurd_commentary",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "I've got to ban this guy on my account so he never knows when I'm streaming again.",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's petty rant about banning his opponent is made even funnier by the comedic timing of getting scored on again mid-sentence."
+ }
+}

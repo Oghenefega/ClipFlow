@@ -1,0 +1,55 @@
+{
+ "key": "rw_clip_1787805514632_2cu8",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_2cu8",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3931,
+  "outputTokens": 1199,
+  "thoughtTokens": 757
+ },
+ "cost": 0.014889,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator humorously theories that advanced robots are already walking undercover among us while the government shows clunky ping-pong robots on TV as distraction.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator points at camera and agrees with a chat comment about public robot displays."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator posits that real 2026 robots are undercover NPCs in grocery stores."
+   },
+   {
+    "t": 32,
+    "type": "payoff",
+    "what": "He points to the ping-pong robot footage on TV, joking that it's just cover for the public."
+   }
+  ],
+  "payoff_t": 34,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining",
+   "laughing"
+  ],
+  "key_line": "The actual robots of 2026, they're probably walking among us and we don't know.",
+  "key_line_t": 11,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The clip relies on light, humorous conspiratorial riffing over a robot playing table tennis. It is mildly funny as a casual chat interaction rather than a high-intensity comedy clip."
+ }
+}

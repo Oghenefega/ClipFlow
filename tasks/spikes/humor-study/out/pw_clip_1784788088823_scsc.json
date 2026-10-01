@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1784788088823_scsc",
+ "set": "published_raw",
+ "clip_id": "clip_1784788088823_scsc",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6118,
+  "outputTokens": 1141,
+  "thoughtTokens": 690
+ },
+ "cost": 0.0177345,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League streamer makes an impressive goal and save while hyping himself up, concluding that he used up all his 'aura points'.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer celebrates scoring a long-distance goal."
+   },
+   {
+    "t": 44,
+    "type": "trigger",
+    "what": "Streamer executes a clutch epic save on goal."
+   },
+   {
+    "t": 45,
+    "type": "reaction",
+    "what": "Streamer screams with excitement over the save."
+   },
+   {
+    "t": 59,
+    "type": "payoff",
+    "what": "Streamer calmly says he used up all his aura points to make that save."
+   }
+  ],
+  "payoff_t": 59,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "calm_explaining"
+  ],
+  "key_line": "I think I used up all my aura points to save that stuff, man.",
+  "key_line_t": 59,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The clip relies mostly on gameplay skill and loud, energetic hype rather than comedic setup. The final joke about spending all his 'aura points' provides a cute, lighthearted button to the highlight."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1788433695049_1vms",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788433695049_1vms",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4336,
+  "outputTokens": 1651,
+  "thoughtTokens": 1163
+ },
+ "cost": 0.0188865,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer carefully positions his small bunny prop on a sofa in a hide-and-seek game, only to accidentally ruin his spot by standing up as soon as he finishes.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "The streamer wonders why his prop keeps twitching and rotating on the sofa."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "He tries to straighten up while repeatedly triggering the warning that his body is buried too much."
+   },
+   {
+    "t": 31,
+    "type": "setup",
+    "what": "He finally aligns his prop on the couch and declares he is ready."
+   },
+   {
+    "t": 38,
+    "type": "payoff",
+    "what": "He accidentally presses a key and transforms back into his player model, standing up."
+   },
+   {
+    "t": 39,
+    "type": "reaction",
+    "what": "He reacts with sarcastic dismay and laughs at his own mistake."
+   }
+  ],
+  "payoff_t": 38,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "I stood up! Great.",
+  "key_line_t": 39,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the contrast between his prolonged, painstaking efforts to align his prop and the instantaneous mistake that ruins it all right as he finishes."
+ }
+}

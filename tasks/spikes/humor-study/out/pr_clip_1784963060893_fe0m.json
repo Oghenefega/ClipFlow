@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1784963060893_fe0m",
+ "set": "published_render",
+ "clip_id": "clip_1784963060893_fe0m",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1460,
+  "thoughtTokens": 1017
+ },
+ "cost": 0.013594499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer prematurely celebrates making a difficult jump in an egg platformer, only to sit back down and realize the egg bounced right back to where he started.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer carefully counts the egg's bounces as it gains momentum."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "The egg launches off the ramp toward the higher ledge."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "Streamer screams with joy and stands up to celebrate the successful jump."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "He sits back down and notices the egg actually bounced backward onto the lower platform."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Wait a minute.",
+  "key_line_t": 8,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The classic premature celebration trope delivers instant comedy when he jumps up screaming in victory before checking the screen. The abrupt tonal shift from extreme hype to total confusion works without any prior context."
+ }
+}

@@ -1,0 +1,54 @@
+{
+ "key": "pw_clip_1788753729569_zagl",
+ "set": "published_raw",
+ "clip_id": "clip_1788753729569_zagl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3040,
+  "outputTokens": 1309,
+  "thoughtTokens": 929
+ },
+ "cost": 0.0143775,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator quietly watches a tense Valorant pro match before reacting in shock to an explosive multi-kill play.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches the VCT match while listening to caster commentary"
+   },
+   {
+    "t": 18,
+    "type": "trigger",
+    "what": "A Brimstone ultimate strikes as a player pushes through smoke for a multi-kill"
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "Creator reacts in shock, exclaiming 'Oh my goodness'"
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "silence"
+  ],
+  "key_line": "Oh my goodness",
+  "key_line_t": 21,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is focused on hype pro gameplay and caster energy rather than comedy. The streamer remains almost completely silent until expressing brief awe at the execution."
+ }
+}

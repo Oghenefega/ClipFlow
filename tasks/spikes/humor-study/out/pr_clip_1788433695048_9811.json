@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1788433695048_9811",
+ "set": "published_render",
+ "clip_id": "clip_1788433695048_9811",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2214,
+  "outputTokens": 1369,
+  "thoughtTokens": 898
+ },
+ "cost": 0.0135885,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer notices his friend's shiny silver character avatar inexplicably has bright pink nipples and roasts him for it.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer looks at his friend's metallic chrome character."
+   },
+   {
+    "t": 2.5,
+    "type": "trigger",
+    "what": "Streamer asks why the chrome character has nipples."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "Teammate denies it over voice chat saying they aren't nipples."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Streamer retorts 'Then why are they pink?' and bursts out laughing."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Why do you have nipples bro on your chrome body?",
+  "key_line_t": 2.5,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The absurd visual of a silver metallic character model having bright pink nipples provides immediate hilarious imagery. The casual, natural voice chat banter elevates the observational joke into a great laugh."
+ }
+}

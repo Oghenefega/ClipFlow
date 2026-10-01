@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1790099236931_t26y",
+ "set": "published_raw",
+ "clip_id": "clip_1790099236931_t26y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5875,
+  "outputTokens": 1391,
+  "thoughtTokens": 876
+ },
+ "cost": 0.019245,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hysterically reacts to absurd compilation footage of humanoid robots playing sports, doing Ronaldo's 'Siu' celebration, and riding robot dogs.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator describes seeing a video of a robot doing Ronaldo's celebration after scoring."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "Footage plays showing a humanoid robot performing the 'Siu' jump on a soccer field."
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "Creator bursts into uncontrollable wheezing laughter."
+   },
+   {
+    "t": 50,
+    "type": "escalation",
+    "what": "Footage shows a robot riding a robot dog while waving a flag."
+   },
+   {
+    "t": 57,
+    "type": "aftermath",
+    "what": "Creator lightheartedly declares that we are living in the end times."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Why is a robot riding another robot, waving a flag?",
+  "key_line_t": 53,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's infectious laughter and funny commentary highlight the visual absurdity of robots performing human flexes and absurd tasks. It delivers quick, easily understandable visual humor."
+ }
+}

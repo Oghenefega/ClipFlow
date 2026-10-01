@@ -1,0 +1,66 @@
+{
+ "key": "pw_clip_1788149370220_gqno",
+ "set": "published_raw",
+ "clip_id": "clip_1788149370220_gqno",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4579,
+  "outputTokens": 1350,
+  "thoughtTokens": 831
+ },
+ "cost": 0.0169935,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically while watching a Valorant esports broadcast because of how dramatically a coach slammed a giant red timeout button.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator is watching a Valorant pro match replay."
+   },
+   {
+    "t": 15,
+    "type": "setup",
+    "what": "The clip cuts to a coach slamming a huge red physical button on stage to call a timeout."
+   },
+   {
+    "t": 20,
+    "type": "trigger",
+    "what": "Creator notices the absurdly large red button and bursts out laughing."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "Creator yells in disbelief about the over-the-top design of the big red button."
+   },
+   {
+    "t": 30,
+    "type": "reaction",
+    "what": "Creator questions why they didn't just give the coach a normal small button to press."
+   }
+  ],
+  "payoff_t": 22,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Not the big red button!",
+  "key_line_t": 21.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's high energy and infectious laughter point out a funny stage prop in an esports event that viewers might otherwise ignore. His humorous observation about the unnecessarily dramatic button carries the clip."
+ }
+}

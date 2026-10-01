@@ -1,0 +1,55 @@
+{
+ "key": "rw_clip_1788751719527_67ug",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788751719527_67ug",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4255,
+  "outputTokens": 1267,
+  "thoughtTokens": 863
+ },
+ "cost": 0.015885,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator intensely watches and analyzes a tactical 2v2 clutch situation during a Valorant esports broadcast.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator reacts excitedly to a utility play on screen."
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "He points at the camera and explains that the round has balanced into a 2v2."
+   },
+   {
+    "t": 18,
+    "type": "context",
+    "what": "He locks in silently with his finger to his head, carefully analyzing the play."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "There we go, there we go, it's a 2v2 again!",
+  "key_line_t": 3.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": true,
+  "why": "This is an esports match commentary clip rather than comedy. The focus is entirely on game awareness and tactical breakdown."
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_1788755071329_ltpx",
+ "set": "published_render",
+ "clip_id": "clip_1788755071329_ltpx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3215,
+  "outputTokens": 1599,
+  "thoughtTokens": 1076
+ },
+ "cost": 0.016815,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer insists a pro Valorant player is only lucky and about to fail, right before the player hits an incredible shot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator claims the pro player's luck is about to run out."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator doubles down, stating 'He's not that good!'"
+   },
+   {
+    "t": 15,
+    "type": "trigger",
+    "what": "The pro player hits an unbelievable no-scope headshot kill."
+   },
+   {
+    "t": 17,
+    "type": "payoff",
+    "what": "Creator stares in total stunned disbelief."
+   },
+   {
+    "t": 22,
+    "type": "callback",
+    "what": "Creator weakly tries to stick to his story, muttering that it was still just luck."
+   }
+  ],
+  "payoff_t": 17,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "disbelief",
+   "deadpan",
+   "mock_outrage"
+  ],
+  "key_line": "That's what I said, he's not that good!",
+  "key_line_t": 9,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The clip uses classic hubris followed by instant contradiction as the creator discredits a pro player right before an incredible play. His stunned silence and weak double-down at the end land the comedic timing perfectly."
+ }
+}

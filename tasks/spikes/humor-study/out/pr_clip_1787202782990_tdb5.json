@@ -1,0 +1,50 @@
+{
+ "key": "pr_clip_1787202782990_tdb5",
+ "set": "published_render",
+ "clip_id": "clip_1787202782990_tdb5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1751,
+  "outputTokens": 1372,
+  "thoughtTokens": 998
+ },
+ "cost": 0.012916500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator excitedly proclaims that 100 Thieves is going to win VCT Champions and that it will be the best year ever.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator excitedly states that 100 Thieves is about to win VCT."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "He puts his hands on his head, laughing and yelling that it will be the best year ever."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Oh man, it's gonna be the best year ever!",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip is primarily esports fandom hype rather than a structured joke. Any humor stems from the creator's exaggerated optimism about his team, which requires Valorant esports context to appreciate."
+ }
+}

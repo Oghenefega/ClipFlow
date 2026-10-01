@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1788550913587_a813",
+ "set": "published_raw",
+ "clip_id": "clip_1788550913587_a813",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4984,
+  "outputTokens": 1156,
+  "thoughtTokens": 685
+ },
+ "cost": 0.016146,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer hypes up and hysterically celebrates a successful round during a professional Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts hyping up the play on screen."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Streamer stands up and yells in excitement as a kill lands."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "Streamer claps aggressively and laughs, shouting 'Read him like a book!'"
+   },
+   {
+    "t": 43,
+    "type": "aftermath",
+    "what": "Streamer taunts the losing team with animated hand gestures."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "Get him out of here! Read him like a book!",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The clip relies on high-energy passion and animated cheerleading for an esports match. It is entertaining mainly due to the streamer's contagious enthusiasm rather than a traditional setup-and-punchline joke."
+ }
+}

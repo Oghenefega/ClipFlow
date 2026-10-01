@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1784085005038_c6q1",
+ "set": "published_raw",
+ "clip_id": "clip_1784085005038_c6q1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1246,
+  "thoughtTokens": 814
+ },
+ "cost": 0.0119895,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer repeatedly insists today is a happy day while calmly watching his in-game egg roll right past the target pad.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer declares he won't be pissed and that today is a happy day."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "The egg rolls up the ramp towards the landing pad."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "The egg misses the pad and rolls off into the grass."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Streamer calmly continues his positive mantra, saying 'just joy and bliss'."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "deadpan_underreaction",
+   "hubris_then_fail"
+  ],
+  "delivery": [
+   "deadpan",
+   "calm_explaining"
+  ],
+  "key_line": "Today's a happy day, guys.",
+  "key_line_t": 3,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedic tension comes from the contrast between the streamer forcing a calm, happy attitude and the quietly frustrating game failure happening on screen."
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_import_1790237066124_et22",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237066124_et22",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1444,
+  "thoughtTokens": 928
+ },
+ "cost": 0.014020499999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer acknowledges chat's advice to take a break from Valorant, refuses to follow it, and immediately gets punished by matching onto a map he hates.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Reads chat suggesting he take a break from Valorant."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Agrees taking a break makes sense, but hits start anyway."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "A match is found instantly on the map Breeze."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "He screams in anguish upon seeing it's Breeze."
+   },
+   {
+    "t": 10,
+    "type": "aftermath",
+    "what": "Grips his head and cries that he should have listened."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "hubris_then_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "I think taking a break actually does make sense, but we're not gonna do it though.",
+  "key_line_t": 2,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The swift instant-karma of rejecting good advice only to get immediately loaded into a map he hates creates an instant comedic punishment. His dramatic over-the-top regret completes the classic hubris arc in under 12 seconds."
+ }
+}

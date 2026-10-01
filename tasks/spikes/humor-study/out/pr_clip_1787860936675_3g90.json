@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1787860936675_3g90",
+ "set": "published_render",
+ "clip_id": "clip_1787860936675_3g90",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4397,
+  "outputTokens": 1096,
+  "thoughtTokens": 615
+ },
+ "cost": 0.014815499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with amusement to the meta-irony of watching fictional in-game advertisements play on a TV inside GTA 6 footage.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A satirical commercial starts playing on the in-game television."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "The creator points out the absurdity of watching an ad inside a game within a video clip."
+   },
+   {
+    "t": 32,
+    "type": "payoff",
+    "what": "The over-the-top sandwich advertisement concludes with absurd stacking animation."
+   },
+   {
+    "t": 34,
+    "type": "reaction",
+    "what": "The creator laughs out loud at the ridiculousness of the in-game ad."
+   }
+  ],
+  "payoff_t": 32,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "absurd_commentary",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "not us getting an ad within a video game on an ad-riddled Netflix",
+  "key_line_t": 14,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the absurd layers of meta-advertising within the GTA universe. The creator's amused commentary highlights the ironic experience of watching a commercial inside a commercial."
+ }
+}

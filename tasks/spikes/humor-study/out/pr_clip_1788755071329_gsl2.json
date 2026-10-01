@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788755071329_gsl2",
+ "set": "published_render",
+ "clip_id": "clip_1788755071329_gsl2",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3030,
+  "outputTokens": 1561,
+  "thoughtTokens": 1055
+ },
+ "cost": 0.016252500000000003,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator dramatically loses his mind over a pro Valorant player pulling off an insanely accurate sliding headshot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator hypes up the match footage while watching pro Valorant gameplay."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Player Cryo slides around the corner and instantly headshots the enemy."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Creator leaps back in his chair screaming for officials to check the player's computer."
+   },
+   {
+    "t": 13,
+    "type": "escalation",
+    "what": "Creator points aggressively at the camera, ranting about impossible slide accuracy."
+   },
+   {
+    "t": 20,
+    "type": "aftermath",
+    "what": "Creator continues cackling in utter disbelief."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 8,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Check his computer, man!",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The streamer's high-energy overreaction and funny accusation that the player is cheating amplify an already insane esports highlight. His physical reaction carries the humor cleanly even for non-gamers."
+ }
+}

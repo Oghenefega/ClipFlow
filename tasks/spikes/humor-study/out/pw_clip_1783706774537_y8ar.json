@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1783706774537_y8ar",
+ "set": "published_raw",
+ "clip_id": "clip_1783706774537_y8ar",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1636,
+  "thoughtTokens": 1162
+ },
+ "cost": 0.016689000000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League streamer confidently claims his aerial play is all part of his plan, only to miss the ball entirely and scream in disbelief.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer boasts that his setup is 'all part of the plan'."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "He doubles down on his confidence while flying aerial toward the ball."
+   },
+   {
+    "t": 14,
+    "type": "trigger",
+    "what": "He whiffs the ball in mid-air."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "He screams in agony as he lands without touching the ball."
+   },
+   {
+    "t": 19,
+    "type": "reaction",
+    "what": "Streamer expresses utter disbelief at his mistake."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "All part of the plan, baby!",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip relies on classic hubris followed by instant failure. His passionate screaming reaction highlights the comedy in the contrast between his boast and his miss."
+ }
+}

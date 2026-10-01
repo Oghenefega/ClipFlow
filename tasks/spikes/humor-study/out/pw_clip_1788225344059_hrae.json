@@ -1,0 +1,60 @@
+{
+ "key": "pw_clip_1788225344059_hrae",
+ "set": "published_raw",
+ "clip_id": "clip_1788225344059_hrae",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2633,
+  "outputTokens": 1239,
+  "thoughtTokens": 797
+ },
+ "cost": 0.013242,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator excitedly celebrates 100 Thieves' 2-0 victory over opponent team LEV while watching match broadcast footage.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Match ends with 100 Thieves securing a 2-0 win."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Creator points to his head in triumph while watching the broadcast."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "Creator shouts excitedly, boasting about the win."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "Creator puts his hands on his head shouting 'Too easy bro!' and claps."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "I'm done baby! Come on, get him out of here!",
+  "key_line_t": 8,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip relies heavily on fan enthusiasm and high energy around a specific Valorant esports result. Without context or investment in the match, a stranger sees standard hype reaction rather than comedy."
+ }
+}

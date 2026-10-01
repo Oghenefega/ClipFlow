@@ -1,0 +1,59 @@
+{
+ "key": "rw_clip_1785566426950_eapg",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785566426950_eapg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3769,
+  "outputTokens": 1033,
+  "thoughtTokens": 622
+ },
+ "cost": 0.013401000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator accidentally scores an own goal in Rocket League and laughs hysterically at his mistake before answering a chat question.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator is defending his goal in Rocket League."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "He hits the ball directly into his own net."
+   },
+   {
+    "t": 6,
+    "type": "reaction",
+    "what": "He bursts out laughing at his own blunder."
+   },
+   {
+    "t": 10,
+    "type": "aftermath",
+    "what": "He goes back to playing and answers a question about playing with viewers."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 5,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "yelling"
+  ],
+  "key_line": "That is not limit in my own mistake!",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "An accidental own goal followed by genuine, uncontrolled laughter provides a quick, universally understandable self-own. However, the clip keeps going into ordinary gameplay and chat interaction, losing the comedic focus after the initial laugh."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1790099172153_6prj",
+ "set": "published_render",
+ "clip_id": "clip_1790099172153_6prj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3401,
+  "outputTokens": 1466,
+  "thoughtTokens": 978
+ },
+ "cost": 0.0160965,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically while watching footage of humanoid robots running awkwardly in a track race.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Footage shows humanoid robots sprinting unnaturally on a track."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Creator points out humans aren't built to twist the way the robots are twisting."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Creator breaks down into infectious laughter at the visual."
+   },
+   {
+    "t": 14,
+    "type": "reaction",
+    "what": "Creator points out one robot going out of its lane and struggling to stay straight."
+   },
+   {
+    "t": 23,
+    "type": "aftermath",
+    "what": "Creator mentions how they have to place a mattress at the finish line to stop the robots."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "I don't know if human beings can run like this and live to be better.",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The sight of humanoid robots running with erratic, spine-twisting motion is inherently hilarious. The creator's contagious laughter and hilarious commentary elevate the absurd visual."
+ }
+}

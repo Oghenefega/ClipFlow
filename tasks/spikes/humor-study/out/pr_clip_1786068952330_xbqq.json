@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1786068952330_xbqq",
+ "set": "published_render",
+ "clip_id": "clip_1786068952330_xbqq",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2399,
+  "outputTokens": 1253,
+  "thoughtTokens": 706
+ },
+ "cost": 0.012996,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After making a save and boastfully shouting at his opponent, the player is instantly scored on and immediately shifts to deadpan defeat.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator plays Rocket League as the ball approaches his goal."
+   },
+   {
+    "t": 1.5,
+    "type": "escalation",
+    "what": "Creator makes an epic save on the goal line."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Creator screams trash talk, mocking the opponent for thinking it'd be an easy win."
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "The opponent scores immediately while creator is bragging."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "Creator instantly switches to deadpan, conceding that it is indeed an easy win."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Creator chuckles quietly at his own immediate humiliation."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 1.5,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "deadpan",
+   "laughing"
+  ],
+  "key_line": "Did he think it was just going to be an easy win?",
+  "key_line_t": 10.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The instant reversal of fortune creates a perfect comedy beat. His rapid shift from screaming hubris to calm, deadpan acceptance makes the fail relatable and funny to any viewer."
+ }
+}

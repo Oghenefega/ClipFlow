@@ -1,0 +1,66 @@
+{
+ "key": "pw_clip_1788394277084_4idh",
+ "set": "published_raw",
+ "clip_id": "clip_1788394277084_4idh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3607,
+  "outputTokens": 1196,
+  "thoughtTokens": 686
+ },
+ "cost": 0.014380500000000001,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer spectates a player seamlessly blending into a painting during a hide-and-seek game and roasts his own previous attempt at hiding in the same spot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer spectates Lorenz hiding flat against a wall painting."
+   },
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Streamer points out how flat Lorenz looks compared to his own character."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He recalls his own bad hiding attempt where his character's butt was larger than Lorenz's entire body."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "He describes how his character was bulging out of the painting and breaks out laughing."
+   },
+   {
+    "t": 29,
+    "type": "aftermath",
+    "what": "He settles down and notices how many players have been found so far."
+   }
+  ],
+  "payoff_t": 22,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "I was just bulging out of the painting!",
+  "key_line_t": 22,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's hilarious self-deprecation about his oversized character model bulging out of a painting creates a funny visual contrast with the player he is spectating."
+ }
+}

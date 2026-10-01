@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1787202987979_08tg",
+ "set": "published_render",
+ "clip_id": "clip_1787202987979_08tg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3306,
+  "outputTokens": 1314,
+  "thoughtTokens": 877
+ },
+ "cost": 0.014814,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator enthusiastically watches and reacts to the 100 Thieves esports team winning a world championship.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator shouts in amazement as the team hugs on stage."
+   },
+   {
+    "t": 4,
+    "type": "context",
+    "what": "Creator comments on the pure joy in the players' hearts."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "Creator cheers 'Let's freaking go!' as the trophy is lifted."
+   },
+   {
+    "t": 18,
+    "type": "aftermath",
+    "what": "Creator smiles warmly listening to the post-game interview clip."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "That is insane",
+  "key_line_t": 0.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This clip is an earnest reaction to an esports victory rather than a comedy moment. It focuses on hype and wholesome celebration with no comedic subversion or jokes."
+ }
+}

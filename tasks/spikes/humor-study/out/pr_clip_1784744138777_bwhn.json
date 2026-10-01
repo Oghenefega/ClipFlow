@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1784744138777_bwhn",
+ "set": "published_render",
+ "clip_id": "clip_1784744138777_bwhn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1664,
+  "outputTokens": 1371,
+  "thoughtTokens": 949
+ },
+ "cost": 0.0127785,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League streamer responds to a chat question asking when he will reach Champ rank by admitting he has no idea why he's playing so poorly.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "A chat prompt asks when the streamer will be Champ rank."
+   },
+   {
+    "t": 2.5,
+    "type": "setup",
+    "what": "Streamer earnestly replies that he is trying to figure that out too."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Streamer exclaims that he doesn't understand what is going on with his gameplay as the match kicks off."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "calm_explaining"
+  ],
+  "key_line": "I don't understand what the flip is going on!",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on mild self-deprecating humor as the streamer candidly agrees with his chat about his poor performance. While relatable to Rocket League players, it lacks a strong physical or verbal punchline to stand out to a general audience."
+ }
+}

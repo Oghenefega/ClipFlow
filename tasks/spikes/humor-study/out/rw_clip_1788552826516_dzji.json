@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1788552826516_dzji",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788552826516_dzji",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3121,
+  "outputTokens": 1139,
+  "thoughtTokens": 684
+ },
+ "cost": 0.013224,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer passionately reacts to 100 Thieves dominating NRG in a Valorant pro match, shouting in excitement as they near qualification for Masters Shanghai.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer hypes up how 100 Thieves is dominating last year's champions."
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "Caster notes they are three rounds away from qualifying, building anticipation."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "Streamer erupts into celebratory yelling, asking for his tickets to Shanghai."
+   },
+   {
+    "t": 24,
+    "type": "aftermath",
+    "what": "Streamer calms down slightly while watching the next round begin."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "We are taking those tickets man! Give me my ticket to Shanghai bro!",
+  "key_line_t": 18,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The clip captures genuine fan hype and passion as the streamer celebrates his team nearing tournament qualification. It functions more as an energetic esports hype moment than structured comedy."
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_1785908335093_ifei",
+ "set": "published_render",
+ "clip_id": "clip_1785908335093_ifei",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1277,
+  "thoughtTokens": 804
+ },
+ "cost": 0.0126315,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League streamer loudly claims he fears no man, only to immediately get scored on.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator talks smack, saying 'You think I'm afraid of you?'"
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Creator screams as he whiffs the ball."
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "Creator recovers and boasts 'I fear no man...'"
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "The opponent scores a goal instantly as he finishes the sentence."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Creator cracks up laughing at his own immediate failure."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "I fear no man",
+  "key_line_t": 4,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The classic hubris-followed-by-instant-defeat trope delivers strong comedic timing. His immediate laughter at his own premature boast cements the self-own."
+ }
+}

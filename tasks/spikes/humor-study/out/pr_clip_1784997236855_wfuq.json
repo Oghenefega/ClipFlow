@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1784997236855_wfuq",
+ "set": "published_render",
+ "clip_id": "clip_1784997236855_wfuq",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2764,
+  "outputTokens": 1105,
+  "thoughtTokens": 634
+ },
+ "cost": 0.0124335,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer confidently navigates a tricky egg-rolling game and boasts about how easy it is, only to immediately freeze in utter confusion when seeing the absurd next obstacle.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer claims 'I got this, check this out boys' while rolling the egg."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "The egg successfully bounces through obstacles."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "Streamer yells in triumph, boasting 'IT'S TOO EASY!'"
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "The egg comes to a stop facing a bizarre giant shovel/catapult mechanism."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Streamer's hype instantly deflates into complete confusion: 'Where the heck am I going next? What the flip?'"
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "IT'S TOO EASY",
+  "key_line_t": 8,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant pivot from loud, arrogant celebration to quiet, bewildered questioning creates a hilarious tonal shift. The visual absurdity of the giant shovel obstacle makes the streamer's sudden loss of confidence land effectively."
+ }
+}

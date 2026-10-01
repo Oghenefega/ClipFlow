@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788751719527_hoez",
+ "set": "published_render",
+ "clip_id": "clip_1788751719527_hoez",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1506,
+  "thoughtTokens": 1041
+ },
+ "cost": 0.0150315,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with loud awe and hype as a pro Valorant player wipes the enemy team with a high-speed Neon ultimate.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator comments enthusiastically on the crowd noise in the broadcast footage."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "The clip switches to the POV of a pro Neon activating her ultimate ability."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "Neon slides through enemy smoke and rapidly beams down multiple opponents."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "Creator repeatedly yells 'Jesus!' in disbelief as the multi-kill unfolds."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Crowd advantage, home advantage is real bro, what the flip?",
+  "key_line_t": 2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip is designed as a hype reel highlighting insane gameplay skill rather than comedic storytelling. The humor is minimal, relying mostly on the creator's energetic shock at the pro player's speed."
+ }
+}

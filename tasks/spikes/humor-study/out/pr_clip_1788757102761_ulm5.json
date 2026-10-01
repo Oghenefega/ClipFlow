@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788757102761_ulm5",
+ "set": "published_render",
+ "clip_id": "clip_1788757102761_ulm5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5395,
+  "outputTokens": 1827,
+  "thoughtTokens": 1314
+ },
+ "cost": 0.021795000000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer gets intensely hyped pulling his team's jersey while watching a Valorant match, only to cope hysterically when they lose the crucial round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer watches a tense 3v3 Valorant round in a pro match."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "He pulls up his shirt to reveal a 100 Thieves jersey while chanting that it's their game."
+   },
+   {
+    "t": 29,
+    "type": "trigger",
+    "what": "The player fails to complete the clutch and dies."
+   },
+   {
+    "t": 38,
+    "type": "payoff",
+    "what": "He tries to cope by saying going to overtime is even better."
+   },
+   {
+    "t": 46,
+    "type": "callback",
+    "what": "He breaks character and admits candidly that losing the round is definitely not what they wanted."
+   }
+  ],
+  "payoff_t": 38,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "This isn't what we wanted!",
+  "key_line_t": 46,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The clip relies on the contrast between intense fan hype and immediate cope when the round fails. The humor comes from his rapid shift from blind optimism to laughing defeat."
+ }
+}

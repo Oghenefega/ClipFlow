@@ -1,0 +1,70 @@
+{
+ "key": "pr_clip_1787974608296_lxgg",
+ "set": "published_render",
+ "clip_id": "clip_1787974608296_lxgg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3391,
+  "outputTokens": 1394,
+  "thoughtTokens": 863
+ },
+ "cost": 0.0155415,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer hyperventilates and yells in pure excitement while watching Valorant pro player Cryo instantly shut down an enemy ultimate ability mid-air.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer talks about getting back into watching Valorant esports."
+   },
+   {
+    "t": 7,
+    "type": "setup",
+    "what": "The clip shows an enemy Raze fly up using her ultimate rocket jump."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Cryo headshots the airborne enemy before the rocket can fire."
+   },
+   {
+    "t": 9,
+    "type": "reaction",
+    "what": "Streamer jumps out of his chair screaming 'GET HIM OUTTA THERE!'"
+   },
+   {
+    "t": 17,
+    "type": "escalation",
+    "what": "The clip replays from Cryo's point of view in slow motion."
+   },
+   {
+    "t": 23,
+    "type": "aftermath",
+    "what": "Streamer continues hype commentary on how hard the opponent was shut down."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 7,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "GET HIM OUTTA THERE!",
+  "key_line_t": 8,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip is built around esports hype and high skill rather than comedic setup or joke writing. The entertainer's high-energy reaction amplifies an impressive pro highlight."
+ }
+}

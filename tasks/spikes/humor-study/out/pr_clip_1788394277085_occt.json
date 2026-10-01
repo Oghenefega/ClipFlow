@@ -1,0 +1,58 @@
+{
+ "key": "pr_clip_1788394277085_occt",
+ "set": "published_render",
+ "clip_id": "clip_1788394277085_occt",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 864,
+  "thoughtTokens": 434
+ },
+ "cost": 0.0107625,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator struggles to find hidden players on a custom game map made entirely out of Van Gogh paintings.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator expresses panic over how difficult the Van Gogh map is."
+   },
+   {
+    "t": 6.5,
+    "type": "escalation",
+    "what": "The creator surveys the detailed art map while playful music plays."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "The creator admits he should have just sprayed bullet fire across the entire painting after failing to spot anyone."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 0.5,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "confusion",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "You know what would have been smart? Just shooting across the whole painting.",
+  "key_line_t": 16,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The visual contrast of playing a hide-and-seek shooter inside famous fine art creates an entertaining setup. However, the clip lacks a dramatic punchline or jump-scare payoff, relying instead on mild observational commentary."
+ }
+}

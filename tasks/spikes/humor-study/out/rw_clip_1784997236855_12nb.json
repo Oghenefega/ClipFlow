@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1784997236855_12nb",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784997236855_12nb",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4255,
+  "outputTokens": 1212,
+  "thoughtTokens": 719
+ },
+ "cost": 0.0154725,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer playing an egg platforming game carefully counts his jumps, only to lose his balance and tumble all the way down.",
+  "beats": [
+   {
+    "t": 2,
+    "type": "payoff",
+    "what": "The egg slips and falls down the ramp, causing him to yell."
+   },
+   {
+    "t": 10,
+    "type": "setup",
+    "what": "He carefully tries again while questioning if the tip or base of the egg jumps higher."
+   },
+   {
+    "t": 24,
+    "type": "escalation",
+    "what": "He starts meticulously counting each jump out loud as tension builds."
+   },
+   {
+    "t": 34,
+    "type": "trigger",
+    "what": "He loses footing on the fifth jump and rolls all the way back down."
+   },
+   {
+    "t": 36,
+    "type": "reaction",
+    "what": "He screams 'No!' and punches the air in frustration before trying to calm himself down."
+   }
+  ],
+  "payoff_t": 34,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "comedic_timing_pause",
+   "rage"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "No! No fucking way, dude!",
+  "key_line_t": 2,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the contrast between his calm, meticulous counting and the instant, chaotic ruin of his progress. His genuine disbelief and dramatic grief after falling make the moment relatable and funny."
+ }
+}

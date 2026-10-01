@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787975501780_taum",
+ "set": "published_render",
+ "clip_id": "clip_1787975501780_taum",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1058,
+  "thoughtTokens": 612
+ },
+ "cost": 0.010988999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with hype as pro Valorant player 100T Vora scores clean headshots to win a round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator watches intently as the round begins."
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "Vora aligns his crosshair and peaks the entrance."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Vora swiftly headshots opponents to win the round."
+   },
+   {
+    "t": 9.5,
+    "type": "payoff",
+    "what": "The creator laughs and shouts 'it's too easy!' in awe of the play."
+   }
+  ],
+  "payoff_t": 9.5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "laughing",
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "it's too easy",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip relies on esports hype and impressive skill rather than comedy. The streamer's enthusiastic reaction enhances the hype, but there is no joke or humorous payoff."
+ }
+}

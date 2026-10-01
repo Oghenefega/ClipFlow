@@ -1,0 +1,59 @@
+{
+ "key": "pr_clip_1785455230241_m9bj",
+ "set": "published_render",
+ "clip_id": "clip_1785455230241_m9bj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1207,
+  "thoughtTokens": 769
+ },
+ "cost": 0.0121065,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer carefully navigates a driving course to complete a tricky jump and passionately celebrates crossing the finish line.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer talks through maintaining control of the vehicle on the road."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Streamer repeatedly reminds himself to keep it straight before the jump."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Hits the jump at full speed toward the finish line."
+   },
+   {
+    "t": 9.5,
+    "type": "payoff",
+    "what": "Successfully finishes the level and screams celebrating his victory."
+   }
+  ],
+  "payoff_t": 9.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating"
+  ],
+  "key_line": "Let's go, dude! Get him out of here!",
+  "key_line_t": 9.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip focuses on a clutch gaming achievement rather than a comedic setup. The value comes from the intense focus and celebratory hype rather than funny subversion."
+ }
+}

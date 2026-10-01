@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1785455230241_xzc4",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785455230241_xzc4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3526,
+  "outputTokens": 1260,
+  "thoughtTokens": 839
+ },
+ "cost": 0.014739,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer repeatedly misses mail delivery targets while driving in a delivery game, leading to sudden fail screens and disbelief.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer is driving a mail truck towards the finish line."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "He drives right past a package drop-off target."
+   },
+   {
+    "t": 6.8,
+    "type": "payoff",
+    "what": "He reaches the finish line and a big 'DELIVERY FAILED!' screen pops up."
+   },
+   {
+    "t": 8.8,
+    "type": "reaction",
+    "what": "Streamer reacts in disbelief, asking how he missed it."
+   },
+   {
+    "t": 14.5,
+    "type": "escalation",
+    "what": "Jump cut to a new attempt where he misses another package drop on a sharp curve."
+   }
+  ],
+  "payoff_t": 6.8,
+  "hook_t": 3.5,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "How did I miss that?",
+  "key_line_t": 8.8,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on the simple comedic contrast between driving smoothly and completely missing the game's core objective. His genuine perplexity at failing the level gives it a mild, relatable payoff."
+ }
+}

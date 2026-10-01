@@ -1,0 +1,54 @@
+{
+ "key": "pr_clip_1787860936676_m2f4",
+ "set": "published_render",
+ "clip_id": "clip_1787860936676_m2f4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 1357,
+  "thoughtTokens": 946
+ },
+ "cost": 0.014459999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with genuine laughter to GTA 6 footage parodying live streamer culture.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Game footage shows a woman opening a car trunk to find a guy live streaming a trunk challenge."
+   },
+   {
+    "t": 0.08,
+    "type": "payoff",
+    "what": "The streamer character panics to his chat when the cops start chasing them."
+   },
+   {
+    "t": 0.11,
+    "type": "reaction",
+    "what": "The creator bursts into continuous laughter at the parody."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "game_itself",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing"
+  ],
+  "key_line": "that's so funny, they got streamers in there bro",
+  "key_line_t": 17.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip features sharp satire of modern influencer culture embedded in GTA 6 footage, triggering authentic, infectious laughter from the creator. It works well because the joke is self-explanatory and instantly relatable to anyone on the internet."
+ }
+}

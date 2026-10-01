@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1787202782989_4buw",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202782989_4buw",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4093,
+  "outputTokens": 1031,
+  "thoughtTokens": 553
+ },
+ "cost": 0.013872,
+ "watch": {
+  "format": "talking",
+  "summary": "The creator reflects on how fast young gamers grow up and compares it to his own realization of turning 28.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator remarks on how much older Benjyfishy looks compared to his Fortnite days."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He talks about how aging feels slow as a child until time suddenly flies."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "He acts out suddenly waking up at age 28 in shock."
+   },
+   {
+    "t": 28,
+    "type": "aftermath",
+    "what": "He mentions seeing similar fast growth with Cristiano Ronaldo's son."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "I'm still a kid, I'm still a kid, I'm still a kid, and then boom, 28!",
+  "key_line_t": 16.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The clip is a relatable, conversational reflection on aging rather than a comedy bit. While his animated delivery of turning 28 is amusing, it serves as casual chat talk rather than a laugh-out-loud moment."
+ }
+}

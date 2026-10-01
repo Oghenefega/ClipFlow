@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1790099916957_olg3",
+ "set": "published_raw",
+ "clip_id": "clip_1790099916957_olg3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5227,
+  "outputTokens": 1649,
+  "thoughtTokens": 1187
+ },
+ "cost": 0.020208,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts to footage from a humanoid robot competition and jokingly warns that the robot apocalypse is imminent.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator watches robots playing ping pong and riding robotic dogs."
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "Creator declares humanity is in the end times and disguising the takeover as 'Robot Olympics'."
+   },
+   {
+    "t": 26,
+    "type": "escalation",
+    "what": "Creator panics that humans are actively ushering in robotic overlords."
+   },
+   {
+    "t": 42,
+    "type": "payoff",
+    "what": "Creator decides he is moving back to Nigeria because the West is cooked."
+   }
+  ],
+  "payoff_t": 47.5,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "confusion"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Because this, the West is cooked!",
+  "key_line_t": 47.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator builds comedic momentum by overreacting to clunky robot competition clips as if they were a terrifying dystopian threat. His exaggerated panic culminates in a funny personal exit strategy from the 'cooked' West."
+ }
+}

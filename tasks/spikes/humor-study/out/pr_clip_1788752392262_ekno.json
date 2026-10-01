@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1788752392262_ekno",
+ "set": "published_render",
+ "clip_id": "clip_1788752392262_ekno",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2669,
+  "outputTokens": 1348,
+  "thoughtTokens": 876
+ },
+ "cost": 0.014113500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer claims he is trying to stop trash-talking before immediately contradicting himself and passionately wishing for an opposing team's crowd to be silenced.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer starts by saying the team looks good and promises not to hate."
+   },
+   {
+    "t": 4.5,
+    "type": "setup",
+    "what": "Camera zooms in as he admits he will definitely hate given the chance."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "He gets increasingly excited about wanting to quiet the enemy team."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "He intensely shouts about wanting the crowd to be quiet while making claw hands in angst."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "I can't wait for the crowd to be quiet!",
+  "key_line_t": 13.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedy stems from immediate comedic irony when the streamer vows to stop trash-talking, only to instantly unleash pure, passionate hater energy."
+ }
+}

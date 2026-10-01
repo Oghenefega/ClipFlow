@@ -1,0 +1,58 @@
+{
+ "key": "pr_clip_1787202782989_k20x",
+ "set": "published_render",
+ "clip_id": "clip_1787202782989_k20x",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3666,
+  "outputTokens": 1395,
+  "thoughtTokens": 958
+ },
+ "cost": 0.0159615,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer obsessively praises a pro esports player's good looks and hair while watching video clips.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts talking about how much he likes pro player Ethan."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "Streamer focuses on Ethan's luscious hair and says he could look at him all day."
+   },
+   {
+    "t": 23,
+    "type": "payoff",
+    "what": "Streamer catches himself over-complimenting and calls 'hold up, pause' before justifying his praise."
+   }
+  ],
+  "payoff_t": 23,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "I can look at Ethan all day.",
+  "key_line_t": 17,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's hilarious transformation into a fanboy admiring another guy's hair creates funny comedic escalation. His sudden realization that he is 'glazing' adds a funny beat of self-awareness."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788757102761_cten",
+ "set": "published_render",
+ "clip_id": "clip_1788757102761_cten",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2036,
+  "outputTokens": 1095,
+  "thoughtTokens": 653
+ },
+ "cost": 0.011266500000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with hype and shock to a pro Valorant player landing an incredible kill while stunned.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Caster audio hypes up Bang fighting in a tight corner while stunned."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "Bang headshots the opponent despite being fully stunned."
+   },
+   {
+    "t": 4.5,
+    "type": "reaction",
+    "what": "The streamer screams in awe and excitement at Bang's play."
+   },
+   {
+    "t": 9,
+    "type": "escalation",
+    "what": "Replay footage plays and the streamer screams Bang's name again."
+   }
+  ],
+  "payoff_t": 3.5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Oh my goodness! BANG!",
+  "key_line_t": 4,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip is built around esports hype and high mechanical skill rather than comedic setup. The streamer's loud reaction highlights the difficulty of the play, making it cool rather than funny."
+ }
+}

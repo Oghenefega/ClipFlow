@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_import_1790224229304_t936",
+ "set": "published_render",
+ "clip_id": "clip_import_1790224229304_t936",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1237,
+  "thoughtTokens": 826
+ },
+ "cost": 0.013014000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer attempts a tense 1v5 clutch in Valorant, eliminating four opponents before losing the final 1v1 duel.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Text overlay introduces a 1v5 clutch scenario."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Creator kills multiple enemies in quick succession."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "Creator brings it down to a 1v1 duel with the last remaining enemy."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "The final enemy headshots the creator, failing the clutch."
+   },
+   {
+    "t": 17,
+    "type": "reaction",
+    "what": "Creator screams 'NO!' in agonized defeat as the screen turns grey."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "rage",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "NO!",
+  "key_line_t": 16,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip builds dramatic tension through impressive high-stakes gameplay, only to end in sudden tragedy. The humor relies on the abrupt shift from intense focus to loud, grief-stricken yelling."
+ }
+}

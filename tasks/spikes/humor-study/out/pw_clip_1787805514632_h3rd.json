@@ -1,0 +1,72 @@
+{
+ "key": "pw_clip_1787805514632_h3rd",
+ "set": "published_raw",
+ "clip_id": "clip_1787805514632_h3rd",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7009,
+  "outputTokens": 1228,
+  "thoughtTokens": 651
+ },
+ "cost": 0.019723499999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with laughter and disbelief to a terrifying black goat-centaur robot design, imagining it as a horror movie monster breaking into his house.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer introduces the black goat robot website asking if it isn't demonic."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Streamer bursts out laughing at a promotional photo of the robot in a truck bed."
+   },
+   {
+    "t": 15,
+    "type": "escalation",
+    "what": "He paints a picture of the robot sawing down your door at night."
+   },
+   {
+    "t": 30,
+    "type": "trigger",
+    "what": "He sees an image of the robot standing ominously in a doorway with text warning it's dangerous."
+   },
+   {
+    "t": 35,
+    "type": "payoff",
+    "what": "He cracks up laughing at the ridiculous horror aesthetic of the door silhouette photo."
+   },
+   {
+    "t": 53,
+    "type": "aftermath",
+    "what": "He acts out the robot shaking the door, pulling out a saw, and deciding he'd just give up."
+   }
+  ],
+  "payoff_t": 35,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "Tell me this thing isn't demonic.",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The streamer's vivid imagination turns an obscure, eerie robot marketing page into a hilarious slasher movie scenario. His genuine, infectious laughter makes the absurd commentary lands effectively."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841533_kub7",
+ "set": "published_render",
+ "clip_id": "clip_1784688841533_kub7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1444,
+  "thoughtTokens": 929
+ },
+ "cost": 0.014020499999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer hypes himself up to roll an egg across an obstacle course, but panics and hesitates at the last second, causing the egg to fall and break.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer panics while trying to time his move on the platform."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "He hypes himself up and announces, 'This is it, we go!'"
+   },
+   {
+    "t": 10,
+    "type": "trigger",
+    "what": "He suddenly panics and tries to backtrack, shouting 'No no no, actually we don't go!'"
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "His hesitation causes the egg to slide off the ledge and crack."
+   },
+   {
+    "t": 13,
+    "type": "reaction",
+    "what": "He screams 'Oh God!' as the egg breaks."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "No, no, no, actually we don't go, we don't go!",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The sharp contrast between his confident hype and instant, chaotic regret drives the comedy. His hesitation directly causes the failure he was panicking to avoid."
+ }
+}

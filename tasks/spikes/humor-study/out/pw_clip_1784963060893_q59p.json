@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1784963060893_q59p",
+ "set": "published_raw",
+ "clip_id": "clip_1784963060893_q59p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5494,
+  "outputTokens": 1265,
+  "thoughtTokens": 741
+ },
+ "cost": 0.0177285,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer confidently dedicates a risky jump to his viewers in an egg-rolling game, only to crack his egg and fall all the way back to the start.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer dramatically hypes up his jump and tells viewers to trust him."
+   },
+   {
+    "t": 18,
+    "type": "escalation",
+    "what": "Counts down and formally dedicates the jump to his audience."
+   },
+   {
+    "t": 23,
+    "type": "trigger",
+    "what": "Launches the egg off the ledge."
+   },
+   {
+    "t": 29,
+    "type": "payoff",
+    "what": "The egg hits a beam, cracks open, and tumbles all the way to the bottom."
+   },
+   {
+    "t": 33,
+    "type": "reaction",
+    "what": "Streamer laughs in defeat as he realizes he lost all his progress."
+   }
+  ],
+  "payoff_t": 29.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "This one is for you guys, okay?",
+  "key_line_t": 19.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The contrast between his emotional dedication to the viewers and the immediate, brutal failure makes the outcome hilarious. Watching the egg tumble all the way back to the starting area delivers a slow-burn payoff."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pw_clip_1788752392261_4kyz",
+ "set": "published_raw",
+ "clip_id": "clip_1788752392261_4kyz",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3607,
+  "outputTokens": 1396,
+  "thoughtTokens": 927
+ },
+ "cost": 0.0158805,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer praises a young Valorant pro player by hyperbolically claiming he must be an AI trained on all the best IGLs.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches VCT Americas footage featuring an 18-year-old IGL."
+   },
+   {
+    "t": 1.5,
+    "type": "setup",
+    "what": "Creator questions how an 18-year-old can be both an IGL and an insane fragger."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Creator humorously claims the player is AI, not a human being."
+   },
+   {
+    "t": 20,
+    "type": "escalation",
+    "what": "Creator lists top IGLs and jokes the player was trained on all their dataset."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "That's AI! That's not a human being, that's AI!",
+  "key_line_t": 7.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The creator uses mild hyperbolic commentary to compliment a young esports prodigy by calling him AI. It functions more as esports hype and praise than traditional comedy."
+ }
+}

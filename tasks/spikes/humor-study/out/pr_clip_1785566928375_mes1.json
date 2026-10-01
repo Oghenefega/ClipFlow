@@ -1,0 +1,64 @@
+{
+ "key": "pr_clip_1785566928375_mes1",
+ "set": "published_render",
+ "clip_id": "clip_1785566928375_mes1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1001,
+  "thoughtTokens": 527
+ },
+ "cost": 0.010698,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer gives a serious speech about earning his rank right before missing an easy play and getting scored on immediately.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator talks seriously about needing to earn his desired rank."
+   },
+   {
+    "t": 4.5,
+    "type": "trigger",
+    "what": "Creator whiffs the ball in goal position."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "Opponent scores effortlessly as sad music fades in."
+   },
+   {
+    "t": 9.5,
+    "type": "reaction",
+    "what": "Creator stares at the screen in quiet disbelief and acknowledges the miss."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "disbelief",
+   "whisper_or_mutter"
+  ],
+  "key_line": "I can't believe I just missed that.",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant irony of declaring high standards right before making an embarrassing rookie mistake creates a concise comedic beat. His muted disbelief combined with the sad background music sells the pathetic self-own."
+ }
+}

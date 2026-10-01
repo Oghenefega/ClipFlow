@@ -1,0 +1,65 @@
+{
+ "key": "rw_clip_1787974608296_q5ro",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787974608296_q5ro",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5632,
+  "outputTokens": 1403,
+  "thoughtTokens": 903
+ },
+ "cost": 0.0189705,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer enthusiastically hypes up and reacts to intense clutch plays in a Valorant esports match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator intensely watches a tense 1v1 situation in a pro Valorant match."
+   },
+   {
+    "t": 11,
+    "type": "trigger",
+    "what": "The pro player gets a stylish kill, causing the creator to scream in hype."
+   },
+   {
+    "t": 20,
+    "type": "escalation",
+    "what": "The creator puts his hands on his head in disbelief as the round stays close."
+   },
+   {
+    "t": 36,
+    "type": "payoff",
+    "what": "The pro player clinches the round, making the streamer jump up from his desk shouting."
+   },
+   {
+    "t": 51,
+    "type": "reaction",
+    "what": "Creator laughs and continues hyping up player Bang's insane performance."
+   }
+  ],
+  "payoff_t": 36,
+  "hook_t": 11,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Let's go! Get him out of here!",
+  "key_line_t": 36,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "The clip focuses on pure esports hype and excitement rather than comedic beats or humorous punchlines. Someone unfamiliar with competitive Valorant won't find comedy in the streamer shouting at gameplay clutches."
+ }
+}

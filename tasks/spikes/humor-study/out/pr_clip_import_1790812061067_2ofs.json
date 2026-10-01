@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_import_1790812061067_2ofs",
+ "set": "published_render",
+ "clip_id": "clip_import_1790812061067_2ofs",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1286,
+  "thoughtTokens": 745
+ },
+ "cost": 0.012972000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer gives in to an intrusive thought to jump-peek through a smoke cloud in Valorant and immediately gets killed, then passionately reenacts his internal monologue.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer whispers an intrusive thought telling himself to jump peek through a smoke."
+   },
+   {
+    "t": 3.2,
+    "type": "payoff",
+    "what": "He jump peeks through the smoke and gets instantly killed."
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "Streamer acts out his brain logically warning him that an enemy with a shotgun is waiting there."
+   },
+   {
+    "t": 8.5,
+    "type": "reaction",
+    "what": "He imitates his own goofy inner voice ignoring the warning."
+   },
+   {
+    "t": 11.5,
+    "type": "aftermath",
+    "what": "He defends himself by saying he likes testing how stupid he can act."
+   }
+  ],
+  "payoff_t": 3.2,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "irony_says_x_then_opposite",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "singing_or_voice"
+  ],
+  "key_line": "I just like testing how stupid I can act.",
+  "key_line_t": 12,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "jump_cuts",
+   "zoom_or_reframe",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instantaneous punishment for making an obviously bad gameplay decision creates a great instant payoff. His animated, self-aware reenactment of his internal monologue delivers a humorous and relatable punchline."
+ }
+}

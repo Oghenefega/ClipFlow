@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1789795588722_htx7",
+ "set": "published_render",
+ "clip_id": "clip_1789795588722_htx7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1599,
+  "thoughtTokens": 1113
+ },
+ "cost": 0.015729,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer sarcastically pretends not to see an enemy player horribly disguised as a lemon on a wall painting in a prop hunt game.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer approaches a wall with paintings, pretending he cannot find the hidden prop."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "The camera zooms in on a vegetable picture where a bright yellow prop lemon is blatantly out of place."
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "Streamer pretends to search around before aiming directly at the obvious lemon prop."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "He shoots the lemon prop, eliminating the player and bursting into laughter."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "absurd_commentary",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "Where could he possibly be?",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "zoom_or_reframe",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The creator's deadpan sarcasm while staring directly at an absurdly obvious prop disguise creates instant visual irony. The joke lands perfectly when he shoots the hiding player and bursts out laughing."
+ }
+}

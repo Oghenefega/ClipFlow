@@ -1,0 +1,72 @@
+{
+ "key": "pw_clip_1788751719526_st53",
+ "set": "published_raw",
+ "clip_id": "clip_1788751719526_st53",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7171,
+  "outputTokens": 1250,
+  "thoughtTokens": 665
+ },
+ "cost": 0.0201315,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer passionately roots for 100 Thieves during a Valorant match, only to hold his head in despair when the sole enemy player clutches a 1v3.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer shouts hyping up his team during a Valorant match."
+   },
+   {
+    "t": 17,
+    "type": "escalation",
+    "what": "Streamer pulls out a 100 Thieves jersey to wear/display for good luck."
+   },
+   {
+    "t": 31,
+    "type": "escalation",
+    "what": "Streamer yells at the screen, begging 100T to swarm the last enemy standing in a 1v3."
+   },
+   {
+    "t": 45,
+    "type": "payoff",
+    "what": "The enemy player clutches the 1v3 and wins the round."
+   },
+   {
+    "t": 47,
+    "type": "reaction",
+    "what": "Streamer puts his hands on his head screaming in utter agony and disbelief."
+   },
+   {
+    "t": 58,
+    "type": "aftermath",
+    "what": "Streamer rants about how scared his team played during the clutch."
+   }
+  ],
+  "payoff_t": 45,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "rage"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "WHY are we giving him a 1v3?!",
+  "key_line_t": 47,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedic appeal comes from the classic fan agony experience, where the streamer pulls out team merch for luck only to watch them immediately choke an easy 3v1 advantage."
+ }
+}

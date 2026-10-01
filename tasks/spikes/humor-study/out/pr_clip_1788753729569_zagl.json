@@ -1,0 +1,70 @@
+{
+ "key": "pr_clip_1788753729569_zagl",
+ "set": "published_render",
+ "clip_id": "clip_1788753729569_zagl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3213,
+  "outputTokens": 1572,
+  "thoughtTokens": 1107
+ },
+ "cost": 0.0166095,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer watches in quiet awe as a Valorant pro executes an impressive multi-kill play during a tournament match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Text overlay intro hints at a big moment in the match."
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "Creator explains the tactical situation as the pro team prepares an ultimate ability."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "The ultimate triggers and smoke drops, opening up the entry."
+   },
+   {
+    "t": 14,
+    "type": "trigger",
+    "what": "The pro player rushes through the smoke and opens fire on exposed enemies."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Creator mutters 'oh my goodness' in disbelief."
+   },
+   {
+    "t": 20,
+    "type": "payoff",
+    "what": "The pro secures multiple kills while the caster screams in excitement."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "whisper_or_mutter"
+  ],
+  "key_line": "oh my goodness",
+  "key_line_t": 15,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip focuses on impressive esports skill and energetic play-by-play commentary rather than comedy. The creator's quiet reaction of respect highlights a clutch moment rather than delivering jokes."
+ }
+}

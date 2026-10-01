@@ -1,0 +1,54 @@
+{
+ "key": "rw_clip_1786434432376_p1tn",
+ "set": "rejected_raw",
+ "clip_id": "clip_1786434432376_p1tn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1148,
+  "thoughtTokens": 751
+ },
+ "cost": 0.012684,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer puts on his headset and hypes up his teammate while queueing into a Rocket League match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer puts on his headset while searching for a Rocket League match."
+   },
+   {
+    "t": 0.5,
+    "type": "setup",
+    "what": "He hypes up his teammate Chili, saying they won't lose."
+   },
+   {
+    "t": 1.2,
+    "type": "aftermath",
+    "what": "The game loads in as he takes a drink from his bottle."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "All right Chili, let's lock in, let's show them what's up.",
+  "key_line_t": 0.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip functions as a routine pre-game intro rather than a standalone comedy bit. Without a punchline or unexpected turn, there is little comedic value for an outside viewer."
+ }
+}

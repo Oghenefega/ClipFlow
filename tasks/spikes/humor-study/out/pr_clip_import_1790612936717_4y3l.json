@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_import_1790612936717_4y3l",
+ "set": "published_render",
+ "clip_id": "clip_import_1790612936717_4y3l",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1763,
+  "thoughtTokens": 1280
+ },
+ "cost": 0.0165495,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator sneaks up behind an enemy to attempt a knife kill, whiffs the strike completely, gets eliminated, and hysterically yells at chat to report him for throwing.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator sneaks up behind an oblivious enemy while teammate talks on comms"
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "Pulls out his knife right behind the enemy's head"
+   },
+   {
+    "t": 5.5,
+    "type": "trigger",
+    "what": "Swings his knife and whiffs completely"
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Gets shot and eliminated instantly by a second enemy"
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Holds his head in utter shame and starts screaming at chat to report himself"
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "hubris_then_fail",
+   "mock_outrage"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "CHAT REPORT FEGA! REPORT FEGA!",
+  "key_line_t": 10,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The universal comedy of greedily attempting a flashy knife kill only to whiff embarrassingly, paired with the creator's hilarious self-deprecating overreaction asking his chat to report him."
+ }
+}

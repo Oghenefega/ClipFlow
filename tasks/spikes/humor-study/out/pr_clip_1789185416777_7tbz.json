@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1789185416777_7tbz",
+ "set": "published_render",
+ "clip_id": "clip_1789185416777_7tbz",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 1456,
+  "thoughtTokens": 898
+ },
+ "cost": 0.0152025,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer reacts with intense excitement and disbelief to a pro Valorant player landing an incredible Operator flick shot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts yelling loudly at the opening hook of the highlight clip."
+   },
+   {
+    "t": 0.3,
+    "type": "context",
+    "what": "Footage shows 100T Cryo holding an angle with an Operator during a tournament match."
+   },
+   {
+    "t": 0.6,
+    "type": "trigger",
+    "what": "Cryo lands a frame-perfect flick shot through smoke."
+   },
+   {
+    "t": 0.7,
+    "type": "payoff",
+    "what": "Streamer screams in hype and grabs his head in disbelief."
+   },
+   {
+    "t": 0.12,
+    "type": "escalation",
+    "what": "Replay angle shows the flick again in real time."
+   },
+   {
+    "t": 0.21,
+    "type": "aftermath",
+    "what": "Streamer smiles and rests his head in his hands, completely amazed by the play."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "LOOK AT THAT FLICK BRO! GET HIM OUT OF HERE!",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "jump_cuts",
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip is designed as an esports hype highlight rather than a comedy bit. The entertainment comes from the streamer's loud, genuine amazement at an extraordinary gameplay shot.",
+  "creator_name": "unknown"
+ }
+}

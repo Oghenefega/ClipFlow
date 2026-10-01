@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788645603331_v2om",
+ "set": "published_render",
+ "clip_id": "clip_1788645603331_v2om",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2400,
+  "outputTokens": 1118,
+  "thoughtTokens": 674
+ },
+ "cost": 0.011984999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hype-reacts with loud screams as pro Valorant player Asuna attempts a high-stakes clutch play.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator jumps out of his chair screaming in excitement at the start of the match play."
+   },
+   {
+    "t": 3,
+    "type": "context",
+    "what": "Creator sits back down and watches the replay footage attentively."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "Asuna eliminates an opponent attempting to defuse the spike."
+   },
+   {
+    "t": 13.5,
+    "type": "payoff",
+    "what": "Creator explodes into loud screaming fits ('Oh my god!') as the action unfolds."
+   }
+  ],
+  "payoff_t": 13.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "oh my God",
+  "key_line_t": 13.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is driven by high-energy esports hype and skill rather than comedy. The humor is minimal, relying mostly on the creator's extreme screaming reaction to the gameplay."
+ }
+}

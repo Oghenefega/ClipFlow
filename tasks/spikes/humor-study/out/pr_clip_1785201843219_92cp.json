@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1785201843219_92cp",
+ "set": "published_render",
+ "clip_id": "clip_1785201843219_92cp",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2400,
+  "outputTokens": 1557,
+  "thoughtTokens": 1018
+ },
+ "cost": 0.0152775,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer confidently boasts that he was 'born to catch' a floating ball in Rocket League, only to immediately whiff and get scored on, causing him to fall off his chair screaming.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer takes control of the play, declaring 'it's all me now'."
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "Streamer boasts 'I was born to catch this' while positioning under the ball."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "He whiffs completely and the opponent scores."
+   },
+   {
+    "t": 6,
+    "type": "reaction",
+    "what": "Streamer screams loudly and falls backward out of his chair."
+   },
+   {
+    "t": 11,
+    "type": "aftermath",
+    "what": "Streamer climbs back into frame laughing hysterically at his own failure."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "I was born to catch this",
+  "key_line_t": 3.8,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The instant karma timing between his bold boast 'I was born to catch this' and his immediate whiff creates a flawless hubris-fail joke. His dramatic scream and disappearing off-camera add great physical comedy to the moment."
+ }
+}

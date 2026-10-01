@@ -1,0 +1,54 @@
+{
+ "key": "pw_clip_1787860936676_o4lf",
+ "set": "published_raw",
+ "clip_id": "clip_1787860936676_o4lf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2392,
+  "outputTokens": 1162,
+  "thoughtTokens": 765
+ },
+ "cost": 0.012303000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer laughs and jokes that GTA 6 is going to cost $200 while watching clips of gameplay.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches footage of kayaking and footage of a city scene."
+   },
+   {
+    "t": 1.2,
+    "type": "payoff",
+    "what": "Streamer says the game is going to cost $200."
+   },
+   {
+    "t": 3.5,
+    "type": "reaction",
+    "what": "Streamer laughs at his own comment and continues watching."
+   }
+  ],
+  "payoff_t": 1.5,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "calm_explaining"
+  ],
+  "key_line": "This game's really gonna be like $200.",
+  "key_line_t": 1.2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The clip relies on a mild hyperbolic joke about gaming prices and high production quality. It functions as casual stream commentary rather than a punchy stand-alone comedy beat."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1787805514632_tbhj",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_tbhj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4822,
+  "outputTokens": 1179,
+  "thoughtTokens": 669
+ },
+ "cost": 0.0160755,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts to a viral video of a humanoid robot failing to lift weights and collapsing, hilariously comparing it to his own bad knees.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer talks about how bad his knees feel after playing soccer."
+   },
+   {
+    "t": 15,
+    "type": "trigger",
+    "what": "Footage shows a humanoid robot collapsing while attempting a deadlift."
+   },
+   {
+    "t": 19,
+    "type": "payoff",
+    "what": "Streamer bursts into laughter at a chat comment comparing the robot to him in the gym."
+   },
+   {
+    "t": 27,
+    "type": "escalation",
+    "what": "Streamer roast the robot's weak knees and jokes about staying on the floor."
+   },
+   {
+    "t": 44,
+    "type": "aftermath",
+    "what": "Streamer points out the operator's defeated hand gestures after the failure."
+   }
+  ],
+  "payoff_t": 19,
+  "hook_t": 15,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "Somebody said that's me in the gym.",
+  "key_line_t": 22,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The visual of a high-tech robot crumpling under weight combined with the streamer's self-deprecating humor creates an easily accessible laugh."
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1785201494046_3vuu",
+ "set": "published_render",
+ "clip_id": "clip_1785201494046_3vuu",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2303,
+  "outputTokens": 1022,
+  "thoughtTokens": 569
+ },
+ "cost": 0.0111195,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator looks away for a second during a Rocket League match and immediately gets scored on, resulting in an explosive reaction.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator drives towards the ball in Rocket League."
+   },
+   {
+    "t": 4.5,
+    "type": "trigger",
+    "what": "The opponent suddenly blasts the ball into the creator's goal."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "The goal is scored instantly and creator screams in shock."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Creator laughs in disbelief at how fast the opponent scored while he looked away."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "HOW?!",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant punishment for momentarily taking his eyes off the game provides great comedic timing. His high-pitched scream and genuine disbelief make the sudden mistake relatable and funny."
+ }
+}

@@ -1,0 +1,59 @@
+{
+ "key": "rw_clip_1787202782990_fd27",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202782990_fd27",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3688,
+  "outputTokens": 1272,
+  "thoughtTokens": 830
+ },
+ "cost": 0.015071999999999999,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer reflects on human psychology and how gamers falsely assume a video game is dead just because they and their friends stopped playing it.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer begins talking about human tendencies and self-centered bias."
+   },
+   {
+    "t": 6,
+    "type": "setup",
+    "what": "Explains how when he stops caring about a game, he feels like the whole world stopped."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "Gives the example of thinking nobody plays Valorant anymore."
+   },
+   {
+    "t": 24,
+    "type": "payoff",
+    "what": "Points out how friend groups assume their own burnout means a game is dead."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "When I stop caring about something, the whole world stops caring about it.",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This is a serious real-talk commentary segment about gamer psychology rather than comedic material. It relies on relatable observational discussion instead of humorous setups or punchlines."
+ }
+}

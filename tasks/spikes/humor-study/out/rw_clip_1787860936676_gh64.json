@@ -1,0 +1,56 @@
+{
+ "key": "rw_clip_1787860936676_gh64",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787860936676_gh64",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2797,
+  "outputTokens": 1496,
+  "thoughtTokens": 1065
+ },
+ "cost": 0.015415499999999999,
+ "watch": {
+  "format": "talking",
+  "summary": "The creator explains why he refuses to refresh his browser during a high-traffic GTA VI stream event, fearing he will lose his spot in queue.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator notes that streaming sites are crashing due to GTA VI traffic."
+   },
+   {
+    "t": 7.5,
+    "type": "escalation",
+    "what": "He stubbornly declares he will not refresh or touch anything to avoid getting put into a queue."
+   },
+   {
+    "t": 21.5,
+    "type": "payoff",
+    "what": "He quietly realizes he already closed his other tab."
+   }
+  ],
+  "payoff_t": 21.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating",
+   "whisper_or_mutter"
+  ],
+  "key_line": "I closed my other tab. Do... I shouldn't have closed that tab.",
+  "key_line_t": 21.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip functions primarily as live commentary during a major online event rather than a comedy bit. The only small comic beat is his mild regret right at the end when he realizes he closed a tab."
+ }
+}

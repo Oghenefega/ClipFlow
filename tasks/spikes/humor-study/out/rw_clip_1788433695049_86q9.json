@@ -1,0 +1,54 @@
+{
+ "key": "rw_clip_1788433695049_86q9",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788433695049_86q9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2635,
+  "outputTokens": 1104,
+  "thoughtTokens": 726
+ },
+ "cost": 0.0122325,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer banters with his teammate while disguised as a bottle prop during the setup phase of a hide-and-seek game.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator asks his teammate about the opponent's position."
+   },
+   {
+    "t": 5.8,
+    "type": "escalation",
+    "what": "Creator jokes that his teammate will be caught first."
+   },
+   {
+    "t": 13.5,
+    "type": "context",
+    "what": "Creator wonders aloud about how prop painting works."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "You just wait till he catches you first, all right?",
+  "key_line_t": 5.8,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "mid_sentence",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip captures casual setup chatter between friends without any surprise or punchline landing. It lacks a visual or auditory comedic payoff for an outside viewer."
+ }
+}

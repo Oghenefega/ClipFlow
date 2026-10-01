@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1786068340476_5vrh",
+ "set": "published_render",
+ "clip_id": "clip_1786068340476_5vrh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2298,
+  "outputTokens": 1625,
+  "thoughtTokens": 1159
+ },
+ "cost": 0.0156345,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer hits a impressive shot and scores a goal in Rocket League while screaming with intense hype.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer opens the clip shouting in excitement as he plays."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Streamer quietly focuses on dribbling the ball towards the net."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "Streamer blasts the ball directly into the goal."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Goal explosion triggers and streamer erupts in triumphant screaming."
+   },
+   {
+    "t": 13,
+    "type": "aftermath",
+    "what": "Streamer claps his hands and celebrates his score."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Get him out of here, bro!",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip focuses on gameplay skill and celebratory hype rather than comedic timing or joke delivery. It relies on high energy and shouting to excite the viewer instead of punchlines or funny subversions."
+ }
+}

@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_import_1785961721947_zcya",
+ "set": "published_render",
+ "clip_id": "clip_import_1785961721947_zcya",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1478,
+  "outputTokens": 1329,
+  "thoughtTokens": 911
+ },
+ "cost": 0.012184500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer wonders if he has become immune to fall damage right before his character hits the ground and instantly dies.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer asks what happened as his character falls from a huge height."
+   },
+   {
+    "t": 2,
+    "type": "setup",
+    "what": "He dramatically ponders if he has become too strong to die from fall damage."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "The character hits the ground and dies instantly with a loud crunch, cutting to black."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "narrating",
+   "disbelief",
+   "deadpan"
+  ],
+  "key_line": "Have I become so strong I can't die to fall damage anymore?",
+  "key_line_t": 2,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The clip features perfect comedic timing as the creator's pretentious question is instantly answered by a fatal splat. The suddenness of the death right as he finishes his sentence makes it universally funny."
+ }
+}

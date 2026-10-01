@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1784963060893_0x5a",
+ "set": "published_render",
+ "clip_id": "clip_1784963060893_0x5a",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3943,
+  "outputTokens": 1394,
+  "thoughtTokens": 831
+ },
+ "cost": 0.016369500000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer preaches positivity and promises not to threaten his egg avatar anymore, only to instantly whisper threats whenever it falls.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer claims he is now all about positivity and won't threaten the egg"
+   },
+   {
+    "t": 11,
+    "type": "trigger",
+    "what": "The egg falls off the track"
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "He instantly drops his calm demeanor to mutter a quiet threat"
+   },
+   {
+    "t": 21,
+    "type": "escalation",
+    "what": "He immediately switches back to talking softly about spreading love and positivity"
+   },
+   {
+    "t": 28,
+    "type": "trigger",
+    "what": "The egg falls off the track a second time"
+   },
+   {
+    "t": 31,
+    "type": "reaction",
+    "what": "He laughs nervously and asks the egg if it is testing him"
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "hubris_then_fail",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "calm_explaining",
+   "laughing"
+  ],
+  "key_line": "Fall one more time. You see what the threat is, okay?",
+  "key_line_t": 15,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant contrast between his gentle sermon about positivity and his dead-serious quiet threats creates great comedic irony. His ability to instantly switch between calm positivity and suppressed gamer rage delivers excellent comic timing."
+ }
+}

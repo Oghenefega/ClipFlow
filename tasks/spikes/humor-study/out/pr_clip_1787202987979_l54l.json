@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787202987979_l54l",
+ "set": "published_render",
+ "clip_id": "clip_1787202987979_l54l",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2574,
+  "outputTokens": 1138,
+  "thoughtTokens": 688
+ },
+ "cost": 0.012395999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hype-reacts as pro player 100T Asuna pulls off an impressive 3K clutch in a Valorant esports match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Footage shows 100T Asuna engaging in a tense Valorant round."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Asuna begins taking down enemies and the creator starts yelling in hype anticipation."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "Asuna closes out the round, securing the victory."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "The creator puts his hands on his head in excitement and disbelief."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 3,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "Oh come on!",
+  "key_line_t": 3,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip relies entirely on high-energy hype and excitement for a clutch gameplay moment rather than comedy. The creator's loud reaction captures the thrill of the play but doesn't aim for comedic punchlines."
+ }
+}

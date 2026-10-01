@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_1788751719526_0km1",
+ "set": "published_render",
+ "clip_id": "clip_1788751719526_0km1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4493,
+  "outputTokens": 1625,
+  "thoughtTokens": 1116
+ },
+ "cost": 0.018927,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer praises a Valorant team right as they get instantly wiped out in a professional match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator begins to praise 100 Thieves."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Opposing team LOUD rapidly kills three 100 Thieves players."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "Creator reacts in disbelief at the sudden wipe."
+   },
+   {
+    "t": 35,
+    "type": "payoff",
+    "what": "The last surviving 100T player is eliminated to lose the round."
+   },
+   {
+    "t": 37,
+    "type": "aftermath",
+    "what": "Creator screams and jumps out of his chair in shock."
+   }
+  ],
+  "payoff_t": 35,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "hubris_then_fail",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "All of them on that team are good, I'm not gonna lie guys.",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The immediate contradiction between the creator praising a team and them instantly dying creates great comedic timing. His energetic, physical reaction to the jinx enhances the moment."
+ }
+}

@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1788550913586_6c9m",
+ "set": "published_render",
+ "clip_id": "clip_1788550913586_6c9m",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1482,
+  "outputTokens": 937,
+  "thoughtTokens": 504
+ },
+ "cost": 0.0092505,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with hyped disbelief to NRG calling all their timeouts early against 100 Thieves, gloating that 100 Thieves is inside their heads.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer notices the HUD showing NRG's timeouts."
+   },
+   {
+    "t": 1.5,
+    "type": "escalation",
+    "what": "Streamer yells in disbelief that NRG used their timeouts so early."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "Streamer points to his head and repeatedly shouts 'We're in their heads!'"
+   }
+  ],
+  "payoff_t": 3.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "We're in their heads!",
+  "key_line_t": 3.8,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The creator's animated flex and instant gloating over the opponent's early timeouts creates good competitive banter energy. However, the humor relies heavily on understanding Valorant esports context and team rivalries."
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788645556274_jk17",
+ "set": "published_render",
+ "clip_id": "clip_1788645556274_jk17",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 1285,
+  "thoughtTokens": 830
+ },
+ "cost": 0.013100999999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator explodes with excitement while watching a 100 Thieves Valorant player pull off an impressive clutch win.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches footage of a 100 Thieves Valorant match."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "The player Cryo enters a critical firefight on round 10."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Cryo wins the round with a clutch play."
+   },
+   {
+    "t": 9,
+    "type": "reaction",
+    "what": "Creator leaps out of his chair screaming in disbelief."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Oh my goodness!",
+  "key_line_t": 8.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip is built around esports hype and high energy rather than comedy. The creator's loud, enthusiastic reaction enhances the exciting moment, but there is no joke or punchline."
+ }
+}

@@ -1,0 +1,72 @@
+{
+ "key": "pw_clip_1790099109782_xaoe",
+ "set": "published_raw",
+ "clip_id": "clip_1790099109782_xaoe",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 9682,
+  "outputTokens": 1278,
+  "thoughtTokens": 692
+ },
+ "cost": 0.024107999999999997,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with hysterical laughter to a video of dancing cheerleading robots malfunctioning and flailing helplessly on the ground.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator introduces the video showing a synchronized robot dance routine."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "The robots attempt backflips and one completely crashes onto its back, sending the creator into laughter."
+   },
+   {
+    "t": 28,
+    "type": "escalation",
+    "what": "Creator rewatches the clip in slow detail, pointing out how the robot's knees bent unnaturally before jumping."
+   },
+   {
+    "t": 62,
+    "type": "payoff",
+    "what": "Creator notices a second robot lying on its back continuous spazzing out out of control."
+   },
+   {
+    "t": 93,
+    "type": "payoff",
+    "what": "Creator compares the flailing robot on the floor to a cockroach in his house trying to stand up."
+   },
+   {
+    "t": 100,
+    "type": "aftermath",
+    "what": "Technicians enter the arena stage to physically hold down and subdue the rogue robot."
+   }
+  ],
+  "payoff_t": 3.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "glitch_or_physics",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "The cockroach in my house trying to stand up.",
+  "key_line_t": 93,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The creator's genuine wheezing laughter combined with hilarious commentary makes the video's physical slapstick contagious. The visual of robots uncontrollably spazzing out requires zero background knowledge to enjoy."
+ }
+}

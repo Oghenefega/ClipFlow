@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1785201843219_aeww",
+ "set": "published_render",
+ "clip_id": "clip_1785201843219_aeww",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1044,
+  "thoughtTokens": 556
+ },
+ "cost": 0.011157,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer turns down a high-ranked Rocket League challenger, explaining he only wants to 1v1 terrible players who have thousands of hours in the game.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "A challenger in voice chat asks to 1v1, boasting about being Champ 3 with 561 hours."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "The streamer palms his head, disappointed by the challenger's high rank."
+   },
+   {
+    "t": 6.5,
+    "type": "payoff",
+    "what": "The streamer states he only wants to 1v1 someone who is Bronze 4 with 2,000 hours."
+   }
+  ],
+  "payoff_t": 6.5,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "deadpan",
+   "disbelief",
+   "calm_explaining"
+  ],
+  "key_line": "I wanna hear I'm bronze 4 in freaking 3s and 1s with 2000 hours",
+  "key_line_t": 6.5,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer subverts the usual gamer ego by explicitly looking for terrible opponents to fight rather than skilled ones. His earnest, deadpan insistence on wanting a 'Bronze 4 with 2,000 hours' creates a great subversion of expectations."
+ }
+}

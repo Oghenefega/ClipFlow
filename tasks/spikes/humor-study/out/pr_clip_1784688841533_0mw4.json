@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841533_0mw4",
+ "set": "published_render",
+ "clip_id": "clip_1784688841533_0mw4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1117,
+  "thoughtTokens": 620
+ },
+ "cost": 0.011295,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer praises an egg rolling smoothly along an obstacle course track, only for it to fall off and shatter immediately after his compliments.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer states he won't be angry tonight because he likes this egg."
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "He continues complimenting the egg's smooth roll and jumping skills."
+   },
+   {
+    "t": 8.8,
+    "type": "trigger",
+    "what": "The egg misses the next platform and falls into the abyss."
+   },
+   {
+    "t": 9.8,
+    "type": "payoff",
+    "what": "The egg shatters on impact."
+   },
+   {
+    "t": 10.5,
+    "type": "reaction",
+    "what": "The streamer screams in absolute despair and rage."
+   }
+  ],
+  "payoff_t": 9.8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "rage"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "calm_explaining"
+  ],
+  "key_line": "Tonight I'm not gonna be pissed, I like this egg.",
+  "key_line_t": 0.1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant reversal from claiming he won't get mad while praising the egg to screaming in pure rage creates a classic hubris-then-fail comedic setup."
+ }
+}

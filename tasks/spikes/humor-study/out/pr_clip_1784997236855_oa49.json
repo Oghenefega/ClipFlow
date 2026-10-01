@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_1784997236855_oa49",
+ "set": "published_render",
+ "clip_id": "clip_1784997236855_oa49",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3122,
+  "outputTokens": 1105,
+  "thoughtTokens": 592
+ },
+ "cost": 0.0129705,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer playing an egg physics game gets launched into the air by a bounce pad, smashes his egg, and watches in disbelief as his yolk rolls all the way back to the start.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer complains about playing a game with no checkpoints."
+   },
+   {
+    "t": 5.5,
+    "type": "trigger",
+    "what": "He hits a target bounce pad and gets launched high into the air."
+   },
+   {
+    "t": 12.5,
+    "type": "payoff",
+    "what": "He crashes down onto the wooden platform and his egg breaks."
+   },
+   {
+    "t": 18,
+    "type": "escalation",
+    "what": "His remaining egg yolk rolls all the way down the map into the grass."
+   },
+   {
+    "t": 19.5,
+    "type": "reaction",
+    "what": "Streamer asks in disbelief if everyone is seeing this."
+   }
+  ],
+  "payoff_t": 12.5,
+  "hook_t": 5.5,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "deadpan",
+   "narrating"
+  ],
+  "key_line": "Are y'all seeing this?",
+  "key_line_t": 19.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant physics mistake sends the player flying and cracking, leading to an extended, funny roll back to the bottom. His understated, calm disbelief adds to the slapstick defeat."
+ }
+}

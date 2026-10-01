@@ -1,0 +1,64 @@
+{
+ "key": "rw_clip_1785201843219_6j1f",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785201843219_6j1f",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2635,
+  "outputTokens": 899,
+  "thoughtTokens": 436
+ },
+ "cost": 0.010695,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer scores a goal in Rocket League and hype-celebrates while reading a new follower in chat.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer sets up the ball in Rocket League"
+   },
+   {
+    "t": 0.2,
+    "type": "payoff",
+    "what": "Streamer scores a goal"
+   },
+   {
+    "t": 0.3,
+    "type": "reaction",
+    "what": "Streamer yells 'Let's go!' and celebrates"
+   },
+   {
+    "t": 0.5,
+    "type": "context",
+    "what": "Streamer reads out a chat viewer name during the goal replay"
+   },
+   {
+    "t": 1.3,
+    "type": "aftermath",
+    "what": "Streamer claps and hypes up the kick-off"
+   }
+  ],
+  "payoff_t": 0.2,
+  "hook_t": 0.1,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating"
+  ],
+  "key_line": "Never a doubt, never a doubt man, let's go!",
+  "key_line_t": 0.1,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This is a standard high-energy gaming hype clip centered on scoring a Rocket League goal. It lacks subversion, irony, or comedic setups, serving as routine gameplay hype rather than comedy."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1784788710056_ualf",
+ "set": "published_raw",
+ "clip_id": "clip_1784788710056_ualf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3931,
+  "outputTokens": 1144,
+  "thoughtTokens": 646
+ },
+ "cost": 0.0144765,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer gets scored on in Rocket League and goes on a passionate rant mocking opponent excuses about being rusty.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Opponent scores a goal in Rocket League."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "Streamer starts complaining about opponents who claim they haven't played recently."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Streamer states that if someone says they haven't played, they are secretly good."
+   },
+   {
+    "t": 17,
+    "type": "escalation",
+    "what": "Streamer does an exaggerated impression of gamers making excuses about broken controllers and being cold."
+   },
+   {
+    "t": 34,
+    "type": "aftermath",
+    "what": "Streamer scores a goal back to even the score."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "Once they start telling you about how they haven't played in some minutes, just know that they are good.",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer passionately calls out a universally relatable gaming trope where opponents claim to be rusty before playing well. His animated gestures and mocking gamer excuses make the commentary entertaining to any audience."
+ }
+}

@@ -1,0 +1,83 @@
+{
+ "key": "pr_clip_1788753143967_u92w",
+ "set": "published_render",
+ "clip_id": "clip_1788753143967_u92w",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3394,
+  "outputTokens": 2019,
+  "thoughtTokens": 1376
+ },
+ "cost": 0.0202335,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer realizes he is cursing a esports player every time he speaks, so he commits to total silence until the team wins the round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer hypes up the player on screen."
+   },
+   {
+    "t": 0.3,
+    "type": "escalation",
+    "what": "The player dies instantly and streamer goes quiet."
+   },
+   {
+    "t": 1.1,
+    "type": "setup",
+    "what": "Streamer tries hyping the player again to clutch the round."
+   },
+   {
+    "t": 1.4,
+    "type": "trigger",
+    "what": "Player is headshot and eliminated mid-sentence."
+   },
+   {
+    "t": 1.5,
+    "type": "reaction",
+    "what": "Streamer realizes his speech is a jinx and vows to stay quiet."
+   },
+   {
+    "t": 1.9,
+    "type": "escalation",
+    "what": "Streamer maintains dramatic silence while watching the match."
+   },
+   {
+    "t": 2.3,
+    "type": "payoff",
+    "what": "100 Thieves wins the round while he remains silent."
+   },
+   {
+    "t": 2.4,
+    "type": "aftermath",
+    "what": "Streamer breaks silence to celebrate the victory."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "yelling",
+   "silence",
+   "disbelief"
+  ],
+  "key_line": "Let's see you clutch up this one.",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The instant headshot perfectly timed with the streamer's optimistic commentary creates a classic caster-curse moment. His commitment to sitting in complete silence to successfully secure the round win gives the joke a great resolution."
+ }
+}

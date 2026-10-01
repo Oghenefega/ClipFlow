@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1788753729568_qi0p",
+ "set": "published_render",
+ "clip_id": "clip_1788753729568_qi0p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4038,
+  "outputTokens": 1782,
+  "thoughtTokens": 1307
+ },
+ "cost": 0.019422000000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with intense hype and screaming as pro player Asuna wins a dramatic Valorant clutch.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer screams 'LET'S GO' introducing the Asuna clutch highlight clip."
+   },
+   {
+    "t": 2,
+    "type": "context",
+    "what": "Esports match footage plays showing Asuna maneuvering to defuse and fight."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "Asuna gets the clutch kill to win the round for his team."
+   },
+   {
+    "t": 13,
+    "type": "reaction",
+    "what": "Streamer screams at the top of his lungs celebrating the win."
+   },
+   {
+    "t": 26,
+    "type": "aftermath",
+    "what": "Replay of the kill plays while the streamer continues cheering."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "GET HIM OUT OF THERE!",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip relies on hype esports hype rather than intentional comedy. The value comes entirely from the streamer's raw excitement and enthusiastic reaction to an impressive play."
+ }
+}

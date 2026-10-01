@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1790099748194_1jit",
+ "set": "published_render",
+ "clip_id": "clip_1790099748194_1jit",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1609,
+  "thoughtTokens": 1121
+ },
+ "cost": 0.0153945,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator notices there are 666 teams in a humanoid robot competition and treats it as an ominous apocalyptic sign.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator reads a news report about the 2026 World Humanoid Robot Games."
+   },
+   {
+    "t": 3.8,
+    "type": "trigger",
+    "what": "He notices the report mentions exactly 666 teams."
+   },
+   {
+    "t": 5.5,
+    "type": "escalation",
+    "what": "He reacts in disbelief, questioning why there would be 666 teams."
+   },
+   {
+    "t": 9.5,
+    "type": "payoff",
+    "what": "He zooms in on a meme below the tweet of a panicked dog holding a cross and Holy Bible."
+   }
+  ],
+  "payoff_t": 11.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "laughing"
+  ],
+  "key_line": "Why would you have 666 teams, bro?",
+  "key_line_t": 5.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedy stems from the absurd coincidence of 666 robot teams and the streamer treating it as a biblical bad omen. The visual punchline of the dog holding a cross lands the joke perfectly."
+ }
+}

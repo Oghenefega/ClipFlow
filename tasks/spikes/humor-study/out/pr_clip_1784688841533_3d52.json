@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784688841533_3d52",
+ "set": "published_render",
+ "clip_id": "clip_1784688841533_3d52",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1124,
+  "thoughtTokens": 654
+ },
+ "cost": 0.012849,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer hypes himself up and celebrates early while playing an egg platformer game, only to immediately fail and break his egg.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer hypes himself up, declaring he is locking in and being methodical."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "He carefully maneuvers the egg down a tricky obstacle track."
+   },
+   {
+    "t": 16,
+    "type": "trigger",
+    "what": "He starts screaming and celebrating prematurely ('I'M BETTER!')."
+   },
+   {
+    "t": 19,
+    "type": "payoff",
+    "what": "The egg bounces off track and cracks on the ground."
+   },
+   {
+    "t": 20,
+    "type": "reaction",
+    "what": "Streamer screams in anguish and grabs his head."
+   }
+  ],
+  "payoff_t": 19,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "LET'S FREAKING GO! I'M BETTER!",
+  "key_line_t": 16,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The classic comedy formula of premature celebration leading directly into sudden failure delivers instantly recognizable and satisfying comedy."
+ }
+}

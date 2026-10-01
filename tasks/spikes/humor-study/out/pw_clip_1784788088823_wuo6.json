@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1784788088823_wuo6",
+ "set": "published_raw",
+ "clip_id": "clip_1784788088823_wuo6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3688,
+  "outputTokens": 1239,
+  "thoughtTokens": 741
+ },
+ "cost": 0.014824500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer laughs hysterically after his teammate scores a wild goal in Rocket League, admitting he was just flying around uselessly.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "trigger",
+    "what": "Teammate scores a goal while creator is out of position."
+   },
+   {
+    "t": 4,
+    "type": "reaction",
+    "what": "Creator breaks into hysterical laughter and praises his teammate."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator admits he was just flying around doing nothing during the play."
+   },
+   {
+    "t": 11.5,
+    "type": "payoff",
+    "what": "Creator jokes about ignoring the absurdity of what just happened."
+   },
+   {
+    "t": 26,
+    "type": "aftermath",
+    "what": "Creator realizes they won the match and calms down while still smiling."
+   }
+  ],
+  "payoff_t": 11.5,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "teammate_chaos",
+   "self_own_fail",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Are we gonna talk about what that was? No? Okay.",
+  "key_line_t": 11.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's genuine, highly infectious laughter combined with his self-deprecating admission of getting carried makes the clip charming and funny even without full context."
+ }
+}

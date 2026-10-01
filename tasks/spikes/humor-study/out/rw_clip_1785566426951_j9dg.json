@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1785566426951_j9dg",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785566426951_j9dg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2554,
+  "outputTokens": 1349,
+  "thoughtTokens": 877
+ },
+ "cost": 0.013948499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer plays Rocket League and reacts in disbelief as his opponent makes impressive defensive moves in the final seconds of the match.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer tracks the ball and expresses disbelief at the opponent's positioning."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "Streamer goes for a aerial hit but gets contested."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "Opponent pulls off a wild defense/move, leaving the streamer astonished."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "Streamer laughs and gives credit to the opponent's play."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Ain't no way, dude! He's actually wild.",
+  "key_line_t": 12.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip focuses on gameplay skill and genuine admiration for an opponent's play rather than structured comedy. The humor is minimal, stemming only from the streamer's amused disbelief at being outplayed."
+ }
+}

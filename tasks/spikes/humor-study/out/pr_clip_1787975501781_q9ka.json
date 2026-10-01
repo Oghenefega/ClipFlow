@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787975501781_q9ka",
+ "set": "published_render",
+ "clip_id": "clip_1787975501781_q9ka",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3037,
+  "outputTokens": 1036,
+  "thoughtTokens": 593
+ },
+ "cost": 0.0123255,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with pure astonishment as team Leviatan pulls off an intense sequence in a Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator yells in disbelief about how awake the team is looking."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Creator puts his hands on his head watching the tense round play out."
+   },
+   {
+    "t": 18,
+    "type": "trigger",
+    "what": "The player locks down the round with precise kills."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "Creator throws his hands up yelling 'Oh my goodness!' in awe."
+   }
+  ],
+  "payoff_t": 22,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "These guys woke up! What the heck!",
+  "key_line_t": 0.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip is driven by hype and impressive gameplay rather than comedic beats or humorous situations. The streamer's reaction is genuine astonishment at high-level execution."
+ }
+}

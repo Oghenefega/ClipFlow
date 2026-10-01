@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1785455230241_kj7v",
+ "set": "published_render",
+ "clip_id": "clip_1785455230241_kj7v",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2757,
+  "outputTokens": 1402,
+  "thoughtTokens": 947
+ },
+ "cost": 0.0146505,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer boasts about how good he will be at a mail delivery game before wildly swerving and knocking over mailboxes down the road.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator claims he is going to be 'deadly' at the game."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "The mail van accelerates to high speeds."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator goes silent as the van starts swerving wildly off the road."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "The van smashes directly into a roadside mailbox while speeding."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "deadpan",
+   "silence"
+  ],
+  "key_line": "I'm actually going to be deadly in this game, check this out.",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The comedic setup relies on hubris versus reckless driving, but the streamer's quiet reaction during the drive limits the clip's energy."
+ }
+}

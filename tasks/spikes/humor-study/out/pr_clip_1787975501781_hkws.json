@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787975501781_hkws",
+ "set": "published_render",
+ "clip_id": "clip_1787975501781_hkws",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1752,
+  "outputTokens": 1370,
+  "thoughtTokens": 928
+ },
+ "cost": 0.012903,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer passionately prays for pro player Asuna to pick Phoenix during a Valorant match draft, erupting in pure excitement when Asuna locks it in.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer chants and begs Asuna to pick Phoenix."
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "He pulls out a physical Phoenix action figure and declares he wants a Phoenix ace."
+   },
+   {
+    "t": 6.5,
+    "type": "payoff",
+    "what": "Asuna locks in Phoenix on the draft screen."
+   },
+   {
+    "t": 7.5,
+    "type": "reaction",
+    "what": "The streamer screams in hype while raising the figurine."
+   }
+  ],
+  "payoff_t": 6.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "wholesome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "I want a Phoenix ace tonight!",
+  "key_line_t": 4,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": true,
+  "why": "The creator's dramatic prayer ritual using a physical action figure pays off instantly when the pro player picks the requested agent. The infectious energy and high-strung overreaction make for an entertaining hype moment."
+ }
+}

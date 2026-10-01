@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_import_1790812062824_xjdk",
+ "set": "published_render",
+ "clip_id": "clip_import_1790812062824_xjdk",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2486,
+  "outputTokens": 1628,
+  "thoughtTokens": 1150
+ },
+ "cost": 0.015939000000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer uses a pause challenge on a Valorant rank video to predict his rank for the new season, celebrating wildly when he finally hits Radiant.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator explains that whatever rank he pauses the video on will be his rank this season."
+   },
+   {
+    "t": 0.04,
+    "type": "escalation",
+    "what": "He pauses on Bronze, rejects it, and tries again."
+   },
+   {
+    "t": 0.09,
+    "type": "escalation",
+    "what": "He pauses on Silver and yells in outrage."
+   },
+   {
+    "t": 0.14,
+    "type": "payoff",
+    "what": "He successfully pauses on Radiant and screams with joy."
+   },
+   {
+    "t": 0.16,
+    "type": "aftermath",
+    "what": "He confidently claims Radiant is guaranteed this season."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Let's go!",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on a straightforward filter/pause challenge format driven by high energy and screaming. It delivers a quick burst of excitement, though the joke itself is predictable."
+ }
+}

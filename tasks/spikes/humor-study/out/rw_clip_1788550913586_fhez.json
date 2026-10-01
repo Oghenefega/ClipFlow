@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1788550913586_fhez",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788550913586_fhez",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3040,
+  "outputTokens": 1479,
+  "thoughtTokens": 1036
+ },
+ "cost": 0.0156525,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer wildly reacts and celebrates as 100T Asuna secures an incredible ace in a pro Valorant match.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "The streamer gets hyped as the replay graphic flashes 'ACE'."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "The streamer counts out each kill in quick succession."
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "The fifth kill lands, completing the full team wipe ace."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "The streamer pops out of his chair and points to his 100 Thieves jersey in celebration."
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 1,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "He is that guy!",
+  "key_line_t": 16,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is focused on hype and excitement over a pro Valorant play rather than comedy. The streamer's loud, energetic reaction fuels the excitement, but it lacks comedic structure or punchlines."
+ }
+}

@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1788552092102_pwp5",
+ "set": "published_render",
+ "clip_id": "clip_1788552092102_pwp5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 949,
+  "thoughtTokens": 514
+ },
+ "cost": 0.010308,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator humorously claims 100 Thieves intentionally let NRG win a round just to give them 'breathing room' before choking them out.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator claims 100 Thieves deliberately gave NRG breathing room"
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "Says they didn't want to choke them out too fast"
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "Acts out seeing the lights in NRG's eyes fading and letting them breathe"
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "narrating",
+   "mock_outrage",
+   "yelling"
+  ],
+  "key_line": "We just let them get a little bit of breathing room, okay?",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The creator uses exaggerated banter to spin a lost esports round as a merciful strategic choice. Without context on the Valorant match and team rivalry, the humorous flex lands softly for casual viewers."
+ }
+}

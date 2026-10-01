@@ -1,0 +1,54 @@
+{
+ "key": "rw_clip_1787202987979_eu5v",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202987979_eu5v",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1744,
+  "outputTokens": 789,
+  "thoughtTokens": 404
+ },
+ "cost": 0.0085335,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator catches himself getting surprisingly emotional while watching an esports player's victory interview.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches an esports player give a post-match interview."
+   },
+   {
+    "t": 1,
+    "type": "trigger",
+    "what": "Creator admits he is unexpectedly feeling emotional."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "Creator shakes his head and marvels at the heartfelt moment."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome"
+  ],
+  "delivery": [
+   "disbelief",
+   "whisper_or_mutter"
+  ],
+  "key_line": "Man, why am I feeling emotional, bro? What the heck?",
+  "key_line_t": 1,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip is a wholesome, genuine reaction to a heartfelt esports interview rather than a setup-punchline joke. Its appeal comes from shared empathy and sentimentality rather than comedic elements."
+ }
+}

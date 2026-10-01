@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1788751719527_hoez",
+ "set": "published_raw",
+ "clip_id": "clip_1788751719527_hoez",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1906,
+  "outputTokens": 1502,
+  "thoughtTokens": 1050
+ },
+ "cost": 0.014124000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts in complete wide-eyed shock to a Valorant pro match replay, shouting about 'home advantage' buffs.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches stage footage of pro players reacting to a crazy round."
+   },
+   {
+    "t": 2.5,
+    "type": "trigger",
+    "what": "Creator turns wide-eyed to the camera shouting about home advantage being real."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "The broadcast replay shows the impressive in-game kills."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Creator yells at the camera asking what kind of buff home advantage is."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "What is this home advantage buff bro, what?!",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The creator's exaggerated wide-eyed facial expressions and high energy deliver good visual comedy. However, the joke relies heavily on understanding Valorant esports context."
+ }
+}

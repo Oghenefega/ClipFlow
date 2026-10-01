@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1784963060894_w8k9",
+ "set": "published_render",
+ "clip_id": "clip_1784963060894_w8k9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2390,
+  "outputTokens": 1155,
+  "thoughtTokens": 682
+ },
+ "cost": 0.012247500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator barely saves his egg character from a catastrophic fall and immediately turns around to scold chat for giving him horrible advice.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "trigger",
+    "what": "The egg tumbles downward as the streamer yells in panic."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "The egg unexpectedly catches itself on a lower plank, narrowly avoiding resetting progress."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "The creator shifts into deadpan scolding, targeting the chat member who suggested the route."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "He tells chat to 'use your brain' while pretending he wants to be respectful and not call names."
+   }
+  ],
+  "payoff_t": 3.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "deadpan"
+  ],
+  "key_line": "Hello? Use your brain, bro.",
+  "key_line_t": 11,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedic shift from frantic screaming during a near-disaster to a calm, passive-aggressive lecture against his own viewers lands well. However, the stakes rely heavily on physics game tension which isn't universally funny."
+ }
+}

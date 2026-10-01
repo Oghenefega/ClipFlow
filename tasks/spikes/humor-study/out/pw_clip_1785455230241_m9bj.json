@@ -1,0 +1,55 @@
+{
+ "key": "pw_clip_1785455230241_m9bj",
+ "set": "published_raw",
+ "clip_id": "clip_1785455230241_m9bj",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1100,
+  "thoughtTokens": 723
+ },
+ "cost": 0.012324000000000002,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer carefully navigates a driving game finish line and celebrates excitedly upon beating the level.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer tensely talks himself through keeping the van straight."
+   },
+   {
+    "t": 9,
+    "type": "payoff",
+    "what": "He crosses the finish line with a top speed run."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "He throws his arms up and yells in pure triumph."
+   }
+  ],
+  "payoff_t": 9,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "wholesome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Get him out of here!",
+  "key_line_t": 11,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip focuses on gameplay hype and energetic celebration rather than comedic beats or humor. It is an engaging victory moment, but not inherently funny to a casual viewer."
+ }
+}

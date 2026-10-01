@@ -1,0 +1,79 @@
+{
+ "key": "pr_clip_import_1790718094100_94mt",
+ "set": "published_render",
+ "clip_id": "clip_import_1790718094100_94mt",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1325,
+  "thoughtTokens": 736
+ },
+ "cost": 0.0143565,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer claims he is terrible with the Sheriff pistol in Valorant right before hitting back-to-back headshots for an impressive quadra kill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer claims he was never meant to be 'the Sheriff guy'"
+   },
+   {
+    "t": 5,
+    "type": "context",
+    "what": "Gets a single kill during warmup"
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "A brief sad black-and-white edit plays, instantly interrupted by a double kill"
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "Hits a clean triple kill headshot"
+   },
+   {
+    "t": 13,
+    "type": "payoff",
+    "what": "Streamer screams in utter shock and disbelief at his accuracy"
+   },
+   {
+    "t": 18,
+    "type": "escalation",
+    "what": "Lands a fourth headshot for a quadra kill"
+   },
+   {
+    "t": 19,
+    "type": "reaction",
+    "what": "Streamer continues screaming and loses his mind"
+   }
+  ],
+  "payoff_t": 13,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "I was never meant to be that guy, I would never be that guy.",
+  "key_line_t": 3,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "added_sound_effect",
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The instant comedic irony of downplaying his skill right before popping off with four straight headshots makes this clip fun to watch. His high-energy screaming and reaction turn a cool gameplay clip into a funny moment."
+ }
+}

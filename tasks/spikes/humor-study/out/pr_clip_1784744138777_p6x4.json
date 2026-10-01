@@ -1,0 +1,56 @@
+{
+ "key": "pr_clip_1784744138777_p6x4",
+ "set": "published_render",
+ "clip_id": "clip_1784744138777_p6x4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1672,
+  "outputTokens": 1204,
+  "thoughtTokens": 804
+ },
+ "cost": 0.011538,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator zooms across the Rocket League arena at max speed to demolish an opponent car while laughing hysterically.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator hypes up his long-distance boost drive across the map."
+   },
+   {
+    "t": 4.5,
+    "type": "payoff",
+    "what": "He hits the opponent car at full speed, causing a massive demolition explosion."
+   },
+   {
+    "t": 5.5,
+    "type": "reaction",
+    "what": "He laughs contagiously and yells about the force of the collision."
+   }
+  ],
+  "payoff_t": 4.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "yelling"
+  ],
+  "key_line": "Look at me coming from all the way downtown!",
+  "key_line_t": 0.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The humor comes from the creator's energetic, contagious laughter and over-the-top narration of a routine demolition. His high-energy delivery elevates a simple game mechanic into a funny moment."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787805514632_045a",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_045a",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2759,
+  "outputTokens": 1529,
+  "thoughtTokens": 1055
+ },
+ "cost": 0.015606,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with disbelief and hilarity to footage of a humanoid robot performing Cristiano Ronaldo's iconic 'Siu' celebration.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator expresses shock that a robot is doing Ronaldo's celebration."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Creator points out the robot scored a mediocre free kick before celebrating."
+   },
+   {
+    "t": 10.5,
+    "type": "payoff",
+    "what": "Footage shows the robot running and hitting the iconic Siu jump and pose."
+   },
+   {
+    "t": 14.5,
+    "type": "reaction",
+    "what": "Creator bursts into laughter and jokes about Ronaldo being the GOAT."
+   }
+  ],
+  "payoff_t": 10.5,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Not the robot freaking doing the Ronaldo sui!",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The visual spectacle of a real humanoid robot pulling off Ronaldo's famous celebration is inherently hilarious and absurd. The creator's genuine disbelief and infectious laughter sell the moment perfectly to anyone scrolling."
+ }
+}

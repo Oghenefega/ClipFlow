@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1787669491065_rtht",
+ "set": "published_render",
+ "clip_id": "clip_1787669491065_rtht",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1277,
+  "thoughtTokens": 804
+ },
+ "cost": 0.012222,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer talks about needing to earn Grand Champion rank right before immediately missing an aerial and letting in a goal.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer confidently states he has to deserve the rank he wants."
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "He launches into the air to challenge the ball."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "He misses completely and the opponent scores immediately."
+   },
+   {
+    "t": 6.5,
+    "type": "reaction",
+    "what": "He yells out briefly then sits in silent defeat as dramatic music plays."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "yelling",
+   "deadpan",
+   "silence"
+  ],
+  "key_line": "I'm going to have to deserve to get the rank that I want.",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_music"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant comedic timing between his inspirational talk about earning high ranks and his immediate, catastrophic whiff creates a perfect hubris-before-the-fall moment. The sudden transition to dramatic opera music heightens the tragicomedy."
+ }
+}

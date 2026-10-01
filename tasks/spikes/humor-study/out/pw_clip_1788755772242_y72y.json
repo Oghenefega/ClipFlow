@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1788755772242_y72y",
+ "set": "published_raw",
+ "clip_id": "clip_1788755772242_y72y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5308,
+  "outputTokens": 1471,
+  "thoughtTokens": 1023
+ },
+ "cost": 0.0189945,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with intense hype and excitement as his favorite esports team wins a critical Valorant match round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer watches an intense Valorant round unfold while shouting encouragement."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "The team clinches the round win and the streamer leaps out of his seat shouting in celebration."
+   },
+   {
+    "t": 25,
+    "type": "reaction",
+    "what": "He points to his temples repeatedly, boasting about the team's attack strategy."
+   },
+   {
+    "t": 48,
+    "type": "aftermath",
+    "what": "He pulls out a team jersey while laughingly repeating 'job's not done'."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "That was our attack round, baby!",
+  "key_line_t": 25,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip relies on high energy esports reaction rather than structured comedy or comedic timing. Viewers without knowledge of the match context will find it mostly hype rather than funny."
+ }
+}

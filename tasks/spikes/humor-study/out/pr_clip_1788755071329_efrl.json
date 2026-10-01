@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788755071329_efrl",
+ "set": "published_render",
+ "clip_id": "clip_1788755071329_efrl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2672,
+  "outputTokens": 1467,
+  "thoughtTokens": 960
+ },
+ "cost": 0.0150105,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator insults a pro Valorant player's skill right before the player pulls off an unbelievable kill while completely blinded.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator mocks the player on screen, calling him 'literally not that guy'."
+   },
+   {
+    "t": 5,
+    "type": "context",
+    "what": "Creator casually drinks water while watching the round."
+   },
+   {
+    "t": 10,
+    "type": "trigger",
+    "what": "The blinded player in the clip somehow shoots and kills an opponent."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Creator stops drinking and shouts in complete disbelief."
+   },
+   {
+    "t": 16,
+    "type": "aftermath",
+    "what": "Creator gives up defending his stance and mutters 'Yeah, whatever man'."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "deadpan"
+  ],
+  "key_line": "How is he blind and gets the pick?",
+  "key_line_t": 11,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant shut-down of the creator's trash talk by an improbable play creates classic comedic irony. His shift from confident insult to bewildered defeat makes for an entertaining reaction."
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1790099236931_t26y",
+ "set": "published_render",
+ "clip_id": "clip_1790099236931_t26y",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2759,
+  "outputTokens": 1055,
+  "thoughtTokens": 584
+ },
+ "cost": 0.012051,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with hilarity to viral CCTV footage of a humanoid robot doing Cristiano Ronaldo's famous 'Siu' celebration after scoring a goal.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator introduces the video of a robot doing the Ronaldo Siu celebration."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Creator points out the robot scored a mediocre free kick before celebrating."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Footage shows the robot executing the full jump and turn 'Siu' pose."
+   },
+   {
+    "t": 14,
+    "type": "reaction",
+    "what": "Creator bursts into laughter at the absurd spectacle."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "And people say Ronaldo is not the GOAT!",
+  "key_line_t": 15.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual absurdity of a robot performing a iconic human sports celebration creates an instant comedic contrast. The creator's infectious laughter and playful Ronaldo commentary help frame the ridiculousness."
+ }
+}

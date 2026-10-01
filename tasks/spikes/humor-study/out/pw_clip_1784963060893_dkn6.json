@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1784963060893_dkn6",
+ "set": "published_raw",
+ "clip_id": "clip_1784963060893_dkn6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 901,
+  "thoughtTokens": 421
+ },
+ "cost": 0.0122685,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer aggressively threatens an egg in a precision physics game, only for the egg to immediately fall off a ledge, leaving him in stunned silence.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer angrily declares he is no longer being positive about the game."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He threatens to eat the egg and its brothers if it falls one more time."
+   },
+   {
+    "t": 27,
+    "type": "trigger",
+    "what": "The egg bounces off a beam and plunges all the way down."
+   },
+   {
+    "t": 28.5,
+    "type": "payoff",
+    "what": "The streamer goes completely silent, staring in utter disbelief."
+   }
+  ],
+  "payoff_t": 28,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "deadpan_underreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "deadpan",
+   "silence"
+  ],
+  "key_line": "I will literally eat you and two more of your brothers. Try me.",
+  "key_line_t": 8,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 8,
+  "needs_context": false,
+  "why": "The instant karma of aggressively threatening an in-game egg right before it tumbles off a ledge creates a perfect hubris-before-a-fall punchline. His loud rant cut short by dead silence sells the failure brilliantly."
+ }
+}

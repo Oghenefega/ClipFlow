@@ -1,0 +1,73 @@
+{
+ "key": "pr_clip_import_1790717880150_yyhq",
+ "set": "published_render",
+ "clip_id": "clip_import_1790717880150_yyhq",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3855,
+  "outputTokens": 1388,
+  "thoughtTokens": 833
+ },
+ "cost": 0.0161925,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer trash-talks his rival while racing up Fall Mountain in Fall Guys, recovers from getting hit by a obstacle, and triumphantly grabs the crown for the win.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer taunts opponent while racing up the hill."
+   },
+   {
+    "t": 5.5,
+    "type": "escalation",
+    "what": "Gets hit by a giant ball obstacle and yells in frustration."
+   },
+   {
+    "t": 11,
+    "type": "context",
+    "what": "Recovers quickly and resumes talking trash as they approach the crown."
+   },
+   {
+    "t": 21,
+    "type": "trigger",
+    "what": "Jumps for the hanging crown alongside the opponent."
+   },
+   {
+    "t": 23.5,
+    "type": "payoff",
+    "what": "Grabs the crown and secures the 'WINNER!' screen."
+   },
+   {
+    "t": 25,
+    "type": "reaction",
+    "what": "Screams and celebrates hysterically in excitement."
+   }
+  ],
+  "payoff_t": 23.5,
+  "hook_t": 0.5,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Did I win? Wait, LET'S GOOOOO!",
+  "key_line_t": 25,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "zoom_or_reframe",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "This clip operates mostly as a high-energy hype moment with a clutch win rather than traditional joke comedy. The brief comedic moment comes from his boastful confidence being immediately punished by a giant rolling ball before he recovers."
+ }
+}

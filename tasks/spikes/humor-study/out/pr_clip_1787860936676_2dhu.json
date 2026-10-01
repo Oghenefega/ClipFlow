@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1787860936676_2dhu",
+ "set": "published_render",
+ "clip_id": "clip_1787860936676_2dhu",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3117,
+  "outputTokens": 1255,
+  "thoughtTokens": 878
+ },
+ "cost": 0.014088,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with jaw-dropping shock to a dramatic cinematic cutscene transition in video game footage.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "A dramatic fight cutscene plays out in the game footage."
+   },
+   {
+    "t": 13,
+    "type": "trigger",
+    "what": "The fight ends abruptly with a gunshot sound and a abrupt cut to black."
+   },
+   {
+    "t": 15,
+    "type": "payoff",
+    "what": "The clip transitions into a sweeping city overview while the creator sits speechless with his mouth wide open."
+   },
+   {
+    "t": 20,
+    "type": "reaction",
+    "what": "The creator stammers in total disbelief at what he just saw."
+   }
+  ],
+  "payoff_t": 15,
+  "hook_t": 0,
+  "author": "game_itself",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "silence"
+  ],
+  "key_line": "How...",
+  "key_line_t": 23,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The clip relies on cinematic hype and shock rather than comedy. The creator's speechless expression captures genuine awe, but it functions more as a hype reaction than a comedic moment."
+ }
+}

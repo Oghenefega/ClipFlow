@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1788753729569_21wo",
+ "set": "published_render",
+ "clip_id": "clip_1788753729569_21wo",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2115,
+  "outputTokens": 913,
+  "thoughtTokens": 451
+ },
+ "cost": 0.01002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with disbelief and humorous frustration when a Valorant pro lands a clean headshot while completely stunned.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Footage shows pro player Luk xo getting stunned during a match."
+   },
+   {
+    "t": 0.2,
+    "type": "trigger",
+    "what": "Luk xo instantly headshots an enemy despite being stunned."
+   },
+   {
+    "t": 0.5,
+    "type": "reaction",
+    "what": "The creator drops his jaw in utter shock."
+   },
+   {
+    "t": 0.8,
+    "type": "payoff",
+    "what": "The creator starts shouting in mock outrage questioning how stunned players can still aim perfectly."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "Isn't the stun meant to... let me guess... stun you?",
+  "key_line_t": 9.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip relies on the creator's dramatic, relatable exasperation over broken game mechanics after an unbelievable play. His expressive facial reaction and hyperbolic rhetoric make the clip instantly understandable and entertaining."
+ }
+}

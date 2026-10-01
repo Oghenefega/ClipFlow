@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1788551277518_jsn8",
+ "set": "published_raw",
+ "clip_id": "clip_1788551277518_jsn8",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4417,
+  "outputTokens": 1013,
+  "thoughtTokens": 532
+ },
+ "cost": 0.014223,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer erupts in high-energy hype and leaps out of his chair as 100 Thieves wins a clutch round to take the map.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches tense final moment of Valorant pro match."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "100 Thieves gets the final kills to win the map."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Streamer screams in joy, jumps out of his chair, and celebrates."
+   },
+   {
+    "t": 21,
+    "type": "reaction",
+    "what": "Streamer grabs his microphone shouting 'We are the best, baby!'"
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "WE ARE THE BEST BABY!",
+  "key_line_t": 21,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip focuses on explosive fan enthusiasm and esports hype rather than comedic intent. While his intense shouting is entertaining, it relies heavily on knowledge of the match and team loyalty."
+ }
+}

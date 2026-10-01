@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788552826516_pd1n",
+ "set": "published_render",
+ "clip_id": "clip_1788552826516_pd1n",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2480,
+  "outputTokens": 1193,
+  "thoughtTokens": 682
+ },
+ "cost": 0.012667500000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with disbelief and mock commentary to a terrible push by a professional Valorant player during a match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches pro Valorant match footage with on-screen text."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "A team gets completely wiped out during a push in the match."
+   },
+   {
+    "t": 7,
+    "type": "setup",
+    "what": "Creator begins roasting the player, asking 'What was Mada thinking?'"
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Creator hilariously imitates Mada's internal logic about stunning and spraying."
+   },
+   {
+    "t": 16,
+    "type": "aftermath",
+    "what": "Creator concludes that Mada was thinking 'absolutely nothing, bro.'"
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 5,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "What was Mada thinking?",
+  "key_line_t": 7,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": true,
+  "why": "The creator's animated roasting and exaggerated voice act as an entertaining breakdown of a chaotic pro gaming mistake. Without knowledge of Valorant, a viewer might not fully grasp why the play was so egregiously bad."
+ }
+}

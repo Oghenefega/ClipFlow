@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1784743522885_vkl0",
+ "set": "published_render",
+ "clip_id": "clip_1784743522885_vkl0",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1267,
+  "thoughtTokens": 840
+ },
+ "cost": 0.013238999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer expresses anxiety over a thin 1-0 lead in Rocket League, only to immediately score and celebrate.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer states he is not comfortable with his 1-0 lead."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He continues expressing doubt about his position while driving toward the ball."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "He scores a goal off the wall bounce and cuts himself off with 'Oh never mind'."
+   },
+   {
+    "t": 12,
+    "type": "reaction",
+    "what": "He shouts and cheers hypedly at the unexpected quick goal."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "narrating",
+   "yelling"
+  ],
+  "key_line": "Oh never mind.",
+  "key_line_t": 10,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The comedic appeal relies on simple verbal irony when the streamer's pessimism is instantly contradicted by a goal. While charming and naturally timed, it is a routine gameplay highlight."
+ }
+}

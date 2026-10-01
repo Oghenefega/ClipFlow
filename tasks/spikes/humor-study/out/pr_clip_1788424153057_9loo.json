@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1788424153057_9loo",
+ "set": "published_render",
+ "clip_id": "clip_1788424153057_9loo",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2845,
+  "outputTokens": 1730,
+  "thoughtTokens": 1223
+ },
+ "cost": 0.0172425,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer frantically hypes up his drawing skills in a hide-and-seek painting game, only to instantly realize his camouflage is terrible as soon as the round starts.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer figures out the controls and starts drawing, building up confidence."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He hypes himself up as the timer ticks down, claiming he is 'cooking'."
+   },
+   {
+    "t": 16,
+    "type": "trigger",
+    "what": "The timer expires and the match starts, exposing his character in the gallery."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "He sees how visible and badly drawn he is and instantly accepts defeat."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Oh Jesus, yeah, he's finding me.",
+  "key_line_t": 18,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "jump_cuts",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedy relies on classic hubris followed by immediate failure as the streamer's high confidence rapidly collapses upon seeing his hideous camouflage. His immediate resignation and laugh at his own terrible artwork deliver a satisfying punchline."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pw_clip_1787975841626_uqyx",
+ "set": "published_raw",
+ "clip_id": "clip_1787975841626_uqyx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1744,
+  "outputTokens": 1333,
+  "thoughtTokens": 869
+ },
+ "cost": 0.0126135,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator confidently claims his team is solid on defense, only for a defender to get headshot and instantly killed seconds later.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator listens to the match casters while watching the pro gameplay."
+   },
+   {
+    "t": 5.2,
+    "type": "setup",
+    "what": "Creator mutters confidently, 'We got this, we're good on defense.'"
+   },
+   {
+    "t": 9.8,
+    "type": "payoff",
+    "what": "A defender gets headshot eliminated immediately after his comment."
+   },
+   {
+    "t": 10.5,
+    "type": "reaction",
+    "what": "Creator stares silently at the screen in disbelief."
+   }
+  ],
+  "payoff_t": 9.8,
+  "hook_t": 5.2,
+  "author": "mixed",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "hubris_then_fail"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "disbelief"
+  ],
+  "key_line": "We've got this, we've got this. We're good on defense.",
+  "key_line_t": 5.2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's confident declaration about defense is instantly jinxed by an immediate headshot death on screen. The perfect comedic timing makes the quick turn of events universally understandable."
+ }
+}

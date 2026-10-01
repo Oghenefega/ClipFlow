@@ -1,0 +1,56 @@
+{
+ "key": "pr_clip_1788551277518_6azl",
+ "set": "published_render",
+ "clip_id": "clip_1788551277518_6azl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2307,
+  "outputTokens": 928,
+  "thoughtTokens": 511
+ },
+ "cost": 0.0104205,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator passionately yells and jumps out of his chair while reacting to a disrespectful defuse during a pro Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator listens to caster audio while watching a pro Valorant round unfold."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "The pro player finishes the defuse right in the opponent's face."
+   },
+   {
+    "t": 9,
+    "type": "reaction",
+    "what": "The creator jumps up from his chair, screaming 'GET HIM OUT OF HERE!' in pure hype."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "GET HIM OUT OF HERE!",
+  "key_line_t": 9,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "This clip relies on intense spectator hype and explosive shouting rather than structured comedy. The creator's high-energy physical reaction amplifies the excitement of the clutch play."
+ }
+}

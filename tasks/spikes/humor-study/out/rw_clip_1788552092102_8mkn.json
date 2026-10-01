@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1788552092102_8mkn",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788552092102_8mkn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5146,
+  "outputTokens": 1693,
+  "thoughtTokens": 1140
+ },
+ "cost": 0.0204165,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "After reluctantly giving an enemy Valorant player a polite round of applause, the streamer aggressively rallies his favorite team to crush them.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches an opponent pop off in a tournament broadcast."
+   },
+   {
+    "t": 22,
+    "type": "setup",
+    "what": "Streamer decides to give respectful props to the opposing team."
+   },
+   {
+    "t": 27,
+    "type": "escalation",
+    "what": "Streamer starts clapping sarcastically while setting strict boundaries on how much praise they deserve."
+   },
+   {
+    "t": 37,
+    "type": "trigger",
+    "what": "Streamer abruptly cuts off praise and shifts to intense hyper-competitive energy."
+   },
+   {
+    "t": 44,
+    "type": "payoff",
+    "what": "Streamer passionately commands 100 Thieves to press the enemy's necks because they have had enough oxygen."
+   }
+  ],
+  "payoff_t": 44,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "absurd_commentary",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "yelling",
+   "calm_explaining"
+  ],
+  "key_line": "They've gotten more than enough oxygen, we can press their necks now!",
+  "key_line_t": 47,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip succeeds through a dramatic tonal pivot from sportsmanship to intense, hyper-specific hostility. His escalating metaphor about cutting off the opponent's oxygen supply makes for a hilarious turn."
+ }
+}

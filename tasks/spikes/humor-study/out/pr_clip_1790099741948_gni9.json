@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1790099741948_gni9",
+ "set": "published_render",
+ "clip_id": "clip_1790099741948_gni9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3208,
+  "outputTokens": 1407,
+  "thoughtTokens": 882
+ },
+ "cost": 0.015364500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hilariously narrates a humanoid robot attempting to check out cheerleader robots, only to immediately miss its step and fall off a platform.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator introduces the cheerleader robots performing a routine."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "Creator narrates another robot climbing up as if trying to check them out."
+   },
+   {
+    "t": 13,
+    "type": "trigger",
+    "what": "The robot steps right off the edge and falls down."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "Creator bursts into hysterical laughter and disappears off-screen."
+   },
+   {
+    "t": 17,
+    "type": "aftermath",
+    "what": "Creator gives absurd commentary about the robot acting like a man going after ladies."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 7,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "And dude just misses his step and then...",
+  "key_line_t": 13,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The creator's funny anthropomorphic narration turns a simple robot stumble into a hilarious story of a guy getting distracted by girls and instantly falling flat on his face. The physical comedy of the fall paired with the streamer's uncontrollable laughter creates a great, universal joke."
+ }
+}

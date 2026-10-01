@@ -1,0 +1,59 @@
+{
+ "key": "pw_clip_1787975501781_hioy",
+ "set": "published_raw",
+ "clip_id": "clip_1787975501781_hioy",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1906,
+  "outputTokens": 1592,
+  "thoughtTokens": 1175
+ },
+ "cost": 0.014799000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator quietly watches and notes the player count during a chaotic Valorant pro match round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Esports broadcast footage plays with casters hyping up the site execution."
+   },
+   {
+    "t": 3.5,
+    "type": "setup",
+    "what": "The creator quietly mutters that it is a 4v3 situation."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "Player King peeks out as the spike gets planted."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Caster yells as King catches the enemy player's utility setup."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "silence"
+  ],
+  "key_line": null,
+  "key_line_t": null,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip showcases tactical esports gameplay and hyped commentary rather than comedy. The creator remains mostly silent while watching the match."
+ }
+}

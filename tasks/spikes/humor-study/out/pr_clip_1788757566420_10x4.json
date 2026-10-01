@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788757566420_10x4",
+ "set": "published_render",
+ "clip_id": "clip_1788757566420_10x4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2582,
+  "outputTokens": 1050,
+  "thoughtTokens": 535
+ },
+ "cost": 0.011748,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator bursts into laughter while watching a VCT Champions Shanghai teaser that bizarrely promotes 'great food' and 'great transit'.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator watches the VCT Champions promo video."
+   },
+   {
+    "t": 0.2,
+    "type": "trigger",
+    "what": "The video voiceover lists 'great food, great transit' as highlights for Shanghai."
+   },
+   {
+    "t": 0.6,
+    "type": "payoff",
+    "what": "The creator breaks out into uncontrollable laughter at the mundane tourism pitch."
+   },
+   {
+    "t": 0.8,
+    "type": "reaction",
+    "what": "The creator jokes 'I'm sold!' while laughing continuously."
+   },
+   {
+    "t": 1.7,
+    "type": "aftermath",
+    "what": "He repeats the line and jokingly considers relocating."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Great food, great transit! I'm sold!",
+  "key_line_t": 8,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The contrast between a high-stakes esports tournament trailer and basic tourism pitches like public transit is inherently absurd. The creator's genuine joy and sarcastic endorsement ('I'm sold') sell the observational joke well."
+ }
+}

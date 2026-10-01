@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1790099953756_depm",
+ "set": "published_render",
+ "clip_id": "clip_1790099953756_depm",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2764,
+  "outputTokens": 1384,
+  "thoughtTokens": 914
+ },
+ "cost": 0.014526,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hysterically reacts to a robot soccer penalty kick where the goalie robot fails to move until long after the ball enters the net.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "payoff",
+    "what": "The robot kicks the ball into the net while the goalkeeper robot stands completely still."
+   },
+   {
+    "t": 2,
+    "type": "reaction",
+    "what": "The creator laughs hysterically and shouts that the goalie stood no chance."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "The creator imitates the robot standing motionless with its arms hanging by its sides."
+   },
+   {
+    "t": 15,
+    "type": "aftermath",
+    "what": "The creator points out that the robot did not react for a full three seconds."
+   }
+  ],
+  "payoff_t": 2,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Yeah that dude stood no chance!",
+  "key_line_t": 1.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The clip delivers instant visual comedy through the goalkeeper robot's hilariously delayed reaction. The creator's infectious laughter and physical imitation make the clip widely entertaining even without prior context."
+ }
+}

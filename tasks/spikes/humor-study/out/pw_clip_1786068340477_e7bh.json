@@ -1,0 +1,65 @@
+{
+ "key": "pw_clip_1786068340477_e7bh",
+ "set": "published_raw",
+ "clip_id": "clip_1786068340477_e7bh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4741,
+  "outputTokens": 1315,
+  "thoughtTokens": 841
+ },
+ "cost": 0.016974,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer promises gift subs if he loses his Rocket League match, then aggressively hypes himself up after scoring back-to-back goals.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Streamer sets the stakes by offering 5 gift subs if he loses."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "Streamer scores a goal to break the tie."
+   },
+   {
+    "t": 24,
+    "type": "reaction",
+    "what": "Streamer shouts 'Easy! Get him out of here bro!' repeatedly."
+   },
+   {
+    "t": 41,
+    "type": "escalation",
+    "what": "Streamer scores a second goal immediately off the kickoff."
+   },
+   {
+    "t": 43,
+    "type": "reaction",
+    "what": "Streamer screams in hype celebration, yelling 'Get him out of my face!'"
+   }
+  ],
+  "payoff_t": 23,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Easy! Get him out of here bro!",
+  "key_line_t": 24,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on high-energy gaming hype and loud celebratory chanting rather than a comedic setup and punchline. It is an entertaining skill flex, but contains little actual comedy."
+ }
+}

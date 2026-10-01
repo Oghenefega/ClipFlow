@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788755772243_ceau",
+ "set": "published_render",
+ "clip_id": "clip_1788755772243_ceau",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3856,
+  "outputTokens": 1622,
+  "thoughtTokens": 1144
+ },
+ "cost": 0.017949,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts as pro player Vora manages to clutch a VCT Finals 1v1 round despite his mouse dying mid-fight.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer quietly watches VCT Finals match footage with caster commentary."
+   },
+   {
+    "t": 11,
+    "type": "trigger",
+    "what": "Vora's mouse dies mid-fight and the streamer notices him checking his hardware."
+   },
+   {
+    "t": 21,
+    "type": "escalation",
+    "what": "Vora enters a high-stakes 1v1 clutch situation while still dealing with the mouse."
+   },
+   {
+    "t": 31,
+    "type": "payoff",
+    "what": "Vora secures the kill to win the round, triggering the streamer to scream in hype."
+   }
+  ],
+  "payoff_t": 31,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "GET HIM OUT OF THERE!",
+  "key_line_t": 31,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is an esports hype highlight rather than a traditional comedy bit. The entertainment relies on the impressive clutch under technical malfunction rather than comedic punchlines."
+ }
+}

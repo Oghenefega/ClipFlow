@@ -1,0 +1,66 @@
+{
+ "key": "rw_clip_1788753143967_s8zh",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788753143967_s8zh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3931,
+  "outputTokens": 1272,
+  "thoughtTokens": 760
+ },
+ "cost": 0.015436499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with hands-on-head disbelief as a pro Valorant player turns around a round despite being spotted.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer starts clip yelling at chat before focusing back on the match."
+   },
+   {
+    "t": 14,
+    "type": "setup",
+    "what": "Streamer watches the match footage intently as caster sets up the play."
+   },
+   {
+    "t": 19.5,
+    "type": "trigger",
+    "what": "The pro player hits an insane shot on mid."
+   },
+   {
+    "t": 21.5,
+    "type": "payoff",
+    "what": "Streamer grabs his head in utter shock yelling 'Oh my lord!'"
+   },
+   {
+    "t": 25,
+    "type": "aftermath",
+    "what": "Streamer questions how the player got the kill when everyone knew his position."
+   }
+  ],
+  "payoff_t": 21.5,
+  "hook_t": 1,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Oh my lord! How? We literally knew where he was!",
+  "key_line_t": 22,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The clip centers on esports hype and genuine amazement rather than comedic joke delivery. It appeals mostly to Valorant fans who understand the difficulty of the play being shown."
+ }
+}

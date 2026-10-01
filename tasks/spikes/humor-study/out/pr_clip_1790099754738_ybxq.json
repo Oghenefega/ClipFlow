@@ -1,0 +1,64 @@
+{
+ "key": "pr_clip_1790099754738_ybxq",
+ "set": "published_render",
+ "clip_id": "clip_1790099754738_ybxq",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2755,
+  "outputTokens": 1277,
+  "thoughtTokens": 799
+ },
+ "cost": 0.01371,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer reacts in disbelief as a humanoid robot knocks out another with a spinning head kick and does a victory dance.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer introduces the robot fight video and jokes about Jon Jones fighting the robot."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "The white robot connects with a spinning kick, instantly knocking down its opponent."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Streamer hypes up the knockout while watching the slow-motion replay."
+   },
+   {
+    "t": 17,
+    "type": "callback",
+    "what": "The winning robot starts hit-robbing and dancing in celebration."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "yelling",
+   "narrating"
+  ],
+  "key_line": "Imagine telling Jon Jones to fight this guy.",
+  "key_line_t": 3.2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The visual absurdity of a robot landing a clean martial arts knockout and immediately hit-robbing in celebration delivers high inherent comedy. The creator's hype commentary elevates the hilarious spectacle."
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_import_1790238939045_yz9m",
+ "set": "published_render",
+ "clip_id": "clip_import_1790238939045_yz9m",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1845,
+  "outputTokens": 1081,
+  "thoughtTokens": 653
+ },
+ "cost": 0.010875,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Valorant streamer misses a full clip of shots on an enemy at point-blank range and gets killed, leading to a high-pitched voice crack in disbelief.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer pushes into enemy territory as the round starts."
+   },
+   {
+    "t": 0.2,
+    "type": "escalation",
+    "what": "Streamer finds an enemy and starts spraying bullets at point-blank range."
+   },
+   {
+    "t": 0.3,
+    "type": "trigger",
+    "what": "He misses every shot and the enemy turns around to instantly kill him."
+   },
+   {
+    "t": 0.4,
+    "type": "payoff",
+    "what": "Camera zooms in on his face as he yells in a high-pitched voice crack."
+   },
+   {
+    "t": 0.6,
+    "type": "reaction",
+    "what": "Streamer holds his head in defeat while a teammate groans."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "You got to be kidding me!",
+  "key_line_t": 4,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "zoom_or_reframe",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The sudden whiff of an easy kill combined with a unexpected, dramatic voice crack makes for a quick and relatable comedic fail."
+ }
+}

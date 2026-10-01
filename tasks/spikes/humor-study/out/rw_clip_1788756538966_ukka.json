@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1788756538966_ukka",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788756538966_ukka",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4822,
+  "outputTokens": 1439,
+  "thoughtTokens": 1008
+ },
+ "cost": 0.0180255,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer wildly celebrates a Valorant round victory only to immediately collapse into his chair in shame as the casters reveal a bizarre team buy.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer chants and shakes a spray bottle celebrating a round win."
+   },
+   {
+    "t": 11,
+    "type": "escalation",
+    "what": "Streamer pops into frame yelling that he is back and never left."
+   },
+   {
+    "t": 25,
+    "type": "payoff",
+    "what": "Casters point out a questionable four-Guardian buy, causing the streamer to slump over in his chair."
+   },
+   {
+    "t": 37,
+    "type": "aftermath",
+    "what": "Streamer slowly peeks back over the desk looking worried and defeated."
+   }
+  ],
+  "payoff_t": 25,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "overreaction",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "NND is back, baby!",
+  "key_line_t": 11,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": true,
+  "why": "The contrast between his over-the-top hype flex and his immediate head-in-hands head slump provides great visual irony. Without understanding Valorant round economies, a casual viewer might miss why the moment goes so downhill."
+ }
+}

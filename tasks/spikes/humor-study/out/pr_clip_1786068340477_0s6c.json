@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1786068340477_0s6c",
+ "set": "published_render",
+ "clip_id": "clip_1786068340477_0s6c",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3037,
+  "outputTokens": 1307,
+  "thoughtTokens": 801
+ },
+ "cost": 0.014358000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player uses voice chat to feign helplessness to play mind games with his opponent, then immediately scores a quick goal.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer worries his opponent might be a high rank."
+   },
+   {
+    "t": 7.8,
+    "type": "setup",
+    "what": "Opponent scores, making the streamer look weak."
+   },
+   {
+    "t": 11.5,
+    "type": "escalation",
+    "what": "Streamer decides to play mind games by talking in voice chat."
+   },
+   {
+    "t": 14.5,
+    "type": "trigger",
+    "what": "Streamer tells the opponent over mic that he feels doomed."
+   },
+   {
+    "t": 22.5,
+    "type": "payoff",
+    "what": "Streamer immediately steals the ball and scores, celebrating his trickery."
+   }
+  ],
+  "payoff_t": 22.5,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "narrating",
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Can't be doomed when I'm good, come on!",
+  "key_line_t": 22,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedy stems from the quick subversion of expectation when the streamer acts helpless over voice chat only to immediately score. His triumphant boast right after hitting the shot delivers a satisfying punchline."
+ }
+}

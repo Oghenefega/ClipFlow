@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1787202782989_4d7h",
+ "set": "published_render",
+ "clip_id": "clip_1787202782989_4d7h",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1934,
+  "outputTokens": 938,
+  "thoughtTokens": 539
+ },
+ "cost": 0.009936,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with mild disbelief as he observes and imitates an unusually awkward, floating-finger mouse grip.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer questions who holds a mouse like that."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Streamer points out and imitates the floating middle finger."
+   },
+   {
+    "t": 7.5,
+    "type": "payoff",
+    "what": "Streamer expresses how uncomfortable it looks and shows pure confusion."
+   }
+  ],
+  "payoff_t": 7.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "confusion",
+   "absurd_commentary",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "That is so uncomfortable, man.",
+  "key_line_t": 7.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The creator's genuine bewilderment and hand-imitation highlight the visual absurdity of the clip. It relies on universal visual humor without requiring specific gaming context."
+ }
+}

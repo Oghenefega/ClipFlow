@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1790099733459_v0ju",
+ "set": "published_render",
+ "clip_id": "clip_1790099733459_v0ju",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1079,
+  "thoughtTokens": 617
+ },
+ "cost": 0.0125115,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically while watching a video of a robot landing a kick in a match and immediately collapsing, then humorously reenacts its dramatic setup.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches footage of a robot landing a kick and falling over instantly."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "Creator physically reenacts the exaggerated wind-up setup of the robot."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "Creator laughs uncontrollably at the absurdity of the clip."
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "Creator points out the funny celebration dance of the winning blue robot."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "yelling"
+  ],
+  "key_line": "How do you land the kick and then die?",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The creator's energetic physical reenactment of the robot's wind-up paired with his contagious laughter turns silly footage into a genuinely funny clip."
+ }
+}

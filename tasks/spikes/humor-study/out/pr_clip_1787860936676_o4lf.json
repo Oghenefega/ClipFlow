@@ -1,0 +1,54 @@
+{
+ "key": "pr_clip_1787860936676_o4lf",
+ "set": "published_render",
+ "clip_id": "clip_1787860936676_o4lf",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2673,
+  "outputTokens": 1086,
+  "thoughtTokens": 690
+ },
+ "cost": 0.012154499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts to GTA 6 gameplay clips and jokes that the game will cost $200.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches impressive GTA 6 footage."
+   },
+   {
+    "t": 11.5,
+    "type": "payoff",
+    "what": "Creator laughs and says the game will probably cost $200."
+   },
+   {
+    "t": 15.5,
+    "type": "aftermath",
+    "what": "Creator qualifies his joke while continuing to watch."
+   }
+  ],
+  "payoff_t": 11.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "calm_explaining"
+  ],
+  "key_line": "This game's probably gonna be like $200.",
+  "key_line_t": 12,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The creator delivers a casual joke about the high visual quality of GTA 6 commanding an absurd price tag. It is a simple, mild reaction clip rather than a structured joke or dramatic highlight."
+ }
+}

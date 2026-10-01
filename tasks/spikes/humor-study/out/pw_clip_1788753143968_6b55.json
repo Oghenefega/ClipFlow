@@ -1,0 +1,55 @@
+{
+ "key": "pw_clip_1788753143968_6b55",
+ "set": "published_raw",
+ "clip_id": "clip_1788753143968_6b55",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1119,
+  "thoughtTokens": 724
+ },
+ "cost": 0.012466500000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts to an esports broadcast replay where he feels the live crowd noise spoiled a player's surprise play.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer reacts with mild disappointment, claiming the crowd gave away the player's position."
+   },
+   {
+    "t": 10,
+    "type": "context",
+    "what": "The tournament broadcast switches to the replay of the round."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "The streamer watches the replay angles while listening to the casters analyze the play."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "Damn it bro, the crowd gave that away.",
+  "key_line_t": 1,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip is serious esports match analysis rather than comedic content. A casual scroller without context on Valorant esports won't find anything humorous in it."
+ }
+}

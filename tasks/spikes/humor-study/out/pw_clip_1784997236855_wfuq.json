@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1784997236855_wfuq",
+ "set": "published_raw",
+ "clip_id": "clip_1784997236855_wfuq",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3526,
+  "outputTokens": 892,
+  "thoughtTokens": 511
+ },
+ "cost": 0.011979,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer successfully navigates a delicate egg through a precarious obstacle course and passionately celebrates his victory.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer asks the audience if they are ready and hypes up his attempt."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "The egg bounces precariously through a series of wooden structures."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "The egg safely lands on a flat rock platform, prompting screaming excitement."
+   },
+   {
+    "t": 17,
+    "type": "reaction",
+    "what": "Streamer boasts that the game is too easy while trying to figure out where to go next."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "OH BABY! LET'S GO! It's too easy!",
+  "key_line_t": 14,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "This clip delivers genuine enthusiasm and gameplay success rather than traditional joke structures. Its appeal comes from the intense, loud celebration after clearing a high-stakes physics obstacle."
+ }
+}

@@ -1,0 +1,54 @@
+{
+ "key": "rw_clip_1785201494046_jlh5",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785201494046_jlh5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3121,
+  "outputTokens": 1080,
+  "thoughtTokens": 702
+ },
+ "cost": 0.0127815,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer reflects on his defensive errors in Rocket League while making a play to prevent another goal.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer reflects on past mistakes and says he needs to stop conceding points."
+   },
+   {
+    "t": 6,
+    "type": "context",
+    "what": "The kickoff begins and he navigates across the field."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "He asserts that not conceding is as important as scoring while driving up the wall to challenge."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "Almost as important as scoring is not conceding.",
+  "key_line_t": 18,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This clip focuses entirely on serious self-reflection and basic gameplay advice. It lacks any funny twist, joke structure, or comedic subversion."
+ }
+}

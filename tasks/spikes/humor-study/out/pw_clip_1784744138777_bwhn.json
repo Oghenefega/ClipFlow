@@ -1,0 +1,66 @@
+{
+ "key": "pw_clip_1784744138777_bwhn",
+ "set": "published_raw",
+ "clip_id": "clip_1784744138777_bwhn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4579,
+  "outputTokens": 1213,
+  "thoughtTokens": 713
+ },
+ "cost": 0.015966,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player gets cleanly outplayed by an opponent who scores, leading him to express disbelief and candidly admit how hard the game is.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator plays a tight match of Rocket League."
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "Opponent intercepts the creator's move."
+   },
+   {
+    "t": 22,
+    "type": "payoff",
+    "what": "Opponent scores a clean goal."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "Creator exclaims in disbelief that he was read like a book."
+   },
+   {
+    "t": 35,
+    "type": "aftermath",
+    "what": "Creator reads a chat question about ranking up and admits he is struggling."
+   }
+  ],
+  "payoff_t": 22,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "calm_explaining"
+  ],
+  "key_line": "He read me like a book, bro! What the flip?",
+  "key_line_t": 16.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The comedy stems from the relatable frustration of getting predicted and outplayed, paired with an honest, self-aware admission of struggling to rank up. It is standard gameplay banter that relies on the streamer's expressive reaction."
+ }
+}

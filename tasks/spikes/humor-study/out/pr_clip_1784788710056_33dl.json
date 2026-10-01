@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784788710056_33dl",
+ "set": "published_render",
+ "clip_id": "clip_1784788710056_33dl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3577,
+  "outputTokens": 1418,
+  "thoughtTokens": 987
+ },
+ "cost": 0.0160005,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After giving up back-to-back goals in Rocket League, the creator copes by enthusiastically fake-cheering for his opponent's skill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator expresses disbelief after letting his opponent score."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "Creator calls his own play unacceptable as the goal replay finishes."
+   },
+   {
+    "t": 12,
+    "type": "setup",
+    "what": "Creator predicts the opponent will score a beautiful kickoff goal."
+   },
+   {
+    "t": 19,
+    "type": "trigger",
+    "what": "Opponent scores directly off the kickoff."
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "Creator screams overly enthusiastic sarcastic praise at his opponent."
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "irony_says_x_then_opposite",
+   "self_own_fail",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "I'm so happy for you man, nice shot!",
+  "key_line_t": 21,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's ironic pivot into extreme supportive cheerleading after getting styled on creates great comedic contrast. His sarcastic prediction coming true immediately sets up the unhinged supportive reaction."
+ }
+}

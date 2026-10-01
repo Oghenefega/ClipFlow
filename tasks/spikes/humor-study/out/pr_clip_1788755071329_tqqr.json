@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788755071329_tqqr",
+ "set": "published_render",
+ "clip_id": "clip_1788755071329_tqqr",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1852,
+  "outputTokens": 1002,
+  "thoughtTokens": 560
+ },
+ "cost": 0.010293,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with extreme loud disbelief when a pro Valorant player hits an insane shot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator watches pro Valorant match footage with commentary."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "The pro player hits a crazy flick shot through smoke and flash."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Creator screams 'HOW DOES HE DO THAT?!' in high-pitched shock."
+   },
+   {
+    "t": 9,
+    "type": "aftermath",
+    "what": "Creator wipes his head in disbelief."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "HOW DOES HE DO THAT?",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The creator's sudden, explosive vocal reaction delivers a fun burst of hype to an impressive gameplay shot. It leans more on high-energy gamer reaction than a structured comedy bit."
+ }
+}

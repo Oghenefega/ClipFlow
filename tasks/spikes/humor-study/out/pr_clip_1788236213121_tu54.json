@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788236213121_tu54",
+ "set": "published_render",
+ "clip_id": "clip_1788236213121_tu54",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2764,
+  "outputTokens": 1455,
+  "thoughtTokens": 992
+ },
+ "cost": 0.015058499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator bursts into uncontrollable laughter while reacting to a clip of a robot soccer goalkeeper standing completely motionless during a penalty kick.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A humanoid robot kicks a soccer penalty shot."
+   },
+   {
+    "t": 2,
+    "type": "payoff",
+    "what": "The goalkeeper robot stands completely frozen as the ball goes past it into the goal."
+   },
+   {
+    "t": 3,
+    "type": "reaction",
+    "what": "The creator bursts out laughing loudly at the goalkeeper's uselessness."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "The creator mimics the robot's delayed reaction and points out it didn't move for three seconds."
+   }
+  ],
+  "payoff_t": 2,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "yeah that dude stood no chance",
+  "key_line_t": 1,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The visual spectacle of high-tech robots failing miserably at basic movement is inherently funny. The creator's loud, infectious laughter and funny commentary highlight the comedy perfectly."
+ }
+}

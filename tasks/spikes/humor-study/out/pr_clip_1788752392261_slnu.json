@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1788752392261_slnu",
+ "set": "published_render",
+ "clip_id": "clip_1788752392261_slnu",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 1098,
+  "thoughtTokens": 627
+ },
+ "cost": 0.011698499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer hilariously copes with his favorite Valorant team getting dominated by jokingly predicting the opposing team will be exposed for cheating in two years.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer accuses the opposing pro team of cheating as they win another round."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "Streamer claims that two years from now a scandal will reveal they were using illegal software."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Streamer shouts in dramatic denial that 'something is not right' while rejecting his team's 0-8 scoreboard."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Two years from now it's gonna come out that these guys, you know, used... something is not right, okay?!",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The streamer's dramatic cope and mock outrage over his team getting stomped 0-8 creates a relatable gaming joke. However, without knowing the esports background or team rivalries, the humor is fairly standard gaming banter."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pw_clip_1788551277518_6azl",
+ "set": "published_raw",
+ "clip_id": "clip_1788551277518_6azl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3040,
+  "outputTokens": 1540,
+  "thoughtTokens": 1080
+ },
+ "cost": 0.01611,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer aggressively predicts an enemy pro player will fail, then jumps out of his chair screaming in hype when 100 Thieves secures the final kill.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator passionately claims the opponent gets 'absolutely nothing'."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "100T Vora gets the kill on screen to win the round."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "Creator leaps out of his chair shouting 'Get him out of here!'"
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "Creator paces around his room screaming 'He's not that guy, bro!'"
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "GET HIM OUT OF HERE!",
+  "key_line_t": 10.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's explosive physical energy and loud trash-talk create an infectious hype moment. While more esports excitement than pure comedy, his dramatic reaction makes it entertaining to watch."
+ }
+}

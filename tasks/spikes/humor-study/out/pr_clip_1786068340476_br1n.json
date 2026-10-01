@@ -1,0 +1,59 @@
+{
+ "key": "pr_clip_1786068340476_br1n",
+ "set": "published_render",
+ "clip_id": "clip_1786068340476_br1n",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3492,
+  "outputTokens": 1166,
+  "thoughtTokens": 738
+ },
+ "cost": 0.013982999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer makes a clutch save and immediately follows up with a fast goal in Rocket League, screaming in excitement.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer screams in excitement at the start of the drive."
+   },
+   {
+    "t": 12,
+    "type": "trigger",
+    "what": "Streamer makes a clutch save right at his own goal line."
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "Streamer reacts in disbelief, admitting he thought he missed it."
+   },
+   {
+    "t": 26.5,
+    "type": "payoff",
+    "what": "Streamer drives down field and slams the ball into the opponent's net."
+   }
+  ],
+  "payoff_t": 26.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "GET HIM OUTTA HERE!",
+  "key_line_t": 27,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is driven entirely by high-energy gameplay hype rather than comedy. The appeal lies in the impressive Rocket League save and recovery goal rather than humorous timing or comedic setups."
+ }
+}

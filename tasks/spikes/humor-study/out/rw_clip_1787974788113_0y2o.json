@@ -1,0 +1,65 @@
+{
+ "key": "rw_clip_1787974788113_0y2o",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787974788113_0y2o",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3283,
+  "outputTokens": 873,
+  "thoughtTokens": 444
+ },
+ "cost": 0.011472,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer gets hyped and celebrates watching a pro Valorant player win a round with 1 HP remaining.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches the tournament commentary and laughs along with the caster."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "Replay footage begins showing Bang's clutch play."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "Streamer hypes up Bang's aggressive play during the replay."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "Bang finishes the round with 1 HP remaining, causing the streamer to scream."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "Streamer flexes his muscles and laughs in hype celebration."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "One HP, bro!",
+  "key_line_t": 18,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is built around genuine esports hype rather than comedy beats or punchlines. The entertainment comes from the streamer's high energy reaction to an impressive 1 HP clutch."
+ }
+}

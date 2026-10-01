@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1789968002399_zqtu",
+ "set": "published_render",
+ "clip_id": "clip_1789968002399_zqtu",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2581,
+  "outputTokens": 1543,
+  "thoughtTokens": 1053
+ },
+ "cost": 0.015444000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer laughs hysterically when a player gets caught seconds into a hide-and-seek match after running straight into the seeker.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer notes the timer and says 'I'm cooked'."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "The seeker is spotted searching nearby."
+   },
+   {
+    "t": 11,
+    "type": "trigger",
+    "what": "The player runs past the tables right into the seeker's face."
+   },
+   {
+    "t": 14,
+    "type": "payoff",
+    "what": "The player gets caught instantly with an in-game scream."
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "Streamer breaks into uncontrollable wheezing laughter."
+   }
+  ],
+  "payoff_t": 14,
+  "hook_t": 1,
+  "author": "game_itself",
+  "mechanisms": [
+   "unexpected_outcome",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "14 seconds yeah I'm cooked",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The sudden turn directly into the enemy creates an instant, slapstick fail. The creator's wheezing, contagious laughter elevates the funny visual payoff."
+ }
+}

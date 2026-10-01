@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1787975841626_uqyx",
+ "set": "published_render",
+ "clip_id": "clip_1787975841626_uqyx",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3754,
+  "outputTokens": 1062,
+  "thoughtTokens": 635
+ },
+ "cost": 0.013596,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator hype-reacts passionately as Valorant pro players Asuna and Vora secure kills during a pro tournament clip.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches a 100T vs Lev Valorant pro clip silently."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "A player gets a kill and the streamer begins hyping up the play."
+   },
+   {
+    "t": 14,
+    "type": "escalation",
+    "what": "Another kill happens and the streamer starts screaming in hype."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "Streamer yells 'Get him outta here!' at the screen passionately."
+   },
+   {
+    "t": 24,
+    "type": "aftermath",
+    "what": "Streamer celebrates the clean round win."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 4,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Get him outta here!",
+  "key_line_t": 15,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is centered around energetic hype and pro gameplay reaction rather than deliberate comedy. The creator's high energy carries the viewer, but there are no punchlines or funny occurrences."
+ }
+}

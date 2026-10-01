@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_import_1790238939797_r2d9",
+ "set": "published_render",
+ "clip_id": "clip_import_1790238939797_r2d9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1581,
+  "outputTokens": 1421,
+  "thoughtTokens": 1005
+ },
+ "cost": 0.013029,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A female teammate compliments the streamer's voice, but he dryly brushes it off to focus on the match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A teammate tells the streamer he sounds like a cool guy."
+   },
+   {
+    "t": 2,
+    "type": "payoff",
+    "what": "The streamer dismisses the compliment with 'Appreciate it. Let's focus first.'"
+   },
+   {
+    "t": 4,
+    "type": "reaction",
+    "what": "Cut to a movie clip of an entire audience facepalming."
+   }
+  ],
+  "payoff_t": 3,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "deadpan_underreaction",
+   "unexpected_outcome",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "deadpan",
+   "calm_explaining"
+  ],
+  "key_line": "Appreciate it. Let's focus first.",
+  "key_line_t": 2,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "context_talk",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The streamer's business-first rejection of a flirtatious compliment creates a funny contrast between gaming focus and social interactions. The quick cut to a facepalm meme clip reinforces the awkwardness."
+ }
+}

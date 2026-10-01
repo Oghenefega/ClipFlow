@@ -1,0 +1,65 @@
+{
+ "key": "pr_clip_1787975501780_b2y7",
+ "set": "published_render",
+ "clip_id": "clip_1787975501780_b2y7",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1400,
+  "thoughtTokens": 895
+ },
+ "cost": 0.014919,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with loud disbelief to a fast, unbelievable multi-kill clutch by pro Valorant player Spikezin.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches Valorant pro match stream with caster commentary."
+   },
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Spikezin pushes through site and takes initial gunfights."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Spikezin rapidly wipes out enemy after enemy."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Creator screams in shock and puts his hands over his head."
+   },
+   {
+    "t": 16,
+    "type": "aftermath",
+    "what": "Creator sits in awe as the flawless round replay finishes."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 3,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "YOU GOTTA BE JOKING! OH MY GOD!",
+  "key_line_t": 7.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is built entirely around hype and shock from a high-skill esports highlight rather than actual comedic structure. The creator functions as an hype-man, amplifying the impressive play through shouting."
+ }
+}

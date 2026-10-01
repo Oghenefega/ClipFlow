@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1788755071329_oo71",
+ "set": "published_render",
+ "clip_id": "clip_1788755071329_oo71",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3401,
+  "outputTokens": 1535,
+  "thoughtTokens": 1095
+ },
+ "cost": 0.016613999999999997,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with disbelief and excitement while watching an intense Valorant esports pro clutch.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator reacts in disbelief to the ongoing round, saying 'No freaking way, dude'."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "He holds his head in shock as he tracks the low-probability clutch unfolding."
+   },
+   {
+    "t": 23,
+    "type": "trigger",
+    "what": "The pro player rapidly eliminates the final enemies as the casters scream."
+   },
+   {
+    "t": 25,
+    "type": "payoff",
+    "what": "The round is won and the creator exclaims 'Oh my goodness' in total shock."
+   }
+  ],
+  "payoff_t": 25,
+  "hook_t": 1,
+  "author": "mixed",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Oh my goodness",
+  "key_line_t": 25,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This is an esports hype clip rather than a comedy moment. The clip relies on high-level gameplay excitement and fast caster commentary rather than comedic setups or payoffs."
+ }
+}

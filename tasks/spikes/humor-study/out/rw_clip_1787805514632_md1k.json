@@ -1,0 +1,62 @@
+{
+ "key": "rw_clip_1787805514632_md1k",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_md1k",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5632,
+  "outputTokens": 1174,
+  "thoughtTokens": 651
+ },
+ "cost": 0.017252999999999998,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer reacts to footage of a humanoid robot playing table tennis, roasting its awkward movements before having a dramatic, philosophical realization about human uniqueness.",
+  "beats": [
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Creator shows footage of a robot playing table tennis and claims he could school it."
+   },
+   {
+    "t": 16,
+    "type": "escalation",
+    "what": "Creator mocks the robot's janky leg movements and balancing struggles."
+   },
+   {
+    "t": 31,
+    "type": "payoff",
+    "what": "Creator turns remarkably dramatic, declaring the robot's clumsiness makes him realize how special humans are."
+   },
+   {
+    "t": 45,
+    "type": "aftermath",
+    "what": "Creator marvels with wide eyes at how robot tech is still so shaky despite decades of effort."
+   }
+  ],
+  "payoff_t": 31,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "This makes me realize how special we are as humans.",
+  "key_line_t": 31,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the creator taking a clip of an awkward robot and giving it an hilariously grand, existential commentary about human superiority. His exaggerated disbelief and dramatic sincerity contrast amusingly with the stiff, mechanical footage on screen."
+ }
+}

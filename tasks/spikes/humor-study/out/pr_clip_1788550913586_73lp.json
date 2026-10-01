@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788550913586_73lp",
+ "set": "published_render",
+ "clip_id": "clip_1788550913586_73lp",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1943,
+  "outputTokens": 941,
+  "thoughtTokens": 481
+ },
+ "cost": 0.009972,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator passionately celebrates rival team NRG having to call two timeouts in a single half against 100 Thieves.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator yells about NRG taking two timeouts in one half."
+   },
+   {
+    "t": 2.5,
+    "type": "escalation",
+    "what": "Creator slams desk and stands up hyped."
+   },
+   {
+    "t": 5.5,
+    "type": "payoff",
+    "what": "Creator shouts that 100 Thieves is inside NRG's heads."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Creator points to his 100 Thieves shirt, boasting about the team."
+   }
+  ],
+  "payoff_t": 5.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "We're in their heads, I'm telling you!",
+  "key_line_t": 5.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The clip relies on animated esports trash-talk energy and team pride. While entertaining for fans of the esport, it serves more as fan hypeman footage than a traditional comedic bit."
+ }
+}

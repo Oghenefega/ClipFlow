@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1787805514632_d24c",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_d24c",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2028,
+  "outputTokens": 1242,
+  "thoughtTokens": 758
+ },
+ "cost": 0.012357,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer reacts with disbelief when a human referee issues a yellow card to a humanoid soccer robot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator introduces the video clip of robot sports."
+   },
+   {
+    "t": 2.5,
+    "type": "setup",
+    "what": "Creator remarks that the situation is so weird."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "The referee holds up a yellow card directly in front of a robot."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "Creator points out the absurdity of giving a card to a robot."
+   },
+   {
+    "t": 10.5,
+    "type": "aftermath",
+    "what": "Creator laughs in confusion as the video cuts to the robots playing."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "mixed",
+  "mechanisms": [
+   "unexpected_outcome",
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "did I just witness this guy give a yellow card to a freaking robot",
+  "key_line_t": 5.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The sight of a human referee formally enforcing rules on a robot with a yellow card provides instant visual absurdity. The creator's genuine confusion echoes what any viewer is thinking."
+ }
+}

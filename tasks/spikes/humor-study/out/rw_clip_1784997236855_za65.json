@@ -1,0 +1,59 @@
+{
+ "key": "rw_clip_1784997236855_za65",
+ "set": "rejected_raw",
+ "clip_id": "clip_1784997236855_za65",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1343,
+  "thoughtTokens": 914
+ },
+ "cost": 0.0141465,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer carefully times his movements to guide a fragile egg past swinging obstacles and onto a ramp.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer boasts that his timing on the previous section was immaculate."
+   },
+   {
+    "t": 5,
+    "type": "setup",
+    "what": "Streamer counts out loud to time the egg's jump past moving obstacles."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "The egg successfully crosses onto the long wooden ramp."
+   },
+   {
+    "t": 20,
+    "type": "reaction",
+    "what": "Streamer expresses relieved excitement as the egg rolls safely."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "The timing on that was immaculate guys, let's be for real.",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip showcases tense, focused gameplay skill rather than comedic humor. The entertainment comes from the relief of successfully timing a difficult maneuver rather than a humorous failure or joke."
+ }
+}

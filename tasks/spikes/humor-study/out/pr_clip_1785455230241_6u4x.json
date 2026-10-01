@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1785455230241_6u4x",
+ "set": "published_render",
+ "clip_id": "clip_1785455230241_6u4x",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2211,
+  "outputTokens": 1408,
+  "thoughtTokens": 909
+ },
+ "cost": 0.0138765,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer takes a risky off-road shortcut, nearly crashes off a cliff while yelling in panic, but surprisingly survives and makes it to the finish area.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer speeds down the track and decides to take a shortcut."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "He reassures himself he has control right as he veers off the edge."
+   },
+   {
+    "t": 7.5,
+    "type": "trigger",
+    "what": "The car bounces dangerously near the rocks as he begs not to die."
+   },
+   {
+    "t": 10.5,
+    "type": "payoff",
+    "what": "The car miraculously lands safely near the goal."
+   },
+   {
+    "t": 11.5,
+    "type": "reaction",
+    "what": "He screams in total disbelief and hype at surviving."
+   }
+  ],
+  "payoff_t": 10.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "NO FREAKING WAY DUDE I GOT TO THE BACK OF THE THINGY",
+  "key_line_t": 11,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "This clip operates more on gameplay excitement and high tension than jokes or comedic structure. The humor comes solely from the chaotic, loud reaction after a wild shortcut clutch save."
+ }
+}

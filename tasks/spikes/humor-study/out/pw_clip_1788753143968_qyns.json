@@ -1,0 +1,59 @@
+{
+ "key": "pw_clip_1788753143968_qyns",
+ "set": "published_raw",
+ "clip_id": "clip_1788753143968_qyns",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3283,
+  "outputTokens": 1405,
+  "thoughtTokens": 955
+ },
+ "cost": 0.015462,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with quiet awe as a professional Valorant player pulls off an incredible Sheriff multi-kill during a tournament match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches a high-stakes Valorant round unfold"
+   },
+   {
+    "t": 3,
+    "type": "payoff",
+    "what": "The pro player lands incredible Sheriff headshots to win the round"
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Streamer stares in total disbelief as the crowd erupts"
+   },
+   {
+    "t": 13,
+    "type": "aftermath",
+    "what": "Streamer admits 'Jesus, that was insane' as the replay begins"
+   }
+  ],
+  "payoff_t": 3,
+  "hook_t": 1,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "disbelief",
+   "whisper_or_mutter"
+  ],
+  "key_line": "Jesus, that was insane.",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This clip is built around high-skill gameplay hype rather than comedy. The creator's quiet disbelief emphasizes the difficulty of the play on screen rather than delivering a comedic punchline."
+ }
+}

@@ -1,0 +1,54 @@
+{
+ "key": "pw_clip_1787860936676_3epl",
+ "set": "published_raw",
+ "clip_id": "clip_1787860936676_3epl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2392,
+  "outputTokens": 926,
+  "thoughtTokens": 521
+ },
+ "cost": 0.010533,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator discusses character customization mechanics in an upcoming game while reacting to gameplay clips.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator starts explaining that you can gain weight in the game."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "He notes you can actually get fat or muscular."
+   },
+   {
+    "t": 17,
+    "type": "reaction",
+    "what": "He finishes his thought with a skeptical 'Ain't no way'."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "So apparently you can add weight in this game... like you can actually get fat in this game, or get muscular and stuff like that.",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This is primarily an informational commentary clip discussing gameplay rumors rather than a clip built for comedy. It lacks a clear punchline, setup-payoff structure, or comedic reaction."
+ }
+}

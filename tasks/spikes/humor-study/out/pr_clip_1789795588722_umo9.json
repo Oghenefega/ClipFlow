@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1789795588722_umo9",
+ "set": "published_render",
+ "clip_id": "clip_1789795588722_umo9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1374,
+  "thoughtTokens": 876
+ },
+ "cost": 0.0140415,
+ "watch": {
+  "format": "gameplay",
+  "summary": "While complaining about a map's photorealistic art, the creator gets startled when a hidden player suddenly runs right past him.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator complains about the map design and photorealistic photos."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He walks right past a poster without noticing the hiding player standing in front of it."
+   },
+   {
+    "t": 10,
+    "type": "trigger",
+    "what": "A small white prop figure suddenly runs across the room right next to him."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "The creator screams loudly in terror and frantic shock as he shoots the prop."
+   },
+   {
+    "t": 15,
+    "type": "reaction",
+    "what": "He laughs, realizing the player was camouflaged against the white picture on the wall."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "jumpscare",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "He was just blending in with the white shirt!",
+  "key_line_t": 16,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The sudden transition from calm commentary to a high-pitched scream creates a hilarious jump-scare comedic beat. The visual irony of the opponent hiding in plain sight right under his nose makes the reaction even funnier."
+ }
+}

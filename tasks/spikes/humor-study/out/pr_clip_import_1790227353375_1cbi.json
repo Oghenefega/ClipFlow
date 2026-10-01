@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_import_1790227353375_1cbi",
+ "set": "published_render",
+ "clip_id": "clip_import_1790227353375_1cbi",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3583,
+  "outputTokens": 1541,
+  "thoughtTokens": 1038
+ },
+ "cost": 0.016932,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Valorant player frantically clears the site while holding angles for his team, only to realize the last enemy was already dead.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer plays intensely while text overlay labels him as unaware."
+   },
+   {
+    "t": 3,
+    "type": "context",
+    "what": "The enemy dies, but the streamer misses the top bar notification."
+   },
+   {
+    "t": 10,
+    "type": "escalation",
+    "what": "Streamer nervously checks every corner and holds angles thinking enemy is near."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "Streamer looks at the top bar and realizes the enemy is already dead."
+   },
+   {
+    "t": 21,
+    "type": "reaction",
+    "what": "Streamer bursts into hysterical laughter recounting how paranoid he was."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "confusion",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing",
+   "yelling"
+  ],
+  "key_line": "SHE'S DEAD?!",
+  "key_line_t": 21,
+  "other_voices": "friends_or_teammates",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The contrast between the creator's hyper-focused, paranoid game play and the reality that the round was already over creates instant comedic irony. His genuine, hilarious reaction upon realizing his mistake seals the punchline."
+ }
+}

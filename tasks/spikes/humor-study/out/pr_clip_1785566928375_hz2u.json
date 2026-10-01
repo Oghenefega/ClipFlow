@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1785566928375_hz2u",
+ "set": "published_render",
+ "clip_id": "clip_1785566928375_hz2u",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2849,
+  "outputTokens": 940,
+  "thoughtTokens": 567
+ },
+ "cost": 0.0113235,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer excitedly celebrates reaching the Champion rank in Rocket League.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "payoff",
+    "what": "Streamer screams with joy upon seeing he hit Champ rank."
+   },
+   {
+    "t": 0.5,
+    "type": "reaction",
+    "what": "Streamer continues cheering and laughing in disbelief."
+   },
+   {
+    "t": 0.18,
+    "type": "aftermath",
+    "what": "Streamer claps and asks for W's in the chat."
+   }
+  ],
+  "payoff_t": 0,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "wholesome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "WE GOT CHAMP!",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip focuses on pure energetic celebration and personal milestone achievement rather than comedy. While wholesome and fun to watch, there is no joke setup, subversion, or punchline."
+ }
+}

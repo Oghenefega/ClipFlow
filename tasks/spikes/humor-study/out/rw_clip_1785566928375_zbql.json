@@ -1,0 +1,55 @@
+{
+ "key": "rw_clip_1785566928375_zbql",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785566928375_zbql",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3121,
+  "outputTokens": 1236,
+  "thoughtTokens": 818
+ },
+ "cost": 0.013951499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer plays Rocket League and tempts fate by declaring that the opposing team cannot score two goals in 16 seconds.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "context",
+    "what": "Opponent scores a goal to make the score 3-1 with 17 seconds left."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "Streamer compliments the opponent's shot."
+   },
+   {
+    "t": 16,
+    "type": "setup",
+    "what": "Streamer confidently says there is no way they score two goals in 16 seconds."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 16,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "Surely there's no way they score two more goals in 16 seconds.",
+  "key_line_t": 16,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The streamer delivers a classic jinx setup by claiming the opponent can't score in time. However, the clip ends before any payoff or fast counter-goal occurs, leaving the joke incomplete."
+ }
+}

@@ -1,0 +1,55 @@
+{
+ "key": "rw_clip_1787202782990_y5rt",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202782990_y5rt",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2392,
+  "outputTokens": 954,
+  "thoughtTokens": 523
+ },
+ "cost": 0.010742999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer watches a Valorant match where 100 Thieves wins and remarks that he needs to watch more of their matches specifically.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches player Cryo speak in a post-match interview clip."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Gameplay clip cuts in showing fast-paced round-winning plays."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Streamer admits he misses watching 100 Thieves Valorant and needs to watch more of them."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "informational_not_comedy",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "calm_explaining"
+  ],
+  "key_line": "I need to watch some more Valorant, 100 Thieves at least, not Valorant in general.",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": true,
+  "why": "This clip is casual esport reaction commentary rather than a comedy beat. It contains no joke, overreaction, or punchline."
+ }
+}

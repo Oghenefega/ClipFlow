@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1785566928375_euuh",
+ "set": "published_render",
+ "clip_id": "clip_1785566928375_euuh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 1069,
+  "thoughtTokens": 653
+ },
+ "cost": 0.0135285,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player makes a clutch save, scores the winning goal in overtime, and celebrates unlocking Champion rank.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer plays intense Rocket League overtime."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "Makes a clutch save and shouts 'Not on my watch!'"
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Scores the game-winning overtime goal."
+   },
+   {
+    "t": 23,
+    "type": "reaction",
+    "what": "Sees the Champion rank unlocked on screen and cheers loudly."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "wholesome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "WE GOT CHAMP!",
+  "key_line_t": 23,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip is driven by exciting high-stakes gameplay and genuine victory celebration rather than comedic setups. It works as a hype, wholesome moment for competitive gaming fans."
+ }
+}

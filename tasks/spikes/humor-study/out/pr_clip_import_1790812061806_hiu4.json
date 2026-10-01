@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_import_1790812061806_hiu4",
+ "set": "published_render",
+ "clip_id": "clip_import_1790812061806_hiu4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2027,
+  "outputTokens": 1161,
+  "thoughtTokens": 688
+ },
+ "cost": 0.011748,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer repeatedly throws flashes during a chaotic Valorant round, only to discover at the end that he blinded four teammates and only one enemy.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts trading flashes with an enemy around a corner."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "He gets flashed again and immediately throws another flash back."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "The round stats screen pops up showing he blinded 4 allies and 1 enemy."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Streamer reads his blinding stats out loud and bursts into laughter."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "teammate_chaos"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Allies blinded: four. Enemies blinded: one.",
+  "key_line_t": 7.5,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The post-round stat popup delivers a clean, unexpected punchline revealing how terribly he sabotaged his own team. His reaction to reading his own embarrassing stat makes the self-own funny even to non-gamers."
+ }
+}

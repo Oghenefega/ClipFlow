@@ -1,0 +1,59 @@
+{
+ "key": "pr_clip_1788755772243_e1hk",
+ "set": "published_render",
+ "clip_id": "clip_1788755772243_e1hk",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1084,
+  "thoughtTokens": 627
+ },
+ "cost": 0.011866499999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with intense hype as pro player Bang pull off a multi-kill round in a Valorant match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Casters describe Bang holding a defensive angle against LOUD's push."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "Bang quickly lands consecutive kills on the incoming players."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "The creator reacts with shock and screams 'LET'S GO!' as the kills mount."
+   },
+   {
+    "t": 15,
+    "type": "aftermath",
+    "what": "The creator stands up out of his chair yelling 'GET HIM OUT OF HERE BRO!' after Bang secures the round win."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 7,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "GET HIM OUT OF HERE BRO!",
+  "key_line_t": 15,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This is a excitement-focused hype clip showcasing an impressive pro gaming moment rather than a comedic setup or punchline. The humor relies solely on high energy shouting and hype reaction."
+ }
+}

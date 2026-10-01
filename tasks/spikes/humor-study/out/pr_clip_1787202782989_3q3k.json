@@ -1,0 +1,57 @@
+{
+ "key": "pr_clip_1787202782989_3q3k",
+ "set": "published_render",
+ "clip_id": "clip_1787202782989_3q3k",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2388,
+  "outputTokens": 1314,
+  "thoughtTokens": 855
+ },
+ "cost": 0.013437000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with hilarious disbelief and hype upon learning that esports team 100 Thieves won their first international grand finals after being in the gutter for so long.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Footage shows a 100 Thieves player talking about reaching their first international grand finals."
+   },
+   {
+    "t": 4.5,
+    "type": "trigger",
+    "what": "Creator roasts 100 Thieves, saying they've been in the gutter for so long."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "Creator bursts out laughing and celebrates that they are 1 for 1 in grand finals."
+   }
+  ],
+  "payoff_t": 13.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "mock_outrage"
+  ],
+  "key_line": "100 Thieves has been in the gutter for so long, what?!",
+  "key_line_t": 5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The humor relies on the creator's blunt insult about the team's past performance contrasting with his sudden, hyped celebration of their win. Without knowledge of the esports scene, the humor is less impactful."
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1789524996681_z76g",
+ "set": "published_raw",
+ "clip_id": "clip_1789524996681_z76g",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1897,
+  "outputTokens": 1017,
+  "thoughtTokens": 568
+ },
+ "cost": 0.010473,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs hysterically after catching a crowd member's funny expression change on camera during a Valorant match stream.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The broadcast shows a camera shot of an audience member looking up at the stadium screen."
+   },
+   {
+    "t": 0.4,
+    "type": "trigger",
+    "what": "The fan notices she is on the big screen and instantly poses."
+   },
+   {
+    "t": 0.5,
+    "type": "payoff",
+    "what": "The creator cracks up laughing and mocks her sudden pose shift."
+   },
+   {
+    "t": 0.8,
+    "type": "reaction",
+    "what": "The creator clutches his head in laughter as the game replay starts."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "She's like ah, gotta look pretty!",
+  "key_line_t": 5.2,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's quick observation and contagious laughter transform a subtle, relatable crowd moment into an amusing beat."
+ }
+}

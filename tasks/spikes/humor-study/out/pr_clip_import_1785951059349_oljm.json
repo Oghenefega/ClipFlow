@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_import_1785951059349_oljm",
+ "set": "published_render",
+ "clip_id": "clip_import_1785951059349_oljm",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1853,
+  "outputTokens": 1421,
+  "thoughtTokens": 1012
+ },
+ "cost": 0.013437000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer tries to hide in tall reeds from an enemy drone, whispering in fear before screaming as he gets spotted and shot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer hides in tall grass as a drone approaches."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "He whispers nervously, begging the drone not to scan him."
+   },
+   {
+    "t": 7,
+    "type": "trigger",
+    "what": "The drone hovers directly over him and scans his position."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "He bursts into a high-pitched scream and flees as lasers fire at him."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "jumpscare"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "yelling"
+  ],
+  "key_line": "Don't scan me!",
+  "key_line_t": 6,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The dynamic contrast between his tense, quiet whispering while hiding and his sudden high-pitched scream when spotted delivers immediate comedic value."
+ }
+}

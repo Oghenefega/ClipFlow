@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1787202782990_fnrv",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202782990_fnrv",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3445,
+  "outputTokens": 1080,
+  "thoughtTokens": 598
+ },
+ "cost": 0.0132675,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts to a vlog of esports players playing a trivia game, expressing disbelief when a player fails to guess a well-known movie.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches vlog footage of an esports event backstage."
+   },
+   {
+    "t": 10,
+    "type": "context",
+    "what": "Pro player puts a phone on his forehead to play a Heads Up style guessing game."
+   },
+   {
+    "t": 18,
+    "type": "trigger",
+    "what": "Teammate gives clue 'movie about a guy who ages in reverse' and the player fails to guess it."
+   },
+   {
+    "t": 25,
+    "type": "payoff",
+    "what": "Streamer expresses mild shock that the player did not know the movie."
+   }
+  ],
+  "payoff_t": 25,
+  "hook_t": 1,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "That's crazy that this guy doesn't know... That's Brad Pitt I think.",
+  "key_line_t": 26,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The streamer reacts with mild disbelief as a pro player misses an easy pop culture clue during a casual game. While relatable, the clip lacks a major comedic escalation or punchline."
+ }
+}

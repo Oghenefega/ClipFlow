@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788751719526_g1ky",
+ "set": "published_render",
+ "clip_id": "clip_1788751719526_g1ky",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2487,
+  "outputTokens": 1171,
+  "thoughtTokens": 677
+ },
+ "cost": 0.012513,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator acts as an overly passionate hypeman for a Valorant esports team that is losing, shouting motivational advice at the screen.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Esports footage shows a Valorant team looking solemn and defeated while down 2-5."
+   },
+   {
+    "t": 0.5,
+    "type": "trigger",
+    "what": "The creator starts loudly yelling like an intense hype coach."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "The creator passionately urges them to dig deep and rally back."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "The creator shouts 'Wipe that frown from your faces! It's all part of the plan!'"
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "narrating"
+  ],
+  "key_line": "Wipe that frown from your faces! It's all part of the plan, ladies and gentlemen!",
+  "key_line_t": 12,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The humor stems from the creator treating a pro esports broadcast like a live locker room pep talk. His extreme, intense coach-like delivery contrasts comically with the stoic facecams of the losing players."
+ }
+}

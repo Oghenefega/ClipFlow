@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1788645608198_or5d",
+ "set": "published_render",
+ "clip_id": "clip_1788645608198_or5d",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1943,
+  "outputTokens": 1281,
+  "thoughtTokens": 875
+ },
+ "cost": 0.012522,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer passionately celebrates team NRG calling two timeouts against 100 Thieves, claiming 100 Thieves is inside their heads.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer excitedly points out that the opposing team called two timeouts in a single half."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "He slams his desk and stands up from his chair in excitement."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "He screams that 100 Thieves is in their heads and flexes the logo on his shirt."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief"
+  ],
+  "key_line": "We're in their heads! I'm telling you!",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "The clip relies on esports context to understand why taking two timeouts signifies mental defeat. It delivers high-energy hype and fan passion rather than structured comedy."
+ }
+}

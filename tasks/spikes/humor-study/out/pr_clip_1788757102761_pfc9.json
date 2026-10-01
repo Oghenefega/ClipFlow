@@ -1,0 +1,56 @@
+{
+ "key": "pr_clip_1788757102761_pfc9",
+ "set": "published_render",
+ "clip_id": "clip_1788757102761_pfc9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2208,
+  "outputTokens": 1258,
+  "thoughtTokens": 846
+ },
+ "cost": 0.012747000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer laughs while commenting on a heartbroken couple in the crowd at an esports tournament.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Footage shows a distraught couple in the crowd at the Valorant finals."
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "The streamer points out the risk of bringing your girlfriend to watch your team lose."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The streamer jokes that she might break up with him over this and bursts out laughing."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "She might break up with you.",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator turns a sad broadcast crowd shot into a funny hypothetical about a ruined date night. His infectious laughter and mock commentary make the situation relatable and humorous."
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1788424153057_9loo",
+ "set": "published_raw",
+ "clip_id": "clip_1788424153057_9loo",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7900,
+  "outputTokens": 1621,
+  "thoughtTokens": 1116
+ },
+ "cost": 0.0240075,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer panics as he accidentally ruins his character's pose and tries to re-blend into a wall painting before the hiding phase timer expires.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "context",
+    "what": "Streamer admits he is in trouble with the hiding timer ticking down."
+   },
+   {
+    "t": 15,
+    "type": "trigger",
+    "what": "Accidentally opens the pose wheel and shifts his character."
+   },
+   {
+    "t": 29,
+    "type": "payoff",
+    "what": "Screams in distress as he forgets his original hidden pose."
+   },
+   {
+    "t": 42,
+    "type": "escalation",
+    "what": "Thinks he fixed it but realizes only 60 seconds remain."
+   },
+   {
+    "t": 104,
+    "type": "payoff",
+    "what": "Frantically figures out how to use the painting tool to cover his mistakes."
+   }
+  ],
+  "payoff_t": 29,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "overreaction",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "What was the pose I had before? Oh God!",
+  "key_line_t": 28,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "mid_action",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The streamer's sudden frantic distress after messing up a simple pose creates funny high-stakes panic humor. His exaggerated screams and race against the ticking timer carry the clip well."
+ }
+}

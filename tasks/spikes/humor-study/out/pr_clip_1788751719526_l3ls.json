@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788751719526_l3ls",
+ "set": "published_render",
+ "clip_id": "clip_1788751719526_l3ls",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1581,
+  "outputTokens": 1580,
+  "thoughtTokens": 1143
+ },
+ "cost": 0.0142215,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with shock and hype to pro Valorant player LOUD Erde's dominant scoreboard stats.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer calls out Erde's 11-3 stat line."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Streamer asks in disbelief where LOUD found this player."
+   },
+   {
+    "t": 4.5,
+    "type": "payoff",
+    "what": "Streamer exclaims again at the 11-2 score."
+   },
+   {
+    "t": 6.5,
+    "type": "reaction",
+    "what": "Streamer holds his forehead in amazement."
+   }
+  ],
+  "payoff_t": 4.5,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "disbelief",
+   "yelling"
+  ],
+  "key_line": "Where did they find this dude?",
+  "key_line_t": 3,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip functions as esports hype and disbelief rather than intentional comedy. It relies on the viewer understanding Valorant match context and scoreboard stats to appreciate the moment."
+ }
+}

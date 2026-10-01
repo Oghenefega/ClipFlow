@@ -1,0 +1,62 @@
+{
+ "key": "pw_clip_1788757566420_f7dn",
+ "set": "published_raw",
+ "clip_id": "clip_1788757566420_f7dn",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4012,
+  "outputTokens": 1219,
+  "thoughtTokens": 719
+ },
+ "cost": 0.0151605,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with humorous disbelief and mock outrage as a fan aggressively grabs an esports player for a selfie during a crowd walkthrough.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches post-match footage of an esports team celebrating in the crowd."
+   },
+   {
+    "t": 7.5,
+    "type": "trigger",
+    "what": "A fan aggressively reaches out and pulls player eeiu for a photo."
+   },
+   {
+    "t": 11.5,
+    "type": "payoff",
+    "what": "Streamer points at the screen and scolds the fan in mock outrage."
+   },
+   {
+    "t": 17.5,
+    "type": "reaction",
+    "what": "Streamer covers his mouth in laughing shock at the invasive fan gesture."
+   }
+  ],
+  "payoff_t": 11.5,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "roast_or_banter",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Hey, hey, hey, I'm out of line. Okay? I'm out of line. Don't do that bro, come on man.",
+  "key_line_t": 11.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's energetic mock-outrage at the fan's overly aggressive selfie grab creates a fun, relatable moment. His playful scolding turns an awkward crowd interaction into lighthearted comedy."
+ }
+}

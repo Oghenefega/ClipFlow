@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1790099916957_olg3",
+ "set": "published_render",
+ "clip_id": "clip_1790099916957_olg3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4487,
+  "outputTokens": 1053,
+  "thoughtTokens": 545
+ },
+ "cost": 0.014627999999999999,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts to footage of humanoid robot competitions, humorously declaring that the robot takeover has begun and that he needs to flee to Nigeria.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator dramatically claims we are living in the end times while footage of robots marching appears."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator warns that people are disguising the robot takeover as the robot Olympics."
+   },
+   {
+    "t": 16,
+    "type": "trigger",
+    "what": "Footage shows workers carrying broken/fallen robots off the field."
+   },
+   {
+    "t": 27,
+    "type": "payoff",
+    "what": "Creator announces he is moving back to Nigeria because 'the West is cooked'."
+   },
+   {
+    "t": 35,
+    "type": "aftermath",
+    "what": "Creator laughs and talks about escaping far away from this robot chaos."
+   }
+  ],
+  "payoff_t": 27,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "overreaction"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "narrating",
+   "laughing"
+  ],
+  "key_line": "I'm going back to Nigeria man, because the West is cooked.",
+  "key_line_t": 29,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator delivers a funny comedic monologue by framing futuristic robot footage as a terrifying apocalypse, culminating in the punchline that he's fleeing back home."
+ }
+}

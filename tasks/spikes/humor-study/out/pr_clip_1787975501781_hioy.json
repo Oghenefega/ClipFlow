@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_1787975501781_hioy",
+ "set": "published_render",
+ "clip_id": "clip_1787975501781_hioy",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2397,
+  "outputTokens": 1268,
+  "thoughtTokens": 719
+ },
+ "cost": 0.0131055,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with contagious laughter as a pro Valorant player completely misses an opponent and empties his clip into a wall.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer watches a tense 1v1 clutch moment in a pro Valorant match."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "The player fails to see the enemy and shoots wildly into thin air as time runs out."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "The caster yells 'He's blind as a bat!' as the round is lost."
+   },
+   {
+    "t": 5,
+    "type": "reaction",
+    "what": "The streamer bursts into hysterical laughter and puts his hands over his head."
+   },
+   {
+    "t": 13,
+    "type": "aftermath",
+    "what": "The streamer jokes about the player emptying his full clip directly against a wall."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "self_own_fail",
+   "unexpected_outcome",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "He's blind as a bat! Couldn't see a thing!",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedy stems from the dramatic contrast between professional esports expectation and an embarrassingly blind whiff. The excited caster callout and the streamer's genuine, contagious laughter make the clip instantly funny to anyone."
+ }
+}

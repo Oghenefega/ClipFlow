@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1787202782989_rdv8",
+ "set": "published_render",
+ "clip_id": "clip_1787202782989_rdv8",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1854,
+  "outputTokens": 958,
+  "thoughtTokens": 516
+ },
+ "cost": 0.009966,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts with hilarity as he misinterprets an esports team's huddle chant as 'ding dong chief'.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator watches footage of an esports team and asks what they are saying."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "The esports team shouts their pre-match huddle chant."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "The creator yells 'Ding dong chief!' and bursts into laughter."
+   },
+   {
+    "t": 8,
+    "type": "reaction",
+    "what": "The creator laughs, admitting he isn't sure if that's really what they said."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "confusion"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Ding dong chief!",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the creator's absurd mishearing of a team chant as 'ding dong chief'. His infectious laughter and sudden realization make the short moment charming."
+ }
+}

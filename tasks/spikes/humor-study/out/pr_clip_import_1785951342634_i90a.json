@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_import_1785951342634_i90a",
+ "set": "published_render",
+ "clip_id": "clip_import_1785951342634_i90a",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 1278,
+  "thoughtTokens": 888
+ },
+ "cost": 0.0122295,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer loudly boasts that enemies cannot see him before shooting an opponent and telling them to get out of his face.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer taunts loudly, claiming enemies can't see him."
+   },
+   {
+    "t": 4.5,
+    "type": "escalation",
+    "what": "He pauses and aims down sights toward the enemy."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "He shoots and kills the enemy, shouting 'Out of my face'."
+   }
+  ],
+  "payoff_t": 7.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating"
+  ],
+  "key_line": "YOU CAN'T SEE ME",
+  "key_line_t": 1.5,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "The clip relies on standard gamer bravado and a straightforward kill, lacking a subversion or genuine comedic punchline. It plays more as a routine gameplay hype moment than comedy."
+ }
+}

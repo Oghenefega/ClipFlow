@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1785358945275_ywit",
+ "set": "rejected_raw",
+ "clip_id": "clip_1785358945275_ywit",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2392,
+  "outputTokens": 981,
+  "thoughtTokens": 560
+ },
+ "cost": 0.0109455,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator laughs infectiously while rewatching a Rocket League goal and gently teasing his opponent's positioning.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "A goal is scored in Rocket League and the replay begins showing the ball hitting the post."
+   },
+   {
+    "t": 1,
+    "type": "payoff",
+    "what": "The creator bursts into laughter reading a chat message."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "He questions how the opponent ended up hitting the goal post."
+   },
+   {
+    "t": 13,
+    "type": "aftermath",
+    "what": "He concludes it was unfortunate and prepares for the kickoff."
+   }
+  ],
+  "payoff_t": 1,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "Dude said okay... okay",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The creator's genuine and warm laughter carries the clip, though the moment itself is a fairly standard lighthearted gaming interaction."
+ }
+}

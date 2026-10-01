@@ -1,0 +1,65 @@
+{
+ "key": "pw_clip_1788757566420_10x4",
+ "set": "published_raw",
+ "clip_id": "clip_1788757566420_10x4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2554,
+  "outputTokens": 1213,
+  "thoughtTokens": 706
+ },
+ "cost": 0.0129285,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer bursts into laughter after hearing an official VCT trailer promote an upcoming tournament location by highlighting its 'great transit'.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches an official Valorant esports trailer."
+   },
+   {
+    "t": 5,
+    "type": "setup",
+    "what": "The trailer narrator lists selling points: 'great food, great transit, and even better competition'."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "The streamer bursts out laughing at 'great transit'."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "Streamer cracks up repeating 'Great food, great transit! I'm sold!'"
+   },
+   {
+    "t": 15,
+    "type": "aftermath",
+    "what": "Streamer continues giggling and gives a thumbs up as the video continues."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "laughing"
+  ],
+  "key_line": "Great food, great transit, I'm sold!",
+  "key_line_t": 10,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The streamer highlights the absurdity of an esports tournament trailer using public transportation as a key hype point. His genuine, infectious laughter carries the quick reaction.",
+  "opens_with_option": "context_talk"
+ }
+}

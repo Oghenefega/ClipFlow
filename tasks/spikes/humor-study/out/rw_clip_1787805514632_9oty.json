@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1787805514632_9oty",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_9oty",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3202,
+  "outputTokens": 1343,
+  "thoughtTokens": 826
+ },
+ "cost": 0.0148755,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs in disbelief while watching a clip of humanoid robots running and making unnaturally huge leaps on a track.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator plays a Twitter video about a new method for running robots."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "The creator starts laughing at how the robot on the left is moving."
+   },
+   {
+    "t": 12,
+    "type": "payoff",
+    "what": "The camera zooms in on the robot taking huge, bizarre leaping strides."
+   },
+   {
+    "t": 14,
+    "type": "reaction",
+    "what": "Creator laughs and asks 'What is this, bro?'"
+   },
+   {
+    "t": 20,
+    "type": "escalation",
+    "what": "Creator holds his hands up describing how terrifying it would be to see that jumping at you in real life."
+   }
+  ],
+  "payoff_t": 12,
+  "hook_t": 9,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Can you imagine that jumping? That is literally the scariest thing to imagine.",
+  "key_line_t": 20,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual of a robot taking giant, comical leaps down a track is instantly funny on its own. The creator's genuine laughter and dramatic reaction to how terrifying it looks adds to the comedy."
+ }
+}

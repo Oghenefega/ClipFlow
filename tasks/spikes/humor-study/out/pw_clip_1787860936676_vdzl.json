@@ -1,0 +1,60 @@
+{
+ "key": "pw_clip_1787860936676_vdzl",
+ "set": "published_raw",
+ "clip_id": "clip_1787860936676_vdzl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2959,
+  "outputTokens": 1552,
+  "thoughtTokens": 1086
+ },
+ "cost": 0.0160785,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator watches and comments on gameplay footage showing combat and elevator cutscenes.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator points out that the footage is still using the classic GTA font."
+   },
+   {
+    "t": 0.08,
+    "type": "escalation",
+    "what": "He remarks on how quintessential GTA the scene looks during gunplay."
+   },
+   {
+    "t": 0.18,
+    "type": "trigger",
+    "what": "An NPC in the footage claims his gun isn't loaded before getting shot."
+   },
+   {
+    "t": 0.22,
+    "type": "payoff",
+    "what": "The creator opens his mouth in quiet surprise at the sudden execution."
+   }
+  ],
+  "payoff_t": 20,
+  "hook_t": 0,
+  "author": "game_itself",
+  "mechanisms": [
+   "unexpected_outcome",
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "disbelief"
+  ],
+  "key_line": "Yeah, they still have the GTA font.",
+  "key_line_t": 0,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip is mostly informational reaction to video footage rather than a joke or comedic bit. The only minor laugh comes from a quick NPC exchange in the footage itself."
+ }
+}

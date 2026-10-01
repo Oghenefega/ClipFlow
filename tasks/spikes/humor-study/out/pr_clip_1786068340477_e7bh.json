@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1786068340477_e7bh",
+ "set": "published_render",
+ "clip_id": "clip_1786068340477_e7bh",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3308,
+  "outputTokens": 1562,
+  "thoughtTokens": 1070
+ },
+ "cost": 0.016677,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League streamer hypes himself up while scoring back-to-back goals against his opponent.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer scores a goal and trash talks his opponent."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "He lines up another shot on goal in slow-mo focus."
+   },
+   {
+    "t": 5,
+    "type": "payoff",
+    "what": "The ball explodes into the net for a goal."
+   },
+   {
+    "t": 14,
+    "type": "escalation",
+    "what": "Kickoff resets and he pushes forward saying 'I'm angry'."
+   },
+   {
+    "t": 24,
+    "type": "payoff",
+    "what": "He scores yet another goal to finish the montage sequence."
+   }
+  ],
+  "payoff_t": 5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "roast_or_banter"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating"
+  ],
+  "key_line": "Easy, get him out of here bro! Get him out of my face!",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "jump_cuts",
+   "added_music",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": false,
+  "why": "This clip focuses on gameplay hype and energetic confidence rather than comedic subversion or twists. It functions as a high-energy highlights clip rather than a comedy bit."
+ }
+}

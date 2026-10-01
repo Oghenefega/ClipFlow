@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1784788088823_1niw",
+ "set": "published_render",
+ "clip_id": "clip_1784788088823_1niw",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1158,
+  "thoughtTokens": 721
+ },
+ "cost": 0.013104,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer aggressively demolishes an opposing goalie in Rocket League to secure a goal, then cracks up at how disrespectful the play was.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer flies down the side wall toward the enemy net."
+   },
+   {
+    "t": 7,
+    "type": "setup",
+    "what": "Streamer targets the opponent defending the goal."
+   },
+   {
+    "t": 8,
+    "type": "payoff",
+    "what": "Streamer demolishes the opponent right before the ball goes into the net."
+   },
+   {
+    "t": 10,
+    "type": "reaction",
+    "what": "Streamer laughs in disbelief and admits how toxic the play was."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "That was actually so toxic, what the heck!",
+  "key_line_t": 19,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The comedy relies on the streamer's self-aware amusement after executing a ruthless, aggressive play against his opponent. His genuine laughter makes the moment relatable to anyone who has played competitive multiplayer games."
+ }
+}

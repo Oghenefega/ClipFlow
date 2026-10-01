@@ -1,0 +1,73 @@
+{
+ "key": "pr_clip_1785358551594_snrs",
+ "set": "published_render",
+ "clip_id": "clip_1785358551594_snrs",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5303,
+  "outputTokens": 1512,
+  "thoughtTokens": 965
+ },
+ "cost": 0.0192945,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After lamenting that he ruined the game, the streamer watches in disbelief as his teammate scores an incredible clutch goal with zero boost.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer despairs, saying 'I sold that so bad'."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "Streamer dramatically speeches about how he always clutches up under pressure."
+   },
+   {
+    "t": 27,
+    "type": "escalation",
+    "what": "Streamer notices his teammate attempting a final push with zero boost."
+   },
+   {
+    "t": 34,
+    "type": "trigger",
+    "what": "Teammate manages to maneuver the ball past the defense into the goal."
+   },
+   {
+    "t": 35,
+    "type": "payoff",
+    "what": "Streamer screams in absolute disbelief and hype as they win."
+   },
+   {
+    "t": 45,
+    "type": "aftermath",
+    "what": "Streamer laughs in relief, reversing his earlier despair."
+   }
+  ],
+  "payoff_t": 35,
+  "hook_t": 0,
+  "author": "teammate",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "With no boost? No way! Oh my God!",
+  "key_line_t": 33,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_music"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip relies on high energy and disbelief when a teammate pulls off an unlikely zero-boost clutch goal. While it is more hype than pure comedy, the streamer's genuine shock and loud celebration create an entertaining payoff."
+ }
+}

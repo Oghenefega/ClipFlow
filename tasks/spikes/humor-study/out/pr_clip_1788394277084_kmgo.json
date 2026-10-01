@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1788394277084_kmgo",
+ "set": "published_render",
+ "clip_id": "clip_1788394277084_kmgo",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2946,
+  "outputTokens": 1667,
+  "thoughtTokens": 1175
+ },
+ "cost": 0.0169215,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer surrenders thinking he is caught in a game of prop hunt, only for the seeker to walk right past his obvious hiding spot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer sees the seeker approaching his hiding spot."
+   },
+   {
+    "t": 5,
+    "type": "escalation",
+    "what": "Streamer raises his hands in surrender, accepting defeat."
+   },
+   {
+    "t": 8,
+    "type": "trigger",
+    "what": "The seeker walks right past him without noticing."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The seeker starts shooting paintings on the wall while ignoring the streamer."
+   },
+   {
+    "t": 21,
+    "type": "reaction",
+    "what": "Streamer zooms in on his prop completely sticking out out of cover."
+   }
+  ],
+  "payoff_t": 8,
+  "hook_t": 5,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "overreaction",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Look at my fat ass, bro!",
+  "key_line_t": 21,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "zoom_or_reframe",
+   "added_sound_effect"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The streamer's full dramatic surrender creates a great comedic contrast when the enemy completely misses him. Pointing out how exposed his prop actually was makes the enemy's obliviousness even funnier."
+ }
+}

@@ -1,0 +1,55 @@
+{
+ "key": "pw_clip_1790099949324_5ava",
+ "set": "published_raw",
+ "clip_id": "clip_1790099949324_5ava",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1825,
+  "outputTokens": 999,
+  "thoughtTokens": 577
+ },
+ "cost": 0.010230000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator laughs while watching footage of malfunctioning mascot robots and compares one twitching on the ground to a cockroach trying to stand up.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator starts laughing while watching footage of fallen cheerleading robots on the floor."
+   },
+   {
+    "t": 1,
+    "type": "payoff",
+    "what": "Creator jokes that the struggling robot looks like a cockroach in his house trying to stand up."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Creator commentary escalates as technicians pin the robot down, joking they have to subdue it."
+   }
+  ],
+  "payoff_t": 1,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "The cockroach in my house trying to stand up",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The creator's absurd analogy comparing the twitching robot to a cockroach creates an instantly funny visual. His infectious laughter and commentary on the staff 'subduing' the robot keep the joke landing well."
+ }
+}

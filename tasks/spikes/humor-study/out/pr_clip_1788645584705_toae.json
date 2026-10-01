@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_1788645584705_toae",
+ "set": "published_render",
+ "clip_id": "clip_1788645584705_toae",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2309,
+  "outputTokens": 1126,
+  "thoughtTokens": 681
+ },
+ "cost": 0.0119085,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer enthusiastically hypes up pro player Cryo making a smart prediction kill in a Valorant esports match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches pro match footage of 100T vs NRG."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "Streamer starts loudly chanting and predicting where the enemy is hiding."
+   },
+   {
+    "t": 9.5,
+    "type": "payoff",
+    "what": "Cryo flashes and eliminates the enemy player exactly as anticipated."
+   },
+   {
+    "t": 11.5,
+    "type": "reaction",
+    "what": "Streamer jumps out of his chair laughing and clapping in celebration."
+   }
+  ],
+  "payoff_t": 9.5,
+  "hook_t": 1.5,
+  "author": "mixed",
+  "mechanisms": [
+   "overreaction",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing"
+  ],
+  "key_line": "Read him like a book!",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "This clip is built on high-energy hype and enthusiasm for a clutch esports play rather than traditional comedic structure. The streamer's passionate reaction is engaging, but functions primarily as hype content."
+ }
+}

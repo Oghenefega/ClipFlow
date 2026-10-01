@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1787805514632_5z92",
+ "set": "published_render",
+ "clip_id": "clip_1787805514632_5z92",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 1396,
+  "thoughtTokens": 969
+ },
+ "cost": 0.013797,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator notices that a humanoid robot competition features 666 teams and jokingly claims it is an evil sign, ending on a funny meme.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Creator reads news post about 2026 World Humanoid Robot Games."
+   },
+   {
+    "t": 4,
+    "type": "trigger",
+    "what": "Highlights that 666 teams are registered for the competition."
+   },
+   {
+    "t": 6,
+    "type": "escalation",
+    "what": "Questions why they would choose 666 teams in disbelief."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "Scrolls down to show a meme of a terrified dog holding a Bible and cross."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage",
+   "laughing"
+  ],
+  "key_line": "Why would you have 666 teams, bro?",
+  "key_line_t": 5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "added_sound_effect",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator uses quick visual commentary and sound effects to turn a minor detail in a news post into a funny joke about a robot apocalypse. The ending image of a dog holding a Bible acts as a solid visual punchline."
+ }
+}

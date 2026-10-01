@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1788432440147_gy30",
+ "set": "published_render",
+ "clip_id": "clip_1788432440147_gy30",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1447,
+  "thoughtTokens": 983
+ },
+ "cost": 0.014589,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer laughs at his own messy paint job while attempting to create camouflage on his in-game character.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer proudly says 'Tell me I'm not an artist, bro'."
+   },
+   {
+    "t": 2.5,
+    "type": "escalation",
+    "what": "Splashes of paint cover his character in a chaotic, bright mess."
+   },
+   {
+    "t": 3.5,
+    "type": "reaction",
+    "what": "He laughs, acknowledging it looks less like camouflage and more like he just poured paint on himself."
+   },
+   {
+    "t": 13.5,
+    "type": "payoff",
+    "what": "He adds green paint back in and happily claims he finally got the 'army look'."
+   }
+  ],
+  "payoff_t": 13.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "Tell me I'm not an artist, bro.",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The clip relies on pleasant self-deprecating commentary as the creator mocks his own sloppy art skills. While cheerful and relatable, it lacks a high-energy punchline or intense comedic turn."
+ }
+}

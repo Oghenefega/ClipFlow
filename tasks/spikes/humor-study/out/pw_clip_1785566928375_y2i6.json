@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1785566928375_y2i6",
+ "set": "published_raw",
+ "clip_id": "clip_1785566928375_y2i6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2716,
+  "outputTokens": 1027,
+  "thoughtTokens": 550
+ },
+ "cost": 0.011776499999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer brags about his high Rocket League ranks across game modes until revealing his embarrassingly low rank in 1v1s.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer wraps up a Rocket League match with a smile."
+   },
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Opens competitive ranks menu and starts listing his Champ ranks."
+   },
+   {
+    "t": 6.5,
+    "type": "payoff",
+    "what": "Reaches 1v1 mode and points out his 'plat' rank with a laugh."
+   },
+   {
+    "t": 11,
+    "type": "aftermath",
+    "what": "Explains why he needs to keep playing to secure Division 2 so he doesn't derank easily."
+   }
+  ],
+  "payoff_t": 6.5,
+  "hook_t": 3,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "irony_says_x_then_opposite"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "Champ, Champ, freaking plat!",
+  "key_line_t": 5.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedic contrast between his impressive Champ ranks and his low Plat rank in 1v1 provides a quick, self-deprecating punchline. His genuine laugh and relatable gamer reasoning about rank safety make the moment enjoyable."
+ }
+}

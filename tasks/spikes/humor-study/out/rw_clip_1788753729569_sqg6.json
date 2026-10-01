@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1788753729569_sqg6",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788753729569_sqg6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4012,
+  "outputTokens": 1227,
+  "thoughtTokens": 846
+ },
+ "cost": 0.015220500000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer intensely watches a tense Valorant esports match and screams with excitement when 100 Thieves clutches the round.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches a close Valorant tournament round while casters narrate."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "Streamer nervously mutters under his breath as the fight breaks out."
+   },
+   {
+    "t": 32,
+    "type": "trigger",
+    "what": "The defending team player secures the final kill and defuses."
+   },
+   {
+    "t": 37,
+    "type": "payoff",
+    "what": "Streamer screams 'GET IN THERE!' at the top of his lungs and jumps out of his chair."
+   }
+  ],
+  "payoff_t": 37,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "whisper_or_mutter"
+  ],
+  "key_line": "GET IN THERE!",
+  "key_line_t": 37,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip focuses entirely on hype esports gameplay rather than comedy. The streamer's explosive reaction conveys high tension and victory celebration, but lacks comedic intention."
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1784788710057_mtq1",
+ "set": "published_render",
+ "clip_id": "clip_1784788710057_mtq1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1580,
+  "outputTokens": 1304,
+  "thoughtTokens": 847
+ },
+ "cost": 0.012150000000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League player calmly approaches the ball only to immediately score an own goal and scream in laughter.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer calmly says 'okay' as he drives toward the ball."
+   },
+   {
+    "t": 3,
+    "type": "trigger",
+    "what": "He hits the ball directly into his own net."
+   },
+   {
+    "t": 3.5,
+    "type": "payoff",
+    "what": "An own goal is scored against his team."
+   },
+   {
+    "t": 4,
+    "type": "reaction",
+    "what": "He lets out a loud, high-pitched scream and laughs in disbelief."
+   }
+  ],
+  "payoff_t": 3.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "irony_says_x_then_opposite",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Oh... okay!",
+  "key_line_t": 5.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The instant contrast between his calm confidence and the immediate own goal creates a quick punchline. His vocal shock and laughter give the mistake a funny, lightweight landing."
+ }
+}

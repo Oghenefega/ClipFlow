@@ -1,0 +1,55 @@
+{
+ "key": "rw_clip_1787202987979_ag7p",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787202987979_ag7p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4741,
+  "outputTokens": 828,
+  "thoughtTokens": 437
+ },
+ "cost": 0.0133215,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer shares sincere, emotional praise for 100 Thieves after watching their journey through tough times to a big victory.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer reflects on 100 Thieves grinding through the lowest of lows."
+   },
+   {
+    "t": 17,
+    "type": "setup",
+    "what": "He states how happy he is for them despite respecting other teams."
+   },
+   {
+    "t": 38,
+    "type": "payoff",
+    "what": "Streamer admits he is feeling genuinely emotional watching them win."
+   }
+  ],
+  "payoff_t": null,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome",
+   "informational_not_comedy"
+  ],
+  "delivery": [
+   "calm_explaining",
+   "narrating"
+  ],
+  "key_line": "I'm out here feeling emotional just hearing them talk.",
+  "key_line_t": 38,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "callback_or_button",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": true,
+  "why": "This is a wholesome, earnest reaction moment praising an esports team's journey. It is meant to be heartfelt rather than comedic."
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "key": "pr_clip_import_1785951058454_vfmk",
+ "set": "published_render",
+ "clip_id": "clip_import_1785951058454_vfmk",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1662,
+  "outputTokens": 1192,
+  "thoughtTokens": 759
+ },
+ "cost": 0.011433,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer plays Arc Raiders for the first time and experiences instant shock upon realizing he lost his entire inventory after dying.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer checks his loadout after getting knocked out and asks what he lost."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "Streamer sees all empty slots and asks in disbelief if he lost everything."
+   },
+   {
+    "t": 4,
+    "type": "payoff",
+    "what": "He exclaims 'Jesus' as the post-round screen appears, realizing the harsh penalty."
+   },
+   {
+    "t": 7,
+    "type": "aftermath",
+    "what": "He repeats 'I lost everything' in total disbelief."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "Did I lose everything?",
+  "key_line_t": 2,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedic appeal relies on the relatable shock of a beginner discovering harsh extraction shooter mechanics for the first time. His escalating disbelief carries the short clip well."
+ }
+}

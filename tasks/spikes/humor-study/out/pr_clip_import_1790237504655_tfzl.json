@@ -1,0 +1,68 @@
+{
+ "key": "pr_clip_import_1790237504655_tfzl",
+ "set": "published_render",
+ "clip_id": "clip_import_1790237504655_tfzl",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1941,
+  "outputTokens": 1400,
+  "thoughtTokens": 922
+ },
+ "cost": 0.0134115,
+ "watch": {
+  "format": "gameplay",
+  "summary": "After spraying an entire magazine blindly into smoke, the streamer is instantly headshot the moment he stops and starts reloading.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer holds an angle outside smoke in Valorant"
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "He sprays his full clip blindly into smoke while yelling"
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "An enemy walks out of the smoke right as his magazine empties"
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "The enemy kills him instantly while he is mid-reload"
+   },
+   {
+    "t": 7,
+    "type": "reaction",
+    "what": "Streamer throws his hands up and screams in disbelief"
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "self_own_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "mock_outrage"
+  ],
+  "key_line": "YOU GOTTA BE KIDDING ME!",
+  "key_line_t": 7,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "zoom_or_reframe",
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip captures classic FPS bad timing where an enemy peeks the exact second the player finishes spraying and starts reloading. His loud, animated outrage immediately pays off the bad luck."
+ }
+}

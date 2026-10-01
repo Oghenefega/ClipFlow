@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1787202782989_xqc5",
+ "set": "published_render",
+ "clip_id": "clip_1787202782989_xqc5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1472,
+  "thoughtTokens": 998
+ },
+ "cost": 0.0139575,
+ "watch": {
+  "format": "talking",
+  "summary": "The streamer admits his toxic gaming trait is watching esports pros and immediately believing he can replicate their skill.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer introduces his toxic trait in gaming."
+   },
+   {
+    "t": 2.5,
+    "type": "escalation",
+    "what": "He claims he watches 100 Thieves pro play and convinces himself he can do it."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "He adds that watching any pro play makes him say 'say less'."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "He concludes that he immediately hops into a match with unearned confidence."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "narrating",
+   "calm_explaining"
+  ],
+  "key_line": "I'll watch 100 Thieves like this and then I'll be like, yeah I can do this.",
+  "key_line_t": 2.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_payoff",
+  "edit_traces": [
+   "text_overlay",
+   "jump_cuts"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The clip touches on a universal gaming meme where watching elite pros gives players delusional self-confidence. It delivers a quick, self-deprecating joke with simple commentary and esports background clips."
+ }
+}

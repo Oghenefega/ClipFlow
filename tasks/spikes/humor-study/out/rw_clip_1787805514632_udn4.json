@@ -1,0 +1,71 @@
+{
+ "key": "rw_clip_1787805514632_udn4",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787805514632_udn4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4255,
+  "outputTokens": 1156,
+  "thoughtTokens": 599
+ },
+ "cost": 0.0150525,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts to videos of robot competitions, heavily roasting a silver fighting robot for its terrible boxing skills.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator watches footage of two humanoid robots fighting in an octagon."
+   },
+   {
+    "t": 2.5,
+    "type": "setup",
+    "what": "Creator starts criticizing the silver robot's terrible combat abilities."
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "The white robot easily knocks over the silver robot with a simple strike."
+   },
+   {
+    "t": 17.5,
+    "type": "reaction",
+    "what": "Creator puts his hand on his head and says he can't imagine paying money to root for that robot."
+   },
+   {
+    "t": 25,
+    "type": "escalation",
+    "what": "Creator moves on to watch a video of a jumping robot."
+   },
+   {
+    "t": 38,
+    "type": "aftermath",
+    "what": "Creator unimpressively dismisses the robot jump as nothing special."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 2.5,
+  "author": "creator",
+  "mechanisms": [
+   "roast_or_banter",
+   "absurd_commentary"
+  ],
+  "delivery": [
+   "narrating",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "I can't imagine paying money and rooting for that guy.",
+  "key_line_t": 18,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The creator treats a clumsy prototype robot like a professional athlete letting down fans, creating absurd hyperbole. His genuine disbelief at how bad the robot fights adds light commentary humor."
+ }
+}

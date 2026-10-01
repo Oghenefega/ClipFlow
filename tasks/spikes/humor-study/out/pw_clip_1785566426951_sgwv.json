@@ -1,0 +1,67 @@
+{
+ "key": "pw_clip_1785566426951_sgwv",
+ "set": "published_raw",
+ "clip_id": "clip_1785566426951_sgwv",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3931,
+  "outputTokens": 1397,
+  "thoughtTokens": 881
+ },
+ "cost": 0.016374,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A Rocket League streamer laughs while reading a viewer's pushy chat message demanding to play together because no one else is watching.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts reading a chat comment claiming to be his only viewer."
+   },
+   {
+    "t": 2,
+    "type": "escalation",
+    "what": "Streamer denies being lonely, then laughs as he reads the rest of the message."
+   },
+   {
+    "t": 9,
+    "type": "trigger",
+    "what": "He quotes the viewer asking 'What are you going to do, just stream to nobody?'"
+   },
+   {
+    "t": 21,
+    "type": "payoff",
+    "what": "Streamer sarcastically admits 'That is... that's very compelling.'"
+   },
+   {
+    "t": 26,
+    "type": "aftermath",
+    "what": "Streamer cracks up laughing at the desperate logic before moving on."
+   }
+  ],
+  "payoff_t": 21,
+  "hook_t": 1,
+  "author": "mixed",
+  "mechanisms": [
+   "roast_or_banter",
+   "deadpan_underreaction",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "deadpan"
+  ],
+  "key_line": "What are you going to do, just stream to nobody?",
+  "key_line_t": 17.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The comedy comes from the viewer's brutally honest and manipulative ultimatum, paired with the streamer's amused acknowledgment that the viewer actually makes a good point."
+ }
+}

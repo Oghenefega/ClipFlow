@@ -1,0 +1,61 @@
+{
+ "key": "pr_clip_1790099055851_xfcq",
+ "set": "published_render",
+ "clip_id": "clip_1790099055851_xfcq",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2028,
+  "outputTokens": 1383,
+  "thoughtTokens": 929
+ },
+ "cost": 0.0134145,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator watches in disbelief as a referee issues a yellow card to a humanoid robot during a robot soccer match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Footage shows a referee pulling out a yellow card in front of soccer robots."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "The creator remarks on how weird the scene is."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "The creator points out that a human ref just gave a yellow card to a robot."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "The creator expresses utter confusion at what he is witnessing."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "absurd_commentary",
+   "unexpected_outcome",
+   "confusion"
+  ],
+  "delivery": [
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Did I just witness this guy give a yellow card to a freaking robot?",
+  "key_line_t": 5.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The visual absurdity of a referee seriously giving a yellow card to a non-sentient robot creates immediate humor. The creator's genuine disbelief vocalizes exactly what any viewer is thinking."
+ }
+}

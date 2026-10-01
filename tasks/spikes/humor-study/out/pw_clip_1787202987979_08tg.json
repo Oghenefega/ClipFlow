@@ -1,0 +1,61 @@
+{
+ "key": "pw_clip_1787202987979_08tg",
+ "set": "published_raw",
+ "clip_id": "clip_1787202987979_08tg",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2959,
+  "outputTokens": 1303,
+  "thoughtTokens": 845
+ },
+ "cost": 0.014211,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with pure joy and hype as 100 Thieves win an esports tournament and lift the trophy.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The streamer watches the team hug on stage with his hands on his head, smiling with emotion."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "He laughs heartily, commenting on 'the joy in their hearts, man!'"
+   },
+   {
+    "t": 11,
+    "type": "payoff",
+    "what": "The team lifts the trophy together and the streamer claps along, yelling 'Let's freaking go!'"
+   },
+   {
+    "t": 17,
+    "type": "aftermath",
+    "what": "He rests his chin on his finger in awe as player interview audio plays."
+   }
+  ],
+  "payoff_t": 11,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Let's freaking go!",
+  "key_line_t": 13,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 1,
+  "needs_context": false,
+  "why": "This clip is wholesome esports fan hype rather than comedy, driven by genuine empathy and excitement for the winning team. There are no comedic setups, punchlines, or subversions."
+ }
+}

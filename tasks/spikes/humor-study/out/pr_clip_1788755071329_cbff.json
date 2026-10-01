@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1788755071329_cbff",
+ "set": "published_render",
+ "clip_id": "clip_1788755071329_cbff",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3762,
+  "outputTokens": 1613,
+  "thoughtTokens": 1082
+ },
+ "cost": 0.0177405,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer aggressively backseat-games a pro Valorant player in real time, hysterically celebrating when his frantically yelled call turns out to be right.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts giving rapid-fire backseat advice to the pro play on screen."
+   },
+   {
+    "t": 12,
+    "type": "escalation",
+    "what": "He micromanages ammo count, HP, positioning, and weapon switching with frantic urgency."
+   },
+   {
+    "t": 24,
+    "type": "trigger",
+    "what": "Streamer screams 'Check your right, check your right!' as the player swings around."
+   },
+   {
+    "t": 26,
+    "type": "payoff",
+    "what": "The player secures the round kill on the right, causing the streamer to explode in ecstatic screams."
+   },
+   {
+    "t": 29,
+    "type": "aftermath",
+    "what": "Streamer puts a towel over his head in celebratory excitement."
+   }
+  ],
+  "payoff_t": 26,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "mock_outrage"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "Check your right, check your right, check your right!",
+  "key_line_t": 24,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The universal gaming trope of the frantic backseat teammate is parodied with hyper-energetic micromanagement. The comedy peaks when his frantic call actually aligns with the pro player's kill, resulting in absurdly triumphant screaming."
+ }
+}

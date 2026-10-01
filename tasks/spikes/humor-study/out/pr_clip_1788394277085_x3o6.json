@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788394277085_x3o6",
+ "set": "published_render",
+ "clip_id": "clip_1788394277085_x3o6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2491,
+  "outputTokens": 1366,
+  "thoughtTokens": 905
+ },
+ "cost": 0.013981500000000001,
+ "watch": {
+  "format": "gameplay",
+  "summary": "A streamer attempts to hunt down an enemy hiding in an oil-painting style map, but prematurely celebrates shooting the wrong spot.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer explains an enemy is hiding somewhere in the chaotic painting environment."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "The streamer hears taunting effects and knows the enemy is right underneath him."
+   },
+   {
+    "t": 14,
+    "type": "trigger",
+    "what": "He spots movement, screams in victory, and shoots."
+   },
+   {
+    "t": 15.5,
+    "type": "payoff",
+    "what": "He immediately realizes he mistook a killfeed notification/different player for his target."
+   }
+  ],
+  "payoff_t": 15.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "unexpected_outcome",
+   "self_own_fail",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "laughing",
+   "disbelief"
+  ],
+  "key_line": "Oh I just found him! Oh wait, no, no, no, no.",
+  "key_line_t": 14.5,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy comes from a sudden reversal of fortune when high-energy excitement instantly pivots into awkward realization. The creator's dramatic vocal shift makes the visual mistake landing clearer."
+ }
+}

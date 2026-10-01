@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 283): humor study of Fega's published clips
+
+### Added
+- **A written playbook of what Fega's clips are made of, from Gemini watching 404 of them with sound (#484).** The 255 published clips as rendered, 79 of them cut raw over the AI's original window, and 70 rejected clips each got a structured breakdown (format, timed beats, payoff, whose action, humor mechanism, delivery, key line, opening and ending), joined with edit facts and per-platform view percentiles. The main findings: Fega makes two kinds of clip that win for different reasons (hype reactions to 100T pro play, where "funny" has no link to views, and own-gameplay comedy built on a confident line the game contradicts, where it does); a generic watch already separates keeps from rejects at AUC 0.70; and the edit mostly cuts the end, keeping about 7 s after the payoff where detection leaves 16. App code is unchanged. The playbook is `tasks/specs/humor-playbook.md`; scripts and raw watches are in `tasks/spikes/humor-study/` (cost $5.79 of Gemini, no Anthropic credit).
+
 ## [Unreleased] 2026-10-01 (session 282): 0.5.0-alpha.18 on the feed
 
 ### Changed

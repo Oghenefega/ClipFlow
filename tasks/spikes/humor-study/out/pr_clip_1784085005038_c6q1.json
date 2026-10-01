@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1784085005038_c6q1",
+ "set": "published_render",
+ "clip_id": "clip_1784085005038_c6q1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2125,
+  "outputTokens": 984,
+  "thoughtTokens": 526
+ },
+ "cost": 0.0105675,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer tells his egg to behave as it rolls down a physics obstacle course, only for it to fall to the ground and crack open.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer tells the egg to behave itself as it rolls along a narrow wooden track."
+   },
+   {
+    "t": 7.5,
+    "type": "escalation",
+    "what": "The egg bounces through a tire and drops off the platform."
+   },
+   {
+    "t": 9.5,
+    "type": "payoff",
+    "what": "The egg lands in the grass and cracks open."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "Streamer watches in stunned silence before quietly chuckling."
+   }
+  ],
+  "payoff_t": 9.5,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "deadpan_underreaction",
+   "self_own_fail"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "deadpan",
+   "laughing"
+  ],
+  "key_line": "Behave yourself",
+  "key_line_t": 0,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The contrast between the streamer pleading with the egg to behave and its instant destruction makes for a classic mini-fail beat. His silent, deadpan reaction gives the quick clip a smooth punchline."
+ }
+}

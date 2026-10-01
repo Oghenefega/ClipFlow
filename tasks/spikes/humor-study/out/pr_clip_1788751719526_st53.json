@@ -1,0 +1,72 @@
+{
+ "key": "pr_clip_1788751719526_st53",
+ "set": "published_render",
+ "clip_id": "clip_1788751719526_st53",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6131,
+  "outputTokens": 1191,
+  "thoughtTokens": 633
+ },
+ "cost": 0.018129,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer intensely watches a Valorant esports match, screaming in disbelief as his team loses a 3v1 clutch.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer cheers hype as his team makes a kill."
+   },
+   {
+    "t": 8,
+    "type": "escalation",
+    "what": "Streamer yells in excitement, encouraging his team."
+   },
+   {
+    "t": 25,
+    "type": "escalation",
+    "what": "The round turns into a 1v3 and streamer gets nervous."
+   },
+   {
+    "t": 41,
+    "type": "escalation",
+    "what": "Streamer begs his team to swarm the lone opponent."
+   },
+   {
+    "t": 54,
+    "type": "trigger",
+    "what": "The opponent wins the 1v3 clutch."
+   },
+   {
+    "t": 55,
+    "type": "payoff",
+    "what": "Streamer screams in agony, hands on head, asking why they gave away the 1v3."
+   }
+  ],
+  "payoff_t": 55,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "rage",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "Why are we giving him a 1v3?!",
+  "key_line_t": 55,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": false,
+  "why": "The comedy stems from the dramatic contrast between the streamer's initial high-energy excitement and his utter agony when his team chokes a 3v1 round. His animated body language and passionate screaming make the breakdown entertaining to watch."
+ }
+}

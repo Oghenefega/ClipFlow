@@ -1,0 +1,60 @@
+{
+ "key": "rw_clip_1787974788112_bem5",
+ "set": "rejected_raw",
+ "clip_id": "clip_1787974788112_bem5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2311,
+  "outputTokens": 1329,
+  "thoughtTokens": 855
+ },
+ "cost": 0.013434000000000001,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer excitedly reacts to a Valorant pro match round victory, chanting that it was 'too easy' and calling for the match to wrap up.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches the final seconds of a Valorant esports round."
+   },
+   {
+    "t": 0.03,
+    "type": "trigger",
+    "what": "The round ends in a win for the team he is supporting."
+   },
+   {
+    "t": 0.04,
+    "type": "payoff",
+    "what": "Streamer explodes into loud hype, shouting 'Too easy!' and gesturing for them to pack it up."
+   },
+   {
+    "t": 0.07,
+    "type": "escalation",
+    "what": "He continues shouting 'Next map, let's wrap it up here' while flexing and pointing."
+   }
+  ],
+  "payoff_t": 4,
+  "hook_t": 2,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage"
+  ],
+  "key_line": "Too easy! Too easy! Get him out of here!",
+  "key_line_t": 3.5,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "The clip relies on esports team enthusiasm and loud energy rather than a comedic punchline or unexpected moment. Outside of the match context and fandom, it comes across as standard gameplay hype."
+ }
+}

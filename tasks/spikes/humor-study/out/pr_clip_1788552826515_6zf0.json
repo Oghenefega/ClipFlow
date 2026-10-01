@@ -1,0 +1,66 @@
+{
+ "key": "pr_clip_1788552826515_6zf0",
+ "set": "published_render",
+ "clip_id": "clip_1788552826515_6zf0",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1235,
+  "thoughtTokens": 745
+ },
+ "cost": 0.01218,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The creator reacts to a pro Valorant player greedily going for an orb only to get trapped and instantly eliminated by an enemy Vyse.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Creator notes Boostio's stats and role as IGL."
+   },
+   {
+    "t": 3,
+    "type": "setup",
+    "what": "Boostio slides down stairs towards the orb area."
+   },
+   {
+    "t": 5,
+    "type": "trigger",
+    "what": "Boostio triggers the Vyse wall and trap abilities."
+   },
+   {
+    "t": 6,
+    "type": "payoff",
+    "what": "Boostio is trapped and instantly killed."
+   },
+   {
+    "t": 7,
+    "type": "reaction",
+    "what": "Creator laughs, shouting that greed for the orb cost him his life."
+   }
+  ],
+  "payoff_t": 6,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hubris_then_fail",
+   "unexpected_outcome"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating",
+   "disbelief"
+  ],
+  "key_line": "That's gonna cost him his life! He wanted that orb!",
+  "key_line_t": 6,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "The creator's animated play-by-play turns a pro player's greedy mistake into a funny moment. Without familiarity with Valorant's abilities and esports scene, the clip loses much of its comedy."
+ }
+}

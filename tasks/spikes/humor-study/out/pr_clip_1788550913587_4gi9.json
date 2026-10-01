@@ -1,0 +1,62 @@
+{
+ "key": "pr_clip_1788550913587_4gi9",
+ "set": "published_render",
+ "clip_id": "clip_1788550913587_4gi9",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4129,
+  "outputTokens": 1237,
+  "thoughtTokens": 747
+ },
+ "cost": 0.015471,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer passionately reacts and yells in excitement while watching a tense Valorant esports match where player Timotino pulls off a big play.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer screams 'LET'S GO' while hyping up player Timotino."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Footage shows the spike being planted as casters describe the round."
+   },
+   {
+    "t": 13,
+    "type": "escalation",
+    "what": "Timotino makes a clutch move and the streamer jumps out of his seat celebrating."
+   },
+   {
+    "t": 32,
+    "type": "payoff",
+    "what": "Round ends and the streamer realizes in confusion that he was rooting for the wrong player."
+   }
+  ],
+  "payoff_t": 33,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction",
+   "confusion"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Wait a minute, wait a minute, I think I was rooting for the wrong person!",
+  "key_line_t": 33,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": true,
+  "why": "This clip relies heavily on excitement and hype surrounding a professional Valorant match rather than comedy. Without understanding the teams and match context, a casual viewer only sees an energetic overreaction to a video game moment."
+ }
+}

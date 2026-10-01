@@ -1,0 +1,67 @@
+{
+ "key": "rw_clip_1788753729569_ymm4",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788753729569_ymm4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4093,
+  "outputTokens": 1314,
+  "thoughtTokens": 788
+ },
+ "cost": 0.015994500000000002,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "A streamer passionately reacts and yells instructions at his monitor while watching a Valorant pro match, exploding with excitement when the round is won.",
+  "beats": [
+   {
+    "t": 1,
+    "type": "setup",
+    "what": "Creator screams wildly at the start of the round to hype up his team."
+   },
+   {
+    "t": 20,
+    "type": "escalation",
+    "what": "Creator begins aggressively coaching the enemy player through the monitor."
+   },
+   {
+    "t": 28,
+    "type": "escalation",
+    "what": "Creator passionately tells Tuyz his 'only job in life' is to play back and stay alive."
+   },
+   {
+    "t": 36,
+    "type": "payoff",
+    "what": "The round ends in a win as the target player stays alive and secures the round."
+   },
+   {
+    "t": 39,
+    "type": "reaction",
+    "what": "Creator jumps out of his chair shouting in victory."
+   }
+  ],
+  "payoff_t": 36,
+  "hook_t": 1,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "absurd_commentary",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "narrating",
+   "mock_outrage"
+  ],
+  "key_line": "Your only job in life is to just play back.",
+  "key_line_t": 31,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 4,
+  "needs_context": false,
+  "why": "The humorous element comes from the streamer dramatically backseat-coaching pro players through the screen as if his life depends on it. However, the clip is primarily driven by esports hype rather than pure comedy."
+ }
+}

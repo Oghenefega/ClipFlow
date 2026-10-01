@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1787974608296_kqc5",
+ "set": "published_render",
+ "clip_id": "clip_1787974608296_kqc5",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4030,
+  "outputTokens": 1254,
+  "thoughtTokens": 827
+ },
+ "cost": 0.01545,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer reacts with intense disbelief and excitement as a pro player pulls off an unbelievable clutch save in a Valorant esports match.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer watches the 100T vs Lev Valorant match commentary."
+   },
+   {
+    "t": 4,
+    "type": "setup",
+    "what": "An intense firefight breaks out on screen and the streamer gasps in shock."
+   },
+   {
+    "t": 6,
+    "type": "trigger",
+    "what": "Streamer realizes his team survived the encounter unexpectedly."
+   },
+   {
+    "t": 16,
+    "type": "payoff",
+    "what": "Streamer grabs his head in disbelief, shouting about the crazy turnaround."
+   },
+   {
+    "t": 30,
+    "type": "reaction",
+    "what": "Streamer laughs and praises Cryo's insane shot as the round ends."
+   }
+  ],
+  "payoff_t": 16,
+  "hook_t": 4,
+  "author": "creator",
+  "mechanisms": [
+   "overreaction",
+   "unexpected_outcome",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "I thought we died, but he died!",
+  "key_line_t": 17,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 5,
+  "needs_context": true,
+  "why": "This clip relies heavily on esports excitement and game context rather than pure comedy. The creator's high-energy disbelief makes for an entertaining reaction, but it serves more as hype than humor."
+ }
+}

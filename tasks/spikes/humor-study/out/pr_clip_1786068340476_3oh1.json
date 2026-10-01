@@ -1,0 +1,63 @@
+{
+ "key": "pr_clip_1786068340476_3oh1",
+ "set": "published_render",
+ "clip_id": "clip_1786068340476_3oh1",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2127,
+  "outputTokens": 1024,
+  "thoughtTokens": 566
+ },
+ "cost": 0.010870499999999998,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The creator dramatically condemns himself after accidentally scoring an own goal in Rocket League.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator yells at himself to be sent to the Gulag as the replay starts."
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "Goofy cartoonish music plays over the replay of his car awkwardly hitting the ball backward."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The ball enters his own net for an own goal."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "He bangs his desk and screams to be sent straight to the Gulag."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "self_own_fail",
+   "overreaction",
+   "rage"
+  ],
+  "delivery": [
+   "yelling",
+   "mock_outrage",
+   "disbelief"
+  ],
+  "key_line": "Take me to the Gulag right now!",
+  "key_line_t": 1,
+  "other_voices": "none",
+  "opens_with": "mid_sentence",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_music"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The creator's energetic self-loathing combines well with the goofy edit music playing over his obvious mistake. It is a straightforward, relatable gaming fail elevated by high-energy theatrical rage."
+ }
+}

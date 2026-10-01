@@ -1,0 +1,67 @@
+{
+ "key": "pr_clip_1784963060893_q59p",
+ "set": "published_render",
+ "clip_id": "clip_1784963060893_q59p",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1625,
+  "thoughtTokens": 1143
+ },
+ "cost": 0.015104999999999999,
+ "watch": {
+  "format": "gameplay",
+  "summary": "Following chat's advice to jump on a block, the creator's egg character is violently launched into the air by glitchy physics and smashes on impact.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The creator counts down and jumps onto the designated wooden block."
+   },
+   {
+    "t": 2,
+    "type": "trigger",
+    "what": "The block catches the egg and launches it uncontrollably upward."
+   },
+   {
+    "t": 3,
+    "type": "escalation",
+    "what": "The creator repeatedly screams 'Ayo!' in panic as his egg spins through the air."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "The egg crashes onto a wooden plank and cracks open."
+   },
+   {
+    "t": 10,
+    "type": "aftermath",
+    "what": "The creator laughs in disbelief at what just happened."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 2,
+  "author": "mixed",
+  "mechanisms": [
+   "glitch_or_physics",
+   "unexpected_outcome",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "laughing"
+  ],
+  "key_line": "Ayo, ayo, ayo, ayo!",
+  "key_line_t": 3,
+  "other_voices": "none",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 6,
+  "needs_context": false,
+  "why": "The instant visual chaos caused by erratic physics creates an easy slapstick punchline. The creator's frantic verbal panic builds hilarious tension right up until the egg shatters."
+ }
+}

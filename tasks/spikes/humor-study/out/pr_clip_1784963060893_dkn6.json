@@ -1,0 +1,69 @@
+{
+ "key": "pr_clip_1784963060893_dkn6",
+ "set": "published_render",
+ "clip_id": "clip_1784963060893_dkn6",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2764,
+  "outputTokens": 1475,
+  "thoughtTokens": 969
+ },
+ "cost": 0.0152085,
+ "watch": {
+  "format": "gameplay",
+  "summary": "The streamer aggressively threatens an egg in a precision physics game, only for it to immediately roll off the edge as he insists the level is easy.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer starts threatening the egg, claiming he will eat it and its brothers."
+   },
+   {
+    "t": 4,
+    "type": "escalation",
+    "what": "Streamer dares the egg to fall down one more time."
+   },
+   {
+    "t": 9,
+    "type": "context",
+    "what": "Streamer boasts about how easy the stage is."
+   },
+   {
+    "t": 18,
+    "type": "payoff",
+    "what": "The egg tumbles directly off the ledge."
+   },
+   {
+    "t": 19,
+    "type": "reaction",
+    "what": "A dramatic sound effect plays as the streamer stares in silent shock."
+   }
+  ],
+  "payoff_t": 18,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "hubris_then_fail",
+   "irony_says_x_then_opposite",
+   "comedic_timing_pause"
+  ],
+  "delivery": [
+   "mock_outrage",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "Try me! Try me one more time!",
+  "key_line_t": 4,
+  "other_voices": "none",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay",
+   "added_sound_effect",
+   "zoom_or_reframe"
+  ],
+  "stranger_funny_1to10": 7,
+  "needs_context": false,
+  "why": "The comedic timing of the egg falling the exact moment after intense trash talk creates instant karma. The contrast between his confidence and immediate failure requires no prior context to appreciate."
+ }
+}

@@ -1,0 +1,59 @@
+{
+ "key": "rw_clip_1788552826516_2v8q",
+ "set": "rejected_raw",
+ "clip_id": "clip_1788552826516_2v8q",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1906,
+  "outputTokens": 1356,
+  "thoughtTokens": 983
+ },
+ "cost": 0.013029,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer watches and reacts with awe to a Valorant esports replay clip.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "The Valorant match replay begins with caster commentary."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "The streamer reacts with a quiet 'Oh man' as the play unfolds."
+   },
+   {
+    "t": 10,
+    "type": "payoff",
+    "what": "The player in the footage is caught on the reclear as the replay finishes."
+   },
+   {
+    "t": 11,
+    "type": "reaction",
+    "what": "The streamer softly remarks 'Oh that was phenomenal'."
+   }
+  ],
+  "payoff_t": 10,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "whisper_or_mutter",
+   "disbelief"
+  ],
+  "key_line": "Oh that was phenomenal",
+  "key_line_t": 11,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "action",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "none_visible"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip focuses on appreciation for high-level esports gameplay rather than comedy. There are no joke setups or humorous beats present."
+ }
+}

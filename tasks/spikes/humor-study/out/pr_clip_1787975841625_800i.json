@@ -1,0 +1,71 @@
+{
+ "key": "pr_clip_1787975841625_800i",
+ "set": "published_render",
+ "clip_id": "clip_1787975841625_800i",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6950,
+  "outputTokens": 1849,
+  "thoughtTokens": 1318
+ },
+ "cost": 0.0242925,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer energetically reacts to the high-stakes final round of a professional Valorant match between 100 Thieves and Lev.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "setup",
+    "what": "Streamer sets up the match context as the final round begins."
+   },
+   {
+    "t": 7,
+    "type": "escalation",
+    "what": "Action erupts in footage with a Bucky kill, sparking hype."
+   },
+   {
+    "t": 16,
+    "type": "reaction",
+    "what": "Streamer reacts in shock and laughter at the chaotic engagements."
+   },
+   {
+    "t": 39,
+    "type": "escalation",
+    "what": "100 Thieves secures crucial kills to take full control."
+   },
+   {
+    "t": 61,
+    "type": "payoff",
+    "what": "100T gets the final kill, closing out the match."
+   },
+   {
+    "t": 63,
+    "type": "aftermath",
+    "what": "Streamer raises his arms and celebrates the victory."
+   }
+  ],
+  "payoff_t": 61,
+  "hook_t": 0,
+  "author": "pro_player_in_footage",
+  "mechanisms": [
+   "hype_skill_not_comedy",
+   "overreaction"
+  ],
+  "delivery": [
+   "yelling",
+   "disbelief",
+   "narrating"
+  ],
+  "key_line": "IT'S 100 THIEVES BABY!",
+  "key_line_t": 64,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "on_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 3,
+  "needs_context": true,
+  "why": "This clip relies entirely on esports excitement and match tension rather than comedic structure. It serves as a hype reaction moment for fans of the game rather than a comedy sketch."
+ }
+}

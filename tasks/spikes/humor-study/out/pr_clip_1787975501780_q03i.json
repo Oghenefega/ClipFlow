@@ -1,0 +1,55 @@
+{
+ "key": "pr_clip_1787975501780_q03i",
+ "set": "published_render",
+ "clip_id": "clip_1787975501780_q03i",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1945,
+  "outputTokens": 1093,
+  "thoughtTokens": 694
+ },
+ "cost": 0.011115,
+ "watch": {
+  "format": "reaction_to_footage",
+  "summary": "The streamer proudly celebrates watching his favorite esports team win after five years of supporting them.",
+  "beats": [
+   {
+    "t": 0,
+    "type": "context",
+    "what": "Streamer expresses satisfaction with the team he supports while watching Valorant gameplay."
+   },
+   {
+    "t": 3.5,
+    "type": "escalation",
+    "what": "He gets hyped as the team secures the round."
+   },
+   {
+    "t": 7,
+    "type": "payoff",
+    "what": "He reflects on five years of ups and downs as the pro players celebrate on screen."
+   }
+  ],
+  "payoff_t": 7,
+  "hook_t": 0,
+  "author": "creator",
+  "mechanisms": [
+   "wholesome",
+   "hype_skill_not_comedy"
+  ],
+  "delivery": [
+   "laughing",
+   "narrating"
+  ],
+  "key_line": "Five years... ups and downs, but we up!",
+  "key_line_t": 7,
+  "other_voices": "caster_or_footage_audio",
+  "opens_with": "context_talk",
+  "ends_with": "lingers_after_reaction",
+  "edit_traces": [
+   "text_overlay"
+  ],
+  "stranger_funny_1to10": 2,
+  "needs_context": false,
+  "why": "This clip is a wholesome moment of loyal fan excitement rather than comedy. It works as fan hype for esports followers, but lacks a comedic setup or punchline."
+ }
+}
