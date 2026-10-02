@@ -1,44 +1,50 @@
-# HANDOFF — Session 282 (2026-10-01)
+# HANDOFF — Session 283 (2026-10-01 → 10-02)
 
 ## Current State
 
-**0.5.0-alpha.18 is on the update feed**, and Fega has been told to relaunch and click Install. It carries:
-- edit tracking (#479), with the "How much you edit" line in Settings → Diagnostics
-- clip detection on Claude Sonnet 5.5 at effort high, with the clip count stated per recording (#480)
+**0.5.0-alpha.19 is on the update feed** with the clip judge (#483): Settings → Pipeline → "Rank new clips by
+watching them" (off by default). When on, Gemini watches and listens to each new clip, gives a score and a
+one-line reason, and the Projects list puts likely keepers first. Fega has been told to install on desktop and
+laptop and switch it on. Nothing is unreleased.
 
-Nothing is unreleased. The session opened with a strategy talk (agents, connectors, autopilot); the ideas are filed as #480-#483.
+The session also ran the research behind it, all under `tasks/spikes/humor-study/`:
+- the humor study (#484): `tasks/specs/humor-playbook.md`, with Fega's answers in rounds 1-3
+- three judge test cells, the shipped-code gate and a personal-scorer test: `tasks/specs/detection-input-science.md` Steps 7 to 7d
 
 ## Key Decisions
 
-- **Detection switched to Sonnet 5.5 only after the replay test passed:** 84/90 approved found vs Sonnet 4.6's 83/90, 46% vs 51% rejected-hit, 20% cheaper, ~3 more picks per recording. Fega said yes. The base prompt on 5.5 had failed (76/90). The fix was stating the clip count as a number (one per 80 s), and 5.5 reads "roughly one per 90 s" literally. Table: `tasks/specs/detection-input-science.md` Step 6/6b.
-- **Only detection moved.** The Claude title fallback and game profiles keep the provider default (Sonnet 4.6), and research keeps Opus 4.6, because only detection was tested. The model lives in `src/main/ai/detection-model.js`, which the replay harness reads by default.
-- **Edit tracking counts edits by diffing autosave payloads per kind,** not by hooking undo. The AI subtitle baseline is the shared resolver, not raw `clip.transcription`.
-- **Publishing stays on Fega's PC** (his call: no cloud storage for now).
+- **Two kinds of clip, judged differently (Fega confirmed).** Hype reactions (100T) are judged on play quality plus his reaction. Comedy is judged on being funny to a stranger. The judge picks the kind itself (99.6% right).
+- **Judge only, no trained scorer.** A model trained on his 770 decisions with sound/loudness signals added nothing over the judge. Showing his past examples as text added nothing either. Revisit when there are more decisions.
+- **No app clone.** Fega-tuned work stays in `tasks/spikes/`; anything shipped is a per-user mechanism. His rules live in his own 100T game description (`aiContextUser`, rewritten this session, backup `%APPDATA%\Corva\clipflow-settings.backup-2026-10-02-pre-100t-desc.json`). Memory: `feedback_experiments_generic_ship`.
+- **Unwatched clips sort last and show no score** (Fega: best first reduces fatigue). Ranked recordings hide the clip-finder confidence (Fega: "what's the point").
+- **Learn both keeps and views**, but nothing measured predicts views within a kind yet. Retention data is the next views signal.
 
 ## Next Steps
 
-1. **Ask Fega how the new clip-finding feels after a couple of recordings.** Suggested wording:
-   > "Corva now finds clips with the newer AI model. You'll see about 3 more clips per recording. After your next couple of recordings, do the picks feel as good as before, or is the extra review annoying? If it's too many, I can lower the count."
-2. **Ask Fega to check the Resolve wording in the relink tip** (carried over from s281). Suggested wording:
-   > "Next time you're in Resolve, right-click a clip in the Media Pool. Is there an option called 'Replace Selected Clip'? The Rename tab tip tells people to use it, and nobody has clicked through it yet."
-3. **Ask Fega whether the React switch works on his installed app** (carried over from s280). Suggested wording:
-   > "Did flipping Reacting on a real reaction recording give the right name and Day, and do your reaction shows sit under their games in Settings? If yes, I'll clear the untested flags on #472 and #474-#477."
-4. **Ask Fega which idea from this session he wants first.** Suggested wording:
-   > "From the 'frontier' chat: Autopilot that runs clip-finding on your renamed backlog overnight (#481), the Corva connector for Claude (#482), or the watch-and-listen test for funny moments (#483)? My pick is Autopilot. It clears the 237-recording backlog without you pressing anything."
-5. **#480 remainder (a plan line, not a question):** structured output and prompt caching as their own replay cell. Moving the title fallback, research and game profiles onto 5.x each needs its own check.
-6. **#478 (split quirks):** a code fix, carried over.
+1. **Ask Fega how ranking feels after a few recordings.** Suggested wording:
+   > "With 'Rank new clips by watching them' on, do the top clips match what you'd keep? Any reason line that made no sense? After about 10 recordings I can show how often you kept what it put on top."
+   Then read the real keep rate by score: `SELECT judge_kind, judge_score>=60, decision, COUNT(*) FROM feedback WHERE judge_score IS NOT NULL GROUP BY 1,2,3`.
+2. **Ask Fega whether the laptop check passed.** Suggested wording:
+   > "On the laptop, did the Rocket League recording come back sorted with reasons with the setting on, and in the old order with it off?"
+   If yes, remove `status: untested` from #483 (label it untested now if not yet).
+3. **Hung Gemini calls (plan line).** About 1 in 10 judge calls stalled in the end-to-end runs (2% in the test kit). A clip that stalls twice gets no score. If Fega sees many "couldn't watch" lines, try `thinkingLevel` or a shorter first timeout as a replay cell first.
+4. **Next research steps (from the plan, ask before spending):**
+   - pull pre-Corva shorts + views from his YouTube channel;
+   - test a YouTube Analytics retention call on one Short;
+   - auto-trim ends from the judge's `reactionEndT`. Fega keeps ~7 s after the payoff, detection leaves ~16.
+5. **Carried over from s282 and earlier:** the Resolve relink-tip wording, the React switch check (#472, #474-#477), #478 split quirks.
 
 ## Watch Out For
 
-- **The Anthropic prepaid balance is shared by tests and production, and auto-recharge is off.** It ran out mid-test this session, which also stops Fega's real clip-finding. State a batch's total spend before running it (#56 is the spend-cap issue).
-- **`W:\_corva-scratch` (518 MB) is left over** from the end-to-end pipeline test. My delete was blocked, and Fega was told he can remove it.
-- **Edit tracking groups:** any new clip field the editor saves must be added to `editGroups.js`, or its edits are invisible. Fingerprint per-item properties by id, never by position, or splits and cuts register as false style or layout edits (three found and fixed this session).
-- **The harness `count` prompt variant now throws on purpose**, because it shipped in `ai-prompt.js`. Drop it from `--prompt-variant`.
-- **The dev profile watches the real Recordings folder.** Repoint `watchFolder`, `projectsRoot`, `outputFolder` and `testWatchFolder` before destructive tests.
+- **Gemini and Anthropic are both prepaid with no auto-recharge.** The Gemini balance ran out mid-test this session, and the app's titles fell back to Claude stills until Fega topped up. State each run's cost and the day's total.
+- **The judge's prompt is generic on purpose** (a test fails if "100 Thieves", "Valorant" or a catchphrase appears in `clip-judge.js`). Creator specifics go in the game description, never the code.
+- **The 100T rubric:** "plays against the team" needs the ace-or-clutch-plus-hard-reaction limit. The looser v3 wording over-fired (0.716 vs 0.750).
+- **Test scratch on W:** `W:\corva-s283-verify\` holds two recording copies (~4.4 GB), scratch projects and logs. It's safe to delete; it was left for Fega to decide.
+- `tasks/spikes/humor-study/_report.txt` is an untracked leftover (delete was blocked).
 
-## Logs / Debugging
+## Logs/Debugging
 
-- **Replay harness:** `cd tasks/spikes/replay-score && node harness.js "<video>" --frames 10 [--runs N] [--model id --effort lvl] [--prompt-variant a,b] [--dry]`. With no `--model`, it replays the production detection model. `--dry` writes the exact prompt to `_tmp/prompt-<label>.txt`; read it before spending. Pool a cell with `node _summ480.js <label> ...` (it needs `_tmp/approved480.json`, regenerated from a prod DB copy as in the s282 transcript).
-- **Headless real pipeline:** the s282 scratchpad `fx480/run.js` (`npx electron run.js`) runs `runAIPipeline` end to end with a prod DB copy and scratch folders. A 4-minute recording took 207 s. Check commit memory first (≥8 GB free).
-- **Edit-tracking dev test:** fixture recipe in the s282 scratchpad `fx479/` (`setup.js` / `restore.js` repoint dev `projectsRoot` at a copy of `proj_1785192672631_n1tazq`). `in.js` drives trusted CDP input and prints `[edit-tracker]` console lines.
-- **Data:** `edit_sessions` / `edit_outcomes` live in `%APPDATA%\Corva\data\clipflow.db` (migration v15). Detection cost appears in pipeline logs as `claude-sonnet-5-5` at $2/$10.
+- Judge calls: `ai_calls` rows with `kind = 'clip_judge'` (ok, duration_ms, cost_usd, error). The pipeline log has a "Clip Judge" step with judged/failed/cost. Skips are logged with the reason (setting off, test mode, no key/gateway).
+- Feedback migration 16 added `feedback.judge_score` and `judge_kind`.
+- Re-running the gate: `node tasks/spikes/humor-study/judge.js --arm v4 --manifest scorer-manifest.json` (resumable, ~$8). Then score it with the snippet in spec Step 7d, or `judge-score.py` / `stream-score.py` for the older cells. `scorer.py` needs the transcription venv for scikit-learn: `D:\whisper\betterwhisperx-venv\Scripts\python.exe`.
+- End-to-end harness: `W:\corva-s283-verify\judge-harness.js`. Run it with `npx electron <harness> "<mp4>" <tag> on|off [--gateway-only]`; it isolates userData, the library and processing on W: and uses a copy of the prod DB.
