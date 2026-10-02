@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905886_ykhn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3394,
+  "outputTokens": 577,
+  "thoughtTokens": 462
+ },
+ "cost": 0.0094185,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Nothing funny or eventful happens as he simply stealths around an unseen enemy with basic narration and no payoff.",
+  "what": "Fega quietly sneaks around containers while listening for a Leaper, declaring that his only job is to stay alive and get home safe.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

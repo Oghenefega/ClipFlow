@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_wp63",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4475,
+  "outputTokens": 401,
+  "thoughtTokens": 290
+ },
+ "cost": 0.00972,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine menu commentary and reading settings with no funny payoff or joke.",
+  "what": "The creator reviews game camera settings on screen and concludes \"Nah, bro's settings are cooked.\"",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 39,
+  "reactionEndT": 41,
+  "keep_score": 10
+ }
+}

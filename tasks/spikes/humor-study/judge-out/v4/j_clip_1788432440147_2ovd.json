@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_2ovd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3514,
+  "outputTokens": 633,
+  "thoughtTokens": 492
+ },
+ "cost": 0.0100185,
+ "judged": {
+  "score": 55,
+  "kind": "comedy",
+  "reason": "A fun reaction to a weird custom avatar combined with self-deprecating humor, though it remains a light lobby moment.",
+  "what": "The creator reacts in disgust and shock to a player's creepy green avatar before laughing at himself for being the one who threw the last round: 'Me being the one who let them down last time.'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 10,
+  "reactionEndT": 14,
+  "keep_score": 55
+ }
+}

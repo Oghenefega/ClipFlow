@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522886_iedl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 642,
+  "thoughtTokens": 513
+ },
+ "cost": 0.0086115,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine gameplay commentary and casual chat about game modes with no comedic payoff or notable reaction.",
+  "what": "The creator reacts mildly to a goal in Rocket League, saying 'Nice shot, is that in? Let's go dude', before discussing switching back to 2v2s.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 2,
+  "reactionEndT": 4,
+  "keep_score": 10
+ }
+}

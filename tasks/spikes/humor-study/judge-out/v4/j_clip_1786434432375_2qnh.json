@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_2qnh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 640,
+  "thoughtTokens": 541
+ },
+ "cost": 0.0095685,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Routine gameplay with mostly quiet driving and no strong comedic payoff.",
+  "what": "The creator gets nervous in Rocket League overtime and eventually questions himself with 'What am I doing?'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

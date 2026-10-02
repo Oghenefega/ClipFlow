@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_21wo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4062,
+  "outputTokens": 635,
+  "thoughtTokens": 510
+ },
+ "cost": 0.0108555,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "An impressive pro play highlighted by a energetic, passionate reaction that questions how the shot was even possible.",
+  "what": "The creator reacts in disbelief to a pro player hitting an impossible headshot while fully stunned, shouting 'These guys are cheating, bro!'",
+  "playQuality": 8,
+  "reactionSize": 8,
+  "payoffT": 24.5,
+  "reactionEndT": 37,
+  "keep_score": 85
+ }
+}

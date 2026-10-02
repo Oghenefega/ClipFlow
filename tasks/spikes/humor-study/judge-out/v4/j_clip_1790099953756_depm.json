@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099953756_depm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4877,
+  "outputTokens": 1064,
+  "thoughtTokens": 943
+ },
+ "cost": 0.015295500000000002,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "A hilarious reaction to absurd robot soccer footage featuring an infectious laugh and clear comedic payoff.",
+  "what": "The creator laughs hysterically as a robot scores a goal past a goalkeeper robot that stands completely motionless, shouting 'Yeah that dude stood no chance!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 11,
+  "reactionEndT": 33,
+  "keep_score": 88
+ }
+}

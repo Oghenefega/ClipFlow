@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_ps40",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 764,
+  "thoughtTokens": 634
+ },
+ "cost": 0.011337,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction to a match-winning moment for 100 Thieves with pure excitement and jersey waving.",
+  "what": "The creator gets extremely hyped as 100 Thieves secures map point to win against LOUD, shouting 'It's about to happen!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 21,
+  "reactionEndT": 35,
+  "keep_score": 88
+ }
+}

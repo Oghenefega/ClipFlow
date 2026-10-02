@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_b3zt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2442,
+  "outputTokens": 648,
+  "thoughtTokens": 530
+ },
+ "cost": 0.008523000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No kills or clutch plays occur during this clip, and the creator gives almost no reaction.",
+  "what": "The creator watches a round setup and mutters 'Oh my goodness, let's go' before remaining silent while simple utility is thrown without any kills.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

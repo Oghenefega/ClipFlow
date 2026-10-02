@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_s8zh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3900,
+  "outputTokens": 624,
+  "thoughtTokens": 496
+ },
+ "cost": 0.01053,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "Great live hype reaction with high energy to a dominant round win from 100T.",
+  "what": "The creator puts his hands on his head in shock as 100T lands clean kills, shouting 'Jesus! lukexo! Oh my lord!'",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 20,
+  "reactionEndT": 27,
+  "keep_score": 85
+ }
+}

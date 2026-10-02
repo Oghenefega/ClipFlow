@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_pien",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 692,
+  "thoughtTokens": 563
+ },
+ "cost": 0.008379000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is casual downtime commentary during a goal replay with a low-key delivery and no strong comedic subversion.",
+  "what": "After getting scored on, the creator jokes that he had to give them a head start and admires the opponent's aerial play, asking 'Who is that guy?'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 9,
+  "reactionEndT": 11,
+  "keep_score": 25
+ }
+}

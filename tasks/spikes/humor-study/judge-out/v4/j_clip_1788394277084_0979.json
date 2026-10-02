@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277084_0979",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3028,
+  "outputTokens": 620,
+  "thoughtTokens": 490
+ },
+ "cost": 0.009191999999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious close-call prop hunt moment paired with an expressive, shocked reaction.",
+  "what": "The creator reacts in shock as a seeker fails to notice a teammate disguised as part of a wall painting right next to them, shouting 'What?! Oh my god, he's right there!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 12,
+  "reactionEndT": 25,
+  "keep_score": 85
+ }
+}

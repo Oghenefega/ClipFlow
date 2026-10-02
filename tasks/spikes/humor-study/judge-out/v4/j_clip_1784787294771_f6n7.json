@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294771_f6n7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 849,
+  "thoughtTokens": 731
+ },
+ "cost": 0.0088275,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is a routine reaction to getting scored on without any humorous setup or subversion.",
+  "what": "The opponent scores a kick-off goal to extend their lead, prompting the creator to yell \"Ain't no freaking way, dude!\"",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 3,
+  "reactionEndT": 6,
+  "keep_score": 25
+ }
+}

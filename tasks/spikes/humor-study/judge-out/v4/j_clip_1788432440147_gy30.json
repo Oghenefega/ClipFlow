@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_gy30",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5620,
+  "outputTokens": 641,
+  "thoughtTokens": 537
+ },
+ "cost": 0.0132375,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just menu setup and customization talk without any gameplay action or comedic payoff.",
+  "what": "The creator customizes his character with green paint, boasting that his new army camouflage outfit will make opponents scared.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

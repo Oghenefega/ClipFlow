@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608297_nye6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1713,
+  "outputTokens": 468,
+  "thoughtTokens": 371
+ },
+ "cost": 0.0060795,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "Nothing happens in this clip as it only shows setup and casual talking before the round begins.",
+  "what": "The creator casually talks about his former rank while watching the buy phase of a round with no action occurring.",
+  "playQuality": 0,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

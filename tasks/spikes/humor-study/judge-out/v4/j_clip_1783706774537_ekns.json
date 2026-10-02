@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_ekns",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5077,
+  "outputTokens": 611,
+  "thoughtTokens": 479
+ },
+ "cost": 0.012198,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "His sudden reversal from calling the stressful match fun to screaming that it was not fun at all is hilarious and relatable.",
+  "what": "After the tense match ends, the creator tries to say 'that was fun' before immediately clutching his head and screaming 'that was NOT fun, not in the slightest!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 27,
+  "reactionEndT": 36,
+  "keep_score": 80
+ }
+}

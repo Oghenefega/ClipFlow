@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440406_gria",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 411,
+  "thoughtTokens": 282
+ },
+ "cost": 0.006636,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny, relatable self-own where he laughs hysterically at his own bad positioning during the goal replay.",
+  "what": "After conceding a goal, Fega laughs at the replay showing him uselessly camping boost and admits, \"Look at me bro, oh my god, embarrassing.\"",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 10,
+  "reactionEndT": 14,
+  "keep_score": 75
+ }
+}

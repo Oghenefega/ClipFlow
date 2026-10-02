@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945274_ac4a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 484,
+  "thoughtTokens": 382
+ },
+ "cost": 0.0079125,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "It is just casual commentary during routine gameplay without a distinct punchline or sharp subversion.",
+  "what": "Fega complains that his opponent is too nice in chat, preventing him from shit talking.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

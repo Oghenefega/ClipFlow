@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826515_6zf0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 780,
+  "thoughtTokens": 650
+ },
+ "cost": 0.010606500000000001,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "His passionate celebration when 100T locks in a vital map point toward Champions makes for a great fan highlight.",
+  "what": "The creator celebrates 100 Thieves nearing Champions qualification, shouting 'Ladies and gentlemen! Champs! Champs! Can you hear it?'.",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 18,
+  "reactionEndT": 28,
+  "keep_score": 75
+ }
+}

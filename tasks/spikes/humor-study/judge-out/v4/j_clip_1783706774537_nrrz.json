@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_nrrz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3621,
+  "outputTokens": 712,
+  "thoughtTokens": 616
+ },
+ "cost": 0.0107715,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay with no comedic setup, payoff, or notable reaction.",
+  "what": "Fega remarks on a save and later gets demolished during standard gameplay without much reaction.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

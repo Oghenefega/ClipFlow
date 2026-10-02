@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_mykt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3348,
+  "outputTokens": 410,
+  "thoughtTokens": 308
+ },
+ "cost": 0.008097,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay commentary with no comedic setup, punchline, or notable highlight.",
+  "what": "The streamer starts a Rocket League match, telling his teammates to lock in while giving standard match commentary.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_92cf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4799,
+  "outputTokens": 994,
+  "thoughtTokens": 852
+ },
+ "cost": 0.0146535,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "A solid self-own moment where Fega predicts his own blunder will get punished and immediately gets scored on with a funny, self-aware reaction.",
+  "what": "Fega accidentally passes to the opponent, predicts he'll get punished, and immediately gets scored on while yelling 'My bad, my bad! What kind of pass was that, bro?'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 14,
+  "keep_score": 70
+ }
+}

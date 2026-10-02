@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_sln5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 752,
+  "thoughtTokens": 617
+ },
+ "cost": 0.0106395,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "His callout immediately leads to Bang getting the kill, triggering a huge, energetic reaction where he jumps out of his chair.",
+  "what": "The creator predicts an enemy's position for Bang, who gets the kill, causing him to jump out of his seat screaming 'GET HIM OUT OF THERE!'",
+  "playQuality": 6,
+  "reactionSize": 9,
+  "payoffT": 13,
+  "reactionEndT": 19,
+  "keep_score": 78
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_kwl7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 775,
+  "thoughtTokens": 645
+ },
+ "cost": 0.009597,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "No gameplay action or clutch play occurs in this clip, only pre-round comms listening.",
+  "what": "The creator listens to 100 Thieves' pre-round comms and laughs, saying 'Look at the clean comms guys... I need a team like this in real life.'",
+  "playQuality": 1,
+  "reactionSize": 4,
+  "payoffT": 3,
+  "reactionEndT": 18,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143966_7m3g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7788,
+  "outputTokens": 759,
+  "thoughtTokens": 631
+ },
+ "cost": 0.0173745,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction with his signature catchphrase and standing up after a key round win.",
+  "what": "The creator goes wild and jumps out of his chair yelling 'Let's go! Get him out of here!' as 100T wins the round.",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 18,
+  "reactionEndT": 25,
+  "keep_score": 85
+ }
+}

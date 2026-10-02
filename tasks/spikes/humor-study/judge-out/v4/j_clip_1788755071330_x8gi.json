@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071330_x8gi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 756,
+  "thoughtTokens": 633
+ },
+ "cost": 0.010062000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is plain narration during a technical pause with no active gameplay or notable moment.",
+  "what": "During a technical pause with his team down 0-6, the creator repeatedly insists 'We're not afraid, we're so close and we're gonna get it.'",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_g1ky",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5196,
+  "outputTokens": 678,
+  "thoughtTokens": 559
+ },
+ "cost": 0.012879000000000002,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just routine encouragement during a timeout and round setup without any actual gameplay or highlight play occurring.",
+  "what": "The creator tries to rally 100 Thieves during a tactical timeout, saying 'We just need to win one eco to activate, okay?'",
+  "playQuality": 0,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

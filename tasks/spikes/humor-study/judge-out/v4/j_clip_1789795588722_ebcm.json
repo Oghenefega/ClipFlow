@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_ebcm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5871,
+  "outputTokens": 596,
+  "thoughtTokens": 482
+ },
+ "cost": 0.0132765,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just intro stream banter while sitting on the game's menu with no funny payoff or game action.",
+  "what": "The creator complains about how good his roommate's cooking smells when he cannot eat any of it while sitting on the main menu.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

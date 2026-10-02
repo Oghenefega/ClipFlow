@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_cdqm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6419,
+  "outputTokens": 653,
+  "thoughtTokens": 537
+ },
+ "cost": 0.014526,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard Rocket League gameplay clip featuring routine commentary and no strong comedic setup or payoff.",
+  "what": "The creator shouts in disbelief when an opponent scores a lucky goal to take the lead, eventually losing the match 2-1.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 27,
+  "reactionEndT": 35,
+  "keep_score": 25
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143968_qyns",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 755,
+  "thoughtTokens": 630
+ },
+ "cost": 0.010540500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "Low-energy reaction to a routine play made against 100T rather than an ace or big clutch.",
+  "what": "The creator quietly reacts as LOUD hits sheriff shots against 100T, saying 'Jesus, that was insane'.",
+  "playQuality": 5,
+  "reactionSize": 3,
+  "payoffT": 3,
+  "reactionEndT": 14,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_d0i1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4243,
+  "outputTokens": 674,
+  "thoughtTokens": 542
+ },
+ "cost": 0.0114195,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "It is light pre-match customization banter with a small laugh, but lacks a punchy comedic moment or payoff.",
+  "what": "The creator attempts to paint baggy pants on his character, accidentally paints his avatar red and metallic, and laughs saying, 'This is not what my pants look like okay.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 19,
+  "reactionEndT": 27,
+  "keep_score": 40
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501780_yg0x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2118,
+  "outputTokens": 682,
+  "thoughtTokens": 586
+ },
+ "cost": 0.008292,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no play or action on screen, only casual banter during round setup.",
+  "what": "The creator predicts a 13-3 victory for 100 Thieves during early round setup.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

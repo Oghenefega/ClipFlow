@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_f3nz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 523,
+  "thoughtTokens": 408
+ },
+ "cost": 0.009894,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just pre-round hype talk with no actual play or payoff occurring during the clip.",
+  "what": "The creator hype-talks before the round starts saying 'We in the endgame now', but the clip ends before any action occurs.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

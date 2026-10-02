@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_b8af",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4891,
+  "outputTokens": 623,
+  "thoughtTokens": 497
+ },
+ "cost": 0.012009,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "It is mostly spectator chatter and mild self-deprecation without a sharp comedic punchline or dramatic gameplay fail on screen.",
+  "what": "The creator laughs at his early elimination, admitting 'I suck at this game... what did you think, I was gonna be good first time?'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 9,
+  "reactionEndT": 16,
+  "keep_score": 35
+ }
+}

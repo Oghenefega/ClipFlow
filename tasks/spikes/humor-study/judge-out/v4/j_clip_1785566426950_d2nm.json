@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_d2nm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5528,
+  "outputTokens": 886,
+  "thoughtTokens": 762
+ },
+ "cost": 0.014937,
+ "judged": {
+  "score": 55,
+  "kind": "comedy",
+  "reason": "The initial reaction is funny and relatable, but the clip drags on for another forty seconds with minimal interaction or payoff.",
+  "what": "Fega laughs hysterically at the chaotic game, exclaiming, 'We're all playing like drunkards right now man.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 12,
+  "reactionEndT": 15,
+  "keep_score": 55
+ }
+}

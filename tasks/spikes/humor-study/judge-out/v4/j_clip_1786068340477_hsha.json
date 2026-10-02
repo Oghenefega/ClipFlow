@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_hsha",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 865,
+  "thoughtTokens": 738
+ },
+ "cost": 0.010284,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "An energetic and funny clip with infectious laughter as he jokes about needing a red card for his foul play.",
+  "what": "Fega laughs hysterically after scoring a goal by bumping the defender, shouting 'GET HIM OUT OF HERE BRO! You have to give me the red card bro!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 8,
+  "keep_score": 75
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_c8ij",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5599,
+  "outputTokens": 622,
+  "thoughtTokens": 499
+ },
+ "cost": 0.0130635,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "Standard gameplay narration and mild panic without a strong comedic setup, reversal, or big payoff.",
+  "what": "Fega panics while navigating his egg through a complex structure, admitting 'I'm so lost and scared' before barely landing on the target pad.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 40,
+  "reactionEndT": 46,
+  "keep_score": 35
+ }
+}

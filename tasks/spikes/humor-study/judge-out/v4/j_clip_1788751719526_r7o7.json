@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_r7o7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4953,
+  "outputTokens": 655,
+  "thoughtTokens": 519
+ },
+ "cost": 0.012342,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is extended mid-round speech and narration between rounds without any highlight play happening.",
+  "what": "The creator gives a long speech comparing 100T's gameplay to pulling off a heist, saying 'Remember it's a heist! When you're doing a heist, you don't make a lot of noise guys!'",
+  "playQuality": 2,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

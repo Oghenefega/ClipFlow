@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_mz7c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4548,
+  "outputTokens": 653,
+  "thoughtTokens": 526
+ },
+ "cost": 0.0117195,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is mostly lamenting a lost round and watching a replay with no big highlight play or massive reaction.",
+  "what": "The streamer laments 100 Thieves losing a round despite Asuna getting two kills, watching the replay of a team flash before Cryo lands a routine Operator shot next round.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

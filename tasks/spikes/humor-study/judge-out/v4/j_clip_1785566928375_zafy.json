@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_zafy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3584,
+  "outputTokens": 753,
+  "thoughtTokens": 622
+ },
+ "cost": 0.011023499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Great comedic timing where his teammate instantly delivers a goal the exact second he asks for conviction.",
+  "what": "Fega demands conviction behind his team's shots and his teammate instantly scores a goal, prompting him to shout 'Let's go! That's what I'm talking about!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23,
+  "reactionEndT": 27,
+  "keep_score": 85
+ }
+}

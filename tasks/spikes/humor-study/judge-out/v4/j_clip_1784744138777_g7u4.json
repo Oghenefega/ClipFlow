@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_g7u4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 624,
+  "thoughtTokens": 519
+ },
+ "cost": 0.010177499999999999,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Standard gameplay narration with no funny payoff, fail, or notable moment occurring.",
+  "what": "The streamer continuously encourages his teammate while driving around the arena in Rocket League, but no significant play or funny moment occurs.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

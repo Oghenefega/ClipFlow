@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_y5rt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2361,
+  "outputTokens": 621,
+  "thoughtTokens": 498
+ },
+ "cost": 0.008199,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "Routine final round cleanup with low-key commentary and no stand-out play or big reaction.",
+  "what": "The creator calmly watches 100 Thieves win match point and comments, 'I need to watch some more 100 Thieves... I've missed it.'",
+  "playQuality": 3,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

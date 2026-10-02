@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789956899839_1e1y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4324,
+  "outputTokens": 626,
+  "thoughtTokens": 491
+ },
+ "cost": 0.011181,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Leaving his hot mic on while hiding leads to a hilarious, instant self-own and kill payoff.",
+  "what": "The creator accidentally leaves his in-game mic on while asking 'who's ready to die?', gets warned by a teammate, and is immediately eliminated while bursting out laughing ('Oh my god!').",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 31,
+  "reactionEndT": 38,
+  "keep_score": 85
+ }
+}

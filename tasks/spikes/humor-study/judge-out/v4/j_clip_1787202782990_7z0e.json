@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_7z0e",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4791,
+  "outputTokens": 569,
+  "thoughtTokens": 467
+ },
+ "cost": 0.011453999999999999,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This is plain chatting with stream chat with no competitive gameplay or highlight moment occurring.",
+  "what": "The streamer casually talks to chat about potentially playing Valorant again and managing his streaming schedule.",
+  "playQuality": 0,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

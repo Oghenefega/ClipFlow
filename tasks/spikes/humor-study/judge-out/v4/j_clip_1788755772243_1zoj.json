@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772243_1zoj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 737,
+  "thoughtTokens": 601
+ },
+ "cost": 0.011013,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This is a routine round-ending play rather than a stand-out clutch or multi-kill that merits a clip.",
+  "what": "The creator hype-reacts to 100T closing out a flawless round, shouting 'Get him out of my face' and 'Let's go boys'.",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": 6,
+  "reactionEndT": 33,
+  "keep_score": 35
+ }
+}

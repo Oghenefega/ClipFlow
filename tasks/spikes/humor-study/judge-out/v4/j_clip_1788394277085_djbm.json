@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_djbm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3433,
+  "outputTokens": 503,
+  "thoughtTokens": 397
+ },
+ "cost": 0.008922,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is low-stakes setup and menu navigation with no comedic payoff or notable event.",
+  "what": "The streamer tests game controls and opens the character paint menu in Meccha Chameleon while wondering what to paint on himself.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

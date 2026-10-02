@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_mhqu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 607,
+  "thoughtTokens": 491
+ },
+ "cost": 0.009066000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No gameplay highlight or action occurs in the clip beyond early round setup and chatting.",
+  "what": "The creator banters with chat during the early round setup, saying 'Psych, it's not all love man, get him out of here.'",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

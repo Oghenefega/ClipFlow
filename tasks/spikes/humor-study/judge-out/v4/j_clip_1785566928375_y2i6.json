@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_y2i6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 486,
+  "thoughtTokens": 372
+ },
+ "cost": 0.008049,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just menu navigation and casual rank talk between matches with no funny payoff.",
+  "what": "Fega checks his Rocket League ranks on the menu, laughing at being Plat in 1v1s while Champ in other modes, and contemplates queuing again.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

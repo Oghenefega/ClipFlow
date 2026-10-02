@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143968_lgo0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 691,
+  "thoughtTokens": 576
+ },
+ "cost": 0.009939,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "The clip starts after the play has already occurred, leaving mostly post-round disbelief without showing the actual live moment.",
+  "what": "The creator expresses disbelief at a round outcome, asking 'How the actual heck is that even possible, bro?'",
+  "playQuality": 4,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

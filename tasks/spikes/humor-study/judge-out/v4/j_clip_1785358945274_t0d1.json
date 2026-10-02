@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945274_t0d1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 517,
+  "thoughtTokens": 410
+ },
+ "cost": 0.008403,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just casual stream banter about stream sniping with no funny gameplay event or comedic payoff.",
+  "what": "The creator talks about wanting to ban or report an opponent to Epic Games so they cannot stream snipe him again.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

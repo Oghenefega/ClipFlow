@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_7bza",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2802,
+  "outputTokens": 645,
+  "thoughtTokens": 526
+ },
+ "cost": 0.0090405,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "It is a standard post-game win celebration without a strong comedic setup or subversion.",
+  "what": "Fega scores a goal to prompt an opponent forfeit and excitedly celebrates receiving Match MVP by shouting 'Give me that match MVP bro!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 13,
+  "reactionEndT": 15,
+  "keep_score": 35
+ }
+}

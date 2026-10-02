@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277084_fgtf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4891,
+  "outputTokens": 729,
+  "thoughtTokens": 623
+ },
+ "cost": 0.012804000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is entirely pre-round setup and control testing with no comedic payoff or punchline.",
+  "what": "The creator struggles to hide his oversized avatar, eventually sticking himself awkwardly onto a wall painting before the round starts.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

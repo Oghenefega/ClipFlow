@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_q5rg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2685,
+  "outputTokens": 664,
+  "thoughtTokens": 537
+ },
+ "cost": 0.0090075,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "High energy reaction to a key multi-kill replay from 100 Thieves with great audio enthusiasm.",
+  "what": "The creator hype reacts to a 100 Thieves replay multi-kill and chuckles at the caster calling Cryo 'snappy without adjustment'.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 5,
+  "reactionEndT": 9,
+  "keep_score": 78
+ }
+}

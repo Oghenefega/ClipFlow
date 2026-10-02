@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_qqi1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3597,
+  "outputTokens": 576,
+  "thoughtTokens": 453
+ },
+ "cost": 0.0097155,
+ "judged": {
+  "score": 68,
+  "kind": "comedy",
+  "reason": "His genuine, hearty laugh and self-aware commentary on his own mistake make for an amusing comedy moment.",
+  "what": "Fega bursts into contagious laughter while rolling his egg after realizing he misjudged a obstacle, saying 'the blind leading the blind'.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 10,
+  "reactionEndT": 27,
+  "keep_score": 68
+ }
+}

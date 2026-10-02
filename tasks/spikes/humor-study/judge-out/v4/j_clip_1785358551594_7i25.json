@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_7i25",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8687,
+  "outputTokens": 748,
+  "thoughtTokens": 616
+ },
+ "cost": 0.0186405,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "His absurd Make-A-Wish excuse for losing is a hilariously delivered self-own.",
+  "what": "After getting outplayed in Rocket League, Fega jokes about changing the score in match admin before telling chat he lost because 'it was a Make-A-Wish Foundation type of thing'.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 85,
+  "reactionEndT": 92,
+  "keep_score": 85
+ }
+}

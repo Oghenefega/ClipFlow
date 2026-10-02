@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_kaf4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 884,
+  "thoughtTokens": 765
+ },
+ "cost": 0.011022,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This clip is entirely build-up with no actual kills or payoff included before it ends.",
+  "what": "The creator expresses hype for Bang during a 1v2 clutch attempt, saying \"If there's anybody that could and would, it is bang!\"",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

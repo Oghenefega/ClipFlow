@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790094024511_qd40",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4891,
+  "outputTokens": 844,
+  "thoughtTokens": 721
+ },
+ "cost": 0.013666500000000002,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A funny and surprising end-of-round discovery of an absurd hiding spot with an energetic reaction.",
+  "what": "The creator reacts in disbelief upon discovering a player hidden inside a metal shelf frame, exclaiming, 'How is someone supposed to find that?!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 31,
+  "reactionEndT": 47,
+  "keep_score": 85
+ }
+}

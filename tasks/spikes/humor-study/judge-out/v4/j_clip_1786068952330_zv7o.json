@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068952330_zv7o",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 708,
+  "thoughtTokens": 583
+ },
+ "cost": 0.010321499999999999,
+ "judged": {
+  "score": 90,
+  "kind": "comedy",
+  "reason": "Great comedic timing as Fega pleads to score a goal and his opponent scores on him seconds later.",
+  "what": "Fega begs to score just one goal, but his opponent scores on him instantly off the kickoff, leading him to yell 'Not him! Me!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 19,
+  "reactionEndT": 26,
+  "keep_score": 90
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_0qq7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 747,
+  "thoughtTokens": 632
+ },
+ "cost": 0.009277500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is a routine demolition during Rocket League gameplay with no major funny setup or punchline.",
+  "what": "Fega gets demoed in Rocket League and laughs as he repeats 'Took me out!' while rewatching the replay.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 1,
+  "reactionEndT": 12,
+  "keep_score": 25
+ }
+}

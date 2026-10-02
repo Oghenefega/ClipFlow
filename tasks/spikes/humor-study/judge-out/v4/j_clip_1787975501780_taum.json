@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501780_taum",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 982,
+  "thoughtTokens": 845
+ },
+ "cost": 0.0140655,
+ "judged": {
+  "score": 70,
+  "kind": "hype_reaction",
+  "reason": "A solid 1v1 clutch round win for his team paired with a very hype, energetic reaction.",
+  "what": "100T eeiu secures a clean round-winning kill in a 1v1, prompting the creator to shout 'It's too easy! It's too easy!'",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 30,
+  "reactionEndT": 41,
+  "keep_score": 70
+ }
+}

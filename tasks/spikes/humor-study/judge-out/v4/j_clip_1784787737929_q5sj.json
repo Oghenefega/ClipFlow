@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_q5sj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 677,
+  "thoughtTokens": 558
+ },
+ "cost": 0.0082665,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is a routine post-goal moment with a low-energy reaction and no comedic payoff.",
+  "what": "Fega celebrates a goal with a mild 'Nice one, let's go' and says 'Easy stuff, easy stuff' as the match resets.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": 3,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_slnu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 670,
+  "thoughtTokens": 547
+ },
+ "cost": 0.008445,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "The clip shows a routine round win for the opposing team rather than an exceptional play, and his commentary is just mild banter.",
+  "what": "The creator watches a replay of the opponent winning and jokes, 'These guys have cheats, I promise... something is not right, okay?!'",
+  "playQuality": 3,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

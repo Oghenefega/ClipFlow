@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519029_72gl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1883,
+  "outputTokens": 453,
+  "thoughtTokens": 350
+ },
+ "cost": 0.006222,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Just casual story talk sitting in a game menu without any gameplay action or comedic payoff.",
+  "what": "The creator talks about enjoying 'hate watching' something yesterday while sitting in the Rocket League main menu.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

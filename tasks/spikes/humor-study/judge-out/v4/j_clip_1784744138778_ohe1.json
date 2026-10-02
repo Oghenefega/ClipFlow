@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138778_ohe1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 682,
+  "thoughtTokens": 564
+ },
+ "cost": 0.008303999999999999,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just loading screen pre-game setup with no comedic payoff or gameplay event.",
+  "what": "Fega tells himself to lock in while loading into a Rocket League match, saying 'All right Fega, lock in, okay? You're better than this.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_wuwb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 648,
+  "thoughtTokens": 519
+ },
+ "cost": 0.010114500000000002,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "The setup is spread out and his reaction is too low-energy to make for a memorable comedic clip.",
+  "what": "Fega tells his team to lock in, but after the opponent scores, he calmly admits, \"He might have meant something, maybe he wasn't tripping.\"",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 16,
+  "reactionEndT": 26,
+  "keep_score": 35
+ }
+}

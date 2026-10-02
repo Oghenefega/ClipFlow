@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_by0l",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 793,
+  "thoughtTokens": 667
+ },
+ "cost": 0.01023,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "Failing a simple demo attempt is routine gameplay that lacks a strong comedic payoff or notable reaction.",
+  "what": "Fega tries to demo an opponent in Rocket League, complaining 'I'm trying to blow this guy up and it's not working!' while continually missing.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 11.5,
+  "reactionEndT": 17,
+  "keep_score": 30
+ }
+}

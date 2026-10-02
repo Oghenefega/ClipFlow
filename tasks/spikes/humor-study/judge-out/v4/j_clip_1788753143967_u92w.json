@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_u92w",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4953,
+  "outputTokens": 749,
+  "thoughtTokens": 610
+ },
+ "cost": 0.013047,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "A routine round win closing out a 3v1 advantage lacks the multi-kill or clutch play needed for a top reaction highlight.",
+  "what": "The creator watches 100T shut down LOUD in a 3v1 advantage as Cryo secures the final kill, shouting 'Thank you Cryo!'",
+  "playQuality": 3,
+  "reactionSize": 5,
+  "payoffT": 36.5,
+  "reactionEndT": 44,
+  "keep_score": 25
+ }
+}

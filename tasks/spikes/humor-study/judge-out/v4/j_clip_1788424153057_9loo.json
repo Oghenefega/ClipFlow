@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788424153057_9loo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8050,
+  "outputTokens": 643,
+  "thoughtTokens": 530
+ },
+ "cost": 0.0168975,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "The clip consists entirely of setup phase UI fumbling without a clear comedic payoff or punchline.",
+  "what": "The creator panics while fumbling with his pose wheel and paint controls before the hide phase starts, shouting 'I'm cooked!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 30
+ }
+}

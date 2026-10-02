@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_4wvh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2484,
+  "outputTokens": 458,
+  "thoughtTokens": 356
+ },
+ "cost": 0.007161000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Nothing happens in the gameplay and there is no comedic payoff or event to make this a highlight.",
+  "what": "The streamer wanders through an empty building while calling out 'Friendly?', but nothing happens.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

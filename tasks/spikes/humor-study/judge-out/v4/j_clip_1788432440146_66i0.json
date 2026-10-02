@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440146_66i0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4972,
+  "outputTokens": 793,
+  "thoughtTokens": 663
+ },
+ "cost": 0.013405499999999999,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "His animated disbelief during the end-of-round reveal creates a solid comedic reaction to missing obvious hiders.",
+  "what": "The creator loses the round and reacts with genuine frustration as the post-round reveal shows where all the hidden players were lurking, shouting 'I am so pissed!'.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 33,
+  "reactionEndT": 46,
+  "keep_score": 65
+ }
+}

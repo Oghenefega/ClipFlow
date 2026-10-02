@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_6a8r",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 400,
+  "thoughtTokens": 296
+ },
+ "cost": 0.00642,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This is just background chatting with no play or reaction happening on screen.",
+  "what": "The creator talks about returning to watch VCT while routine early-round positioning plays on screen with no kills.",
+  "playQuality": 1,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

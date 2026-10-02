@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519030_w8zm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2874,
+  "outputTokens": 650,
+  "thoughtTokens": 552
+ },
+ "cost": 0.009186,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is plain commentary and story talk without a funny setup or comedic payoff.",
+  "what": "The creator explains why it was satisfying to hate-watch Argentina and see evil lose.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_htbz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2361,
+  "outputTokens": 491,
+  "thoughtTokens": 378
+ },
+ "cost": 0.0072239999999999995,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is a routine spike plant with no kills or clutches, and the creator gives almost no reaction.",
+  "what": "The streamer watches 100T execute onto B site and plant the spike without any firefights or kills happening.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

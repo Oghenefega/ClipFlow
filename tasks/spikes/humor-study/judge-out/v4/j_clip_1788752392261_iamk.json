@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_iamk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7545,
+  "outputTokens": 8012,
+  "thoughtTokens": 7864
+ },
+ "cost": 0.0714075,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "While the strategy analysis and the team winning the round with all Sheriffs is interesting, there isn't a single crazy multi-kill or clutch play to anchor it.",
+  "what": "The creator analyzes and hypes up LOUD's full-team Sheriff strategy, screaming 'We gotta do this Sheriff stuff every time!' as LOUD wins the round.",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 114,
+  "reactionEndT": 122,
+  "keep_score": 55
+ }
+}

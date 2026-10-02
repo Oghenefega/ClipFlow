@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_eapg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 642,
+  "thoughtTokens": 527
+ },
+ "cost": 0.0107985,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "The initial reaction is mild self-deprecation and the rest of the clip trails off into quiet gameplay and basic chat talk.",
+  "what": "The streamer laughs at failing to limit his own mistake when the opponent scores, then plays quietly while answering chat questions.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 5,
+  "reactionEndT": 9,
+  "keep_score": 25
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_h6xp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 861,
+  "thoughtTokens": 730
+ },
+ "cost": 0.012198,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "A light self-own where he catches himself making excuses, but the moment is too low-key to make a great clip.",
+  "what": "After making excuses for conceding a goal, Fega catches himself asking 'Is that me putting the blame on someone else?' and laughs at his own deflection.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 15,
+  "reactionEndT": 19,
+  "keep_score": 45
+ }
+}

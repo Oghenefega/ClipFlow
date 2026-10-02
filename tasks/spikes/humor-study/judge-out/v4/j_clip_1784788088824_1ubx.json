@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_1ubx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 411,
+  "thoughtTokens": 299
+ },
+ "cost": 0.0055425000000000006,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just casual gameplay chatter while winning comfortably, with no funny setup or punchline.",
+  "what": "Fega laughs while winning 5-1 in Rocket League and says, 'We're just playing with them at this point.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_pzgx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 740,
+  "thoughtTokens": 616
+ },
+ "cost": 0.010318500000000001,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "Conceding routine kickoff goals back-to-back with mild confusion is everyday gameplay rather than a standout comedy moment.",
+  "what": "Fega repeatedly loses kickoffs and gets scored on, asking 'How's he winning these kickoffs, man? What?'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 19,
+  "reactionEndT": 25,
+  "keep_score": 30
+ }
+}

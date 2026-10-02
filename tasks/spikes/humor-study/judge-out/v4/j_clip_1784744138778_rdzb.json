@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138778_rdzb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 725,
+  "thoughtTokens": 619
+ },
+ "cost": 0.0105705,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "There is no comedic twist or big reaction, making this a routine match ending with no real payoff.",
+  "what": "Fega drives around as the match clock expires and cautions himself, 'Never celebrate too early.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_fshf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 833,
+  "thoughtTokens": 707
+ },
+ "cost": 0.011987999999999999,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "An accidental own goal followed by routine boasting after scoring is standard gameplay banter without a strong comedic subversion.",
+  "what": "The creator accidentally scores an own goal in Rocket League, exclaiming 'No way, I put that in myself, bro!' before scoring on his opponent shortly after.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 7,
+  "reactionEndT": 14,
+  "keep_score": 45
+ }
+}

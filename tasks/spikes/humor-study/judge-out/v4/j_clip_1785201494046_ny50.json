@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_ny50",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 942,
+  "thoughtTokens": 827
+ },
+ "cost": 0.011469,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "Routine kickoff goal without a comedic setup or subversion beyond his standard hype catchphrase.",
+  "what": "Fega scores a goal right off the kickoff and screams \"GET HIM OUT OF HERE BRO, COME ON!\".",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 18,
+  "reactionEndT": 22,
+  "keep_score": 40
+ }
+}

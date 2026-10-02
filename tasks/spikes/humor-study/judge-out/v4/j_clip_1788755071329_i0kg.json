@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_i0kg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 776,
+  "thoughtTokens": 654
+ },
+ "cost": 0.011427,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "High energy reaction supporting his team with a fun observation during the replay.",
+  "what": "The creator passionately celebrates a 100 Thieves round win shouting 'Get him out of here!' while noticing players setup inside the generator like a Trojan horse.",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 1,
+  "reactionEndT": 33,
+  "keep_score": 78
+ }
+}

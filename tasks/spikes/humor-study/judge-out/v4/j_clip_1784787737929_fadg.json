@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_fadg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2045,
+  "outputTokens": 858,
+  "thoughtTokens": 737
+ },
+ "cost": 0.0095025,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "A routine goal replay narration with mild chuckling that lacks a strong comedic punchline or subverted expectation.",
+  "what": "Fega reacts to his own goal replay, laughing as he admits, 'almost missed that then bro, but my positioning was...'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 8,
+  "reactionEndT": 11,
+  "keep_score": 25
+ }
+}

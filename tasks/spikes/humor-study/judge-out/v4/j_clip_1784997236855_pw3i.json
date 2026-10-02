@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_pw3i",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2021,
+  "outputTokens": 709,
+  "thoughtTokens": 597
+ },
+ "cost": 0.008348999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just mild commentary and relief with no comedic punchline or funny setup.",
+  "what": "The creator expresses relief as a contraption carries his egg upward, remarking 'I would have been so frustrated'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 4,
+  "reactionEndT": 9,
+  "keep_score": 15
+ }
+}

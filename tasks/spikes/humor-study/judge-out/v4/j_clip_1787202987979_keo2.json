@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_keo2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1632,
+  "outputTokens": 650,
+  "thoughtTokens": 533
+ },
+ "cost": 0.007323,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "The clip catches only the tail end of a reaction and spends most of its time with the creator silently watching replay footage.",
+  "what": "The creator briefly flexes and screams at the start before quietly watching a Valorant replay.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 2,
+  "reactionEndT": 4,
+  "keep_score": 20
+ }
+}

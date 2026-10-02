@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_24dr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4710,
+  "outputTokens": 592,
+  "thoughtTokens": 460
+ },
+ "cost": 0.011505,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "A round loss against his team with plain copium commentary is not a highlight play or reaction.",
+  "what": "NRG wins an eco round against 100T and the creator brushes it off saying, 'Whatever man, lucky man... we were winning a little bit too easy.'",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 10,
+  "reactionEndT": 46,
+  "keep_score": 15
+ }
+}

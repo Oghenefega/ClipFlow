@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785192759506_zawr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 596,
+  "thoughtTokens": 497
+ },
+ "cost": 0.0080235,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just tech troubleshooting and menu navigation with no joke or comedic payoff.",
+  "what": "Fega fiddles with his headphones while clicking through item unlock notifications in the Rocket League menu.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

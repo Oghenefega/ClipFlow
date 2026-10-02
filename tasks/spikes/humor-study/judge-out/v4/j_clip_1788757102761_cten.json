@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_cten",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4386,
+  "outputTokens": 552,
+  "thoughtTokens": 424
+ },
+ "cost": 0.010719,
+ "judged": {
+  "score": 72,
+  "kind": "hype_reaction",
+  "reason": "A solid, energetic reaction to a clean round win for his team, though lacking an extreme individual play.",
+  "what": "The creator hypes up 100 Thieves securing a flawless round win, shouting 'Oh my goodness! Let's freaking go baby!'",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 13,
+  "reactionEndT": 18,
+  "keep_score": 72
+ }
+}

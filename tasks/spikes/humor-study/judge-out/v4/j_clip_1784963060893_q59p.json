@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060893_q59p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5690,
+  "outputTokens": 575,
+  "thoughtTokens": 444
+ },
+ "cost": 0.0128475,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "Classic comedy structure featuring a proud, confident setup immediately ruined by an instant fail and a great self-deprecating reaction.",
+  "what": "Fega confidently dedicates a jump to his stream before immediately falling and cracking his egg, laughing as he says 'Look where we're back to.'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23,
+  "reactionEndT": 38,
+  "keep_score": 88
+ }
+}

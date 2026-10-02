@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788112_bem5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 923,
+  "thoughtTokens": 796
+ },
+ "cost": 0.0103425,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "Good map-winning moment with strong hype and energetic celebration from the streamer.",
+  "what": "100 Thieves seals the map win 13-2, sending the creator into a loud victory celebration as he yells 'Too easy! Next map, come on!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 4.5,
+  "reactionEndT": 11,
+  "keep_score": 75
+ }
+}

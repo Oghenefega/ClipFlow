@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_2r7b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2037,
+  "outputTokens": 465,
+  "thoughtTokens": 364
+ },
+ "cost": 0.006543,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no notable play or hype reaction, just quiet background commentary over early round setup.",
+  "what": "The creator casually recounts previous map scores while watching routine round setup footage.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

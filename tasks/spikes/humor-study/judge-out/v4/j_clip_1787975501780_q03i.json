@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501780_q03i",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4548,
+  "outputTokens": 866,
+  "thoughtTokens": 730
+ },
+ "cost": 0.013316999999999999,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "While there is no gameplay play, his hilarious observation and reaction to the coach hitting the oversized timeout button makes for a standout watch-party moment.",
+  "what": "The creator laughs uncontrollably after watching the coach dramatically slam a giant glowing red timeout button on stage, saying 'That is so dramatic for no reason!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 18,
+  "reactionEndT": 45,
+  "keep_score": 75
+ }
+}

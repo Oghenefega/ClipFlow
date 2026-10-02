@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_31xb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 469,
+  "thoughtTokens": 371
+ },
+ "cost": 0.008529,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just menu navigation and casual chat banter with no gameplay or comedic payoff.",
+  "what": "The streamer navigates through the Rocket League main menus while chatting with stream about ranks.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

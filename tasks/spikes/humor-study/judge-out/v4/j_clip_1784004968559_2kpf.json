@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_2kpf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2165,
+  "outputTokens": 484,
+  "thoughtTokens": 351
+ },
+ "cost": 0.0068775,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine post-game scoreboard talk and menu browsing without a funny payoff or gameplay moment.",
+  "what": "Fega looks at the end-game scoreboard and talks about missing his friend Chili while teasing another player, saying 'JP, this is who you didn't want to play ranked with? Man, you're trolling bro.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

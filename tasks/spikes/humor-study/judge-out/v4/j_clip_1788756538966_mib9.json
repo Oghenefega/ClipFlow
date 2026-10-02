@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_mib9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1389,
+  "outputTokens": 481,
+  "thoughtTokens": 374
+ },
+ "cost": 0.005691,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "No play occurs during this clip as it cuts off right after the round countdown starts.",
+  "what": "The creator watches crowd replay footage and round transition while quietly saying 'We're gonna bring it home'.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

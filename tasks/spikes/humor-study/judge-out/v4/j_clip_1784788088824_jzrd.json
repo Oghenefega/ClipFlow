@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_jzrd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 658,
+  "thoughtTokens": 533
+ },
+ "cost": 0.0084885,
+ "judged": {
+  "score": 55,
+  "kind": "comedy",
+  "reason": "His genuine laughter at the toxic play is fun, but it lacks a strong personal self-own or twist to make it a standout clip.",
+  "what": "Fega laughs hard at a dirty demolition goal, exclaiming 'That was actually so toxic, what the heck?!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 1,
+  "reactionEndT": 13,
+  "keep_score": 55
+ }
+}

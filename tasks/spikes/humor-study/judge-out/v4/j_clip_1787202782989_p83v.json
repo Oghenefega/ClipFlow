@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_p83v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5439,
+  "outputTokens": 675,
+  "thoughtTokens": 574
+ },
+ "cost": 0.013221,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is plain commentary about the tournament stage setup with no gameplay action or hype reaction.",
+  "what": "The creator comments on how coaches are positioned behind players on stage during esports broadcasts.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

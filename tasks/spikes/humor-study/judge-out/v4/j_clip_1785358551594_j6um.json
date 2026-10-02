@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_j6um",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2045,
+  "outputTokens": 649,
+  "thoughtTokens": 535
+ },
+ "cost": 0.007935,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just brief pause-menu banter without any gameplay action or strong comedic payoff.",
+  "what": "The creator pauses the match and jokes 'this feels like Spain vs Argentina all over again' before immediately pulling back with 'Too soon? My bad'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

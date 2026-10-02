@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788112_dnka",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 751,
+  "thoughtTokens": 633
+ },
+ "cost": 0.0097815,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This clip consists mostly of post-match stage footage without an active gameplay play or standout hype moment.",
+  "what": "The creator celebrates 100 Thieves winning the map saying 'That's my boys, man!' while watching the post-game broadcast.",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_hg3j",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 863,
+  "thoughtTokens": 751
+ },
+ "cost": 0.013173,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or play occurring in this clip, only build-up and waiting during a timeout.",
+  "what": "The creator gets hyped up during a broadcast timeout and buy phase while holding up a 100 Thieves sweatshirt.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

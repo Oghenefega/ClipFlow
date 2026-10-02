@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_fuyf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3779,
+  "outputTokens": 570,
+  "thoughtTokens": 456
+ },
+ "cost": 0.009943500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This moment devolves into rambling chat banter about his counting with no clear gameplay payoff or comedic event.",
+  "what": "Fega laughs at his own odd counting and spends the rest of the clip defensively arguing with chat about whether he can count properly.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 4,
+  "reactionEndT": 8,
+  "keep_score": 25
+ }
+}

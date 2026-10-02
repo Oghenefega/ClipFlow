@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_1qm0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 757,
+  "thoughtTokens": 638
+ },
+ "cost": 0.011163,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "There is no highlight play in this clip, only routine pre-round banter that fades into quiet watching.",
+  "what": "The creator mock-taunts the opponents before watching 100T start an eco round with Classics.",
+  "playQuality": 2,
+  "reactionSize": 5,
+  "payoffT": 9,
+  "reactionEndT": 12,
+  "keep_score": 25
+ }
+}

@@ -181,3 +181,6 @@ content kind before they teach anything.
 - Pre-Corva shorts are all on his YouTube channel (and scattered across drives).
 - Arc Raiders keeps/rejects date from the start of Corva when he was still learning; he has moved on
   from the game. Low weight for AR data.
+
+**Round 3 (2026-10-02), after the v3 judge over-fired on opponent plays:** a play AGAINST 100T is a
+keep when it is an ace or a clutch AND Fega reacts hard. A routine opponent kill or round win is not.

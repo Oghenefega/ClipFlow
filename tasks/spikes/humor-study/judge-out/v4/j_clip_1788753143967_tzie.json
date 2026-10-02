@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_tzie",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2604,
+  "outputTokens": 793,
+  "thoughtTokens": 673
+ },
+ "cost": 0.0098535,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is a routine single kill during round setup rather than a hype play or clutch.",
+  "what": "The creator comments on Asuna's flashes right as Asuna gets a routine kill on screen, surprising him with the timing.",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": 11,
+  "reactionEndT": 16,
+  "keep_score": 15
+ }
+}

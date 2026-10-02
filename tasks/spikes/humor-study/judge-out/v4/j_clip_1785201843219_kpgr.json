@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_kpgr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 773,
+  "thoughtTokens": 648
+ },
+ "cost": 0.010809,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A solid, high-energy goal celebration with funny, confident self-praise that makes for an entertaining clip.",
+  "what": "The creator scores a goal in Rocket League and enthusiastically celebrates, shouting 'I play like an SSL? Someone screenshot that right now!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 11,
+  "reactionEndT": 25,
+  "keep_score": 75
+ }
+}

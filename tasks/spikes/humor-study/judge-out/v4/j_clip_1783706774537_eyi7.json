@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_eyi7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4531,
+  "outputTokens": 741,
+  "thoughtTokens": 623
+ },
+ "cost": 0.012354,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "He delivers his classic deflection line right before getting hilariously outplayed, though the clip drags on afterwards.",
+  "what": "The creator claims his fumble was 'all part of the plan' right before screaming as the play goes completely wrong.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 10,
+  "reactionEndT": 12,
+  "keep_score": 65
+ }
+}

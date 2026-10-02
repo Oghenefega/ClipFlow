@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_gtsl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5439,
+  "outputTokens": 664,
+  "thoughtTokens": 556
+ },
+ "cost": 0.013138500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "A routine round finish with no major play and a very quiet reaction from the creator.",
+  "what": "The creator watches a routine VCT round end and replay, asking 'Who is this spike guy bro?'",
+  "playQuality": 3,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

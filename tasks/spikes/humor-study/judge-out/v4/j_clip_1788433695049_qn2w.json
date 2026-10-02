@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_qn2w",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2947,
+  "outputTokens": 424,
+  "thoughtTokens": 318
+ },
+ "cost": 0.0076005,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just pre-round setup and casual talk with no comedic payoff or big moment.",
+  "what": "The creator asks his teammate to check his camouflage painting while complaining that his prop does not look like a rug.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

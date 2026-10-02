@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772243_ceau",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5196,
+  "outputTokens": 647,
+  "thoughtTokens": 508
+ },
+ "cost": 0.012646500000000001,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "A clutch 1v1 round win paired with his signature loud reaction and standing up makes for a great hype clip.",
+  "what": "The creator hypes up a clutch round win by 100T, screaming 'GET HIM OUT OF THERE! LET'S GO!' as they win the 1v1.",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 47,
+  "reactionEndT": 54,
+  "keep_score": 85
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_t7c2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3166,
+  "outputTokens": 1048,
+  "thoughtTokens": 915
+ },
+ "cost": 0.012609,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "His huge physical pop-off and jumping out of his chair after making the pass creates a fun, high-energy clip.",
+  "what": "Fega sets up a backboard pass for his teammate to score and jumps out of his chair screaming 'PUT IT IN! COME ON! THAT'S THE PASS!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 5,
+  "reactionEndT": 18,
+  "keep_score": 82
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_ywit",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 685,
+  "thoughtTokens": 588
+ },
+ "cost": 0.009055500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine goal replay reaction with standard commentary and no clear funny payoff.",
+  "what": "Fega laughs while watching a goal replay and comments on player positioning before taking the kickoff.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

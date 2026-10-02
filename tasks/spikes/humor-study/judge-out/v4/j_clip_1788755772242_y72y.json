@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_y72y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5277,
+  "outputTokens": 856,
+  "thoughtTokens": 710
+ },
+ "cost": 0.0143355,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-stakes overtime round win with a huge, passionate reaction from the creator that fans will love.",
+  "what": "The creator screams and celebrates wildly as 100 Thieves wins a crucial overtime round to take the lead 13-12, shouting 'Get him out of my face bro!' and showing off his 100T jersey.",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 15,
+  "reactionEndT": 35,
+  "keep_score": 88
+ }
+}

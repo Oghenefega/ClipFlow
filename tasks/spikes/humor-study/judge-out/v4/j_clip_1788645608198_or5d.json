@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788645608198_or5d",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 680,
+  "thoughtTokens": 556
+ },
+ "cost": 0.009978,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This is just hype during match downtime/timeout rather than a highlight play or clutch.",
+  "what": "The creator gets hyped during a match timeout screen, yelling 'We're in their heads!' and flexing his 100 Thieves t-shirt.",
+  "playQuality": 2,
+  "reactionSize": 7,
+  "payoffT": 5,
+  "reactionEndT": 26,
+  "keep_score": 35
+ }
+}

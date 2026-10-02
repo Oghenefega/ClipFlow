@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913586_47ny",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 696,
+  "thoughtTokens": 566
+ },
+ "cost": 0.0119205,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-energy, highly animated reaction to an absurd 3-Operator retake strat in a pro match.",
+  "what": "The creator reacts with huge hype to a wild retake play by 100T, standing up and shouting 'You're not that guy!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 2,
+  "reactionEndT": 31,
+  "keep_score": 88
+ }
+}

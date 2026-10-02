@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072345_wpvl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3212,
+  "outputTokens": 528,
+  "thoughtTokens": 420
+ },
+ "cost": 0.008778000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is just routine end-of-round inventory checking with mild excitement, lacking any comedic punchline or standout moment.",
+  "what": "The creator checks a body right before extracting and celebrates seeing the loot in his inventory screen.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

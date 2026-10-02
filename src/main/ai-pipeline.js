@@ -12,6 +12,7 @@ const feedback = require("./feedback");
 const database = require("./database");
 const signals = require("./signals");
 const geminiWatch = require("./gemini-watch");
+const clipJudge = require("./clip-judge");
 const { PipelineLogger } = require("./pipeline-logger");
 const { linkedGame } = require("../shared/reactions");
 const { getProvider } = require("./ai/llm-provider");
@@ -1131,6 +1132,33 @@ async function runAIPipeline({
       try { fs.unlinkSync(t.outputJson); } catch (_) {}
     }
     logger.endStep("Clip Retranscription", `${retranscribeCount}/${retranscribeTasks.length} clips retranscribed`);
+
+    // ============ Stage 7c: Clip judge (#483) ============
+    // Watch-and-listen score + reason per clip; the review list sorts by it.
+    // Gated on isConfigured() (raw key OR the bundled gateway token), not on
+    // geminiApiKey, so it also runs on a customer machine with no own key.
+    if (store.get("clipJudgeEnabled") !== true) {
+      logger.info("Clip judge: off in Settings — skipped");
+    } else if (gameData.isTest) {
+      logger.info("Clip judge: test-mode project — skipped");
+    } else if (!require("./ai/providers/gemini").isConfigured()) {
+      logger.warn("Clip judge: no Gemini key or gateway token — skipped");
+    } else if (project.clips.length > 0) {
+      sendProgress("judging", 97, "Watching clips...");
+      logger.startStep("Clip Judge");
+      const res = await clipJudge.judgeClips({
+        project,
+        clips: project.clips,
+        context: {
+          gameName: gameEntry?.name || gameData.game || "",
+          gameContext: gameEntry?.aiContextUser || gameEntry?.aiContextAuto || "",
+          watchedGameName: watchedGame?.name || "",
+        },
+        previewDir: path.join(processingDir, "judge-preview"),
+        logger,
+      });
+      logger.endStep("Clip Judge", `${res.judged}/${project.clips.length} clips judged, ${res.failed} failed, $${res.costUsd.toFixed(3)}`);
+    }
 
     // ============ Stage 8: Save Project ============
     sendProgress("saving", 97, "Saving project...");

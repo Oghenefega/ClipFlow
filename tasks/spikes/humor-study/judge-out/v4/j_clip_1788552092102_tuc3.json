@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_tuc3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 899,
+  "thoughtTokens": 750
+ },
+ "cost": 0.011498999999999999,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "Even without active gameplay, his passionate taunting and laughing at the opponent's pre-game quotes after a blowout win makes a great hype moment.",
+  "what": "The creator hysterically laughs at NRG's pre-match confidence after a 13-3 blowout, shouting 'Full force, he said! The disrespect! We're not on your level!'",
+  "playQuality": 1,
+  "reactionSize": 8,
+  "payoffT": 10,
+  "reactionEndT": 26,
+  "keep_score": 78
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092101_ckfy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4224,
+  "outputTokens": 937,
+  "thoughtTokens": 803
+ },
+ "cost": 0.0133635,
+ "judged": {
+  "score": 40,
+  "kind": "hype_reaction",
+  "reason": "While the creator's reaction is energetic, the clip mostly shows post-round downtime without a standout multi-kill or clutch play on screen.",
+  "what": "The creator excitedly reacts as 100T wipes the enemy team, shouting 'They're all dropping like flies! Left and right!'",
+  "playQuality": 5,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 6,
+  "keep_score": 40
+ }
+}

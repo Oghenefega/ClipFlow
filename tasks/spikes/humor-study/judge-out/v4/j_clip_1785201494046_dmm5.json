@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_dmm5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 839,
+  "thoughtTokens": 706
+ },
+ "cost": 0.010696500000000001,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "A funny self-own where his early trash talk turns into mutual whiffing and a great laugh.",
+  "what": "Fega calls his opponent trash before both fail to score, causing him to laugh and admit 'He can't score, I can't score, we both can't score.'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 14,
+  "reactionEndT": 20,
+  "keep_score": 70
+ }
+}

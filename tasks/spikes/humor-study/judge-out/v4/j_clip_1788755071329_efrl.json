@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_efrl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 527,
+  "thoughtTokens": 416
+ },
+ "cost": 0.008466000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is early round setup with a routine kill and almost no visible reaction from the creator.",
+  "what": "The creator quietly watches a routine Valorant VCT round start and takes a drink as a single kill occurs on screen.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

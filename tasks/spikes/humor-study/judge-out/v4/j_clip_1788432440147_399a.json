@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_399a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2785,
+  "outputTokens": 613,
+  "thoughtTokens": 485
+ },
+ "cost": 0.008775000000000002,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A sudden round win creates an unexpected payoff with a loud, genuinely funny surprise reaction.",
+  "what": "The creator shoots wildly as time runs out until his teammate unexpectedly finds the last hider, causing him to yell 'Hunters win?!' in total shock before breaking into hysterical laughter.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 10,
+  "reactionEndT": 20,
+  "keep_score": 82
+ }
+}

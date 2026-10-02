@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_kqc5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3495,
+  "outputTokens": 708,
+  "thoughtTokens": 585
+ },
+ "cost": 0.0105525,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "Big, animated, and genuine reaction to an incredible clutch round save for his team.",
+  "what": "The creator freaks out in disbelief after a clutch round save, screaming 'I thought we died! But HE died! That is insane!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 12,
+  "reactionEndT": 31,
+  "keep_score": 88
+ }
+}

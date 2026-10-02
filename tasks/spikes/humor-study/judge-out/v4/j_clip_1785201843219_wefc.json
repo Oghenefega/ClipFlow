@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_wefc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 467,
+  "thoughtTokens": 363
+ },
+ "cost": 0.007542,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay narration with no setup, punchline, or funny moment.",
+  "what": "Fega plays Rocket League while casually commenting 'they've got our numbers' without any notable gameplay event or joke.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

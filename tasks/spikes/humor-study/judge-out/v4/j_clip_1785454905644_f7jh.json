@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785454905644_f7jh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3352,
+  "outputTokens": 631,
+  "thoughtTokens": 524
+ },
+ "cost": 0.0097605,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just setup and struggling with basic game controls without a clear punchline or comedic payoff.",
+  "what": "The creator enters a round and struggles to figure out how to move, realizing he only knows how to jump.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

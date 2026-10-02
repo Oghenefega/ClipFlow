@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789185416777_7tbz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2361,
+  "outputTokens": 551,
+  "thoughtTokens": 418
+ },
+ "cost": 0.007673999999999999,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction to an impressive, decisive Operator flick shot by 100 Thieves in a crucial round.",
+  "what": "The creator screams in excitement as Cryo lands an insane Operator flick shot to win the round, yelling 'GET HIM OUT OF HERE! LOOK AT THAT FLICK BRO!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 1,
+  "reactionEndT": 5,
+  "keep_score": 88
+ }
+}

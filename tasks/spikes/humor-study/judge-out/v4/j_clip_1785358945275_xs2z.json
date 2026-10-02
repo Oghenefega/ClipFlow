@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_xs2z",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3098,
+  "outputTokens": 742,
+  "thoughtTokens": 627
+ },
+ "cost": 0.010212,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "Classic comedy timing where praising a play is immediately punished by getting demolished and conceded on.",
+  "what": "Fega praises a save only to immediately get demolished and scored on, reacting with 'Oof. Damn. Okay.'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 7,
+  "reactionEndT": 17,
+  "keep_score": 82
+ }
+}

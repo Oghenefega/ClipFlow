@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_st53",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7140,
+  "outputTokens": 605,
+  "thoughtTokens": 460
+ },
+ "cost": 0.015247499999999999,
+ "judged": {
+  "score": 90,
+  "kind": "hype_reaction",
+  "reason": "An incredible 1v3 clutch against his team sparks a passionate, high-energy reaction that is highly entertaining.",
+  "what": "The creator reacts in utter shock and despair as LOUD's tuyz pulls off an incredible 1v3 clutch against 100T, yelling 'Why are we giving him a 1v3?!'",
+  "playQuality": 9,
+  "reactionSize": 9,
+  "payoffT": 46,
+  "reactionEndT": 64,
+  "keep_score": 90
+ }
+}

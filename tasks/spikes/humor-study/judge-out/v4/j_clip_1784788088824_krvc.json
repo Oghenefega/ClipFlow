@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_krvc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 473,
+  "thoughtTokens": 357
+ },
+ "cost": 0.0060075,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "The clip cuts off before any payoff or gameplay event occurs to complement his line.",
+  "what": "Fega rotates back on defense and says, 'What a sick joke, you're gonna get through the 3 of us', but nothing happens during the clip.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

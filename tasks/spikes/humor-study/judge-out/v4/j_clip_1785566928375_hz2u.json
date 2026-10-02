@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_hz2u",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 1568,
+  "thoughtTokens": 1446
+ },
+ "cost": 0.017743500000000002,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "This is just a standard post-game menu rank-up celebration lacking any active gameplay or comedic payoff.",
+  "what": "Fega excitedly celebrates hitting Champion I rank on the post-match screen, shouting 'We got champ! Let's freaking go!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 3,
+  "reactionEndT": 20,
+  "keep_score": 30
+ }
+}

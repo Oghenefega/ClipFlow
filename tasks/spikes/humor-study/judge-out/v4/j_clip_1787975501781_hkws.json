@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_hkws",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 673,
+  "thoughtTokens": 565
+ },
+ "cost": 0.0099255,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is pre-match setup with no actual gameplay or play taking place.",
+  "what": "The creator holds a Phoenix action figure and chants 'I want a Phoenix ace tonight!' during pre-game agent selection.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

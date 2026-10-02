@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_91en",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4871,
+  "outputTokens": 820,
+  "thoughtTokens": 696
+ },
+ "cost": 0.0134565,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A relatable and funny exaggerated reaction to an insanely tough platforming section.",
+  "what": "The creator analyzes an absurdly difficult jump in Egging On and throws his hands up saying, \"I'm out man! Sign me out guys! What a sick joke!\"",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 20,
+  "reactionEndT": 35,
+  "keep_score": 75
+ }
+}

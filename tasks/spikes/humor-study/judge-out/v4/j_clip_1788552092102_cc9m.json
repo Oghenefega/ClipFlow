@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_cc9m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3495,
+  "outputTokens": 610,
+  "thoughtTokens": 475
+ },
+ "cost": 0.0098175,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction to a multi-kill replay with classic enthusiastic hype for his team.",
+  "what": "The creator hypes up 100T bang as he gets multiple kills in a replay, shouting 'BANG! BANG! YEAH BANG! THE BIGGEST OF THEM ALL, BANG!'",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 17,
+  "reactionEndT": 27,
+  "keep_score": 85
+ }
+}

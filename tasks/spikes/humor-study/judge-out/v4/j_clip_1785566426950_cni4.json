@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_cni4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4232,
+  "outputTokens": 1313,
+  "thoughtTokens": 1186
+ },
+ "cost": 0.016195499999999998,
+ "judged": {
+  "score": 58,
+  "kind": "comedy",
+  "reason": "A fun bit of confident talk after scoring, but contains roughly twenty seconds of quiet gameplay in the middle.",
+  "what": "Fega scores a goal to narrow the score to 2-4 and confidently shouts, 'I'm winning this thing bro, no questions asked!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 32,
+  "reactionEndT": 38,
+  "keep_score": 58
+ }
+}

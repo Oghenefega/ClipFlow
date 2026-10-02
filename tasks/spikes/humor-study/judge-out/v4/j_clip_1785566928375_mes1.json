@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_mes1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 901,
+  "thoughtTokens": 772
+ },
+ "cost": 0.012619499999999999,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "His dramatic callout to his absent teammates after a good setup is funny and relatable.",
+  "what": "After setting up a pass in front of the goal, he dramatically shouts, 'Somebody be there to finish the job! I have already done... what more do you want from me?!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 29.5,
+  "reactionEndT": 34.5,
+  "keep_score": 65
+ }
+}

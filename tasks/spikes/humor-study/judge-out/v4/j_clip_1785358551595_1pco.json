@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551595_1pco",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 596,
+  "thoughtTokens": 482
+ },
+ "cost": 0.0077805,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Low energy reaction to a save with no comedic payoff or memorable joke.",
+  "what": "The creator says 'Ain't no way bro, what a save man' after an opponent makes a save, then continues playing quietly.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 1.5,
+  "reactionEndT": 5,
+  "keep_score": 20
+ }
+}

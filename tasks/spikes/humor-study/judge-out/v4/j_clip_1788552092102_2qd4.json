@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_2qd4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 719,
+  "thoughtTokens": 583
+ },
+ "cost": 0.010513499999999999,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "An energetic, over-the-top taunt at the opposing team calling a timeout that fans of the watch party will love.",
+  "what": "The creator hysterically taunts NRG for calling another timeout, shouting 'They're begging, Valorant can we have one more please?!' before walking away laughing.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 14.5,
+  "reactionEndT": 28,
+  "keep_score": 75
+ }
+}

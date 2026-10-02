@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_g7xo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 616,
+  "thoughtTokens": 497
+ },
+ "cost": 0.009012,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This clip contains no gameplay or plays, only halftime break screens and sponsored ads.",
+  "what": "The creator reacts to a 10-2 halftime score and sponsored ads during a VCT match break, saying 'This is what you call a halftime, bro!'",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

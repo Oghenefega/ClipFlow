@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695048_9811",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3433,
+  "outputTokens": 578,
+  "thoughtTokens": 452
+ },
+ "cost": 0.0094845,
+ "judged": {
+  "score": 78,
+  "kind": "comedy",
+  "reason": "A hilarious and absurd observation about a friend's character model that results in genuine, contagious laughter.",
+  "what": "The creator cracks up while spectating a friend's silver avatar, asking 'Chilly, why do you have nipples, bro, on your chrome body?'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 4,
+  "reactionEndT": 24,
+  "keep_score": 78
+ }
+}

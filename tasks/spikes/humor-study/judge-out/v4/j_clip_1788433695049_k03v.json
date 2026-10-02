@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_k03v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3028,
+  "outputTokens": 538,
+  "thoughtTokens": 416
+ },
+ "cost": 0.008577,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just brief lobby downtime and backing out of a room without any comedic payoff.",
+  "what": "The creator chuckles at a kid's voice in the lobby before backing out, saying 'I'm not about to be in here with these kids'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 0,
+  "reactionEndT": 2.5,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_10x4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 751,
+  "thoughtTokens": 627
+ },
+ "cost": 0.009417,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is a minor reaction to promotional trailer text rather than a memorable competitive play or standout moment.",
+  "what": "The creator laughs at a VCT trailer mentioning food and public transit, exclaiming 'Great food, great transit... I'm sold!'",
+  "playQuality": 0,
+  "reactionSize": 5,
+  "payoffT": 9,
+  "reactionEndT": 18,
+  "keep_score": 25
+ }
+}

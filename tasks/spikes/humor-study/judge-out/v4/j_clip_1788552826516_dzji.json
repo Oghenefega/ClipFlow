@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_dzji",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 723,
+  "thoughtTokens": 587
+ },
+ "cost": 0.0100575,
+ "judged": {
+  "score": 45,
+  "kind": "hype_reaction",
+  "reason": "His taunt and excitement are energetic, but there is no actual gameplay or kill play happening during this clip.",
+  "what": "The creator hype-taunts the opposing team during a round transition, shouting 'WE ARE TAKING THESE TICKETS MAN! Give me my ticket to Champs, to Shanghai bro!'",
+  "playQuality": 2,
+  "reactionSize": 7,
+  "payoffT": 18,
+  "reactionEndT": 24,
+  "keep_score": 45
+ }
+}

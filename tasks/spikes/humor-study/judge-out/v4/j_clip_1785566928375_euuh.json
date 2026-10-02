@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_euuh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 785,
+  "thoughtTokens": 666
+ },
+ "cost": 0.0107775,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard gameplay after his initial hyped save line without any comedic subversion or funny payoff.",
+  "what": "Fega makes a save and hypes himself up shouting 'Not on my watch, man! Get him out of here!', followed by routine gameplay with no comedic payoff.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 2,
+  "reactionEndT": 13,
+  "keep_score": 25
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_2rnp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 837,
+  "thoughtTokens": 713
+ },
+ "cost": 0.011046,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "There is no comedic payoff or significant funny moment in this routine gameplay clip.",
+  "what": "Fega mentions trying his best to blow an opponent up, but the gameplay remains mostly uneventful until a mild 'Hey yo' at 00:24.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 24.5,
+  "reactionEndT": 25.5,
+  "keep_score": 15
+ }
+}

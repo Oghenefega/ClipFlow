@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_ukka",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4791,
+  "outputTokens": 1029,
+  "thoughtTokens": 897
+ },
+ "cost": 0.014904,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "There is no standout multi-kill or clutch play shown, making this mostly routine post-round celebration and downtime between rounds.",
+  "what": "The creator celebrates a round win by spraying air freshener and yelling 'NND is back baby!' before watching the next round's buy phase.",
+  "playQuality": 3,
+  "reactionSize": 7,
+  "payoffT": 12,
+  "reactionEndT": 20,
+  "keep_score": 25
+ }
+}

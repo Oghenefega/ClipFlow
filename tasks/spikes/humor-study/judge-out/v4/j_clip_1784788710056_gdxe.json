@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_gdxe",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 865,
+  "thoughtTokens": 756
+ },
+ "cost": 0.0108915,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Routine commentary during a goal replay without a sharp game moment or funny payoff.",
+  "what": "Fega laughs during a goal replay and joke-predicts his opponent will say, \"Yep, that's enough head start!\"",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

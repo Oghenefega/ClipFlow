@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_y8nk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2774,
+  "outputTokens": 579,
+  "thoughtTokens": 472
+ },
+ "cost": 0.0085035,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "This is casual chat banter and narration without a distinct funny payoff or gameplay reaction.",
+  "what": "The creator reacts to an opponent claiming to be a smurf by asking if they are preparing for the embarrassment of losing anyway.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 30
+ }
+}

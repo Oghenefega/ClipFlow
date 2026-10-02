@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_zbql",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 716,
+  "thoughtTokens": 596
+ },
+ "cost": 0.010381499999999998,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "He sets up a confident statement, but the clip cuts off before any comedic payoff or outcome occurs.",
+  "what": "After conceding a goal, the streamer says 'Surely there's no way they score two more goals in 16 seconds... Not on my watch at least.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

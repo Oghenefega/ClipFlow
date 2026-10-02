@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_fe9j",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2484,
+  "outputTokens": 506,
+  "thoughtTokens": 396
+ },
+ "cost": 0.007521,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "Just routine inventory management and walking around with no comedic payoff or notable moment.",
+  "what": "The creator examines an item in his inventory, saying 'Playing cards, huh? Never seen that one before', and then walks out of the room.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

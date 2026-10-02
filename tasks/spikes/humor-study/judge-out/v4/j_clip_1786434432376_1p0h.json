@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_1p0h",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 509,
+  "thoughtTokens": 393
+ },
+ "cost": 0.009558,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is post-game menu downtime with low-stakes chat banter and no active gameplay or stand-out comedic payoff.",
+  "what": "Fega looks at his rank drop on the post-game screen and jokingly denies a chat message accusing him of crowding his teammates.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

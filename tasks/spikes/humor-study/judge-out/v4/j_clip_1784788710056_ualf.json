@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_ualf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4151,
+  "outputTokens": 765,
+  "thoughtTokens": 632
+ },
+ "cost": 0.011963999999999999,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "His energetic and highly relatable rant about opponent pre-game excuses makes for a funny commentary clip.",
+  "what": "Fega animatedly rants about opponents lying about being rusty, shouting \"Once they start telling you about how they haven't played in some minutes, just know that they're good!\"",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 11,
+  "reactionEndT": 16,
+  "keep_score": 75
+ }
+}

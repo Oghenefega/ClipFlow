@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_ns4x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 615,
+  "thoughtTokens": 484
+ },
+ "cost": 0.008895,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "A mild self-own at the start followed by 15 seconds of routine kickoff gameplay is not strong enough for a standalone clip.",
+  "what": "The streamer laughs off getting tricked by an opponent's fake, saying, 'I fell for the fake! Go for the ball, not the fake.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 1.5,
+  "reactionEndT": 6.5,
+  "keep_score": 35
+ }
+}

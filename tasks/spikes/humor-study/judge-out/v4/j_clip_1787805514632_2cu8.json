@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_2cu8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4067,
+  "outputTokens": 589,
+  "thoughtTokens": 454
+ },
+ "cost": 0.010518,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just a monologue responding to chat banter with no funny clip event, surprise, or comedic payoff.",
+  "what": "The creator rambles to chat about how advanced robots are probably already walking among us in secret, saying 'These are the actual robots of 2026, they're probably walking among us and we don't know.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

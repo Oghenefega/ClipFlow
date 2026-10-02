@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522884_rhvz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4151,
+  "outputTokens": 909,
+  "thoughtTokens": 785
+ },
+ "cost": 0.013044,
+ "judged": {
+  "score": 68,
+  "kind": "comedy",
+  "reason": "His dramatic hands-up explanation and excuse after giving up a goal makes for an entertaining self-own.",
+  "what": "After conceding a goofy goal, Fega throws his hands up and tells his audience 'I can explain, I am just slightly thrown off.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 11.5,
+  "reactionEndT": 22,
+  "keep_score": 68
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_rpbp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4081,
+  "outputTokens": 621,
+  "thoughtTokens": 519
+ },
+ "cost": 0.010779,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is mostly rambling setup and UI navigation without a funny moment or clear payoff.",
+  "what": "The creator claims he might be a natural at painting his camouflage before getting confused by the color controls.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_cv82",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 742,
+  "thoughtTokens": 622
+ },
+ "cost": 0.0113055,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "A routine sequence of getting scored on with a low-energy reaction that lacks a strong comedic punchline.",
+  "what": "Fega gets scored on in Rocket League and tries to brush it off, saying 'We don't talk about that.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 2.5,
+  "reactionEndT": 10,
+  "keep_score": 25
+ }
+}

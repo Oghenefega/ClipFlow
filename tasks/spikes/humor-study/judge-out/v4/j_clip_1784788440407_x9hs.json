@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_x9hs",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 577,
+  "thoughtTokens": 457
+ },
+ "cost": 0.008245500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Routine gameplay narration with a very mild reaction and weak comedic payoff.",
+  "what": "The creator predicts a counter-attack and calls 'JP all yours', but after a botched play he mutters 'Oh god, that was not exactly the...'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 17,
+  "reactionEndT": 18,
+  "keep_score": 25
+ }
+}

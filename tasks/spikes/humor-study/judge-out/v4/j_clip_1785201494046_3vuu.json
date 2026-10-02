@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_3vuu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 540,
+  "thoughtTokens": 410
+ },
+ "cost": 0.009912,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "A funny and relatable moment where getting distracted leads to an instant goal against him and a genuine big reaction.",
+  "what": "Fega gets distracted asking why his music stopped and immediately gets scored on at kickoff, screaming \"HOW?! I look away for a second and this guy is already backing...\"",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 24,
+  "reactionEndT": 35,
+  "keep_score": 70
+ }
+}

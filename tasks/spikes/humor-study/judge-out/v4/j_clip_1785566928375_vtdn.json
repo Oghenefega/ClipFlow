@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_vtdn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 725,
+  "thoughtTokens": 620
+ },
+ "cost": 0.0093555,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "No comedy payoff or stand-out moment occurs during this routine gameplay snippet.",
+  "what": "Fega laments missing an open net and talks himself through overtime saying 'Fega lock in, lock in'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

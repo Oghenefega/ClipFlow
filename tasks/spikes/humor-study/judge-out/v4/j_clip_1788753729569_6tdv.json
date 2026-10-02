@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_6tdv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2847,
+  "outputTokens": 473,
+  "thoughtTokens": 371
+ },
+ "cost": 0.007818,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is plain scoreboard narration and round buildup without any highlight play.",
+  "what": "The creator reads scoreboard stats during the buy phase and comments on team performances before the round begins.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

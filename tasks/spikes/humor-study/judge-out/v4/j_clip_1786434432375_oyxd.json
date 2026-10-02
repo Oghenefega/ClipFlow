@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_oyxd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 613,
+  "thoughtTokens": 493
+ },
+ "cost": 0.010581,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "Telling his team to chill right before immediately getting scored on off kickoff makes a great instant-karma comedy clip.",
+  "what": "After telling his team to relax and that it's 'no problem', the opponent immediately scores off the kickoff.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 23,
+  "reactionEndT": 35,
+  "keep_score": 75
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_jmat",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 583,
+  "thoughtTokens": 473
+ },
+ "cost": 0.0085215,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is casual commentary and analysis during match downtime rather than a hype reaction to a major play.",
+  "what": "The creator comments on patch changes regarding Valorant flash mechanics while casters and replay footage play in the background.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

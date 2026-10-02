@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277518_jsn8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4386,
+  "outputTokens": 633,
+  "thoughtTokens": 497
+ },
+ "cost": 0.0113265,
+ "judged": {
+  "score": 92,
+  "kind": "hype_reaction",
+  "reason": "A map-winning multi-kill play combined with a massive, energetic reaction makes this an undeniable highlight.",
+  "what": "Bang gets a 3k to win map 1 for 100 Thieves, prompting the creator to leap out of his seat shouting 'We're the best, baby!'",
+  "playQuality": 9,
+  "reactionSize": 9,
+  "payoffT": 11,
+  "reactionEndT": 26,
+  "keep_score": 92
+ }
+}

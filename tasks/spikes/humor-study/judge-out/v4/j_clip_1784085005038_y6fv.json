@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_y6fv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 783,
+  "thoughtTokens": 651
+ },
+ "cost": 0.012086999999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A perfect comedy clip where confident talk is instantly punished by game mechanics, leading to a genuine facepalm reaction.",
+  "what": "The creator confidently declares he has total control over what he wants to do, only to immediately fail and facepalm, saying 'I forgot. It's been a minute.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 10,
+  "reactionEndT": 20,
+  "keep_score": 85
+ }
+}

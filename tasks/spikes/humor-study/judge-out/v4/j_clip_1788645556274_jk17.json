@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788645556274_jk17",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 1005,
+  "thoughtTokens": 864
+ },
+ "cost": 0.013752,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "His genuine confusion and animated reaction to the player's chill attitude after a clutch makes for a memorable moment.",
+  "what": "The creator gets hilariously confused by a pro player's deadpan expression after winning a clutch round, asking \"Did we win or did we lose? I'm confused!\" before bursting into laughter.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 25,
+  "reactionEndT": 35,
+  "keep_score": 85
+ }
+}

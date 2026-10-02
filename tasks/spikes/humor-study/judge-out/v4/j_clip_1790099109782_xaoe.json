@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099109782_xaoe",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 9818,
+  "outputTokens": 420,
+  "thoughtTokens": 300
+ },
+ "cost": 0.017877,
+ "judged": {
+  "score": 92,
+  "kind": "comedy",
+  "reason": "Hilarious reaction and commentary on absurd robot footage with high comedic payoff.",
+  "what": "The creator laughs hysterically as a malfunctioning robot continuously spasms on the floor, comparing it to 'the cockroach in my house trying to stand up'.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 93,
+  "reactionEndT": 108,
+  "keep_score": 92
+ }
+}

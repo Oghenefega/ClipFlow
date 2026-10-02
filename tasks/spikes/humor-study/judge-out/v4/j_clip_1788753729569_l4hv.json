@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_l4hv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 570,
+  "thoughtTokens": 442
+ },
+ "cost": 0.009274500000000001,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-stakes match-point clutch accompanied by a highly energetic and memorable reaction.",
+  "what": "The creator passionately hypes up a clutch play, shouting 'Get him out of here, we don't care what ult you using, we don't care!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 11,
+  "reactionEndT": 14,
+  "keep_score": 88
+ }
+}

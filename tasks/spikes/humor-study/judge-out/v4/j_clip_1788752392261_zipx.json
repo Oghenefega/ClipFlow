@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_zipx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6411,
+  "outputTokens": 1500,
+  "thoughtTokens": 1347
+ },
+ "cost": 0.0208665,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "Although no notable gameplay play occurs during this buy phase, his funny argument with the broadcast casters and quick self-awareness makes for a good moment.",
+  "what": "The creator passionately argues with the casters' tactical advice before admitting, \"Maybe we should actually listen to the casters, I mean they know what they're doing... I'm just here with the energy man.\"",
+  "playQuality": 2,
+  "reactionSize": 7,
+  "payoffT": 52.5,
+  "reactionEndT": 59,
+  "keep_score": 65
+ }
+}

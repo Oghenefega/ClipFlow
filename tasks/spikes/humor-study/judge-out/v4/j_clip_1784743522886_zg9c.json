@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522886_zg9c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 847,
+  "thoughtTokens": 713
+ },
+ "cost": 0.009663,
+ "judged": {
+  "score": 72,
+  "kind": "comedy",
+  "reason": "A relatable self-own with a sharp, funny punchline that fits his comedic style.",
+  "what": "Fega complains about his teammate after a conceded goal before self-owning with, 'I can't be buns and my teammate is buns as well, come on, let's be for real.'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 10,
+  "reactionEndT": 12,
+  "keep_score": 72
+ }
+}

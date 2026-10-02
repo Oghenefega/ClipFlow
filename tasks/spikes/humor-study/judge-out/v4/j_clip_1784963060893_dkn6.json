@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060893_dkn6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3870,
+  "outputTokens": 666,
+  "thoughtTokens": 545
+ },
+ "cost": 0.0108,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Great comedic timing as his aggressive rant and fake confidence are instantly punished by the egg falling.",
+  "what": "The streamer aggressively threatens to eat the egg if it falls again while declaring the stage easy, only for the egg to immediately roll off the edge.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 27.5,
+  "reactionEndT": 30.5,
+  "keep_score": 85
+ }
+}

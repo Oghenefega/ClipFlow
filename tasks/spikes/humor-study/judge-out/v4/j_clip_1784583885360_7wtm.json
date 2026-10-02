@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_7wtm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 634,
+  "thoughtTokens": 528
+ },
+ "cost": 0.010495500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just slow settings tweaking and practice in training mode with no punchline or funny reaction.",
+  "what": "The creator adjusts his Rocket League camera settings in training mode and wonders why his car feels so far away.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

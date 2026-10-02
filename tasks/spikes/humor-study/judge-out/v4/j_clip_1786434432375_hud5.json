@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_hud5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4961,
+  "outputTokens": 607,
+  "thoughtTokens": 486
+ },
+ "cost": 0.011994000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This clip consists mostly of post-game lobby menu navigation, stream chat banter, and queuing for the next match with no strong comedic payoff.",
+  "what": "After winning a Rocket League match, Fega laughs off a chatter's comment and gets hyped about ranking up to Division 2.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

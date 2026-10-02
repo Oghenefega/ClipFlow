@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_zi0i",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2911,
+  "outputTokens": 848,
+  "thoughtTokens": 714
+ },
+ "cost": 0.0107265,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "Crashing right at the finish line is a good fail, but his delivery and reaction are too flat for a standout comedy clip.",
+  "what": "The creator crashes into the finish banner right at the end of the course and deadpans 'Yep, I failed. That is crazy. Died on the finish line.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 13.5,
+  "reactionEndT": 19.5,
+  "keep_score": 35
+ }
+}

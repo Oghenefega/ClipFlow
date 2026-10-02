@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_b4tv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 639,
+  "thoughtTokens": 511
+ },
+ "cost": 0.008577,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "A highly energetic and quotable taunt directed at the opposing team makes for a strong commentary highlight.",
+  "what": "The creator mocks the opposing team for getting hyped over a round win, taunting 'Psych, buddy! Relax, a round is not a match!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 13,
+  "reactionEndT": 19,
+  "keep_score": 80
+ }
+}

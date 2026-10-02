@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_4ybr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 769,
+  "thoughtTokens": 627
+ },
+ "cost": 0.0104025,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "While the creator's reaction is energetic, the play is just a single routine Operator kill rather than a clutch or multi-kill.",
+  "what": "Cryo hits a fast Operator shot to help secure a round, prompting the creator to shout, 'You think you're moving fast? I'll show you fast, bro!'",
+  "playQuality": 4,
+  "reactionSize": 7,
+  "payoffT": 10,
+  "reactionEndT": 18,
+  "keep_score": 35
+ }
+}

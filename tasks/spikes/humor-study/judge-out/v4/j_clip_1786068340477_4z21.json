@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_4z21",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4637,
+  "outputTokens": 763,
+  "thoughtTokens": 640
+ },
+ "cost": 0.012678,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "His animated disbelief at the replay physics is funny, but the clip drags on into routine gameplay afterwards.",
+  "what": "The streamer yells in disbelief while watching a goal replay, shouting 'It's no freaking way! We're moving at the same speed!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 2,
+  "reactionEndT": 14,
+  "keep_score": 65
+ }
+}

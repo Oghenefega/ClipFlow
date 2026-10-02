@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_mnia",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4394,
+  "outputTokens": 720,
+  "thoughtTokens": 598
+ },
+ "cost": 0.011991000000000002,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "A relatable self-own where looking at chat for a moment immediately costs him a goal.",
+  "what": "Fega gets distracted reading a chat message mid-kickoff and immediately gets scored on, admitting 'I was looking at chat for a second'.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 22,
+  "reactionEndT": 27,
+  "keep_score": 65
+ }
+}

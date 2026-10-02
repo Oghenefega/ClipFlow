@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_o82x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8031,
+  "outputTokens": 750,
+  "thoughtTokens": 625
+ },
+ "cost": 0.0176715,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "It is mostly pre-round hype during a timeout without any actual gameplay payoff or kills.",
+  "what": "The creator hypes up 100 Thieves on match point while holding up his sweater, shouting 'It's time to finish the heist!'",
+  "playQuality": 1,
+  "reactionSize": 6,
+  "payoffT": 5,
+  "reactionEndT": 35,
+  "keep_score": 25
+ }
+}

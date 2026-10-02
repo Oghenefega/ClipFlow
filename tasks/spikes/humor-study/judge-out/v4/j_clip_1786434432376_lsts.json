@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_lsts",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 464,
+  "thoughtTokens": 365
+ },
+ "cost": 0.006425999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine commentary during quiet gameplay with no punchline or funny payoff.",
+  "what": "Fega drives around the pitch commenting that everyone came alive while he is the only one playing soft.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

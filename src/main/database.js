@@ -413,6 +413,14 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 16,
+    description: "Add judge_score + judge_kind to feedback (#483: what the clip judge said at decision time)",
+    up(database) {
+      database.run(`ALTER TABLE feedback ADD COLUMN judge_score REAL`);
+      database.run(`ALTER TABLE feedback ADD COLUMN judge_kind TEXT`);
+    },
+  },
 ];
 
 /**

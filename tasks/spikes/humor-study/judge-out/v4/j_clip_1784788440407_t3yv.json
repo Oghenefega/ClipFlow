@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_t3yv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 574,
+  "thoughtTokens": 450
+ },
+ "cost": 0.006765,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "It is just a minor offhand observation about scoreboard ping at kickoff without a strong comedic payoff or gameplay moment.",
+  "what": "Fega sees a player with 0 ping in Rocket League and jokes, \"Zero ping is crazy. Who's your dad? NASA?\"",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 4.5,
+  "reactionEndT": 6,
+  "keep_score": 25
+ }
+}

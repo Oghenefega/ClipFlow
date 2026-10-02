@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060893_0x5a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4325,
+  "outputTokens": 904,
+  "thoughtTokens": 769
+ },
+ "cost": 0.0132675,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Funny contrast between his speech about spreading positivity and his immediate, serious threat to the egg the moment it slips.",
+  "what": "The creator preaches positivity toward the egg, but immediately threatens it when it falls saying 'Fall one more time. You'll see what a threat is, okay?' before resuming his speech.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 18.5,
+  "reactionEndT": 24.5,
+  "keep_score": 85
+ }
+}

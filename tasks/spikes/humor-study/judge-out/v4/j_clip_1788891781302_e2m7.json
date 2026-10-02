@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788891781302_e2m7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1551,
+  "outputTokens": 576,
+  "thoughtTokens": 457
+ },
+ "cost": 0.0066465,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No actual play or kill occurs during this clip, making it just quiet build-up commentary.",
+  "what": "The creator quietly repeats 'We're not afraid, man... We're Thieves for a reason' while watching early-round positioning with no combat.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

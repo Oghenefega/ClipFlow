@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_c6q1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1959,
+  "outputTokens": 778,
+  "thoughtTokens": 660
+ },
+ "cost": 0.0087735,
+ "judged": {
+  "score": 60,
+  "kind": "comedy",
+  "reason": "The contrast between his forced optimism and losing progress is amusing, though the delivery is somewhat subdued.",
+  "what": "The creator insists 'Today's a happy day... just joy and bliss' while his egg rolls off the platform and loses progress.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 7,
+  "reactionEndT": 9.5,
+  "keep_score": 60
+ }
+}

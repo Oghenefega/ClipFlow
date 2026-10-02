@@ -477,6 +477,9 @@ const STORE_DEFAULTS = {
   // Pipeline quality — strict mode aborts the pipeline if any Lever 1 signal fails.
   // Default ON: no silent degradation. User can turn off in Settings.
   strictMode: true,
+  // #483: watch-and-listen judge scores each new clip and the review list sorts
+  // by it. OFF until checked on a fresh-customer machine.
+  clipJudgeEnabled: false,
   // YAMNet silence skip — pre-filter frames below 0.002 RMS (true silence /
   // below room tone) to skip wasted inference. Default ON. User can turn off
   // in Settings to force YAMNet to run on every frame regardless of volume.
@@ -766,6 +769,10 @@ function runStoreMigrations(store) {
   // still holds by default; only a user who turns this on gets the tray-resident
   // publish-while-streaming behaviour.
   if (!store.has("streamingMode")) store.set("streamingMode", false);
+
+  // ── Migration: clip judge (#483) ──
+  // Explicitly OFF for every existing install; the user turns it on in Settings.
+  if (!store.has("clipJudgeEnabled")) store.set("clipJudgeEnabled", false);
 
   // ── Migration: game-audio track signal (#190) ──
   // Default off (null) — game signals only run once the user picks a game

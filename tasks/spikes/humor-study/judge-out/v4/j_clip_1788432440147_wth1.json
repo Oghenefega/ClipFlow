@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_wth1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3433,
+  "outputTokens": 818,
+  "thoughtTokens": 700
+ },
+ "cost": 0.0112845,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "A routine prop hunt find with flat delivery and little comedy payoff.",
+  "what": "The streamer challenges hidden players to taunt him, shoots a painting, finds a player, and remarks 'No one's that good at painting.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 21,
+  "reactionEndT": 26,
+  "keep_score": 30
+ }
+}

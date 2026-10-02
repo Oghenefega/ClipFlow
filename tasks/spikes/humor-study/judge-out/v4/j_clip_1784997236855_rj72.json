@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_rj72",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4289,
+  "outputTokens": 582,
+  "thoughtTokens": 461
+ },
+ "cost": 0.0107985,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny setup and payoff where his quiet, tense focus immediately results in a sudden catastrophic fall.",
+  "what": "The streamer cautiously guides his egg while telling himself to relax, only to immediately slip off the edge and yell 'WAIT!' as he falls.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 30,
+  "reactionEndT": 39.5,
+  "keep_score": 75
+ }
+}

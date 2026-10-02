@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785908335093_ifei",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3098,
+  "outputTokens": 574,
+  "thoughtTokens": 448
+ },
+ "cost": 0.008952,
+ "judged": {
+  "score": 90,
+  "kind": "comedy",
+  "reason": "Classic instant-karma moment where confident bravado is immediately punished by the opponent, followed by great self-deprecating laughter.",
+  "what": "The creator confidently declares 'I fear no man' while defending with no boost, only to get instantly scored on and laugh at himself.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 8,
+  "reactionEndT": 21,
+  "keep_score": 90
+ }
+}

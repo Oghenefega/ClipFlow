@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_jxh6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4394,
+  "outputTokens": 810,
+  "thoughtTokens": 690
+ },
+ "cost": 0.012666,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "A brief initial reaction followed by nearly 30 seconds of quiet, routine gameplay with no comedy payoff.",
+  "what": "Fega reacts in disbelief to a quick goal, asking 'What the heck did I just watch?', before continuing to play in silence.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 5,
+  "reactionEndT": 10,
+  "keep_score": 20
+ }
+}

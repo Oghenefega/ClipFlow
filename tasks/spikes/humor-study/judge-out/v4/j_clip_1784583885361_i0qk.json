@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_i0qk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 606,
+  "thoughtTokens": 492
+ },
+ "cost": 0.008584499999999998,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Mild gameplay commentary after getting scored on without a strong comedy payoff or big reaction.",
+  "what": "Fega gets scored on and wonders how his opponent had boost, concluding 'I am learning the hard way, bro.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 2,
+  "reactionEndT": 13,
+  "keep_score": 25
+ }
+}

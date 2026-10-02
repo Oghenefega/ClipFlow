@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_yuv6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4548,
+  "outputTokens": 784,
+  "thoughtTokens": 653
+ },
+ "cost": 0.012702,
+ "judged": {
+  "score": 45,
+  "kind": "hype_reaction",
+  "reason": "While his reaction is energetic, the play itself is a routine team round win without an extraordinary clutch or multi-kill.",
+  "what": "The creator excitedly celebrates 100 Thieves winning a round, shouting 'Let's go baby, come on!' and dancing in his chair.",
+  "playQuality": 5,
+  "reactionSize": 7,
+  "payoffT": 11,
+  "reactionEndT": 22,
+  "keep_score": 45
+ }
+}

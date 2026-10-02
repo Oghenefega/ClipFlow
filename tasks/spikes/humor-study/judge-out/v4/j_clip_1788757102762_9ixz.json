@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102762_9ixz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4305,
+  "outputTokens": 788,
+  "thoughtTokens": 661
+ },
+ "cost": 0.0123675,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "A routine round win by the opposing team accompanied by quiet disappointment from the creator is not a highlight.",
+  "what": "The creator watches LOUD win the half 7-5 against 100 Thieves, reacting in disappointment asking 'Did Asuna use both flashes?'",
+  "playQuality": 4,
+  "reactionSize": 3,
+  "payoffT": 1,
+  "reactionEndT": 8,
+  "keep_score": 20
+ }
+}

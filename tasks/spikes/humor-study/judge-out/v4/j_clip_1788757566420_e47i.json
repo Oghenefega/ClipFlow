@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_e47i",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 922,
+  "thoughtTokens": 791
+ },
+ "cost": 0.011914500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay play in this clip, only post-match interview footage and standard appreciation for his team and chat.",
+  "what": "The creator watches the VCT post-match interview trophy presentation and reacts, saying 'Grand Finals MVP baby! Oh man, I love my team.'",
+  "playQuality": 0,
+  "reactionSize": 4,
+  "payoffT": 3,
+  "reactionEndT": 11,
+  "keep_score": 25
+ }
+}

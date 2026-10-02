@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588723_mlvs",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5134,
+  "outputTokens": 532,
+  "thoughtTokens": 433
+ },
+ "cost": 0.011691,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "The clip consists entirely of menu navigation and basic game UI confusion without any comedic payoff.",
+  "what": "The creator struggles to figure out how to switch pose tabs in the game menu.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

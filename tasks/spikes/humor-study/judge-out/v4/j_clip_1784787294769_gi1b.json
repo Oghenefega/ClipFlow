@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294769_gi1b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5123,
+  "outputTokens": 614,
+  "thoughtTokens": 493
+ },
+ "cost": 0.0122895,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "A clean outplay by the opponent catches him off guard and triggers a solid, genuinely surprised reaction.",
+  "what": "The opponent scores a clean aerial goal, making Fega yell 'Ain't no way! What the flip?!' in shock.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 32.5,
+  "reactionEndT": 36,
+  "keep_score": 70
+ }
+}

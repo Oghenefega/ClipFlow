@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_ouno",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2118,
+  "outputTokens": 820,
+  "thoughtTokens": 697
+ },
+ "cost": 0.009327,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is routine setup play with no major kills or hype reaction to justify a clip.",
+  "what": "The creator expresses confusion during a routine round setup, saying 'Bro I'm confused, I don't know what I've just seen in the past 15 seconds.'",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

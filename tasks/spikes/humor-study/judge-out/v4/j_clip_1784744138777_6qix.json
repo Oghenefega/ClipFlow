@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_6qix",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 1224,
+  "thoughtTokens": 1095
+ },
+ "cost": 0.015163500000000002,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard Rocket League gameplay with routine goals and high energy, but lacks a comedic setup, fail, or subversion to make it a standout clip.",
+  "what": "Fega gets hyped after his team scores two quick goals, shouting 'Get him out of here!' and standing up from his chair.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 2.5,
+  "reactionEndT": 33,
+  "keep_score": 25
+ }
+}

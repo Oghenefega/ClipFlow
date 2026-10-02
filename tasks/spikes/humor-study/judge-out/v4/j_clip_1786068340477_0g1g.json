@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_0g1g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 837,
+  "thoughtTokens": 715
+ },
+ "cost": 0.012018000000000001,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "A long gap of routine gameplay between his hype line and a mild whiff makes this a skippable clip.",
+  "what": "After hyping up a save, Fega whiffs a shot on goal and says 'I don't wanna talk about that bro... I'm lowkey throwing man.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 22,
+  "reactionEndT": 33,
+  "keep_score": 45
+ }
+}

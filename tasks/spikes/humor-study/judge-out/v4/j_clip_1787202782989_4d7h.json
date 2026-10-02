@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_4d7h",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6249,
+  "outputTokens": 637,
+  "thoughtTokens": 496
+ },
+ "cost": 0.014151,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "Funny self-own moment when he forgets the term ADS and calls it 'zoom in', proving he is getting old.",
+  "what": "The creator reacts to a pro player's weird mouse grip, accidentally calls ADS 'zoom in', and laughs at himself saying 'I'm old bro, I'm old, it's showing!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 46,
+  "reactionEndT": 58,
+  "keep_score": 65
+ }
+}

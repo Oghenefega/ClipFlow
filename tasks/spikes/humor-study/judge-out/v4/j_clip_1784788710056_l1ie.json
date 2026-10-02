@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_l1ie",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3746,
+  "outputTokens": 643,
+  "thoughtTokens": 530
+ },
+ "cost": 0.010441500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay mixed with casual chat banter without a clear comedic payoff or punchline.",
+  "what": "Fega talks casually to chat while trading kickoff goals in Rocket League, noting 'right now we're on two bro, he gotta lock in'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

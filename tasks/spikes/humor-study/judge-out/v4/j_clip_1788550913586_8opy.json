@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913586_8opy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3495,
+  "outputTokens": 488,
+  "thoughtTokens": 372
+ },
+ "cost": 0.0089025,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "Solid, energetic hype reaction to a big round win for his team.",
+  "what": "The creator hypes up 100 Thieves winning a round, screaming 'Let's go baby!' with huge energy.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 4,
+  "reactionEndT": 12,
+  "keep_score": 80
+ }
+}

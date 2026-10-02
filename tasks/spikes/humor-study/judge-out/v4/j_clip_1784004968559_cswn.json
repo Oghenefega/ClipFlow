@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_cswn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2165,
+  "outputTokens": 694,
+  "thoughtTokens": 557
+ },
+ "cost": 0.008452499999999998,
+ "judged": {
+  "score": 78,
+  "kind": "comedy",
+  "reason": "A fun, high-energy moment where an opponent's attempt to demo backfires instantly with a great reaction.",
+  "what": "The creator shouts to lock in as an opponent rushes him, only for the opponent to get demolished instead, making him laugh and shout, 'Look at this dude, he didn't even touch me!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 3.5,
+  "reactionEndT": 6,
+  "keep_score": 78
+ }
+}

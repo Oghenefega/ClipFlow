@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_38dj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2604,
+  "outputTokens": 614,
+  "thoughtTokens": 495
+ },
+ "cost": 0.008511,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just routine commentary between rounds with no gameplay action or highlight play occurring.",
+  "what": "The creator comments on 100T's positive energy between rounds, saying 'That's the spirit man, nice try, GG, go next.'",
+  "playQuality": 1,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

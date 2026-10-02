@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426951_9lkl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 509,
+  "thoughtTokens": 403
+ },
+ "cost": 0.0082215,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just routine menu commentary between matches with no comedic payoff or gameplay action.",
+  "what": "Fega checks his rank in the Rocket League menu screen and notes that he is a few wins away from reaching Champ.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

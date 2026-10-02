@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_qc1c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2711,
+  "outputTokens": 500,
+  "thoughtTokens": 382
+ },
+ "cost": 0.0078165,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "A relatable self-own and funny reaction after making an embarrassing mistake in-game.",
+  "what": "Fega concedes a goal after fumbling the ball and laughs at himself asking, 'How do I fumble in that type of situation?'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 6,
+  "reactionEndT": 12,
+  "keep_score": 70
+ }
+}

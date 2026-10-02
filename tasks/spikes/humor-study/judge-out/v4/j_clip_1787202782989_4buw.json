@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_4buw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4062,
+  "outputTokens": 484,
+  "thoughtTokens": 378
+ },
+ "cost": 0.009722999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is plain conversational talk during paused video with no gameplay or stand-out moment.",
+  "what": "The creator pauses the video to comment on how fast esports players like Benjyfishy grow up.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

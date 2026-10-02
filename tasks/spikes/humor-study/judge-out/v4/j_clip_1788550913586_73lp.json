@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913586_73lp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 802,
+  "thoughtTokens": 671
+ },
+ "cost": 0.010893,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This is just reaction talk during a match timeout with no actual gameplay or highlight play taking place.",
+  "what": "The creator hypes up 100T for forcing NRG to take two timeouts in one half, pointing to his head and shouting 'We're in their heads!'",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": 5,
+  "reactionEndT": 26,
+  "keep_score": 35
+ }
+}

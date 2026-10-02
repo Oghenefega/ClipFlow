@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277084_4idh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3757,
+  "outputTokens": 879,
+  "thoughtTokens": 765
+ },
+ "cost": 0.012228,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "This is mostly retrospective narration about a previous round with no active visual payoff in the clip.",
+  "what": "The creator spectates a player hiding perfectly flat against a painting and laughs at how oversized his own character was earlier.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 23,
+  "reactionEndT": 27,
+  "keep_score": 35
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_46g8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4791,
+  "outputTokens": 827,
+  "thoughtTokens": 698
+ },
+ "cost": 0.013389000000000002,
+ "judged": {
+  "score": 68,
+  "kind": "hype_reaction",
+  "reason": "His funny taunt at the defeated opponent on player camera makes for a great stand-out fan moment.",
+  "what": "The creator laughs and taunts the opposing player on camera after 100T wins the round, asking 'Where you running to, bro?'",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 29,
+  "reactionEndT": 38,
+  "keep_score": 68
+ }
+}

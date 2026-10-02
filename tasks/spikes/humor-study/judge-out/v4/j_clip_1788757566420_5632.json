@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_5632",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2442,
+  "outputTokens": 638,
+  "thoughtTokens": 523
+ },
+ "cost": 0.008448,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No gameplay occurs in this clip, and the creator offers almost no reaction or commentary.",
+  "what": "The creator watches post-match footage of 100 Thieves players signing autographs for fans while saying 'It's time for the hype'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

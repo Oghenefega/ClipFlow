@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_pg8b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2866,
+  "outputTokens": 555,
+  "thoughtTokens": 443
+ },
+ "cost": 0.0084615,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "It is just mild spectating commentary without a strong comedic payoff or funny game event.",
+  "what": "The creator laughs while spectating his teammate JP silently focusing, joking that 'JP is in security mode.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 5,
+  "reactionEndT": 22,
+  "keep_score": 25
+ }
+}

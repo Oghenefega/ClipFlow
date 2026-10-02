@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_he3f",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 698,
+  "thoughtTokens": 559
+ },
+ "cost": 0.010732499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A great comedic payoff where his go-to cope line actually comes true on the very next kickoff.",
+  "what": "Fega gets scored on and claims \"it's all part of the plan,\" then immediately scores on the next kickoff, shouting \"when I say it's all part of the plan boys, I mean it!\"",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23,
+  "reactionEndT": 27.5,
+  "keep_score": 85
+ }
+}

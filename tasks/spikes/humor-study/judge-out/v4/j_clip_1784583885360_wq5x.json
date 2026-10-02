@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_wq5x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4880,
+  "outputTokens": 464,
+  "thoughtTokens": 360
+ },
+ "cost": 0.0108,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Routine training pack practice without a strong punchline, comedic payoff, or big reaction.",
+  "what": "Fega struggles through a Rocket League custom training pack, missing multiple shots while casually narrating to himself.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

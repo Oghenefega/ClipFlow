@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_9rjh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 1073,
+  "thoughtTokens": 934
+ },
+ "cost": 0.012561,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "A nice blind Operator shot, but a single opening kill in a 5v5 does not make for a keepable hype clip.",
+  "what": "The creator roots for Tynox holding an angle, who hits a blind Operator shot through Fade ultimate while he shouts 'Oh my word! How is he getting that?'",
+  "playQuality": 6,
+  "reactionSize": 6,
+  "payoffT": 24.5,
+  "reactionEndT": 27,
+  "keep_score": 35
+ }
+}

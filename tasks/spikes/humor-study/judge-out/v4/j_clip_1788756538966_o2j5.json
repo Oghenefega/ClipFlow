@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_o2j5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 688,
+  "thoughtTokens": 568
+ },
+ "cost": 0.010038000000000002,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This is minor commentary on ability mechanics during a replay rather than a big play or hype moment.",
+  "what": "The streamer comments on how delayed Neon's stun ability feels during a replay, mockingly imitating its slow loading time.",
+  "playQuality": 3,
+  "reactionSize": 5,
+  "payoffT": 23,
+  "reactionEndT": 28,
+  "keep_score": 35
+ }
+}

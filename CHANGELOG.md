@@ -4,6 +4,12 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-02 (session 283): Corva ranks new clips by watching them
+
+### Added
+- **New setting, Settings → Pipeline → "Rank new clips by watching them" (#483), off by default.** When it is on, after a recording's clips are found Corva cuts a small preview of each one and Gemini watches it with its sound, three at a time. Each clip gets a score out of 10 and a one-line reason, which shows under the score in the clip panel, and the Projects review list sorts likely keepers first; previous/next and auto-advance follow that order. Nothing is hidden or rejected. The judge decides for itself whether a moment is a hype reaction to competitive footage (judged on how good the play is and how hard the creator reacts) or comedy (judged on whether it is funny to a stranger), and reads the creator's own game description for the specifics, so no one creator's teams or catchphrases are built in. It runs on a personal Gemini key or the built-in gateway, so it works on a customer machine with no key of its own. Each call is logged to `ai_calls` (kind `clip_judge`) and counted in the recording's cost; a call that hangs is retried once after 60 s, and a clip it still cannot watch shows no score and says so instead of a score from a different scale. Measured on 768 of Fega's reviewed clips before wiring: it ranks keeps above rejects 72% of the time on hype reactions and 83% on comedy, against 63% and 72% for the clip-finder's confidence. About 1 cent per clip.
+- **The approve/reject record now stores what the judge said** (`feedback.judge_score`, `feedback.judge_kind`, database migration 16), so the real keep rate at each score can be read back as decisions come in.
+
 ## [Unreleased] 2026-10-01 (session 283): personal scorer test started, stopped on Gemini credit
 
 ### Added

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841625_0jte",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 782,
+  "thoughtTokens": 648
+ },
+ "cost": 0.0105,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "Solid multi-kill defensive play by 100T matched with energetic, passionate hype from the creator.",
+  "what": "The creator hypes up a big B-site defensive hold by 100T, shouting 'GET HIM OUT OF HERE BRO! LET'S GO!'.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 12,
+  "reactionEndT": 22,
+  "keep_score": 80
+ }
+}

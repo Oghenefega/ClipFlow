@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_c5xk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3495,
+  "outputTokens": 784,
+  "thoughtTokens": 663
+ },
+ "cost": 0.0111225,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High-energy celebration reaction to his team lifting the tournament trophy that fans will love to rewatch.",
+  "what": "The creator passionately celebrates 100 Thieves lifting the championship trophy, shouting 'We waited for times like these!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 16,
+  "reactionEndT": 32,
+  "keep_score": 85
+ }
+}

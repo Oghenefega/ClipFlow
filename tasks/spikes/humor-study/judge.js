@@ -21,6 +21,7 @@ const origLoad = Module._load;
 Module._load = function (request) {
   if (request === "electron") return { app: { isPackaged: false, getPath: () => USER_DATA } };
   if (request === "electron-log") return { info: () => {}, warn: console.warn, error: console.error };
+  if (request === "./logger") return { info: () => {}, warn: () => {}, error: () => {} }; // ffmpeg.js's app logger
   return origLoad.apply(this, arguments);
 };
 
@@ -37,8 +38,9 @@ const HYPE = new Set(["100T", "VCT", "RL-R", "VAL-R"]);
 const argv = process.argv.slice(2);
 const arg = (name, def) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : def);
 const ARM = arg("--arm", "judge");
-if (!["judge", "judge-noex", "v3"].includes(ARM)) { console.error("--arm judge|judge-noex|v3"); process.exit(1); }
+if (!["judge", "judge-noex", "v3", "v4"].includes(ARM)) { console.error("--arm judge|judge-noex|v3|v4"); process.exit(1); }
 const MANIFEST = arg("--manifest", "judge-manifest.json");
+let GAMES = {}; // gamesDb by upper-cased tag, filled at start (v4 context)
 const limit = Number(arg("--limit", "0")) || Infinity;
 const keys = arg("--keys", null);
 const concurrency = Number(arg("--concurrency", "6"));
@@ -150,9 +152,27 @@ function examplesFor(row, pool) {
   return `\n\nThe creator's own past decisions on clips of this kind, from other streams:\n\nKEPT:\n${keeps.join("\n")}\n\nREJECTED:\n${rejects.join("\n")}`;
 }
 
+// v4 = the SHIPPED judge (src/main/clip-judge.js): same prompt, same preview cutter, same parse,
+// fed the context the pipeline will feed it (the game's own description + the watched game).
+async function judgeShipped(row, outPath) {
+  const clipJudge = require(path.join(REPO, "src", "main", "clip-judge"));
+  const game = GAMES[row.game_tag] || {};
+  const watched = game.reactsTo ? GAMES[String(game.reactsTo).toUpperCase()] : null;
+  const r = await clipJudge.judgeOne({
+    sourceFile: row.master, start: row.ai_start, end: row.ai_end,
+    context: { gameName: row.game_name, gameContext: game.aiContextUser || game.aiContextAuto || "", watchedGameName: watched?.name },
+    previewPath: path.join(TMP_DIR, `v4_${row.key}.mp4`),
+  });
+  if (!r.judge) throw new Error(`unparseable answer: ${String(r.rawText).slice(0, 200)}`);
+  fs.writeFileSync(outPath, JSON.stringify({ key: row.key, arm: ARM, model: clipJudge.MODEL, usage: r.usage, cost: r.costUsd,
+    judged: { ...r.judge, keep_score: r.judge.score } }, null, 1));
+  return r.costUsd;
+}
+
 async function judgeOne(row, pool) {
   const outPath = path.join(OUT_DIR, `${row.key}.json`);
   if (fs.existsSync(outPath)) return "skip";
+  if (ARM === "v4") return judgeShipped(row, outPath);
   const proxy = path.join(TMP_DIR, `${ARM}_${row.key}.mp4`);
   try {
     await makeProxy(row, proxy);
@@ -180,6 +200,7 @@ async function judgeOne(row, pool) {
 (async () => {
   const settings = JSON.parse(fs.readFileSync(path.join(USER_DATA, "clipflow-settings.json"), "utf-8"));
   llmProvider.init({ get: (k, def) => (settings[k] !== undefined ? settings[k] : def) });
+  GAMES = Object.fromEntries((settings.gamesDb || []).map((g) => [String(g.tag).toUpperCase(), g]));
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.mkdirSync(TMP_DIR, { recursive: true });
   const pool = loadExamplePool();

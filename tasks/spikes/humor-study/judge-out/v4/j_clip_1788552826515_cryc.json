@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826515_cryc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2685,
+  "outputTokens": 681,
+  "thoughtTokens": 556
+ },
+ "cost": 0.009135,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "A major match win for 100 Thieves paired with a huge, emotional reaction from the creator.",
+  "what": "The creator reacts with pure excitement as 100 Thieves wins the match, shouting '100 Thieves are going to Champions!'",
+  "playQuality": 9,
+  "reactionSize": 9,
+  "payoffT": 1.5,
+  "reactionEndT": 21,
+  "keep_score": 88
+ }
+}

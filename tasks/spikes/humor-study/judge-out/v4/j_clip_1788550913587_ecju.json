@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_ecju",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 745,
+  "thoughtTokens": 623
+ },
+ "cost": 0.010587000000000001,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "This is standard hype for a routine round win without an exceptional play or clutch to back it up.",
+  "what": "The creator hypes 100 Thieves winning a round, exclaiming, 'We are actually cooking right now bro!'",
+  "playQuality": 4,
+  "reactionSize": 5,
+  "payoffT": 2.5,
+  "reactionEndT": 10,
+  "keep_score": 30
+ }
+}

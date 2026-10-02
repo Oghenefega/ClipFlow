@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_e4rx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 737,
+  "thoughtTokens": 611
+ },
+ "cost": 0.010539,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "The reaction takes place entirely on the post-game recap screens without showing any of the gameplay misses he is lamenting.",
+  "what": "The creator loses a match and reacts with loud frustration on the post-game screen, shouting 'The amount of bars I hit in that game!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 7,
+  "keep_score": 30
+ }
+}

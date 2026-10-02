@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774536_fn0q",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3803,
+  "outputTokens": 1165,
+  "thoughtTokens": 1036
+ },
+ "cost": 0.014442,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "An incredible zero-second clutch play with an explosive, genuine reaction that makes for a great clip.",
+  "what": "Fega clutches a zero-second play to keep the ball alive and force overtime, screaming 'Because I'm about to do... OH MY GOD!' in total excitement.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 21.5,
+  "reactionEndT": 26,
+  "keep_score": 88
+ }
+}

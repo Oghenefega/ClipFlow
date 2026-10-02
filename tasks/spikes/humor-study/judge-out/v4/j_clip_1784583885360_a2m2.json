@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_a2m2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4070,
+  "outputTokens": 707,
+  "thoughtTokens": 581
+ },
+ "cost": 0.0114075,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Flat delivery while casually losing and answering chat, lacking a punchline or big comedic payoff.",
+  "what": "The creator gets scored on to go down 0-7 in Rocket League while answering chat, saying 'I was out here hoping that wasn't going in.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 34,
+  "reactionEndT": 37,
+  "keep_score": 15
+ }
+}

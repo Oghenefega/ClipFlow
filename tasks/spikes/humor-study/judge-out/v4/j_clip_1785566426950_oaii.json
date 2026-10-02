@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_oaii",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1883,
+  "outputTokens": 566,
+  "thoughtTokens": 440
+ },
+ "cost": 0.007069499999999999,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "Funny self-own moment where Fega reacts with genuine laughter and confusion at his own unforced mistake.",
+  "what": "Fega reacts in disbelief after making an accidental backflip that leads to an opponent goal, asking 'What was that backflip out of nowhere for no reason?'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 8.5,
+  "keep_score": 75
+ }
+}

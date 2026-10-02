@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_fsm8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6092,
+  "outputTokens": 724,
+  "thoughtTokens": 616
+ },
+ "cost": 0.014568000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is extended speculative commentary with no sharp punchline or clip-worthy comedy payoff.",
+  "what": "The creator speculates on the future of robot olympics involving hacks and DDoS attacks before concluding 'we're cooked'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

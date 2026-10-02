@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138776_fpoh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 12980,
+  "outputTokens": 936,
+  "thoughtTokens": 826
+ },
+ "cost": 0.02649,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is a long clip of match narration without a clear comedic setup, subversion, or punchline.",
+  "what": "Fega commentates on his Rocket League match in a dramatic sportscaster voice as his team wins by forfeit.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_mhwd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5196,
+  "outputTokens": 574,
+  "thoughtTokens": 468
+ },
+ "cost": 0.012099,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just casual narration during a timeout with no actual gameplay play taking place.",
+  "what": "The creator mocks the casters during a timeout for praising LOUD and ignoring 100 Thieves.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

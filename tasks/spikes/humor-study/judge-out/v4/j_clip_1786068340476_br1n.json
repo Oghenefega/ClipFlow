@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_br1n",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 928,
+  "thoughtTokens": 799
+ },
+ "cost": 0.0119715,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A great sequence from a close save to a counter-attack goal, featuring his signature line and energetic laughter.",
+  "what": "Fega clutch-saves a goal he thought he missed, counters all the way down the field to score, and screams 'Get him out of here! Let's go!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 16,
+  "reactionEndT": 24,
+  "keep_score": 75
+ }
+}

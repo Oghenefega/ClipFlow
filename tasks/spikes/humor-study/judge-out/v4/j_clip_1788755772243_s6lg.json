@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772243_s6lg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2118,
+  "outputTokens": 593,
+  "thoughtTokens": 479
+ },
+ "cost": 0.0076245,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is routine post-round commentary during match transitions without an impressive play or big reaction.",
+  "what": "The creator comments on a replay after round 24, saying 'He turned on the cheats again bro, quite literally!'.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

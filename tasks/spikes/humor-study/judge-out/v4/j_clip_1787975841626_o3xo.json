@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_o3xo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2442,
+  "outputTokens": 509,
+  "thoughtTokens": 402
+ },
+ "cost": 0.007480500000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No gameplay is shown and there is no hype reaction, only calm post-match narration.",
+  "what": "The creator talks through tournament scheduling while watching 100 Thieves celebrate post-match on stage.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

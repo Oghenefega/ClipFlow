@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788113_8chu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2847,
+  "outputTokens": 623,
+  "thoughtTokens": 502
+ },
+ "cost": 0.008943,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is just a routine post-map win reaction with no standout gameplay highlight on screen.",
+  "what": "The creator celebrates 100 Thieves winning the map, shouting 'My boys! We make it look too easy, bro!'",
+  "playQuality": 3,
+  "reactionSize": 5,
+  "payoffT": 3,
+  "reactionEndT": 11,
+  "keep_score": 25
+ }
+}

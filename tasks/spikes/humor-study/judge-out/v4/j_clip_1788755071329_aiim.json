@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_aiim",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 719,
+  "thoughtTokens": 587
+ },
+ "cost": 0.010392,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "No esports play or highlight occurs in this clip, as the creator is only talking to his chat during round setup.",
+  "what": "The creator hypes up 100 Thieves while 0-5 down against LOUD, telling chat 'Believe in them, believe in them' before complaining about pessimistic mods in his chat.",
+  "playQuality": 0,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426951_3zn4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 496,
+  "thoughtTokens": 397
+ },
+ "cost": 0.0073950000000000005,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Standard gameplay transitional moment leading into overtime with no comedic payoff or notable reaction.",
+  "what": "The streamer questions how they gave up a comeback as the Rocket League match transitions into overtime.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

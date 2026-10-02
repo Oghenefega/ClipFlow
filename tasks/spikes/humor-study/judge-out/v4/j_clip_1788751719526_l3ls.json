@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_l3ls",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1875,
+  "outputTokens": 734,
+  "thoughtTokens": 604
+ },
+ "cost": 0.008317499999999999,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is just commentary on a scoreboard stat with no actual gameplay play or clutch happening on screen.",
+  "what": "The creator looks at eeiu's 11-2 scoreboard stats and reacts in disbelief, asking 'Who is this guy? Where did they find this dude?'",
+  "playQuality": 1,
+  "reactionSize": 5,
+  "payoffT": 2,
+  "reactionEndT": 12,
+  "keep_score": 25
+ }
+}

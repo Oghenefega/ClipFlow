@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_c8l2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 546,
+  "thoughtTokens": 418
+ },
+ "cost": 0.0098235,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "A single knife kill followed by an immediate death is a routine play, not a multi-kill highlight.",
+  "what": "The creator doubts Neon's ultimate, but Neon gets one headshot kill before running out of blades, prompting a brief 'AYO!' reaction.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 22,
+  "reactionEndT": 25,
+  "keep_score": 30
+ }
+}

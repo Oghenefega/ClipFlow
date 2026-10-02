@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_6i0a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4258,
+  "outputTokens": 841,
+  "thoughtTokens": 720
+ },
+ "cost": 0.0126945,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard gameplay narration and a missed shot with a loud reaction, lacking a strong setup or funny comedy payoff.",
+  "what": "Fega complains about a player, hits a shot on goal that gets saved or missed, and screams 'OH MY GOD!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 33,
+  "reactionEndT": 35,
+  "keep_score": 25
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_zxie",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2947,
+  "outputTokens": 659,
+  "thoughtTokens": 545
+ },
+ "cost": 0.009363,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is post-round lobby narration explaining what he should have done rather than an active comedic gameplay moment.",
+  "what": "The creator laughs at himself in the lobby after a round, lamenting 'I should have just kept shooting the tree, bro!'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

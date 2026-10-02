@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_sndj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2256,
+  "outputTokens": 937,
+  "thoughtTokens": 813
+ },
+ "cost": 0.0104115,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Fega's explosive standing reaction and boastful commentary deliver high energy and great entertainment value.",
+  "what": "Fega scores a goal, leaps out of his chair screaming 'THAT BETTER FREAKING GO IN!', and laughs while calling himself a 'second goal merchant'.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 1.5,
+  "reactionEndT": 7,
+  "keep_score": 85
+ }
+}

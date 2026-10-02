@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_f7dn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 1117,
+  "thoughtTokens": 990
+ },
+ "cost": 0.014349,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This is just post-match interview footage without any gameplay play, making it a low-priority highlight.",
+  "what": "The creator watches eeiu's post-match interview after winning Stage 2 and shouts, 'Oh my goodness, come on baby!'",
+  "playQuality": 1,
+  "reactionSize": 6,
+  "payoffT": 29,
+  "reactionEndT": 38,
+  "keep_score": 35
+ }
+}

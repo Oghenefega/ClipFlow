@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785908333797_i3qf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4416,
+  "outputTokens": 535,
+  "thoughtTokens": 405
+ },
+ "cost": 0.0106365,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A classic comedy moment where his confident statement is immediately interrupted by the egg rolling backward.",
+  "what": "While boasting 'surely I'm not going to be climbing that', the egg starts slipping down the plank and he screams 'Hey! No! No! Wait, wait, wait!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 23.5,
+  "reactionEndT": 29,
+  "keep_score": 82
+ }
+}

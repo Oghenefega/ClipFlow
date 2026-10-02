@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_nxx1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3233,
+  "outputTokens": 563,
+  "thoughtTokens": 452
+ },
+ "cost": 0.009072,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Nothing funny or unexpected happens as he successfully rolls the egg into place with standard stream banter.",
+  "what": "The creator talks about making an omelet while carefully rolling his egg into a drone station, telling it to 'behave yourself'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

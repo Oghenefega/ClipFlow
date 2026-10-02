@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_kub7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6327,
+  "outputTokens": 656,
+  "thoughtTokens": 527
+ },
+ "cost": 0.0144105,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "The initial fall is minor and the rest of the clip devolves into almost a minute of slow-paced chat banter.",
+  "what": "Fega hesitates and drops his egg before blaming his chat viewers, saying 'I kind of feel like you people are the reason why I fell just now.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 3.5,
+  "reactionEndT": 6,
+  "keep_score": 30
+ }
+}

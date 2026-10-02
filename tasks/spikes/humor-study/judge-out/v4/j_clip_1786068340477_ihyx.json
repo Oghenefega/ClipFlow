@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_ihyx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2288,
+  "outputTokens": 485,
+  "thoughtTokens": 378
+ },
+ "cost": 0.0070695,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is mild commentary on a routine goal and demolition with no funny payoff or standout moment.",
+  "what": "Fega apologizes for demolishing an opponent in Rocket League, saying 'he was just in the way.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

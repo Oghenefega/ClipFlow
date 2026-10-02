@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_2qt6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 626,
+  "thoughtTokens": 499
+ },
+ "cost": 0.010302,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This clip is just long build-up and commentary without showing any actual play or multi-kill payoff.",
+  "what": "The creator hypes up an upcoming 4v2 situation saying 'Check out this 4v2 ladies and gentlemen', but the clip ends during the setup before any kills happen.",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_8t4q",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5235,
+  "outputTokens": 666,
+  "thoughtTokens": 552
+ },
+ "cost": 0.012847500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "There is no comedic fail or clear payoff moment, just routine gameplay with low-key narration.",
+  "what": "The creator navigates an obstacle course while telling the egg to 'behave yourself' and 'chill' as it wobbles on a plank.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

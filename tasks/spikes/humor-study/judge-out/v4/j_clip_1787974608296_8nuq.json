@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_8nuq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 1008,
+  "thoughtTokens": 875
+ },
+ "cost": 0.013774499999999999,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "This is a routine round win without an extraordinary multi-kill or clutch play to make it a highlight.",
+  "what": "The creator hypes up 100 Thieves taking B site and winning a round, shouting 'Too easy, bro! It's too easy, come on!'",
+  "playQuality": 4,
+  "reactionSize": 4,
+  "payoffT": 10,
+  "reactionEndT": 14,
+  "keep_score": 30
+ }
+}

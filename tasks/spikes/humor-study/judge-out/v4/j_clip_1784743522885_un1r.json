@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_un1r",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 668,
+  "thoughtTokens": 538
+ },
+ "cost": 0.008685,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is just routine menu navigation and mild frustration over a rank demotion without a strong comedic payoff.",
+  "what": "The creator realizes he got demoted back to Platinum II in Rocket League and complains, saying \"Back to Plat 2? Come on man, we're better than that.\"",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 1.5,
+  "reactionEndT": 12,
+  "keep_score": 25
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_xer8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 9818,
+  "outputTokens": 562,
+  "thoughtTokens": 438
+ },
+ "cost": 0.018942,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "Extremely funny robot fail footage with genuine, contagious laughter and witty commentary.",
+  "what": "The creator bursts into non-stop laughter as a dancing robot malfunctions and staff have to tackle it, joking 'The cockroach in my house trying to stand up.'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 93,
+  "reactionEndT": 105,
+  "keep_score": 88
+ }
+}

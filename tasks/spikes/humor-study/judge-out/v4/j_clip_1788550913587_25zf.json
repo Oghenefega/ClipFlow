@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_25zf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 551,
+  "thoughtTokens": 429
+ },
+ "cost": 0.009618,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This clip mostly consists of round-end analysis and commentary between plays without any high-stakes play or major clutch.",
+  "what": "The creator watches tactical round-end maneuvers and laughs at a player getting jump-scared in a replay, calling it a 'chess match'.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_0mw4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3688,
+  "outputTokens": 542,
+  "thoughtTokens": 410
+ },
+ "cost": 0.009596999999999998,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A classic comedy setup and subversion where his calm praise for the egg is instantly punished by a sudden drop and scream.",
+  "what": "The creator vows positivity and repeatedly praises his egg as a 'really good egg,' only for it to jump off the ledge and shatter as he screams 'NOOOOO!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 25.5,
+  "reactionEndT": 29,
+  "keep_score": 85
+ }
+}

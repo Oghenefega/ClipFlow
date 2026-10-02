@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_snrs",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4961,
+  "outputTokens": 836,
+  "thoughtTokens": 706
+ },
+ "cost": 0.013711500000000001,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A great comedy clip where his confident boast about clutching up immediately backfires when his shot gets saved.",
+  "what": "After boasting that he always clutches up, Fega hypes up a attack with no boost only to be dramatically saved and scored on (\"NO WAY! OH MY GOD!\").",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 37,
+  "reactionEndT": 40,
+  "keep_score": 85
+ }
+}

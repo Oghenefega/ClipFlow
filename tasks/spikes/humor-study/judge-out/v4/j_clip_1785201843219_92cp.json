@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_92cp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 682,
+  "thoughtTokens": 561
+ },
+ "cost": 0.009519,
+ "judged": {
+  "score": 95,
+  "kind": "comedy",
+  "reason": "A perfect comedy setup and instant payoff where his boastful prediction is immediately punished by a goal.",
+  "what": "Fega confidently boasts 'I was born to catch this man' right before the opponent immediately scores on him, sending him into a screaming collapse.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 9.5,
+  "reactionEndT": 21,
+  "keep_score": 95
+ }
+}

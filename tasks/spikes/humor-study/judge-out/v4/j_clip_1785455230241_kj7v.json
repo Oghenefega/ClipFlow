@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_kj7v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3235,
+  "outputTokens": 516,
+  "thoughtTokens": 410
+ },
+ "cost": 0.0087225,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "No comedic twist or crash occurs, and the creator drives silently without any punchline or reaction.",
+  "what": "The creator claims he will be deadly at the game and then silently completes a routine driving lap without incident.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

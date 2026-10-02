@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913586_itlm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 757,
+  "thoughtTokens": 610
+ },
+ "cost": 0.011892,
+ "judged": {
+  "score": 82,
+  "kind": "hype_reaction",
+  "reason": "A great, funny reaction to a clutch round where the player's deadpan expression initially fooled the creator into thinking they lost.",
+  "what": "The creator is confused whether 100 Thieves won the round due to Cryo's straight face, before realizing it was a huge clutch and yelling 'Everyone's clutching up bro! That is insane!'",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 24,
+  "reactionEndT": 35,
+  "keep_score": 82
+ }
+}

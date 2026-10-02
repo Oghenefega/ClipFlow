@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294769_obif",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 818,
+  "thoughtTokens": 689
+ },
+ "cost": 0.0116325,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "Routine goal excitement with no comedic subversion, self-own, or stand-out joke to make it memorable for an outside viewer.",
+  "what": "Fega shouts in excitement as his teammate scores a goal, yelling 'ON YOURS JICKEL! Let's go, buddy!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 17,
+  "reactionEndT": 21,
+  "keep_score": 35
+ }
+}

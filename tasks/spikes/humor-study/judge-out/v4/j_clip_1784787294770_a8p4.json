@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_a8p4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 930,
+  "thoughtTokens": 817
+ },
+ "cost": 0.012472500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "The goal and main reaction happen at the very start of the clip, followed by extended routine gameplay with no comedic payoff.",
+  "what": "Fega celebrates scoring a goal right as the clip begins, then plays through twenty seconds of routine gameplay.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 7,
+  "keep_score": 25
+ }
+}

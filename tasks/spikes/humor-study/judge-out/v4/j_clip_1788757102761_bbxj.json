@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_bbxj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5439,
+  "outputTokens": 711,
+  "thoughtTokens": 560
+ },
+ "cost": 0.013491000000000001,
+ "judged": {
+  "score": 90,
+  "kind": "hype_reaction",
+  "reason": "A clutch 1v2 round win at 1 HP triggers a high-energy standing reaction and flex from the creator.",
+  "what": "100T Bang wins a 1v2 clutch at 1 HP to tie the map 8-8, prompting the creator to leap out of his chair shouting, 'Get him out of here! Let's go!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 23.5,
+  "reactionEndT": 31,
+  "keep_score": 90
+ }
+}

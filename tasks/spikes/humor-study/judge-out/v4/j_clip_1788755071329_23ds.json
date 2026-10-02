@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_23ds",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 590,
+  "thoughtTokens": 482
+ },
+ "cost": 0.00906,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is purely tactical narration and analysis of a routine play without any big moment or explosive reaction.",
+  "what": "The creator explains a high-low tactical setup with his hands while watching a routine kill on screen.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

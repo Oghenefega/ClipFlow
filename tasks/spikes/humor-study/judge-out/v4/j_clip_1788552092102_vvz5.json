@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_vvz5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 771,
+  "thoughtTokens": 646
+ },
+ "cost": 0.010539,
+ "judged": {
+  "score": 45,
+  "kind": "hype_reaction",
+  "reason": "A routine round win with his standard hype slogan does not have a big enough play to stand out.",
+  "what": "The creator hypes up 100 Thieves as they secure a round win on Sunset, screaming 'GET HIM OUT OF THERE!'",
+  "playQuality": 5,
+  "reactionSize": 7,
+  "payoffT": 26,
+  "reactionEndT": 28.5,
+  "keep_score": 45
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_me9k",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 564,
+  "thoughtTokens": 440
+ },
+ "cost": 0.008269499999999999,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "It is a mild laugh at an opponent's goal without a strong comedy setup or notable payoff.",
+  "what": "Fega laughs in disbelief at an opponent's goal, repeatedly asking 'What was that?' before shaking it off with 'No problem, no problem'.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 1,
+  "reactionEndT": 7,
+  "keep_score": 30
+ }
+}

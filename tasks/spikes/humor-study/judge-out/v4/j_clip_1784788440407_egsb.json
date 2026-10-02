@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_egsb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 992,
+  "thoughtTokens": 866
+ },
+ "cost": 0.012694500000000001,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny self-own where his hype and demand for action immediately backfire into an accidental own goal.",
+  "what": "Fega hypes up the close game asking for 'some action', only to accidentally score an own goal seconds later and deadpan, 'Sir.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 24,
+  "reactionEndT": 26,
+  "keep_score": 75
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_jmgm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2218,
+  "outputTokens": 445,
+  "thoughtTokens": 343
+ },
+ "cost": 0.0066645,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is purely setup and loading screen commentary with no gameplay payoff or punchline.",
+  "what": "The creator loads into the Art Museum map and confidently promises he will not get caught this time.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

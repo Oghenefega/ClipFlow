@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_fnrv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 898,
+  "thoughtTokens": 788
+ },
+ "cost": 0.011856,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine vlog viewing with mild commentary and no funny punchline or payoff.",
+  "what": "The creator watches backstage vlog footage of a player doing a forehead guessing game and casually comments that the player doesn't know the movie.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

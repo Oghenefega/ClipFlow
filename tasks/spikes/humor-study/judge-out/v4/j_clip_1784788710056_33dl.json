@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_33dl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4232,
+  "outputTokens": 610,
+  "thoughtTokens": 474
+ },
+ "cost": 0.010922999999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "His sarcastic, over-the-top praise for the opponent after getting instantly scored on again makes for a great comedy moment.",
+  "what": "After complaining about his own play and instantly conceding another goal on kickoff, Fega sarcastically celebrates his opponent saying 'I'm so happy for you man! Nice shot!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 25,
+  "reactionEndT": 38,
+  "keep_score": 85
+ }
+}

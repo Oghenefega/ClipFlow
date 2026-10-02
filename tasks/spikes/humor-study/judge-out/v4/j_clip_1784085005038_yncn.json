@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_yncn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2414,
+  "outputTokens": 536,
+  "thoughtTokens": 419
+ },
+ "cost": 0.007641,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This clip is just an intro setup monologue with no funny gameplay payoff or punchline.",
+  "what": "The streamer talks to the camera, boasting about his skills and setting up his play session by saying 'I'm gonna show you guys how it's done.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

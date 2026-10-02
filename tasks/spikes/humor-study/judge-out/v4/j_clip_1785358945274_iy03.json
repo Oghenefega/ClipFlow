@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945274_iy03",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 546,
+  "thoughtTokens": 432
+ },
+ "cost": 0.0098355,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "It is just continuous low-energy complaining while losing, lacking a clear comedic setup, punchline, or funny twist.",
+  "what": "The creator gets demoralized while losing in Rocket League, asking 'Do I really need five minutes of this humiliation?'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

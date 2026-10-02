@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_37jg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 437,
+  "thoughtTokens": 325
+ },
+ "cost": 0.0064665,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Just end-game wrap-up and post-game lobby chat with no comedic payoff or notable play.",
+  "what": "Fega finishes a Rocket League game saying 'Get him out of my face bro' before chatting with his lobby about ranks.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

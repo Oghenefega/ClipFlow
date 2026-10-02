@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_me21",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3394,
+  "outputTokens": 433,
+  "thoughtTokens": 331
+ },
+ "cost": 0.0083385,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine gameplay narration and map navigation with no comedic payoff or memorable moment.",
+  "what": "The creator wanders around a building, talks about forgetting his pickaxe controls, and checks his map.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

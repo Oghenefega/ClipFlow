@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_8l00",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 773,
+  "thoughtTokens": 651
+ },
+ "cost": 0.010566,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "A classic comedy setup where he questions the opponent's gameplay right before getting scored on, followed by a big, genuine laugh.",
+  "what": "Fega questions his opponent's weird kickoff movement only to immediately get scored on, bursting into hysterical laughter.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 20.5,
+  "reactionEndT": 26,
+  "keep_score": 80
+ }
+}

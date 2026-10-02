@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_0zm3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3257,
+  "outputTokens": 561,
+  "thoughtTokens": 449
+ },
+ "cost": 0.009093,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is mostly menu navigation and game setup with no strong comedic payoff or gameplay moment.",
+  "what": "The creator claims he is going straight into competitive Rocket League without training because he is 'crazy', but immediately loads into Free Play training and settings.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

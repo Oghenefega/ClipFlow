@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551595_6wf9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4232,
+  "outputTokens": 787,
+  "thoughtTokens": 672
+ },
+ "cost": 0.012250500000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is pre-match menu bantering and subscriber thanking with no gameplay or comedic payoff.",
+  "what": "Fega chats on the Rocket League pause screen, thanking subscribers and hyping up his upcoming match as 'Ronaldo versus freaking Lamine Yamal'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

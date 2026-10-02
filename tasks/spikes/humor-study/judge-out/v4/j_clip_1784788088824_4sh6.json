@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_4sh6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 621,
+  "thoughtTokens": 507
+ },
+ "cost": 0.007968,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "He makes a confident boast, but nothing funny or eventful happens in the game to deliver a comedic payoff.",
+  "what": "The creator says 'that's what you call gaming, bro... we balling for real' while casually driving around grabbing boost.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

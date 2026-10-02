@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_qdya",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5768,
+  "outputTokens": 781,
+  "thoughtTokens": 651
+ },
+ "cost": 0.0145095,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "His hilarious physical reenactment and big reaction to the robot's absurd kick-and-collapse fail make for a great clip.",
+  "what": "The creator laughs hysterically and mimics a robot landing a spin kick before instantly collapsing, asking, \"How do you land the kick and then die?\"",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 2,
+  "reactionEndT": 38,
+  "keep_score": 85
+ }
+}

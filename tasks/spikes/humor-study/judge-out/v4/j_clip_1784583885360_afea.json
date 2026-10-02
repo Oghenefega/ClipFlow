@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_afea",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 655,
+  "thoughtTokens": 543
+ },
+ "cost": 0.010167,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine narration and self-explanation after getting scored on, lacking a funny payoff or big reaction.",
+  "what": "Fega gets scored on twice in Rocket League while calmly reflecting on his hesitation, saying 'I deserve that one'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

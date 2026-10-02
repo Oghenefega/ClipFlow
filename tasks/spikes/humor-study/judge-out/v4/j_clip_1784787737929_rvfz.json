@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_rvfz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5285,
+  "outputTokens": 593,
+  "thoughtTokens": 476
+ },
+ "cost": 0.012375,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay commentary after a standard goal with no comedy payoff or strong reaction.",
+  "what": "Fega watches the opposing team score a goal while bumping his teammates, exclaiming 'Damn, these guys bump. What the heck?'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 37,
+  "reactionEndT": 41,
+  "keep_score": 15
+ }
+}

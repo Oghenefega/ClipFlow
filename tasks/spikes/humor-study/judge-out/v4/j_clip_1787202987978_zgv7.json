@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987978_zgv7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 636,
+  "thoughtTokens": 507
+ },
+ "cost": 0.008919,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay play in this moment and his low-key emotional commentary is not energetic or memorable enough for a highlight clip.",
+  "what": "The creator watches 100 Thieves lift the trophy and reacts emotionally, saying 'Why am I feeling so emotional bro?'",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": 11,
+  "reactionEndT": 23,
+  "keep_score": 25
+ }
+}

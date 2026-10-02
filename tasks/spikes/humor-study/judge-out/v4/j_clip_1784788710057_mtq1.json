@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710057_mtq1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4313,
+  "outputTokens": 728,
+  "thoughtTokens": 602
+ },
+ "cost": 0.011929499999999999,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A fun self-own moment where he gets scored on and delivers his signature joke calling out opponent excuses.",
+  "what": "After conceding a quick goal, Fega laughs and calls out his opponent's chat excuse, shouting: 'Miss me with the preamble, bro!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 20.5,
+  "reactionEndT": 25,
+  "keep_score": 75
+ }
+}

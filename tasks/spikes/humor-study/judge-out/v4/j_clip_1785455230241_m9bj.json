@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_m9bj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2830,
+  "outputTokens": 865,
+  "thoughtTokens": 744
+ },
+ "cost": 0.0107325,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard victory shouting without any comedic subversion, joke, or unexpected payoff.",
+  "what": "The creator navigates a tight finish line and screams with excitement after beating the level time: 'LET'S GO DUDE! Get him out of here!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 9.5,
+  "reactionEndT": 19.5,
+  "keep_score": 25
+ }
+}

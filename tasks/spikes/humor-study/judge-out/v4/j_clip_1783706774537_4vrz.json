@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_4vrz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2529,
+  "outputTokens": 955,
+  "thoughtTokens": 825
+ },
+ "cost": 0.010956,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "It is a cheerful moment supporting his teammate, but lacks a strong comedic setup, self-own, or funny subversion.",
+  "what": "Fega excitedly celebrates a teammate's goal, clapping and saying, \"Let's go, dude! That deserved to go in, come on!\"",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 4,
+  "reactionEndT": 12,
+  "keep_score": 45
+ }
+}

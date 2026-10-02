@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_yhst",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 975,
+  "thoughtTokens": 855
+ },
+ "cost": 0.013041,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "A funny round-ending wallbang spray with a great, infectious laugh reaction from the creator.",
+  "what": "The creator laughs hysterically while watching a replay of Asuna spraying down an enemy through a wall to win the round.",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 16,
+  "reactionEndT": 22,
+  "keep_score": 78
+ }
+}

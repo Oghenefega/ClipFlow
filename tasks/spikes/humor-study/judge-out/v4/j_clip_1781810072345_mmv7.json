@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072345_mmv7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5305,
+  "outputTokens": 503,
+  "thoughtTokens": 374
+ },
+ "cost": 0.011729999999999999,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Finding a routine loot item and organizing an inventory does not provide enough comedic payoff or entertainment value to keep.",
+  "what": "The streamer finds a Cracked Bioscanner while looting and celebrates, saying 'Cracked Bioscanner, let's go baby!' before spending the rest of the clip organizing his inventory.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 14,
+  "reactionEndT": 18,
+  "keep_score": 20
+ }
+}

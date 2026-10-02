@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_d3io",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2604,
+  "outputTokens": 575,
+  "thoughtTokens": 443
+ },
+ "cost": 0.0082185,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "A high-energy victory celebration with a great quote and jersey reveal as 100 Thieves seals the championship.",
+  "what": "The creator passionately celebrates 100 Thieves winning the trophy, pulling up his jersey while shouting, 'Look how silent the crowd is, oh my god!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 2,
+  "reactionEndT": 20,
+  "keep_score": 85
+ }
+}

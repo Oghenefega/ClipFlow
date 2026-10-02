@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440406_66cj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 669,
+  "thoughtTokens": 541
+ },
+ "cost": 0.011001,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "His dramatic mock-outrage over being scored on 'on live television' is funny, energetic, and highly relatable.",
+  "what": "Fega laughs hysterically and dramatically calls out his opponent after getting scored on, exclaiming 'How dare you do that to me on live television!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 9,
+  "reactionEndT": 11,
+  "keep_score": 80
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092101_4cgx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2361,
+  "outputTokens": 983,
+  "thoughtTokens": 846
+ },
+ "cost": 0.010914,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "A spot-on play prediction leading into a multi-kill with an explosive, highly energetic hype reaction.",
+  "what": "The creator accurately predicts Bang's play right before Bang lands a multi-kill, causing him to jump up screaming 'I SAID IT! I CALLED IT! OH MY GOODNESS!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 3,
+  "reactionEndT": 15,
+  "keep_score": 88
+ }
+}

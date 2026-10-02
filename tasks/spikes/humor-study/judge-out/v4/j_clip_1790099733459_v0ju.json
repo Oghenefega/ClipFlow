@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099733459_v0ju",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5768,
+  "outputTokens": 654,
+  "thoughtTokens": 529
+ },
+ "cost": 0.013557,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "Hilarious robot fail moment combined with a huge, highly energetic physical reaction from the streamer.",
+  "what": "The creator laughs hysterically watching a robot land a kick and immediately collapse, asking 'How do you land the kick and then die?' before standing up to imitate it.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 2,
+  "reactionEndT": 39,
+  "keep_score": 88
+ }
+}

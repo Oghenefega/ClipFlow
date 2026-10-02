@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_2xnb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4416,
+  "outputTokens": 454,
+  "thoughtTokens": 341
+ },
+ "cost": 0.010029,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "The clip is just narration and wandering around confused without any comedic payoff, fail, or punchline.",
+  "what": "Fega rolls his egg around wooden platforms while repeatedly expressing his confusion, saying 'Where the heck am I? I am so lost.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

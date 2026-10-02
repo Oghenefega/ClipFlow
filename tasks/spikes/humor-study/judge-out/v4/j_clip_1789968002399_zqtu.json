@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789968002399_zqtu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2542,
+  "outputTokens": 475,
+  "thoughtTokens": 370
+ },
+ "cost": 0.0073755,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just casual setup and UI navigation with no comedic payoff or funny moment.",
+  "what": "The creator greets a friend in-game while trying to figure out how to switch to free cam to locate him.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

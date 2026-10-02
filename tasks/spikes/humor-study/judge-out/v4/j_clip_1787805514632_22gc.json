@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_22gc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6416,
+  "outputTokens": 451,
+  "thoughtTokens": 326
+ },
+ "cost": 0.0130065,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Great comedy moment with absurd footage of a robot falling over and genuine, highly entertaining commentary from the creator.",
+  "what": "The creator laughs as a robot gets distracted by female cheerleading robots and falls off the stage, asking 'Why is this guy getting distracted?'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 37,
+  "reactionEndT": 53,
+  "keep_score": 85
+ }
+}

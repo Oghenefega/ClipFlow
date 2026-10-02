@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_0ojd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8050,
+  "outputTokens": 680,
+  "thoughtTokens": 571
+ },
+ "cost": 0.017175,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "The clip consists of long setup and UI confusion without a clear punchline or comedic payoff.",
+  "what": "The creator panics while trying to select the right pose and figure out the painting UI controls before the hiding timer runs out.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

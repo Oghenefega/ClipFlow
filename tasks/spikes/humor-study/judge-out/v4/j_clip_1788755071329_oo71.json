@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_oo71",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 899,
+  "thoughtTokens": 767
+ },
+ "cost": 0.012471,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "A round win by the opposing team against the creator's team is not a highlight without an extraordinary ace or clutch.",
+  "what": "The creator reacts in disbelief with his hands on his head as LOUD wins another round against 100T, saying 'No freaking way dude'.",
+  "playQuality": 4,
+  "reactionSize": 7,
+  "payoffT": 4,
+  "reactionEndT": 10,
+  "keep_score": 25
+ }
+}

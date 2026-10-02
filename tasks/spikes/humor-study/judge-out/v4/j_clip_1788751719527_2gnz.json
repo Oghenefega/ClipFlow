@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_2gnz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4629,
+  "outputTokens": 745,
+  "thoughtTokens": 627
+ },
+ "cost": 0.012531,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is pre-match commentary during map and agent select with no actual gameplay or play occurring.",
+  "what": "The creator gets excited during agent select upon seeing Split and Phoenix picked, shouting 'We're playing Split first!'",
+  "playQuality": 0,
+  "reactionSize": 5,
+  "payoffT": 3,
+  "reactionEndT": 8,
+  "keep_score": 15
+ }
+}

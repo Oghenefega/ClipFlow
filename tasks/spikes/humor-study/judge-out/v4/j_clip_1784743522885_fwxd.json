@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_fwxd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 558,
+  "thoughtTokens": 440
+ },
+ "cost": 0.007131,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Routine save and standard gameplay commentary without a strong comedic subversion or payoff.",
+  "what": "Fega makes a save while declaring 'Not on my watch, get him out of my face, bro', then hands off the play to his teammate.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 3.5,
+  "reactionEndT": 5.5,
+  "keep_score": 25
+ }
+}

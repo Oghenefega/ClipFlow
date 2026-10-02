@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_dr7h",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 706,
+  "thoughtTokens": 594
+ },
+ "cost": 0.00897,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is plain commentary and casual banter during a kickoff without a strong comedic payoff or funny event.",
+  "what": "Fega laughs and remarks that Temzy is bringing \"hellfire and brimstone\" to what was supposed to be a friendly match.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

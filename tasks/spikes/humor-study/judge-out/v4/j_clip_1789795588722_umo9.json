@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_umo9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3757,
+  "outputTokens": 542,
+  "thoughtTokens": 419
+ },
+ "cost": 0.009700499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious prop hunt camouflage discovery with a huge, contagious laugh reaction.",
+  "what": "The creator finds an enemy player brilliantly disguised directly inside a poster of a man holding roses and laughs hysterically: 'I did not see him next to the roses! What?!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 8,
+  "reactionEndT": 25,
+  "keep_score": 85
+ }
+}

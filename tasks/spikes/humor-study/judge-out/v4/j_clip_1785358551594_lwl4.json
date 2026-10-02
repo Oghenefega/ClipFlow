@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_lwl4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5366,
+  "outputTokens": 797,
+  "thoughtTokens": 664
+ },
+ "cost": 0.0140265,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "It fits the setup-to-punishment comedy pattern, but the delivery and reaction are too flat to make a strong clip.",
+  "what": "After scoring a goal and complaining that his game feels glitchy today, Fega immediately gets scored on and admits, 'Nice shot by the way, damn.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 46,
+  "reactionEndT": 51,
+  "keep_score": 35
+ }
+}

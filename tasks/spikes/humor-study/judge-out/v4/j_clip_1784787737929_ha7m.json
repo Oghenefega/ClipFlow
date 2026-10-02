@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_ha7m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 508,
+  "thoughtTokens": 408
+ },
+ "cost": 0.0083355,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just menu setup and queue waiting with no gameplay payoff or funny moment.",
+  "what": "Fega queues into a Rocket League match and drinks water while waiting for the game to start.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

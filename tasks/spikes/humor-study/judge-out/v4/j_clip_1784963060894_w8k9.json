@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060894_w8k9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2414,
+  "outputTokens": 425,
+  "thoughtTokens": 323
+ },
+ "cost": 0.0068085,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Nothing happens in gameplay to provide a comedic payoff or funny moment.",
+  "what": "Fega criticizes chat's advice about avoiding a cinder block while his egg slowly rolls along a wooden beam.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

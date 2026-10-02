@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_hz1a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4629,
+  "outputTokens": 1050,
+  "thoughtTokens": 903
+ },
+ "cost": 0.0148185,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "His over-the-top taunt when 100 Thieves takes out the opponent's star player early creates a high-energy, quotable moment.",
+  "what": "The creator jumps out of his chair to taunt the opposing team after Ethan gets killed early, shouting 'I said he's not that good, get him out of here bro!'",
+  "playQuality": 5,
+  "reactionSize": 8,
+  "payoffT": 3.5,
+  "reactionEndT": 10,
+  "keep_score": 75
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_l54l",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1389,
+  "outputTokens": 645,
+  "thoughtTokens": 528
+ },
+ "cost": 0.006921,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "A routine single kill and trade in overtime is not a big enough play for a standalone highlight despite his loud reaction.",
+  "what": "The creator screams in excitement as Asuna gets a single kill before immediately being traded in overtime.",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": 2,
+  "reactionEndT": 5,
+  "keep_score": 30
+ }
+}

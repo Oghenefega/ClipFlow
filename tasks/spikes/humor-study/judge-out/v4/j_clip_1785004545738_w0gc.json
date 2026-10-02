@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785004545738_w0gc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4067,
+  "outputTokens": 602,
+  "thoughtTokens": 490
+ },
+ "cost": 0.0106155,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "This is mild chat interaction and term clarification without a strong comedy payoff.",
+  "what": "Fega wonders what 'GP' means in chat while scoring a goal, only to realize it stands for ground pinch.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 19,
+  "reactionEndT": 29,
+  "keep_score": 35
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_838f",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 771,
+  "thoughtTokens": 638
+ },
+ "cost": 0.011754,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "Though he shows hype putting on the jersey, this is just post-match trophy ceremony footage without any gameplay.",
+  "what": "The creator excitedly puts on a 100 Thieves jersey shouting 'We're bringing it home boys!', but the broadcast only shows the post-match stage walkout.",
+  "playQuality": 0,
+  "reactionSize": 7,
+  "payoffT": 3,
+  "reactionEndT": 25,
+  "keep_score": 35
+ }
+}

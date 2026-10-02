@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088823_scsc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6338,
+  "outputTokens": 930,
+  "thoughtTokens": 803
+ },
+ "cost": 0.016482,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "High-energy clutch save paired with his energetic catchphrase and funny self-aware follow-up.",
+  "what": "Fega pulls off an epic save and shouts 'Not on my watch man, get him out of here!' before joking that he used up all his aura points.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 45,
+  "reactionEndT": 48,
+  "keep_score": 75
+ }
+}

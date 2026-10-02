@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_c4s2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1847,
+  "outputTokens": 499,
+  "thoughtTokens": 405
+ },
+ "cost": 0.006513,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "Nothing interesting happens in the game and the creator is silent throughout the clip.",
+  "what": "The creator quietly moves through building doors in Arc Raiders without saying anything.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

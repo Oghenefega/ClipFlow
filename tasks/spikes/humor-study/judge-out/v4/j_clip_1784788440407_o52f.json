@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_o52f",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 763,
+  "thoughtTokens": 639
+ },
+ "cost": 0.009519,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "It starts mid-replay with residual laughter over a missed demo and quickly turns into routine chat greetings without a standalone comedy payoff.",
+  "what": "The creator laughs at a replay of his missed demo attempt while his team scores, saying 'I missed the demo!', before moving on to greeting chatters.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 2,
+  "reactionEndT": 8,
+  "keep_score": 30
+ }
+}

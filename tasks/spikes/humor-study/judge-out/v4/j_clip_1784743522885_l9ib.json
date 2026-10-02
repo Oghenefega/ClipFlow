@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_l9ib",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2774,
+  "outputTokens": 501,
+  "thoughtTokens": 390
+ },
+ "cost": 0.0079185,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "A minor gameplay mistake with flat delivery and no big reaction or comedic payoff.",
+  "what": "The creator accidentally turns his car around in Rocket League and quietly asks, 'Why am I facing backwards?'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 15,
+  "reactionEndT": 17,
+  "keep_score": 20
+ }
+}

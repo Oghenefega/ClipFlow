@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_mpg5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 794,
+  "thoughtTokens": 665
+ },
+ "cost": 0.012851999999999999,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is routine gameplay progress without a comedic subversion, funny fail, or standout punchline to make it entertaining.",
+  "what": "Fega carefully guides his egg across a platform and celebrates making a small jump, shouting 'Let's go man, let's go! Easy!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 21,
+  "reactionEndT": 24,
+  "keep_score": 25
+ }
+}

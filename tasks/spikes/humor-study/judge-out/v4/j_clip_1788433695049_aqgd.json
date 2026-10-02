@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_aqgd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3028,
+  "outputTokens": 564,
+  "thoughtTokens": 458
+ },
+ "cost": 0.008772,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just setup and narration during the pre-round phase with no comedic payoff or event occurring.",
+  "what": "The streamer struggles to find a hiding spot before the search phase begins and hopes the hunter is blind.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

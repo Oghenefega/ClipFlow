@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_ag7p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4710,
+  "outputTokens": 722,
+  "thoughtTokens": 609
+ },
+ "cost": 0.01248,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "Plain story talk and commentary without gameplay or a high-energy reaction is not a highlight.",
+  "what": "The creator reflects softly on 100 Thieves' victory, expressing how happy and emotional he feels after watching their long journey.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

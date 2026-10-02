@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_ulm5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6168,
+  "outputTokens": 644,
+  "thoughtTokens": 515
+ },
+ "cost": 0.014082,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-stakes round-winning moment that pushes the match to overtime, paired with an energetic and memorable reaction.",
+  "what": "The creator screams and jumps out of his chair as 100T wins the round to force overtime, yelling 'This is what we wanted!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 2,
+  "reactionEndT": 33,
+  "keep_score": 88
+ }
+}

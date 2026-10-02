@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_msyv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5215,
+  "outputTokens": 638,
+  "thoughtTokens": 530
+ },
+ "cost": 0.0126075,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This clip is just routine gameplay of searching for a prop without any funny moment or payoff.",
+  "what": "The streamer searches through warehouse shelves trying to pinpoint a whistling hider, talking to himself as he fails to find them.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

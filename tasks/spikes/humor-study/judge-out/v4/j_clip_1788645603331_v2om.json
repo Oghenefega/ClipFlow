@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788645603331_v2om",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 562,
+  "thoughtTokens": 426
+ },
+ "cost": 0.00885,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "An impressive 1v2 clutch in a high-stakes pro match paired with a massive, energetic reaction.",
+  "what": "The streamer stands up and yells in hype as Ethan wins a 1v2 clutch for 100 Thieves, screaming 'Oh my God! Yo! This is crazy!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 13,
+  "reactionEndT": 27,
+  "keep_score": 88
+ }
+}

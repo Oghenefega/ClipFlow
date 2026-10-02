@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_qjj3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5034,
+  "outputTokens": 827,
+  "thoughtTokens": 696
+ },
+ "cost": 0.013753500000000002,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "A routine round win by the opposing team without a high-stakes clutch or ace does not make for a keeper clip.",
+  "what": "The creator watches NRG win a round against 100T, shouting 'Get him out of there!' before acknowledging NRG's round win.",
+  "playQuality": 3,
+  "reactionSize": 5,
+  "payoffT": 31,
+  "reactionEndT": 45,
+  "keep_score": 20
+ }
+}

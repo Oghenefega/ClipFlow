@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_d24c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8360,
+  "outputTokens": 738,
+  "thoughtTokens": 615
+ },
+ "cost": 0.018075,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "His funny observation and genuine laughter about a human referee cautioning a robot make for an entertaining comedy moment.",
+  "what": "The creator hysterically reacts to a referee giving a yellow card to a humanoid robot and a goalie robot standing completely still as a goal is scored.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 5,
+  "reactionEndT": 46,
+  "keep_score": 85
+ }
+}

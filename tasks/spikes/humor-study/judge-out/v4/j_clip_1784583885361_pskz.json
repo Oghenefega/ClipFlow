@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_pskz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4151,
+  "outputTokens": 688,
+  "thoughtTokens": 582
+ },
+ "cost": 0.0113865,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine training pack practice with low-energy commentary and no dramatic or funny payoff.",
+  "what": "Fega practices Rocket League training shots while analyzing his flip technique, repeatedly missing and saying 'I'm throwing'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

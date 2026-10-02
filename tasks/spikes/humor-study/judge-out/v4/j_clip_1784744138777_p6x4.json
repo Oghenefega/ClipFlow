@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_p6x4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 826,
+  "thoughtTokens": 698
+ },
+ "cost": 0.0119355,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "A solid hype/surprise reaction to a close shot being saved, though fairly standard gameplay.",
+  "what": "After laughing at his previous goal, the creator goes for a high aerial shot that gets saved at the last second, shouting 'Ain't no way! Oh my goodness!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 26,
+  "reactionEndT": 29.5,
+  "keep_score": 65
+ }
+}

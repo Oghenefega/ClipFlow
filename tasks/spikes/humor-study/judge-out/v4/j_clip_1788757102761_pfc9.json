@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_pfc9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 1243,
+  "thoughtTokens": 1112
+ },
+ "cost": 0.0142005,
+ "judged": {
+  "score": 60,
+  "kind": "hype_reaction",
+  "reason": "The creator's hype and hoodie transition are energetic, but no actual gameplay takes place during the clip.",
+  "what": "The creator jokes about a worried couple in the crowd before putting on his 100 Thieves hoodie to hype up overtime match point, screaming 'Come on!'",
+  "playQuality": 3,
+  "reactionSize": 8,
+  "payoffT": 24,
+  "reactionEndT": 29,
+  "keep_score": 60
+ }
+}

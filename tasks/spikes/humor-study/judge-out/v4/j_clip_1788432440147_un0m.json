@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_un0m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3433,
+  "outputTokens": 578,
+  "thoughtTokens": 467
+ },
+ "cost": 0.0094845,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine searching gameplay with no funny outcome, unexpected event, or payoff.",
+  "what": "The streamer searches for hidden props in an art gallery while narrating his thoughts, but the clip ends without finding anyone or having a punchline.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

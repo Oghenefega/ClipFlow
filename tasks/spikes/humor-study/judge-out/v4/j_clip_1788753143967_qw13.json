@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_qw13",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5115,
+  "outputTokens": 368,
+  "thoughtTokens": 238
+ },
+ "cost": 0.010432499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction with his signature catchphrase to a multi-kill round-winning play from his team.",
+  "what": "The creator goes wild and shouts 'GET HIM OUT OF HERE!' as Cryo locks down a 4K round win for 100 Thieves.",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 30,
+  "reactionEndT": 38,
+  "keep_score": 85
+ }
+}

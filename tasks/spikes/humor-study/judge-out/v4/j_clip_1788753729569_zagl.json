@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_zagl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 741,
+  "thoughtTokens": 618
+ },
+ "cost": 0.010071,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "A routine round win by the opposing team with a very muted reaction is not a highlight clip.",
+  "what": "The opponent catches 100T off-guard for a round win while the creator quietly mutters 'Oh my goodness'.",
+  "playQuality": 3,
+  "reactionSize": 2,
+  "payoffT": 19,
+  "reactionEndT": 23,
+  "keep_score": 15
+ }
+}

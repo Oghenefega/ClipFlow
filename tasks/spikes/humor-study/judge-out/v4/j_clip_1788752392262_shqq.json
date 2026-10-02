@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392262_shqq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1875,
+  "outputTokens": 646,
+  "thoughtTokens": 517
+ },
+ "cost": 0.007657499999999999,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "It is just pre-round hype and ultimate setup without an actual multi-kill or clutch play landing.",
+  "what": "The creator hypes up Asuna using his Phoenix ultimate on match point, shouting \"If there's anyone who clutches up... we're about to really see Ronaldo this thing up!\"",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

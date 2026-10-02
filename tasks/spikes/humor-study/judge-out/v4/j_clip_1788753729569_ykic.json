@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_ykic",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 703,
+  "thoughtTokens": 578
+ },
+ "cost": 0.0101505,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "A high-stakes round win with a big scream and intense reaction that captures the match's tension.",
+  "what": "The creator screams in hype when 100 Thieves secures a crucial round to reach match point at 12-10.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 13,
+  "reactionEndT": 28,
+  "keep_score": 80
+ }
+}

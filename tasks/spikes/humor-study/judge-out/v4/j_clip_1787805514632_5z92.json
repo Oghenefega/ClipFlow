@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_5z92",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2852,
+  "outputTokens": 720,
+  "thoughtTokens": 582
+ },
+ "cost": 0.009677999999999999,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "It is a mild lighthearted observation about the number 666, but lacks a strong comedic payoff or visual fail.",
+  "what": "The creator notices that 666 teams are registered for the Humanoid Robot Games and jokes, 'Tell me that is not a sign for something... we're in trouble guys.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 13.5,
+  "reactionEndT": 22,
+  "keep_score": 45
+ }
+}

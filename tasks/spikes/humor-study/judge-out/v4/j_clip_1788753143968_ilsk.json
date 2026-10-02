@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143968_ilsk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1794,
+  "outputTokens": 436,
+  "thoughtTokens": 323
+ },
+ "cost": 0.005961,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "No gameplay action or hype reaction occurs in this clip; it is just pre-round downtime.",
+  "what": "The creator talks calmly before the pistol round starts, saying 'It's okay boys, they're a young squad'.",
+  "playQuality": 0,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

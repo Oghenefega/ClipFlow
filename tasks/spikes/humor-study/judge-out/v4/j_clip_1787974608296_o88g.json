@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_o88g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2604,
+  "outputTokens": 438,
+  "thoughtTokens": 332
+ },
+ "cost": 0.0071909999999999995,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just casual narration during round setup with no competitive play or hype moment occurring.",
+  "what": "The creator casually talks about how watching pros makes him want to play while setup time happens on screen.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913586_6c9m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 759,
+  "thoughtTokens": 643
+ },
+ "cost": 0.0103275,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This is downtime between rounds during a timeout without any gameplay highlight.",
+  "what": "The creator reacts excitedly to NRG calling an early timeout at 1-3, shouting 'We're in their heads!'",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": 14.5,
+  "reactionEndT": 23,
+  "keep_score": 35
+ }
+}

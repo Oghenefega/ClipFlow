@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_ptva",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3166,
+  "outputTokens": 817,
+  "thoughtTokens": 678
+ },
+ "cost": 0.0108765,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious self-own with great comedic timing and deadpan delivery after completely freezing on defense.",
+  "what": "Fega watches the opponent score overhead while standing still and confesses, \"I saw it in slow motion, in fast motion, in normal speed... and I knew I was meant to do something, but I just didn't.\"",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 9,
+  "reactionEndT": 21,
+  "keep_score": 85
+ }
+}

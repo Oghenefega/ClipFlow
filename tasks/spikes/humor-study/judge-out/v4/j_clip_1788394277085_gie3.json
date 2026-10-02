@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_gie3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3757,
+  "outputTokens": 597,
+  "thoughtTokens": 478
+ },
+ "cost": 0.010113,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Accidentally backing out during menu loading is just routine tech navigation with no real funny payoff.",
+  "what": "The creator accidentally backs out of the lobby while downloading mods and groans, saying 'I think I just backed out mistakenly.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 11,
+  "reactionEndT": 24,
+  "keep_score": 15
+ }
+}

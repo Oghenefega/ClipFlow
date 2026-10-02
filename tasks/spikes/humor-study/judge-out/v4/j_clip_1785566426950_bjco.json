@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_bjco",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4718,
+  "outputTokens": 832,
+  "thoughtTokens": 704
+ },
+ "cost": 0.013316999999999999,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "The initial reaction to the opponent's goal is decent, but the clip quickly devolves into routine stream schedule Q&A with no funny payoff.",
+  "what": "Fega reacts enthusiastically to an opponent's goal replay ('Nice freaking shot man!') before casually answering a chat question about his stream schedule.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 2,
+  "reactionEndT": 14,
+  "keep_score": 20
+ }
+}

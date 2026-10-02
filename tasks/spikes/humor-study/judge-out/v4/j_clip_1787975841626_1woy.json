@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_1woy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4386,
+  "outputTokens": 881,
+  "thoughtTokens": 755
+ },
+ "cost": 0.0131865,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "This is just downtime banter laughing at broadcast graphics with no actual gameplay or match highlight occurring.",
+  "what": "The creator laughs hysterically at the VCT broadcast's aggressive timeout graphic animation, saying 'The way this guy slams that timeout is so funny bro'.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": 2.5,
+  "reactionEndT": 37,
+  "keep_score": 30
+ }
+}

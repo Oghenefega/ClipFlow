@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_7zc2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3900,
+  "outputTokens": 648,
+  "thoughtTokens": 520
+ },
+ "cost": 0.01071,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is a routine round win by the opposing team rather than an exceptional clutch or ace, resulting in a deflated reaction.",
+  "what": "The creator groans and says 'What the heck? What the freak?' as Lev wins another round against 100 Thieves.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 1.5,
+  "reactionEndT": 11,
+  "keep_score": 15
+ }
+}

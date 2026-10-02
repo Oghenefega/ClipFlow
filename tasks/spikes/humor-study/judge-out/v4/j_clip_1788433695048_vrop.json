@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695048_vrop",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2866,
+  "outputTokens": 638,
+  "thoughtTokens": 535
+ },
+ "cost": 0.009084,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is just setup phase gameplay of running around with no actual comedic payoff or funny event.",
+  "what": "The creator frantically runs around trying to find a hiding spot during the pre-round setup phase.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

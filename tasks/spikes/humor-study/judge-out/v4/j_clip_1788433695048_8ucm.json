@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695048_8ucm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3919,
+  "outputTokens": 612,
+  "thoughtTokens": 475
+ },
+ "cost": 0.0104685,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "A funny banter moment where his teammate accidentally leaks hiding advice over open voice chat, triggering a loud, genuine laugh.",
+  "what": "The creator asks how to change his pose while hiding, but bursts out laughing when his teammate speaks advice out loud, shouting 'Don't say that! ... He can hear you, bro!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 25,
+  "reactionEndT": 33,
+  "keep_score": 70
+ }
+}

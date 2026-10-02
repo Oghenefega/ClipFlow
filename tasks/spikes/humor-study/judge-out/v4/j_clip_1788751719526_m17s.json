@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_m17s",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4224,
+  "outputTokens": 790,
+  "thoughtTokens": 665
+ },
+ "cost": 0.012261000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is just commentary and reaction to a round loss rather than a highlight play or clutch.",
+  "what": "The creator reacts with dismay as 100T drops another round to go down 0-3, exclaiming 'We're getting dropped, man, what the heck!'",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

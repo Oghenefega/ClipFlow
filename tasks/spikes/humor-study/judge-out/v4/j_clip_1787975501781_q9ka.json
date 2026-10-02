@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_q9ka",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 797,
+  "thoughtTokens": 669
+ },
+ "cost": 0.010977,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This clip shows round-end commentary and score summary rather than a notable live play or clutch.",
+  "what": "The creator reacts as Leviatan completes a five-round comeback to close the half, saying, 'Oh my goodness! These guys woke up, what the heck!'",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 1.5,
+  "reactionEndT": 5,
+  "keep_score": 20
+ }
+}

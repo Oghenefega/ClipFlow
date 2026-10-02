@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788808189421_z88s",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5844,
+  "outputTokens": 1026,
+  "thoughtTokens": 895
+ },
+ "cost": 0.016461,
+ "judged": {
+  "score": 68,
+  "kind": "hype_reaction",
+  "reason": "His huge physical reaction and instant cope after the enemy team clutches make for a strong reaction moment.",
+  "what": "The creator screams and jumps out of his seat when LOUD clutches a 1v3 round against 100 Thieves, shouting 'HE JUST... NOOO!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 32,
+  "reactionEndT": 38,
+  "keep_score": 68
+ }
+}

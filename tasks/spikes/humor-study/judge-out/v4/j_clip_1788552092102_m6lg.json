@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_m6lg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3576,
+  "outputTokens": 790,
+  "thoughtTokens": 676
+ },
+ "cost": 0.011289,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "No highlight play occurs during this clip, only commentary and build-up before the round.",
+  "what": "The creator trash-talks keznit before the round begins, shouting 'This is our qualification match, ladies and gentlemen!'",
+  "playQuality": 1,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

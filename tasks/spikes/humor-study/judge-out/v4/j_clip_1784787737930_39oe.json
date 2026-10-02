@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737930_39oe",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 465,
+  "thoughtTokens": 359
+ },
+ "cost": 0.0064335,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just casual filler conversation during a kickoff with no funny moment or comedic payoff.",
+  "what": "The creator casually chats about learning positioning and scoring a goal in his real-life soccer match during a Rocket League kickoff.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

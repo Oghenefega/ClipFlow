@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_5dum",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 445,
+  "thoughtTokens": 334
+ },
+ "cost": 0.007377,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine menu talk and rank checking between matches with no comedic payoff or action.",
+  "what": "The creator checks his rank after a Rocket League match, sees he reached Diamond 2 Div 4, and queues for the next match.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

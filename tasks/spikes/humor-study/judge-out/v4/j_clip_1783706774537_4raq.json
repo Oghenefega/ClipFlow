@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_4raq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3894,
+  "outputTokens": 689,
+  "thoughtTokens": 581
+ },
+ "cost": 0.011008500000000001,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "Standard casual commentary complaining about slow teammates without a strong comedy setup or sudden payoff.",
+  "what": "Fega watches sloppy gameplay from both teams and concludes, 'My teammates are drunk.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 24.5,
+  "reactionEndT": 26.5,
+  "keep_score": 35
+ }
+}

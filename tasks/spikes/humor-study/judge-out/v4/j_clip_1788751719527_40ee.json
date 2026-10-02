@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_40ee",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 628,
+  "thoughtTokens": 501
+ },
+ "cost": 0.0106815,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is routine round economy commentary rather than a stand-out play or huge clutch reaction.",
+  "what": "The creator reacts to LOUD buying Phantoms early, saying 'These guys bought Phantoms! You've got to be a maniac to buy a Phantom!'",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 5,
+  "reactionEndT": 12,
+  "keep_score": 20
+ }
+}

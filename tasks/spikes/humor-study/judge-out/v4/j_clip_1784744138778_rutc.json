@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138778_rutc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 487,
+  "thoughtTokens": 383
+ },
+ "cost": 0.007206000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Standard gameplay commentary with no punchline, funny moment, or notable reaction.",
+  "what": "Fega tracks the match score and clears the ball, saying 'Not on his watch, on my watch'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

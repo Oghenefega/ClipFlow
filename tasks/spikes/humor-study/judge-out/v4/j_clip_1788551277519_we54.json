@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277519_we54",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 507,
+  "thoughtTokens": 387
+ },
+ "cost": 0.010503,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is standard live narration without an exceptional multi-kill or big hype reaction to make it a standout clip.",
+  "what": "The creator provides live commentary and encouragement during a Valorant match round, saying 'Relax buddy, two in heaven, that's okay.'",
+  "playQuality": 4,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

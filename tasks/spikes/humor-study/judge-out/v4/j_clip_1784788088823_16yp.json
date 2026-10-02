@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088823_16yp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4070,
+  "outputTokens": 936,
+  "thoughtTokens": 812
+ },
+ "cost": 0.013125,
+ "judged": {
+  "score": 58,
+  "kind": "comedy",
+  "reason": "Features his signature sarcastic cop-out phrase right as the match ends in defeat, though the clip starts mid-replay reaction.",
+  "what": "Fega deadpans 'All part of the plan' as the final seconds tick down to a match loss in Rocket League.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 24,
+  "reactionEndT": 31,
+  "keep_score": 58
+ }
+}

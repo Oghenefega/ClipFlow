@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099754738_ybxq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5444,
+  "outputTokens": 521,
+  "thoughtTokens": 397
+ },
+ "cost": 0.0120735,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Funny commentary comparing the robot's martial arts knockout to real UFC fighters with an energetic reaction.",
+  "what": "The streamer watches a humanoid robot knock out another with a swift head kick in a cage match and jokes, \"Imagine telling Jon Jones to fight this guy.\"",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 8,
+  "reactionEndT": 20,
+  "keep_score": 85
+ }
+}

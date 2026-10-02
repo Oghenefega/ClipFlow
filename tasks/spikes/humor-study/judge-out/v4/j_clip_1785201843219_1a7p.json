@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_1a7p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3098,
+  "outputTokens": 677,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0097245,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "Fits the ideal comedy shape perfectly with confident commentary followed immediately by an embarrassing miss.",
+  "what": "The creator claims he is going to be an unstoppable, dominating force right before completely whiffing the ball and panicking with 'Oh Jesus, oh god'.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 17.5,
+  "reactionEndT": 20,
+  "keep_score": 82
+ }
+}

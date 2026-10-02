@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_gcsy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 723,
+  "thoughtTokens": 595
+ },
+ "cost": 0.0103125,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "A mild funny observation after his teammate finishes the goal, but lacks a strong comedic punchline or dramatic subversion.",
+  "what": "Fega hits the ball aimlessly until his teammate scores, laughing and saying, \"I was like somebody surely is going to do something, right?\"",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 18,
+  "reactionEndT": 25,
+  "keep_score": 40
+ }
+}

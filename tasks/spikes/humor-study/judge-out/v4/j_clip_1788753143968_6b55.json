@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143968_6b55",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2685,
+  "outputTokens": 595,
+  "thoughtTokens": 477
+ },
+ "cost": 0.008490000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is mild commentary about crowd noise with no major play or standout reaction.",
+  "what": "The creator observes that the crowd noise gave away a player's position, saying 'Damn it bro, the crowd gave that away.'",
+  "playQuality": 3,
+  "reactionSize": 2,
+  "payoffT": 2,
+  "reactionEndT": 5,
+  "keep_score": 15
+ }
+}

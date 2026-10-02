@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392262_jiaj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 694,
+  "thoughtTokens": 562
+ },
+ "cost": 0.0119055,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "A tense 1v1 clutch round win under extreme time pressure with a great final kill.",
+  "what": "Bang barely plants the spike with seconds left in a 1v1 clutch and gets a clean kill to win the round, prompting the creator to shout 'Oh my goodness!'",
+  "playQuality": 8,
+  "reactionSize": 7,
+  "payoffT": 39,
+  "reactionEndT": 44,
+  "keep_score": 80
+ }
+}

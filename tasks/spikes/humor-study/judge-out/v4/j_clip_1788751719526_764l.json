@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_764l",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4791,
+  "outputTokens": 746,
+  "thoughtTokens": 603
+ },
+ "cost": 0.012781500000000001,
+ "judged": {
+  "score": 70,
+  "kind": "hype_reaction",
+  "reason": "His standing, high-energy reaction to 100T getting on the board makes for a great hype clip.",
+  "what": "The creator passionately celebrates 100T securing their first round win of the map, shouting 'Get him out of my face bro!' and standing up to yell 'We're on the board!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 33,
+  "reactionEndT": 44,
+  "keep_score": 70
+ }
+}

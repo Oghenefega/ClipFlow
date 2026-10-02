@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392260_rwht",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5196,
+  "outputTokens": 761,
+  "thoughtTokens": 630
+ },
+ "cost": 0.0135015,
+ "judged": {
+  "score": 70,
+  "kind": "hype_reaction",
+  "reason": "His enthusiastic stand-up celebration turns a standard round victory into an enjoyable fan moment.",
+  "what": "100 Thieves wins a round against LOUD, prompting the creator to jump out of his chair shouting 'Get him out of here! 100 Thieves is here!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 40,
+  "reactionEndT": 52,
+  "keep_score": 70
+ }
+}

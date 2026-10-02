@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522886_aeu4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2774,
+  "outputTokens": 678,
+  "thoughtTokens": 564
+ },
+ "cost": 0.009246,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Flat delivery and a routine mistake without a strong comedic payoff make this an easy skip.",
+  "what": "The creator double-commits in Rocket League and calmly admits 'I double committed, my bad' as the opponents score.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 17,
+  "reactionEndT": 20,
+  "keep_score": 15
+ }
+}

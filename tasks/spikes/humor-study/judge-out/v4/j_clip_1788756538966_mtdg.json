@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_mtdg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 554,
+  "thoughtTokens": 424
+ },
+ "cost": 0.009033,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is a routine round win without a standout play or a strong reaction from the creator.",
+  "what": "100 Thieves secures a round win to tie the match 3-3, and the creator quietly approves saying, 'Good job squad, let's go.'",
+  "playQuality": 3,
+  "reactionSize": 3,
+  "payoffT": 16,
+  "reactionEndT": 19,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_s4tv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 567,
+  "thoughtTokens": 438
+ },
+ "cost": 0.008292,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is standard gameplay cheerleading for a teammate's goal with no comedic subversion, self-own, or funny payoff.",
+  "what": "Fega cheers on his teammate as he scores a routine goal, saying 'Come on buddy, let's go!', then casually chats during the replay.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 4,
+  "reactionEndT": 7,
+  "keep_score": 15
+ }
+}

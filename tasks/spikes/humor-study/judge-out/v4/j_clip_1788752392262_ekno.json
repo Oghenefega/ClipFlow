@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392262_ekno",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 586,
+  "thoughtTokens": 479
+ },
+ "cost": 0.008787,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay action or play in this clip, only pre-round commentary and waiting.",
+  "what": "The creator watches the pre-round setup and talks about wanting the Loud crowd to be quiet.",
+  "playQuality": 1,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

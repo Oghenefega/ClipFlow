@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071330_1pxh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 952,
+  "thoughtTokens": 809
+ },
+ "cost": 0.012018000000000001,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "The perfect timing between his live callout and the player's immediate wallbang kill creates a hilarious, high-energy moment.",
+  "what": "The streamer tells Asuna to spam through the smoke, and Asuna instantly gets a wallbang kill, making him yell 'It's like he can hear me! We in sync baby!'",
+  "playQuality": 6,
+  "reactionSize": 9,
+  "payoffT": 13,
+  "reactionEndT": 21,
+  "keep_score": 85
+ }
+}

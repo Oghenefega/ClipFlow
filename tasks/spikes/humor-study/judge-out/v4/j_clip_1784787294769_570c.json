@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294769_570c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 633,
+  "thoughtTokens": 501
+ },
+ "cost": 0.009273,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "The sarcastic praise into a scream is mildly funny, but overall it's a pretty routine reaction to getting scored on.",
+  "what": "Fega sarcastically compliments his opponent after getting scored on before screaming in frustration: 'Awesome stuff man, I'm so proud of you... GAAAH!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 11.5,
+  "reactionEndT": 21,
+  "keep_score": 45
+ }
+}

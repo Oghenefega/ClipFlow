@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_js2k",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 820,
+  "thoughtTokens": 693
+ },
+ "cost": 0.0118785,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay play or highlight in this clip, only commentary during downtime between rounds.",
+  "what": "The creator gives a passionate speech about believing in 100 Thieves down 4-12, saying 'I just came from church, and I know what's possible, man.'",
+  "playQuality": 1,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

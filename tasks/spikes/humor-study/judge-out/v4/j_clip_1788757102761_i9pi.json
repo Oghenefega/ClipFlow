@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_i9pi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4629,
+  "outputTokens": 724,
+  "thoughtTokens": 601
+ },
+ "cost": 0.012373499999999999,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is pre-round hype and commentary during match point setup without an actual gameplay highlight occurring.",
+  "what": "The streamer hypes up match point between 100T and LOUD while watching crowd reactions, saying 'It's time, it's time!'.",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519029_aerz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 441,
+  "thoughtTokens": 335
+ },
+ "cost": 0.007346999999999999,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine casual stream chit-chat with no comedy payoff or gameplay happening.",
+  "what": "The creator talks about how well he slept the previous night despite having body pains while sitting on a static menu screen.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

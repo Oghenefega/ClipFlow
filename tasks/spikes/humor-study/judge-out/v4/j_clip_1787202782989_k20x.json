@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_k20x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 868,
+  "thoughtTokens": 733
+ },
+ "cost": 0.0127245,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or hype moment here, only routine commentary on a player's appearance during video intro footage.",
+  "what": "The creator pauses on Ethan's face in the team video to admire his hair, saying 'Man has such luscious hair... Man is so good looking, pause!'.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": 23,
+  "reactionEndT": 40,
+  "keep_score": 25
+ }
+}

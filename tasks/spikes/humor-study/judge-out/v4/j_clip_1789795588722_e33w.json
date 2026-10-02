@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_e33w",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3838,
+  "outputTokens": 498,
+  "thoughtTokens": 389
+ },
+ "cost": 0.009492,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Standard gameplay searching for hiders with no funny moment, surprise, or comedic payoff.",
+  "what": "The creator slowly searches around the map for hidden players while listening for footsteps, but nothing funny or surprising happens before the clip ends.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

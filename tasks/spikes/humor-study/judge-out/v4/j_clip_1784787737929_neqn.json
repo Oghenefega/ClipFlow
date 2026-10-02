@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_neqn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1883,
+  "outputTokens": 504,
+  "thoughtTokens": 399
+ },
+ "cost": 0.006604499999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just post-match menu filler without any gameplay highlight or comedic payoff.",
+  "what": "Fega claps and laughs at his post-match stats showing one save and one assist as the game ends.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

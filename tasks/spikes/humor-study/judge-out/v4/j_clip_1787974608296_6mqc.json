@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_6mqc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8031,
+  "outputTokens": 761,
+  "thoughtTokens": 626
+ },
+ "cost": 0.017754,
+ "judged": {
+  "score": 90,
+  "kind": "hype_reaction",
+  "reason": "An impressive clutch play paired with an explosive, standing reaction from the creator makes this an easy keeper.",
+  "what": "100T Bang wins a clutch round and the creator leaps out of his chair screaming 'Get him out of here! He's not human, he's that guy!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 38,
+  "reactionEndT": 51,
+  "keep_score": 90
+ }
+}

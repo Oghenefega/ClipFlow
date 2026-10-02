@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_zy5o",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4031,
+  "outputTokens": 438,
+  "thoughtTokens": 344
+ },
+ "cost": 0.0093315,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "Routine looting gameplay with minor friendly VOIP and no funny moment or payoff.",
+  "what": "The creator confirms friendly status with another player and quietly loots lockers.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

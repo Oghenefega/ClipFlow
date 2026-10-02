@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_y3xc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5123,
+  "outputTokens": 733,
+  "thoughtTokens": 597
+ },
+ "cost": 0.013182000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Too much silent walking and climbing for a weak, slow payoff with no real comedy moment.",
+  "what": "The creator runs through rain hoping enemies can't hear him, climbs a ladder, and realizes his objective isn't there, saying 'No, no, no, it's not there... Oh god.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 36,
+  "reactionEndT": 44,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_ibms",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 743,
+  "thoughtTokens": 619
+ },
+ "cost": 0.010341,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Conceding a goal with mild resignation is a routine moment lacking a strong comedic payoff or subversion.",
+  "what": "The creator gets scored on and praises his opponent saying, 'He's so good at these shots, man! I'm getting punished, fam!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 1.5,
+  "reactionEndT": 8,
+  "keep_score": 25
+ }
+}

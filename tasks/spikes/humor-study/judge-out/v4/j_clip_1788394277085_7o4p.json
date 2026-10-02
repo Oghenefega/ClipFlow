@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_7o4p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3757,
+  "outputTokens": 724,
+  "thoughtTokens": 602
+ },
+ "cost": 0.011065499999999999,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "A funny spectating moment with genuine surprise and energetic commentary on an absurd miss by the seeker.",
+  "what": "The creator spectates in disbelief as a seeker continuously shoots around a hidden player without noticing them, asking 'How is this guy not dead?'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 26,
+  "reactionEndT": 33,
+  "keep_score": 80
+ }
+}

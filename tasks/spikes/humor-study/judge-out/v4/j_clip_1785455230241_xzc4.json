@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_xzc4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3640,
+  "outputTokens": 663,
+  "thoughtTokens": 544
+ },
+ "cost": 0.010432499999999999,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "A standard gameplay mistake and mild failure reaction without a strong comedic setup or punchline.",
+  "what": "The creator misses his delivery target in Deadline Delivery and fails the round, exclaiming, 'I missed that! You're kidding me!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 6.5,
+  "reactionEndT": 13,
+  "keep_score": 45
+ }
+}

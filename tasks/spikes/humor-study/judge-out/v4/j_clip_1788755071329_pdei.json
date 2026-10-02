@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_pdei",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4062,
+  "outputTokens": 649,
+  "thoughtTokens": 530
+ },
+ "cost": 0.010960499999999998,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "No gameplay occurs during this technical pause, making it routine stream downtime rather than a clip-worthy moment.",
+  "what": "During a technical pause, the creator jokes that the opponents intentionally unplugged a PC to stop momentum, saying 'Somebody unplugged their computer!'",
+  "playQuality": 0,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

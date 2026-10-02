@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_x5hb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 741,
+  "thoughtTokens": 605
+ },
+ "cost": 0.0106785,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "A clean pro play combined with a passionate, high-energy reaction makes this a strong highlight moment.",
+  "what": "The creator reacts with huge excitement as eeiu gets a sick spray transfer double kill over a Sage wall, shouting 'TIMOTINO IS THE BEST!' and 'GET HIM OUT OF HERE!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 10,
+  "reactionEndT": 18.5,
+  "keep_score": 88
+ }
+}

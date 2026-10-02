@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_y4mv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2045,
+  "outputTokens": 565,
+  "thoughtTokens": 457
+ },
+ "cost": 0.007305,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "A routine goal conceded followed by standard excuses about boost, lacking a strong comedic punchline.",
+  "what": "The opponent scores a goal and Fega screams before repeatedly complaining 'I needed boost!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 1.5,
+  "reactionEndT": 4.5,
+  "keep_score": 25
+ }
+}

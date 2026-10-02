@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_mivr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 746,
+  "thoughtTokens": 626
+ },
+ "cost": 0.0089055,
+ "judged": {
+  "score": 22,
+  "kind": "comedy",
+  "reason": "A mild self-deprecating comment during routine gameplay without a strong comedic payoff or reaction.",
+  "what": "Fega notices his team is down 1-4 and quips 'looks like I'm the common denominator, ladies and gentlemen.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 5.5,
+  "reactionEndT": 7,
+  "keep_score": 22
+ }
+}

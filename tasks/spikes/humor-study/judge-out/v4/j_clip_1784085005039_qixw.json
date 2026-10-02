@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005039_qixw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2232,
+  "outputTokens": 458,
+  "thoughtTokens": 355
+ },
+ "cost": 0.006783000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine navigation and rambling without any funny fail, punchline, or clear comedic payoff.",
+  "what": "Fega slowly rolls his egg along a wooden platform while expressing confusion about where to go.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

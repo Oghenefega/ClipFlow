@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_z13t",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1632,
+  "outputTokens": 642,
+  "thoughtTokens": 513
+ },
+ "cost": 0.007263,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "The clip shows only the end of a routine round win without a standout play or clutch to justify keeping it.",
+  "what": "The creator celebrates 100 Thieves securing a round win while taunting the opponent, saying 'What's the plan scoop? Absolutely nothing!'",
+  "playQuality": 3,
+  "reactionSize": 6,
+  "payoffT": 8,
+  "reactionEndT": 10,
+  "keep_score": 35
+ }
+}

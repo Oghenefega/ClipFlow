@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_k32v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 577,
+  "thoughtTokens": 458
+ },
+ "cost": 0.011028,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is purely pre-match explanation and narration with no gameplay happening on screen.",
+  "what": "The creator introduces the match between 100 Thieves and Loud, shouting '100 Thieves, we are getting the job done!' before explaining the tournament context.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

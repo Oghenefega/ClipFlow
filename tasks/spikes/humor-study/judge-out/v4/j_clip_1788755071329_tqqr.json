@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_tqqr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 910,
+  "thoughtTokens": 786
+ },
+ "cost": 0.011703000000000002,
+ "judged": {
+  "score": 60,
+  "kind": "hype_reaction",
+  "reason": "Good genuine shock reaction to a rapid opponent team wipe, though it is a play against his team.",
+  "what": "The creator reacts in utter shock as LOUD rapidly wipes out 100 Thieves, yelling 'How does he do that!'",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 21,
+  "reactionEndT": 27,
+  "keep_score": 60
+ }
+}

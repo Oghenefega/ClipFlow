@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277518_gwm7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 874,
+  "thoughtTokens": 737
+ },
+ "cost": 0.010947,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "His reaction is very high energy and quotable, though the clip catches only the tail end of the replay rather than the play itself.",
+  "what": "The creator reacts to Bang's performance and 100 Thieves' dominant scoreline, shouting '100 Thieves are the best in the world!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 12,
+  "reactionEndT": 25,
+  "keep_score": 65
+ }
+}

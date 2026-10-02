@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_cjs2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4070,
+  "outputTokens": 781,
+  "thoughtTokens": 658
+ },
+ "cost": 0.0119625,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A classic confident setup followed by an immediate self-own that leaves him laughing at his mistake.",
+  "what": "After confidently asking 'Why would we be screwed in 2s Chili?', Fega accidentally scores an own goal and laughs 'My bad Chili'.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 23,
+  "reactionEndT": 31,
+  "keep_score": 82
+ }
+}

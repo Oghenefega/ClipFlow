@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_m4h9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1665,
+  "outputTokens": 453,
+  "thoughtTokens": 341
+ },
+ "cost": 0.005895,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is just routine inventory searching and mild observation without a strong comedic punchline or subversion.",
+  "what": "The streamer loots a container left behind by another player and chuckles after finding four batteries still inside.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 4.5,
+  "reactionEndT": 6,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788645584705_toae",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4953,
+  "outputTokens": 748,
+  "thoughtTokens": 623
+ },
+ "cost": 0.013039499999999999,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "His reaction is high energy, but the play itself is a standard single kill rather than a major multi-kill or clutch.",
+  "what": "The creator passionately celebrates a wall kill by Asuna, exclaiming 'Lovely, read him like a book!'",
+  "playQuality": 5,
+  "reactionSize": 7,
+  "payoffT": 12,
+  "reactionEndT": 18,
+  "keep_score": 55
+ }
+}

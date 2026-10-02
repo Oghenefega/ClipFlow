@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_67ug",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4224,
+  "outputTokens": 399,
+  "thoughtTokens": 293
+ },
+ "cost": 0.0093285,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "Nothing happens in the gameplay and the creator is mostly silent throughout the clip.",
+  "what": "The creator analyzes the 2v2 scenario on map during a round, but no kills or highlights occur.",
+  "playQuality": 1,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

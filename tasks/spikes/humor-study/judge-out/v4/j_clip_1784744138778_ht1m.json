@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138778_ht1m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 436,
+  "thoughtTokens": 338
+ },
+ "cost": 0.0073095,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine gameplay commentary with no punchline or funny reaction.",
+  "what": "The streamer calmly notes that his teammate blocked his shot and later remarks that they were throwing.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_ox6k",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3803,
+  "outputTokens": 561,
+  "thoughtTokens": 439
+ },
+ "cost": 0.009911999999999999,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Post-game menu banter about missing out on MVP is standard end-of-match filler without a strong comedic payoff.",
+  "what": "The match ends in a victory and the creator jokingly complains about his teammate taking MVP, saying 'They stole my MVP!'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 6,
+  "reactionEndT": 16,
+  "keep_score": 25
+ }
+}

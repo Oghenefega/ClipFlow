@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588723_kqmy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3757,
+  "outputTokens": 672,
+  "thoughtTokens": 569
+ },
+ "cost": 0.0106755,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just server browser menu navigation and complaints without any comedic payoff or action.",
+  "what": "The creator browses the game's server list and complains about the bad UI and long lobby times.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

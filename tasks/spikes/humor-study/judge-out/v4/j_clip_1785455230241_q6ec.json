@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_q6ec",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2830,
+  "outputTokens": 483,
+  "thoughtTokens": 351
+ },
+ "cost": 0.0078675,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "A quick fail with moderate self-deprecating humor, but the overall energy and payoff are relatively mild.",
+  "what": "The creator asks to move on to the next level, only to immediately crash his truck 4 seconds in and admit, 'Yeah, I actually suck at this, man.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 17,
+  "reactionEndT": 21,
+  "keep_score": 40
+ }
+}

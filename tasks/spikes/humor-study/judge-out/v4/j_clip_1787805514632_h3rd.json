@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_h3rd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7145,
+  "outputTokens": 590,
+  "thoughtTokens": 466
+ },
+ "cost": 0.015142500000000001,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "His vivid and funny reaction to the absurdly scary robot design makes for a strong comedic clip.",
+  "what": "The creator reacts with hilarity and horror to an unnervingly creepy satyr robot design, imagining it breaking down his door with a saw at night.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 35,
+  "reactionEndT": 60,
+  "keep_score": 85
+ }
+}

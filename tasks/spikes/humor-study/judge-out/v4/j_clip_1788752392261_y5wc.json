@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_y5wc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 701,
+  "thoughtTokens": 584
+ },
+ "cost": 0.010742999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This clip consists mostly of motivational talk between rounds followed by routine early-round utility and trades with no major play.",
+  "what": "The creator gives a motivational speech to chat before a round starts, where 100T gets an early round advantage.",
+  "playQuality": 2,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

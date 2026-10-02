@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_npra",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5034,
+  "outputTokens": 696,
+  "thoughtTokens": 577
+ },
+ "cost": 0.012771000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is just pre-match build-up and hype without any actual gameplay or play taking place.",
+  "what": "The creator gets hyped up watching pre-match player cams, shouting 'I've got so much energy surging through my veins right now guys!'",
+  "playQuality": 0,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

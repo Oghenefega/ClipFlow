@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_pys7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5277,
+  "outputTokens": 670,
+  "thoughtTokens": 564
+ },
+ "cost": 0.012940499999999999,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is commentary during a tactical timeout with no gameplay action occurring.",
+  "what": "The creator reacts excitedly to opponent team LOUD taking a timeout, saying 'They got to take a timeout!'",
+  "playQuality": 0,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_alw4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4937,
+  "outputTokens": 548,
+  "thoughtTokens": 417
+ },
+ "cost": 0.011515500000000001,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "The clip features over 40 seconds of tedious repetitive counting for a minor failed jump payoff.",
+  "what": "The streamer repeatedly tries to count and time the egg's bounces in Egging On, only to mess up the jump and shout 'Goddamn it, that was too freaking early!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 44,
+  "reactionEndT": 48,
+  "keep_score": 45
+ }
+}

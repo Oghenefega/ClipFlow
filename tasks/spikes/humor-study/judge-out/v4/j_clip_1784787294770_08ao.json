@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_08ao",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1721,
+  "outputTokens": 536,
+  "thoughtTokens": 419
+ },
+ "cost": 0.0066015,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "A standard opponent goal reaction with mild banter, lacking the strong subversion or high comedy needed for a keep.",
+  "what": "Fega shouts 'Nice shot! Damn it!' when the opponent scores, then chuckles and compliments their car.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 1.5,
+  "reactionEndT": 4.5,
+  "keep_score": 35
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_8jgn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4162,
+  "outputTokens": 621,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0109005,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Post-round explanation and debriefing lack a strong punchline or comedic payoff.",
+  "what": "The creator reviews why Spider-Man was spotted hiding behind furniture and casually accepts the loss, saying 'I think I'm good with this game.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

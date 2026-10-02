@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_u8g5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 618,
+  "thoughtTokens": 486
+ },
+ "cost": 0.009889499999999999,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "A classic comedy moment where confident talk is immediately followed by a whiffed open net and a big reaction.",
+  "what": "Fega boasts that he could be the next IShowSpeed if he locked in, only to immediately miss an open net and scream 'In no way I missed the open net!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 13.5,
+  "reactionEndT": 16,
+  "keep_score": 88
+ }
+}

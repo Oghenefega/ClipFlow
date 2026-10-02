@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_259v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 483,
+  "thoughtTokens": 377
+ },
+ "cost": 0.0085125,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine gameplay with flat delivery and casual chat greeting, lacking a comedic payoff or strong reaction.",
+  "what": "The creator scores a goal in Rocket League while casually greeting a viewer in chat.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 10,
+  "reactionEndT": 16,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_q825",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2037,
+  "outputTokens": 506,
+  "thoughtTokens": 402
+ },
+ "cost": 0.006850500000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just routine commentary during a stage broadcast with no gameplay action or notable reaction.",
+  "what": "The creator watches a VCT tournament broadcast segment while calmly explaining tournament structure to his viewers.",
+  "playQuality": 0,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

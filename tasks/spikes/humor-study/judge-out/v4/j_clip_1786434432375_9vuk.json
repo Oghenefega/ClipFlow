@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_9vuk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5366,
+  "outputTokens": 732,
+  "thoughtTokens": 608
+ },
+ "cost": 0.013539,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny OT loss with a big, genuine reaction of disbelief and laughter from Fega.",
+  "what": "Fega gets blown up in overtime right before the opponents score the winning goal, making him throw his hands up and yell 'No freaking way, dude!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 31,
+  "reactionEndT": 44,
+  "keep_score": 75
+ }
+}

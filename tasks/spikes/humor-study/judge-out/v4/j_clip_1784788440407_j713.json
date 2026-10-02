@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_j713",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2045,
+  "outputTokens": 466,
+  "thoughtTokens": 352
+ },
+ "cost": 0.0065625,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "A routine goal with mild casual banter and low energy reaction that lacks a strong comedic payoff.",
+  "what": "The creator scores a goal in Rocket League and laughs it off saying 'never a doubt, believe in me guys'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 3.5,
+  "reactionEndT": 7.5,
+  "keep_score": 25
+ }
+}

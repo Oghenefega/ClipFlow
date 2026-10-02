@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088823_wuo6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 771,
+  "thoughtTokens": 640
+ },
+ "cost": 0.011644499999999999,
+ "judged": {
+  "score": 78,
+  "kind": "comedy",
+  "reason": "Fega's genuine, big laugh at his own useless aerial display while his teammate scores makes for a funny self-own moment.",
+  "what": "Fega bursts into laughter after his teammate scores while he was aimlessly flying through the air, asking 'Are we gonna talk about what that was?'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 16,
+  "keep_score": 78
+ }
+}

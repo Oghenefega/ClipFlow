@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_z8qj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 543,
+  "thoughtTokens": 421
+ },
+ "cost": 0.007857,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or play occurring during this clip as the match is in a technical pause.",
+  "what": "The creator talks about a player's confidence during a technical pause on the VCT broadcast, saying 'He moves like he's the best in the lobby'.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

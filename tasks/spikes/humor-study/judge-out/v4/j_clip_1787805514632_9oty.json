@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_9oty",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3338,
+  "outputTokens": 569,
+  "thoughtTokens": 448
+ },
+ "cost": 0.009274499999999998,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "A genuinely funny reaction to hilarious robot footage with great infectious laughter and absurd commentary.",
+  "what": "The creator laughs hysterically at a humanoid robot's bizarre bounding run, exclaiming 'What is this, bro? Can you imagine that jumping?'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 10,
+  "reactionEndT": 28,
+  "keep_score": 80
+ }
+}

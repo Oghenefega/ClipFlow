@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501780_b2y7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 857,
+  "thoughtTokens": 731
+ },
+ "cost": 0.011184,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "A rapid multi-kill flawless round triggers a huge, genuine disbelief reaction from the creator.",
+  "what": "The creator screams in disbelief as LEV executes a rapid flawless round against 100 Thieves, shouting 'You gotta be joking, oh my god!'",
+  "playQuality": 8,
+  "reactionSize": 8,
+  "payoffT": 5,
+  "reactionEndT": 13,
+  "keep_score": 85
+ }
+}

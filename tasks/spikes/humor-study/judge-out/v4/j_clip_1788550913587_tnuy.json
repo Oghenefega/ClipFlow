@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_tnuy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 846,
+  "thoughtTokens": 716
+ },
+ "cost": 0.009765,
+ "judged": {
+  "score": 50,
+  "kind": "hype_reaction",
+  "reason": "While the creator gave a loud reaction, a standard double kill during a round exchange does not meet the threshold for a top-tier highlight play.",
+  "what": "The creator watches bang secure a quick double kill for 100 Thieves and yells 'WHAT?! WHAT?!'.",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 14.5,
+  "reactionEndT": 17.5,
+  "keep_score": 50
+ }
+}

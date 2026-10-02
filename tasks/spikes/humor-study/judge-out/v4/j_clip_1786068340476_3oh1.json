@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_3oh1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 673,
+  "thoughtTokens": 565
+ },
+ "cost": 0.009816,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "His energetic, funny reaction and quotable delivery make for a great comedic clip.",
+  "what": "Fega dramatically reacts after giving up a goal, begging 'Just take me to the gulag right now!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 2,
+  "reactionEndT": 13,
+  "keep_score": 85
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_koyw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2165,
+  "outputTokens": 772,
+  "thoughtTokens": 646
+ },
+ "cost": 0.0090375,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "Fega's high-energy standing reaction and hype celebration after setting up a goal make for an entertaining highlight.",
+  "what": "Fega sets up a goal for his teammate and leaps out of his chair yelling 'GET HIM IN! COME ON! THAT'S THE PASS!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 8.5,
+  "keep_score": 80
+ }
+}

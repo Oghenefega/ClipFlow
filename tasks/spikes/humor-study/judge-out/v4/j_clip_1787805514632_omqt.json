@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_omqt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5930,
+  "outputTokens": 629,
+  "thoughtTokens": 499
+ },
+ "cost": 0.0136125,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "The absurd footage of awkwardly running humanoid robots combined with his genuine, infectious laughter creates a funny reaction moment.",
+  "what": "The creator laughs hysterically while watching humanoid robots run with absurd twisting movements, exclaiming, 'These guys are so out of line, look at this dude, man!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 36,
+  "reactionEndT": 48,
+  "keep_score": 85
+ }
+}

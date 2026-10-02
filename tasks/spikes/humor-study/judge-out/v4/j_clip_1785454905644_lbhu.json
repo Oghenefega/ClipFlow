@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785454905644_lbhu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3757,
+  "outputTokens": 567,
+  "thoughtTokens": 460
+ },
+ "cost": 0.009888000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "A flat disconnect moment with low energy and minimal comedic payoff.",
+  "what": "The creator gets kicked from a public server and deadpans 'That was one heck of an experience.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 21,
+  "reactionEndT": 26,
+  "keep_score": 20
+ }
+}

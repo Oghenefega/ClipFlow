@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_fmgx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5444,
+  "outputTokens": 880,
+  "thoughtTokens": 766
+ },
+ "cost": 0.014766,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "Absurd robot fighting footage with funny commentary and genuine laughter when it starts dancing.",
+  "what": "The creator reacts to a robot delivering a knockout kick and doing a victory dance, imagining 'Jon Jones fighting this guy'.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 8,
+  "reactionEndT": 28,
+  "keep_score": 75
+ }
+}

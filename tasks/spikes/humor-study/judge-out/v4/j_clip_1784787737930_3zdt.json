@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737930_3zdt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 464,
+  "thoughtTokens": 357
+ },
+ "cost": 0.00837,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is routine gameplay testing and setup talk with no comedic punchline or notable moment.",
+  "what": "The streamer practices ball flicks with new camera settings in Rocket League before deciding to exit to the main menu to change his car.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

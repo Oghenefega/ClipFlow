@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_9pot",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 827,
+  "thoughtTokens": 710
+ },
+ "cost": 0.011457000000000002,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "The delivery is too flat and low-energy for the sarcastic excuse to land as a strong comedic highlight.",
+  "what": "Fega misses a shot and excuses himself by claiming, \"I missed that because that was obviously my intention. I don't like cheap goals, bro.\"",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 20.5,
+  "reactionEndT": 22.5,
+  "keep_score": 35
+ }
+}

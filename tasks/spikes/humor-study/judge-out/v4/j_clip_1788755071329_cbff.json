@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_cbff",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3900,
+  "outputTokens": 800,
+  "thoughtTokens": 665
+ },
+ "cost": 0.01185,
+ "judged": {
+  "score": 82,
+  "kind": "hype_reaction",
+  "reason": "A high-tension 1v1 round climax paired with an extremely passionate and dramatic despair reaction.",
+  "what": "The creator tensely watches a 1v1 clutch scenario only for 100T to lose the round, causing him to scream in pain and pull his jersey over his head.",
+  "playQuality": 6,
+  "reactionSize": 9,
+  "payoffT": 26,
+  "reactionEndT": 35,
+  "keep_score": 82
+ }
+}

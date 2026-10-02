@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088823_a6zk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 1026,
+  "thoughtTokens": 906
+ },
+ "cost": 0.012949500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard post-match screen celebration for reaching Diamond 3 without a comedic subversion or funny payoff.",
+  "what": "Fega brags that the game is 'too easy' after a forfeit win and then celebrates ranking up to Diamond 3.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 20,
+  "reactionEndT": 28,
+  "keep_score": 25
+ }
+}

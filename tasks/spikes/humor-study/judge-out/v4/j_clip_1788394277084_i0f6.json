@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277084_i0f6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5782,
+  "outputTokens": 503,
+  "thoughtTokens": 385
+ },
+ "cost": 0.0124455,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious spectating moment where a teammate blends seamlessly into wall art while the creator loses his mind laughing.",
+  "what": "The creator spectates a teammate disguised perfectly as a painting on the wall and laughs hysterically at the genius hiding spot.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 7,
+  "reactionEndT": 58,
+  "keep_score": 85
+ }
+}

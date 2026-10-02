@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_w65v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 816,
+  "thoughtTokens": 704
+ },
+ "cost": 0.011982,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is routine gameplay commentary without a clear comedic punchline or payoff before the clip ends.",
+  "what": "The creator complains about missing an easy goal and then calls out his opponent, saying 'Who the heck does this kid think he is?'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

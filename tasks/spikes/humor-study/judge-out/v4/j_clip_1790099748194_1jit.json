@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099748194_1jit",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2852,
+  "outputTokens": 555,
+  "thoughtTokens": 428
+ },
+ "cost": 0.0084405,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is just low-key commentary while scrolling Twitter without a strong comedic payoff or video highlight.",
+  "what": "The creator reads that 666 teams are competing in the World Humanoid Robot Games and laughs, saying 'Tell me that is not a sign for something.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 14,
+  "reactionEndT": 20,
+  "keep_score": 25
+ }
+}

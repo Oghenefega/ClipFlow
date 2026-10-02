@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099900317_ixkc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7145,
+  "outputTokens": 616,
+  "thoughtTokens": 501
+ },
+ "cost": 0.0153375,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Engaging and funny commentary imagining a terrifying scenario with high comedic energy.",
+  "what": "The creator reacts with hilarity and terror to a creepy matte black satyr robot holding a saw, imagining it breaking into his home.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 30,
+  "reactionEndT": 70,
+  "keep_score": 85
+ }
+}

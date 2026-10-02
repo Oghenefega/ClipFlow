@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729568_qi0p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5196,
+  "outputTokens": 673,
+  "thoughtTokens": 550
+ },
+ "cost": 0.0128415,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "Extremely passionate, high-energy reaction matching a major clutch round win in a tournament final.",
+  "what": "The creator jumps out of his chair screaming 'Let's go!' as his team secures a clutch round win in the VCT finals.",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 7,
+  "reactionEndT": 18,
+  "keep_score": 88
+ }
+}

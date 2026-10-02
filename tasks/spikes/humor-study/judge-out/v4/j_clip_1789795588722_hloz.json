@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_hloz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5620,
+  "outputTokens": 749,
+  "thoughtTokens": 634
+ },
+ "cost": 0.014047500000000001,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "The clip consists mostly of pre-round lobby waiting and mild commentary without a strong comedic payoff.",
+  "what": "The creator dramatically complains about constantly being assigned the hunter role while waiting in the lobby before finding a hidden player.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 38,
+  "reactionEndT": 46,
+  "keep_score": 20
+ }
+}

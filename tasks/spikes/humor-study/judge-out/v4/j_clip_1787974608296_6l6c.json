@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_6l6c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4791,
+  "outputTokens": 663,
+  "thoughtTokens": 552
+ },
+ "cost": 0.012159,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "Routine gameplay commentary without an impressive multi-kill or big reaction.",
+  "what": "The creator watches a Valorant round while giving mild commentary, ending with a brief 'Nice one!'",
+  "playQuality": 4,
+  "reactionSize": 3,
+  "payoffT": 48,
+  "reactionEndT": 50,
+  "keep_score": 20
+ }
+}

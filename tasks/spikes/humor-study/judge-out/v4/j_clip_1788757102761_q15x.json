@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_q15x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 551,
+  "thoughtTokens": 435
+ },
+ "cost": 0.0082815,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This clip contains only standard early-round setup footage with no kills, plays, or notable reaction from the creator.",
+  "what": "The creator quietly watches early-round positioning and setup between 100 Thieves and LOUD with no kills or action.",
+  "playQuality": 0,
+  "reactionSize": 0,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

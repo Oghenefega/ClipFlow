@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_m3j7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 548,
+  "thoughtTokens": 440
+ },
+ "cost": 0.00753,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is standard round setup with routine gameplay and virtually no reaction from the creator.",
+  "what": "The creator quietly watches 100 Thieves execute an A-site push on Ascent during live team comms.",
+  "playQuality": 2,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

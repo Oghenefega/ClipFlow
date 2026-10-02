@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_dfx5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2685,
+  "outputTokens": 743,
+  "thoughtTokens": 612
+ },
+ "cost": 0.0096,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "Great hype reaction with the creator jumping out of his chair to celebrate Asuna's double kill.",
+  "what": "Asuna secures crisp Operator kills and the creator stands up shouting, 'Get him out of here! Never in doubt bro, you can't catch him off guard!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 6,
+  "reactionEndT": 20,
+  "keep_score": 88
+ }
+}

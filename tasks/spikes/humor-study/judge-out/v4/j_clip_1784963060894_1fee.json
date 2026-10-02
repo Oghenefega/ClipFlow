@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060894_1fee",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 585,
+  "thoughtTokens": 453
+ },
+ "cost": 0.0112845,
+ "judged": {
+  "score": 72,
+  "kind": "comedy",
+  "reason": "A funny self-own where his brain short-circuits while counting fingers on a hand, leading to genuine laughter.",
+  "what": "Fega tries to remind himself to roll off on five by counting fingers, accidentally says 'I have ten' instead of five, and laughs at his own brain fart.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 16.5,
+  "reactionEndT": 23,
+  "keep_score": 72
+ }
+}

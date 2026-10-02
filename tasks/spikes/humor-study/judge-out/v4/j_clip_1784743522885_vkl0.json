@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_vkl0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4799,
+  "outputTokens": 736,
+  "thoughtTokens": 603
+ },
+ "cost": 0.0127185,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "His pessimism about the 1-0 lead is instantly contradicted when he scores, creating a funny turnaround.",
+  "what": "Fega says he is not comfortable with his 1-0 lead, but immediately scores to go up 2-0 and shouts 'Oh, never mind. Come on baby!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 34,
+  "reactionEndT": 41,
+  "keep_score": 80
+ }
+}

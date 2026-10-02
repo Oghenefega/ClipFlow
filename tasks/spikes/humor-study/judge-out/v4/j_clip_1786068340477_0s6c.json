@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_0s6c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 699,
+  "thoughtTokens": 573
+ },
+ "cost": 0.010497,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny cope moment where getting instantly scored on turns into a hilarious bit about playing psychological mind games.",
+  "what": "After getting scored on immediately off kickoff, Fega pretends complimenting his opponent is a deliberate tactic, saying 'Let's get in his head, boys.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 8,
+  "reactionEndT": 21,
+  "keep_score": 75
+ }
+}

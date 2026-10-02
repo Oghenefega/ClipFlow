@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_lr06",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2588,
+  "outputTokens": 812,
+  "thoughtTokens": 687
+ },
+ "cost": 0.009972,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "His intense counting pays off with a flawless set of bounces and a passionate, excited reaction.",
+  "what": "Fega rhythmically counts his timing as the egg bounces up platforms and shouts \"Let's freaking go! That was clean baby!\" when he lands it successfully.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 9,
+  "reactionEndT": 16,
+  "keep_score": 70
+ }
+}

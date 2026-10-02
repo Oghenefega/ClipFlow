@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_esdk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 598,
+  "thoughtTokens": 488
+ },
+ "cost": 0.006945,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "It is just mild commentary on a player's car design without a major comedic payoff or event.",
+  "what": "Fega laughs while questioning why he is playing with someone whose car design looks like that.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 2.5,
+  "reactionEndT": 4.5,
+  "keep_score": 30
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_tcqi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4122,
+  "outputTokens": 421,
+  "thoughtTokens": 322
+ },
+ "cost": 0.009340499999999998,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is routine navigation and calm commentary with no funny payoff or interesting gameplay event.",
+  "what": "The streamer wanders through an empty water treatment area while casually commenting that somebody already looted it.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

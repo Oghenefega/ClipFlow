@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_4um4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 537,
+  "thoughtTokens": 408
+ },
+ "cost": 0.0109245,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A classic rage-game setback where a small mistake sends him all the way back to the start, delivering a loud, genuine reaction.",
+  "what": "The creator falls all the way back down to the starting area while carefully maneuvering his egg and screams 'You're kidding me!'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23,
+  "reactionEndT": 36,
+  "keep_score": 85
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788236573820_lno4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1961,
+  "outputTokens": 591,
+  "thoughtTokens": 469
+ },
+ "cost": 0.007374,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious analogy and commentary on absurd footage as handlers have to physically subdue a malfunctioning robot.",
+  "what": "The creator laughs as handlers try to restrain a flailing robot on the floor, joking, 'The cockroach in my house trying to stand up.'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 11.5,
+  "keep_score": 85
+ }
+}

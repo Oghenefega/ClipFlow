@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_hoez",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1875,
+  "outputTokens": 723,
+  "thoughtTokens": 598
+ },
+ "cost": 0.008235,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "While his commentary on the crowd effect is energetic, the play shown in the replay is a routine double kill.",
+  "what": "The creator hypes up the crowd advantage shouting 'Home advantage is real bro, what the flip!' while watching a Neon ultimate replay.",
+  "playQuality": 5,
+  "reactionSize": 6,
+  "payoffT": 3.5,
+  "reactionEndT": 12,
+  "keep_score": 35
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_ce75",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 782,
+  "thoughtTokens": 654
+ },
+ "cost": 0.0118365,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no game play or hype moment occurring, just broadcast downtime and an audio setup mistake.",
+  "what": "The creator analyzes the broadcast downtime between rounds before realizing he was muted on his call, exclaiming 'I've been muted bro! Oh my god!'",
+  "playQuality": 1,
+  "reactionSize": 3,
+  "payoffT": 36.5,
+  "reactionEndT": 39,
+  "keep_score": 10
+ }
+}

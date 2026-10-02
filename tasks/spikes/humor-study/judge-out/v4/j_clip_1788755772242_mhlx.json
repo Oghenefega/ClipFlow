@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_mhlx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 692,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0101895,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "A critical late-game round win triggers an explosive, energetic reaction that perfectly captures the tension and hype.",
+  "what": "The creator jumps out of his chair shouting 'LET'S GO!' as 100T wins a high-stakes round to tie the game at 11-11.",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 17,
+  "reactionEndT": 29,
+  "keep_score": 85
+ }
+}

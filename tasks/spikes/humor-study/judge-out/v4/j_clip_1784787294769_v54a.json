@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294769_v54a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 353,
+  "thoughtTokens": 234
+ },
+ "cost": 0.00693,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just end-of-game menu screen downtime with generic celebration and no funny gameplay moment or punchline.",
+  "what": "The creator celebrates winning a Rocket League match on the post-game victory screen, saying 'GG that was fun, let's go!'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

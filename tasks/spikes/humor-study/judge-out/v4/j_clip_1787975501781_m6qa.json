@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_m6qa",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 963,
+  "thoughtTokens": 829
+ },
+ "cost": 0.013437,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "While he gets hyped for the team winning the round, the play itself is a routine round finish without a major clutch or multi-kill.",
+  "what": "The creator screams 'NICE!' and holds his head in excitement as 100 Thieves secures the round to lead 8-2.",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": 31.5,
+  "reactionEndT": 37,
+  "keep_score": 35
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519030_mas0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 569,
+  "thoughtTokens": 464
+ },
+ "cost": 0.010251,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is plain story talk and chat banter with no funny gameplay or comedic payoff.",
+  "what": "Fega talks to his stream about staying up late on Twitter and playing the villain at his World Cup watch party.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

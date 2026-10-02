@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_djcz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 688,
+  "thoughtTokens": 569
+ },
+ "cost": 0.0089565,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine goal praise followed by chatting with stream viewers, lacking any comedy payoff or setup.",
+  "what": "Fega compliments his teammate's goal saying \"Nice shot, let's go dude\" before thanking and saying goodbye to a viewer in chat.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": 12,
+  "keep_score": 15
+ }
+}

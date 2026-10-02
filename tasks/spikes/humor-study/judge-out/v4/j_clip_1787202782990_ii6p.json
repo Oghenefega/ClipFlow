@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_ii6p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 417,
+  "thoughtTokens": 310
+ },
+ "cost": 0.007641,
+ "judged": {
+  "score": 0,
+  "kind": "hype_reaction",
+  "reason": "This is just casual chat conversation before any gameplay or video reaction begins.",
+  "what": "The creator chats with his viewers about surrounding oneself with like-minded individuals before addressing a question in chat about the video title.",
+  "playQuality": 0,
+  "reactionSize": 0,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 0
+ }
+}

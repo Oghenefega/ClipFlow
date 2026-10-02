@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774538_brea",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2893,
+  "outputTokens": 536,
+  "thoughtTokens": 434
+ },
+ "cost": 0.0083595,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine Rocket League gameplay with flat delivery and no funny payoff.",
+  "what": "The creator drives around in Rocket League complaining about an opponent on his tail, asking 'What are we doing?'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

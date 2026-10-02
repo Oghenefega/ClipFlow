@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_gtbo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 656,
+  "thoughtTokens": 554
+ },
+ "cost": 0.0106605,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Standard Rocket League gameplay with no comedic subversion or strong reaction.",
+  "what": "Fega comments on his car's improved turning before scoring a routine goal in Rocket League.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 28,
+  "reactionEndT": 32,
+  "keep_score": 15
+ }
+}

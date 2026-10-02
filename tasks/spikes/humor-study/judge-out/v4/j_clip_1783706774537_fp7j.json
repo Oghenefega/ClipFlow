@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_fp7j",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1892,
+  "outputTokens": 858,
+  "thoughtTokens": 734
+ },
+ "cost": 0.009273,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "An impressive shot paired with a clear, enthusiastic reaction and a clever pun on the player's name.",
+  "what": "Fega reacts in awe to an unbelievable Rocket League angle goal, exclaiming, 'What a shot man, what a twisted turn!'",
+  "playQuality": 8,
+  "reactionSize": 7,
+  "payoffT": 4.5,
+  "reactionEndT": 7.5,
+  "keep_score": 78
+ }
+}

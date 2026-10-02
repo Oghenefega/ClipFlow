@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_lxgg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4629,
+  "outputTokens": 575,
+  "thoughtTokens": 452
+ },
+ "cost": 0.011256,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High energy reaction with quotable lines and great enthusiasm following a decisive round win.",
+  "what": "The creator passionately celebrates 100T shutting down an enemy ultimate to win the round, screaming 'Read him like a book, baby!'",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 23,
+  "reactionEndT": 44,
+  "keep_score": 88
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_a405",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4394,
+  "outputTokens": 522,
+  "thoughtTokens": 421
+ },
+ "cost": 0.010506000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Flat delivery and routine gameplay without a strong comedy payoff or noticeable reaction.",
+  "what": "Fega gets scored on in Rocket League and mutters low-key excuses while continuing to play passively.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

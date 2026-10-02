@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_4s3t",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2037,
+  "outputTokens": 571,
+  "thoughtTokens": 444
+ },
+ "cost": 0.007338,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just routine post-match interview footage without any gameplay play or standout reaction to make it a highlight.",
+  "what": "The creator watches post-match interviews of players saying 'Winning with your best friends is always the best feeling' and reacts with mild excitement.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": 11,
+  "reactionEndT": 14.5,
+  "keep_score": 15
+ }
+}

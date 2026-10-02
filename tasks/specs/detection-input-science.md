@@ -553,3 +553,26 @@ AR rows weighted 0.3.
   clip (which match and teams, posting time, platform algorithm). Retention data (#484 next steps) is
   the better views signal.
 - Ship candidate: judge only, rubric per kind (v2 for hype, v3 for comedy), as a sort with a reason line.
+
+### Step 7d: shipped judge (v4) · GATE PASSED, built behind a setting (#483, session 283, 2026-10-02)
+
+`src/main/clip-judge.js` = generic two-kind rubric (v2 hype + the round-3 "against the team: only an ace or a
+clutch with a hard reaction" rule, v3 comedy, no creator names or catchphrases; the game's own
+`aiContextUser` supplies them), preview cut with `ffmpeg.cutTitlePreview` (the title/caption cutter),
+gemini-3.6-flash with audio. Gate = the shipped `judgeOne` run on the 770 reviewed clips through
+`tasks/spikes/humor-study/judge.js --arm v4` (768 judged, $8.06):
+
+| | Hype AUC (290) | Comedy AUC (478) | Rejects pushed below the ≤10%-keeps-lost line |
+|---|---|---|---|
+| Detection confidence | 0.630 | 0.717 | |
+| Judge v3 | 0.695 | 0.807 | |
+| **Judge v4 (shipped)** | **0.724** | **0.827** | hype 23%, comedy 46% |
+
+On the 268 100T clips v2 also judged: v4 0.748 vs v2 0.750 (the round-3 rule recovered v3's loss).
+Pass line was hype ≥ 0.72, comedy ≥ 0.79. 14 of ~780 calls hung to the 300 s timeout and 12 succeeded on a
+later retry; the shipped module waits 60 s and retries once (normal calls 7-20 s).
+
+End to end (real `runAIPipeline`, 5-minute copies, isolated userData/library on W:, prod DB copy): 100T copy
+10/11 clips judged, $0.081, one clip hung twice (2 × timeout); RL copy with the personal Gemini key blanked
+ran entirely through the bundled gateway (BYOK) 9/10 judged, $0.072; judge OFF = skipped, 0 judged.
+`ai_calls` got one `clip_judge` row per clip; feedback migration v16 applied.

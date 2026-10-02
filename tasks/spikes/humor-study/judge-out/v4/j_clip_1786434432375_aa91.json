@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_aa91",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2288,
+  "outputTokens": 719,
+  "thoughtTokens": 593
+ },
+ "cost": 0.008824499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A high-energy, hyped clutch goal celebration featuring his signature catchphrase that delivers great stream entertainment.",
+  "what": "After scoring a late go-ahead goal, Fega leaps out of his seat shouting, 'Get him out of here! I'm that guy baby!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 0.5,
+  "reactionEndT": 12,
+  "keep_score": 85
+ }
+}

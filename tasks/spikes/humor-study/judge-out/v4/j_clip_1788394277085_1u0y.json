@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_1u0y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3109,
+  "outputTokens": 573,
+  "thoughtTokens": 451
+ },
+ "cost": 0.008961,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "A minor timing confusion during round setup with a flat delivery that lacks a strong punchline or payoff.",
+  "what": "The creator thinks he found someone immediately, asking 'Did I just find somebody?', only to realize the round hasn't even started yet.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 22,
+  "reactionEndT": 25,
+  "keep_score": 15
+ }
+}

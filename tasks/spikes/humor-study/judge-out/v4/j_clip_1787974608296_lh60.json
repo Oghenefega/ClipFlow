@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_lh60",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6492,
+  "outputTokens": 619,
+  "thoughtTokens": 491
+ },
+ "cost": 0.014380500000000001,
+ "judged": {
+  "score": 95,
+  "kind": "hype_reaction",
+  "reason": "An incredible 4K round win combined with an explosive, passionate reaction from the creator makes this a top-tier highlight.",
+  "what": "The creator goes wild and jumps out of his chair as 100T Bang secures an insane 4K round win.",
+  "playQuality": 9,
+  "reactionSize": 9,
+  "payoffT": 14,
+  "reactionEndT": 50,
+  "keep_score": 95
+ }
+}

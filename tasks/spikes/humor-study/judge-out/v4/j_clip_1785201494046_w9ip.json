@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_w9ip",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 608,
+  "thoughtTokens": 490
+ },
+ "cost": 0.007870499999999999,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "A light chuckle and brag after a goal, but lacks a strong comedic subversion or memorable payoff.",
+  "what": "Fega laughs at his opponent after scoring, exclaiming 'He tried to do that to me?! What a sick joke.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 2,
+  "reactionEndT": 8,
+  "keep_score": 35
+ }
+}

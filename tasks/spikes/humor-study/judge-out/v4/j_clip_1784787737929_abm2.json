@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737929_abm2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1883,
+  "outputTokens": 609,
+  "thoughtTokens": 485
+ },
+ "cost": 0.007391999999999999,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Standard gameplay commentary and mild chuckling without a strong comedic setup, fail, or big payoff.",
+  "what": "Fega laughs off a sudden goal and compliments his teammate's pass saying, 'I didn't see him coming, I just came out of nowhere.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 3.5,
+  "reactionEndT": 8,
+  "keep_score": 20
+ }
+}

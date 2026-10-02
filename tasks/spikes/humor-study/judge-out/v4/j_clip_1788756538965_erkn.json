@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538965_erkn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 607,
+  "thoughtTokens": 471
+ },
+ "cost": 0.010281,
+ "judged": {
+  "score": 82,
+  "kind": "hype_reaction",
+  "reason": "High-energy hype reaction with iconic props (food and drink in hand) for a great multi-kill round win.",
+  "what": "The creator hypes up 100 Thieves winning the round after Vora gets multiple blind kills, shouting 'LET'S GO BABY!' while waving his sandwich and drink.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 8,
+  "reactionEndT": 11.5,
+  "keep_score": 82
+ }
+}

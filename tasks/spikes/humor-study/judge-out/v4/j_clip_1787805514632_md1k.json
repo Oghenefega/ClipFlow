@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_md1k",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5768,
+  "outputTokens": 986,
+  "thoughtTokens": 860
+ },
+ "cost": 0.016047,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "His physical imitation of the robot's stiff movements is funny, though the clip slows down afterwards into general commentary.",
+  "what": "The creator mocks a table tennis robot's clunky posture and physically imitates its awkward leg movements, saying 'Look at the legs!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 18,
+  "reactionEndT": 24,
+  "keep_score": 65
+ }
+}

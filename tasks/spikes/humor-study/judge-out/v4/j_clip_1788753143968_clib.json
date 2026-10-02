@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143968_clib",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 613,
+  "thoughtTokens": 489
+ },
+ "cost": 0.009354000000000001,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "Solid hype reaction with his signature catchphrase over a clean round-winning play by his team.",
+  "what": "The streamer shouts 'Get him out of there!' as Cryo picks off opponents to secure a round win for 100 Thieves.",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 22.5,
+  "reactionEndT": 28,
+  "keep_score": 75
+ }
+}

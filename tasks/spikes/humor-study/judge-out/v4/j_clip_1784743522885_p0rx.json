@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_p0rx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 722,
+  "thoughtTokens": 607
+ },
+ "cost": 0.009819,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is routine replay narration and mild praise with no comedy setup, subversion, or payoff.",
+  "what": "Fega praises his teammate's goal and demo during the replay, saying 'What a demo, that was savage!', before starting the next kickoff.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_1ero",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3576,
+  "outputTokens": 579,
+  "thoughtTokens": 464
+ },
+ "cost": 0.0097065,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is mostly post-round narration and commentary without a major highlight play on screen.",
+  "what": "100 Thieves finishes a defuse and the creator talks about letting the team cook 'like pasta'.",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": 8,
+  "reactionEndT": 18,
+  "keep_score": 25
+ }
+}

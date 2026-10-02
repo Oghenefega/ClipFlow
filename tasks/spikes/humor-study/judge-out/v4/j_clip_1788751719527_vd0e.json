@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_vd0e",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 574,
+  "thoughtTokens": 460
+ },
+ "cost": 0.008697,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is routine strategy breakdown with no exciting play or energetic reaction taking place.",
+  "what": "The creator pauses his reaction to criticize a team's garage setup, saying 'Let's stop it man, let's stop it.'",
+  "playQuality": 2,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

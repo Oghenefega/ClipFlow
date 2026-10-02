@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_29an",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4394,
+  "outputTokens": 622,
+  "thoughtTokens": 491
+ },
+ "cost": 0.011256000000000002,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "He talks confidently before missing his pinch shot, but the joke is mild and followed by 20 seconds of routine gameplay.",
+  "what": "The creator trash-talks his opponent's pinches while attempting one himself, only to fail completely and joke 'no general practitioners, nothing happening'.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 12,
+  "reactionEndT": 18,
+  "keep_score": 35
+ }
+}

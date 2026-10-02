@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_m694",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 760,
+  "thoughtTokens": 627
+ },
+ "cost": 0.011683500000000001,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "A relatable self-own comparing his teammate's high-level mechanics to his soft touch, though the energy and payoff are fairly mild.",
+  "what": "Fega marvels at his teammate's crazy flip reset goal before contrasting it with his own weak shot, complaining 'literally the softest shot'.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 33.5,
+  "reactionEndT": 36,
+  "keep_score": 45
+ }
+}

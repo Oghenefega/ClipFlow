@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_occt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4405,
+  "outputTokens": 544,
+  "thoughtTokens": 429
+ },
+ "cost": 0.0106875,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "No main moment or payoff occurs as he simply shoots empty paintings and fails to find any hiders.",
+  "what": "The streamer shoots randomly at paintings trying to find hidden hiders but finds no one, lamenting 'I thought I had the vision bro.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

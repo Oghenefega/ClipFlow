@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060893_fe2b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3870,
+  "outputTokens": 662,
+  "thoughtTokens": 552
+ },
+ "cost": 0.010770000000000002,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is minor chat banter without a strong comedic setup or in-game payoff.",
+  "what": "The creator ponders why he keeps failing, reads a chat message telling him to stop talking and lock in, and jokingly tells chat off.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

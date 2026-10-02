@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_ffe4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1847,
+  "outputTokens": 429,
+  "thoughtTokens": 321
+ },
+ "cost": 0.005988,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just mundane gameplay narration with no comedic payoff, surprise, or notable event.",
+  "what": "The creator runs through an open area while calmly stating that water treatment isn't the best place because it's very open.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

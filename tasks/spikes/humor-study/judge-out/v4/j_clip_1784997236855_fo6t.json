@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_fo6t",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4289,
+  "outputTokens": 675,
+  "thoughtTokens": 546
+ },
+ "cost": 0.011496,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A classic rage-platformer fail with a genuine, hilarious physical reaction as he flees his desk.",
+  "what": "Fega carefully counts his moves before his egg falls off the beam and cracks, prompting him to scream 'NOOOOO MY GODNESS!' and jump out of his chair.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 13.5,
+  "reactionEndT": 25,
+  "keep_score": 85
+ }
+}

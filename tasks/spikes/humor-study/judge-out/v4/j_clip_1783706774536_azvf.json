@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774536_azvf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3348,
+  "outputTokens": 822,
+  "thoughtTokens": 685
+ },
+ "cost": 0.011186999999999999,
+ "judged": {
+  "score": 90,
+  "kind": "comedy",
+  "reason": "Celebrating a goal with maximum hype only to realize seconds later it was actually scored against you is a hilarious self-own.",
+  "what": "Fega wildly celebrates a goal shouting 'We always finish the job baby!', only to realize seconds later it was scored against him: 'Wait, what? That wasn't my goal?'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 15,
+  "reactionEndT": 23,
+  "keep_score": 90
+ }
+}

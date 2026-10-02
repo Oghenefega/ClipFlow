@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_bf55",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 795,
+  "thoughtTokens": 666
+ },
+ "cost": 0.0105975,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "This shows post-match stage celebration without any actual gameplay or clutch plays.",
+  "what": "The creator reacts to 100 Thieves' tournament win on stage, laughing and shouting 'Nah, 100 Thieves is taking it all this year, I told you guys!'",
+  "playQuality": 3,
+  "reactionSize": 6,
+  "payoffT": 1.5,
+  "reactionEndT": 5.5,
+  "keep_score": 35
+ }
+}

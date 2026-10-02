@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_hvso",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4577,
+  "outputTokens": 635,
+  "thoughtTokens": 526
+ },
+ "cost": 0.011628,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine looting and casual commentary without any joke, fail, or punchline.",
+  "what": "The streamer shoots open a ceiling hatch to loot a container and remarks, 'Stuff was trying to act like it wasn't there.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

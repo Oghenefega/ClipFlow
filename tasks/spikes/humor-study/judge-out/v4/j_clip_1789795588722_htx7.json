@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_htx7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2785,
+  "outputTokens": 575,
+  "thoughtTokens": 453
+ },
+ "cost": 0.008490000000000001,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Finding the ridiculously small duck prop after searching high and low pays off with a great laugh.",
+  "what": "The creator searches around confusedly before spotting a tiny rubber duck on the floor and shooting it while screaming, 'Get him out of my face!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 12,
+  "reactionEndT": 17,
+  "keep_score": 85
+ }
+}

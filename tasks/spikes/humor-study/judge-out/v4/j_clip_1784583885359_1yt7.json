@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885359_1yt7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5366,
+  "outputTokens": 735,
+  "thoughtTokens": 623
+ },
+ "cost": 0.0135615,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is routine gameplay mixed with chat reading and mild commentary without a funny payoff or strong reaction.",
+  "what": "Fega sets up his teammate to score and later marvels at how an opponent had enough boost to score despite him taking the boost.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

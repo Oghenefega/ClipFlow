@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_5qob",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 604,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0105015,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is mostly casual narration and quiet commentary over match footage without a standout play or big hype reaction.",
+  "what": "The creator talks through player names during match highlights and laughs at Asuna's hand gestures on stage, saying 'Asuna always doing like this is crazy.'",
+  "playQuality": 3,
+  "reactionSize": 3,
+  "payoffT": 35,
+  "reactionEndT": 38,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_btq9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 717,
+  "thoughtTokens": 598
+ },
+ "cost": 0.0109845,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just filler talk during an intermission interview with no gameplay or hype highlight occurring.",
+  "what": "The streamer rambles about heist logic during an interview break, saying \"If you actually listen to what I'm saying, I'm spitting, bro.\"",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_8b83",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3576,
+  "outputTokens": 546,
+  "thoughtTokens": 438
+ },
+ "cost": 0.009459000000000002,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This is pre-match commentary and stat reading with no gameplay or highlights occurring.",
+  "what": "The streamer reads pre-match map win statistics and reminds his chat that the series is a best-of-five.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

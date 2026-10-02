@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695048_fl3j",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4162,
+  "outputTokens": 887,
+  "thoughtTokens": 769
+ },
+ "cost": 0.0128955,
+ "judged": {
+  "score": 55,
+  "kind": "comedy",
+  "reason": "A mild spectating moment where he breaks out laughing at his teammate's goofy character model and hiding spot.",
+  "what": "The streamer laughs hysterically while spectating his friend's custom Spider-Man character and absurd hiding spot.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 18,
+  "reactionEndT": 23,
+  "keep_score": 55
+ }
+}

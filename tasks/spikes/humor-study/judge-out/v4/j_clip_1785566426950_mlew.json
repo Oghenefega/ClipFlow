@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_mlew",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 614,
+  "thoughtTokens": 495
+ },
+ "cost": 0.009738,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "The match ends instantly and the rest of the clip is just menu navigation and post-game banter with no clear payoff.",
+  "what": "Fega laughs off losing a Rocket League match and admits he got cooked before spending the rest of the clip in loading screens for the next game.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

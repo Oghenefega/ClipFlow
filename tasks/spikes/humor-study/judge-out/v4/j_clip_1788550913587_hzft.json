@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_hzft",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2847,
+  "outputTokens": 881,
+  "thoughtTokens": 747
+ },
+ "cost": 0.010877999999999999,
+ "judged": {
+  "score": 78,
+  "kind": "hype_reaction",
+  "reason": "An energetic, over-the-top taunt at the opposing team that stands out as a strong watch-party moment.",
+  "what": "The creator stands up to taunt the opposing team after 100 Thieves easily wins a round, shouting 'What do you need, a third timeout?'",
+  "playQuality": 5,
+  "reactionSize": 8,
+  "payoffT": 8,
+  "reactionEndT": 16,
+  "keep_score": 78
+ }
+}

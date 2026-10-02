@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294771_gz76",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 678,
+  "thoughtTokens": 572
+ },
+ "cost": 0.009003,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just menu talk with teammates between matches with no gameplay or funny payoff.",
+  "what": "Fega sits on the post-game scoreboard talking to teammates about ranks and finding a third player for the next match.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

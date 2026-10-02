@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788113_o6f4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 771,
+  "thoughtTokens": 673
+ },
+ "cost": 0.010539,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This is just commentary and encouragement during halftime with no actual gameplay taking place.",
+  "what": "The creator encourages 100 Thieves during halftime, saying 'All you gotta do is stop these guys from planting.'",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

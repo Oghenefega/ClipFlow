@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392262_bsvk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 631,
+  "thoughtTokens": 523
+ },
+ "cost": 0.0088815,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just downtime banter during a tactical timeout with no gameplay happening on screen.",
+  "what": "During a match timeout, the creator paces around talking about being hungry and asking someone to throw the players a banana.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

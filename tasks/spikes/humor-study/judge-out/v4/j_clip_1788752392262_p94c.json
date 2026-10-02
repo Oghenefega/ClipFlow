@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392262_p94c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4386,
+  "outputTokens": 545,
+  "thoughtTokens": 431
+ },
+ "cost": 0.010666499999999999,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is continuous narration and commentary over montage footage without any single highlight play or big live reaction.",
+  "what": "The creator talks over a match recap montage justifying a map loss, saying 'It's not easy being at the top.'",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

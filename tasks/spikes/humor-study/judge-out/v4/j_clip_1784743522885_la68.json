@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_la68",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4232,
+  "outputTokens": 793,
+  "thoughtTokens": 668
+ },
+ "cost": 0.0122955,
+ "judged": {
+  "score": 72,
+  "kind": "comedy",
+  "reason": "An instant kickoff goal right after conceding triggers a fun, energetic boast that showcases his signature hype reaction.",
+  "what": "After conceding a goal, Fega's team instantly scores straight off the kickoff and he shouts, 'WOAAAH, WE'RE BETTER!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 20,
+  "reactionEndT": 26,
+  "keep_score": 72
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099055851_xfcq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8360,
+  "outputTokens": 1108,
+  "thoughtTokens": 967
+ },
+ "cost": 0.02085,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "Great comedy moment reacting to absurd footage with continuous laughter and a funny punchline comparing the robot goalie to himself in Rocket League.",
+  "what": "The creator cracks up watching robot soccer where a ref gives a robot a yellow card and a goalie stands completely frozen as a shot goes in, exclaiming \"That goalie was me in Rocket League, dude!\"",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 43,
+  "reactionEndT": 89,
+  "keep_score": 88
+ }
+}

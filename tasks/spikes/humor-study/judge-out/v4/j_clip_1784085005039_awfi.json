@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005039_awfi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2414,
+  "outputTokens": 460,
+  "thoughtTokens": 348
+ },
+ "cost": 0.007071,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is purely setup and explanation with no punchline, failure, or comedy payoff.",
+  "what": "The streamer tells his egg to behave while explaining his plan to jump when the fan moves, but the clip ends before any action or payoff occurs.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

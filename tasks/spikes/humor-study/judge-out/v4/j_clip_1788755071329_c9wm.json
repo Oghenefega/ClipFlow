@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_c9wm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 374,
+  "thoughtTokens": 255
+ },
+ "cost": 0.0065895,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is mostly between-round analysis and downtime with no featured play or notable reaction.",
+  "what": "The creator reacts to a map loss and advises his team on strategy for the upcoming pistol round, saying 'We need to get Sheriffs on the pistol round.'",
+  "playQuality": 2,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

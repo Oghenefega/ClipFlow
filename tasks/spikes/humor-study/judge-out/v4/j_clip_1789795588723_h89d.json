@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588723_h89d",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3838,
+  "outputTokens": 430,
+  "thoughtTokens": 328
+ },
+ "cost": 0.008982,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is menu navigation and server setup with no comedic payoff or funny moment.",
+  "what": "The creator browses public servers in the menu and decides to join a server named 'casual-fun'.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

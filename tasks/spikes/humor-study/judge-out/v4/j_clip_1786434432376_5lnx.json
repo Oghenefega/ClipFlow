@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_5lnx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2774,
+  "outputTokens": 576,
+  "thoughtTokens": 469
+ },
+ "cost": 0.008480999999999999,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just post-game lobby downtime with routine complimenting of a teammate and no funny payoff or gameplay action.",
+  "what": "Fega laughs and praises his teammate Chili on the post-game summary screen after a win.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060894_emut",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5235,
+  "outputTokens": 1171,
+  "thoughtTokens": 1052
+ },
+ "cost": 0.016635,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "This is mostly stream chat interaction and game mechanic explanation without a strong comedic twist or funny payoff.",
+  "what": "Fega enthusiastically praises a viewer in chat for giving him gameplay advice, calling them a genius with a 500 IQ.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 5,
+  "reactionEndT": 15,
+  "keep_score": 30
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_ntfi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4062,
+  "outputTokens": 921,
+  "thoughtTokens": 790
+ },
+ "cost": 0.0130005,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "His hilariously passionate emotional reaction about lifting the trophy turns a standard round win into an iconic fan moment.",
+  "what": "The creator screams in celebration as the round is secured, shouting 'I want to cry! Tears of joy! 'Cause we're about to lift the trophy!'",
+  "playQuality": 6,
+  "reactionSize": 9,
+  "payoffT": 5,
+  "reactionEndT": 35,
+  "keep_score": 80
+ }
+}

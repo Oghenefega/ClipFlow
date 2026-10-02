@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_j6hc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 541,
+  "thoughtTokens": 434
+ },
+ "cost": 0.007611000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Routine gameplay narration with no strong comedic payoff or funny highlight moment.",
+  "what": "The creator laughs after a close kickoff in Rocket League overtime and says 'That could've been bad, bro' while making a save.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

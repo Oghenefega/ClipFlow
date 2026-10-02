@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_n737",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 497,
+  "thoughtTokens": 398
+ },
+ "cost": 0.006916500000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine gameplay narration during kickoff with no funny moment or comedic payoff.",
+  "what": "Fega complains about how his opponents have been scoring on him while driving up for kickoff.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

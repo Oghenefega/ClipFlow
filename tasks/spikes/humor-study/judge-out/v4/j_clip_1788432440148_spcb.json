@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440148_spcb",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1651,
+  "outputTokens": 567,
+  "thoughtTokens": 452
+ },
+ "cost": 0.006729000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just a brief post-game menu screen transition with no action, setup, or comedic payoff.",
+  "what": "The creator returns to the main menu of Meccha Chameleon and chuckles, saying 'That was actually phenomenal guys, what the heck'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

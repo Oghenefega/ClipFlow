@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426950_3p7o",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 620,
+  "thoughtTokens": 503
+ },
+ "cost": 0.0096615,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "It is just menu downtime and self-deprecating stat reading without an actual gameplay payoff.",
+  "what": "Fega laughs at his terrible stats from the previous match after realizing he got zero goals, zero assists, and zero saves.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 8,
+  "reactionEndT": 12,
+  "keep_score": 25
+ }
+}

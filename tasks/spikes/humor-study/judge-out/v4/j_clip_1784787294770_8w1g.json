@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_8w1g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 581,
+  "thoughtTokens": 477
+ },
+ "cost": 0.009855,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Routine gameplay narration without any comedic subversion or funny payoff.",
+  "what": "Fega tells his stream to lock in and comments that 'the fight is far from over' while driving around in Rocket League.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

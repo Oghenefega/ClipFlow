@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277519_0hte",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 940,
+  "thoughtTokens": 812
+ },
+ "cost": 0.01047,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "It is an amusing taunt towards Ethan, but lacks a dramatic multi-kill play on screen to make it a top highlight.",
+  "what": "The creator teases Ethan's claim of being insane, asking 'Are you sure about that?' as Ethan celebrates on stage.",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": 5,
+  "reactionEndT": 12,
+  "keep_score": 55
+ }
+}

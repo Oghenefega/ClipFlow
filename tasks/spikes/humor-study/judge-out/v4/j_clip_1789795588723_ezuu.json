@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588723_ezuu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4243,
+  "outputTokens": 711,
+  "thoughtTokens": 603
+ },
+ "cost": 0.011697,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine searching gameplay with no comedy payoff, surprise, or punchline.",
+  "what": "The creator wanders around a warehouse map in prop hunt, searching shelves while talking to himself without finding anyone or having a comedic payoff.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_ymm4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4062,
+  "outputTokens": 936,
+  "thoughtTokens": 791
+ },
+ "cost": 0.013113,
+ "judged": {
+  "score": 50,
+  "kind": "hype_reaction",
+  "reason": "Despite the high energy from the creator, the gameplay itself is a routine round win without an extraordinary clutch or multi-kill play.",
+  "what": "The creator hypes up 100 Thieves as they secure a round, shouting 'Do you know who you're going up against? Freaking Cryo!' and 'Let's go!'",
+  "playQuality": 5,
+  "reactionSize": 8,
+  "payoffT": 36,
+  "reactionEndT": 39,
+  "keep_score": 50
+ }
+}

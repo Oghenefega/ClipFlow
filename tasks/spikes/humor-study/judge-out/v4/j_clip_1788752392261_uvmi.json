@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_uvmi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5277,
+  "outputTokens": 635,
+  "thoughtTokens": 505
+ },
+ "cost": 0.012677999999999998,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "While his reaction to the casters is animated, there is no major play or clutch on screen to justify keeping this clip.",
+  "what": "The creator shouts at the match commentators for doubting 100 Thieves, screaming 'Get him out of here!' and calling out their broadcast analysis.",
+  "playQuality": 3,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 6,
+  "keep_score": 30
+ }
+}

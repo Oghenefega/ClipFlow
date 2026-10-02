@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_yc0f",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3919,
+  "outputTokens": 683,
+  "thoughtTokens": 577
+ },
+ "cost": 0.011001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "There is no payoff or funny twist in this clip as he just searches around without finding anything.",
+  "what": "The creator checks walls and toilets in the bathroom expecting someone to be hidden there, but finds no one.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277084_kmgo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3433,
+  "outputTokens": 724,
+  "thoughtTokens": 595
+ },
+ "cost": 0.010579499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious and tense prop-hunt moment where his self-deprecating commentary sells the impending defeat.",
+  "what": "The creator panics and laughs as a seeker checks every painting with a shotgun right next to his huge character model, screaming 'Look at my fat ass, bro!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 25,
+  "reactionEndT": 29.5,
+  "keep_score": 85
+ }
+}

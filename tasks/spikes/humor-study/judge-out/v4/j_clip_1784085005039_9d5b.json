@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005039_9d5b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2869,
+  "outputTokens": 481,
+  "thoughtTokens": 377
+ },
+ "cost": 0.007911,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "The clip consists mostly of menu navigation and basic traversal with no punchline or funny moment.",
+  "what": "The creator adjusts his in-game audio settings before rolling his egg around and realizing he can jump.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

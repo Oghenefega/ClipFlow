@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_8qqo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4718,
+  "outputTokens": 820,
+  "thoughtTokens": 695
+ },
+ "cost": 0.013227,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A confident trash-talk setup followed by immediate payoff and a hilarious boast line.",
+  "what": "Fega promises to make his opponent bleed after giving up a goal, then immediately scores off the kickoff and shouts 'Even gods can bleed, get him out of my face!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 31,
+  "reactionEndT": 44,
+  "keep_score": 75
+ }
+}

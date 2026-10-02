@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522886_sxk8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3746,
+  "outputTokens": 587,
+  "thoughtTokens": 484
+ },
+ "cost": 0.0100215,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine gameplay narration with no funny payoff, setup, or memorable interaction.",
+  "what": "The creator plays a chaotic Rocket League match while casually narrating his team's positioning and car colors.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

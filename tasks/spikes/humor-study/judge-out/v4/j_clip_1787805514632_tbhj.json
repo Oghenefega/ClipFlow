@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_tbhj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4958,
+  "outputTokens": 421,
+  "thoughtTokens": 296
+ },
+ "cost": 0.0105945,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny robot fail video combined with a relatable joke and strong laughing reaction from the creator.",
+  "what": "The creator laughs out loud as a robot collapses while attempting a weightlift and reads a chat comment saying, 'Somebody said that's me in the gym.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 18,
+  "reactionEndT": 30,
+  "keep_score": 75
+ }
+}

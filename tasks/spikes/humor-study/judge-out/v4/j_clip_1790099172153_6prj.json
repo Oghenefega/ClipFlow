@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099172153_6prj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5930,
+  "outputTokens": 726,
+  "thoughtTokens": 588
+ },
+ "cost": 0.01434,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "The absurd visual of the robots running violently off-balance paired with his genuine, contagious laughter makes this extremely funny for anyone.",
+  "what": "The creator reacts to humanoid robots running with absurd, twisting gaits on a track and bursts into laughter, saying, \"These guys are so out of line, look at this dude man!\"",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 38,
+  "reactionEndT": 56,
+  "keep_score": 85
+ }
+}

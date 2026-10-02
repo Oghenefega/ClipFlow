@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_ho7v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 641,
+  "thoughtTokens": 520
+ },
+ "cost": 0.0099285,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just commentary during a timeout between rounds with no active gameplay or highlights occurring.",
+  "what": "The creator copes during a tactical timeout, realizing the map is defense-sided and saying, 'Oh it's a defense sided map! Never mind about it!'",
+  "playQuality": 0,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

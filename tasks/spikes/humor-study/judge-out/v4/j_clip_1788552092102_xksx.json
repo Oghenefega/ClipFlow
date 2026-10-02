@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_xksx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2604,
+  "outputTokens": 762,
+  "thoughtTokens": 635
+ },
+ "cost": 0.009621,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "His energetic taunting provides good entertainment, but the play itself is just a routine hunt on a saving opponent.",
+  "what": "The creator passionately taunts the last remaining enemy to 'Fight me like a man!' before eevey secures the final kill of the round.",
+  "playQuality": 3,
+  "reactionSize": 7,
+  "payoffT": 14.5,
+  "reactionEndT": 18,
+  "keep_score": 55
+ }
+}

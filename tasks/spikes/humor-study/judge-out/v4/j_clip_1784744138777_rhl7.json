@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_rhl7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 714,
+  "thoughtTokens": 609
+ },
+ "cost": 0.011217000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine gameplay narration and replay breakdown without a clear comedic payoff or funny moment.",
+  "what": "Fega breaks down a routine goal in the replay, calling it 'Rocket League 101'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

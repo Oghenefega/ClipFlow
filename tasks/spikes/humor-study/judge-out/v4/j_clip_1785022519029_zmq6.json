@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519029_zmq6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 770,
+  "thoughtTokens": 659
+ },
+ "cost": 0.0115155,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just casual chat commentary on a menu screen with no gameplay, joke, or funny payoff.",
+  "what": "The creator talks about football teams on a menu screen, saying 'it's so satisfying to finally see evil lose'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

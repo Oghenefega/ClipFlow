@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_i9qc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 418,
+  "thoughtTokens": 302
+ },
+ "cost": 0.007527000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "There is no play or kill payoff to match his energy during this round setup.",
+  "what": "The creator hypes up an Operator duel, screaming 'Bring it, let's scrap buddy', but no kills or action take place during the clip.",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

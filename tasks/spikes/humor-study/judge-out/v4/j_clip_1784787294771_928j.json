@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294771_928j",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5366,
+  "outputTokens": 674,
+  "thoughtTokens": 544
+ },
+ "cost": 0.013104000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Forty seconds of routine gameplay lead to a minor whiff at the buzzer with only mild laughter.",
+  "what": "Fega plays out the final seconds of a Rocket League match, whiffs an easy shot as time expires, and laughs saying, 'I missed that? GG, that was fun.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 44,
+  "reactionEndT": 50,
+  "keep_score": 25
+ }
+}

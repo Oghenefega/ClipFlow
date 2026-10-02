@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_arng",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3746,
+  "outputTokens": 438,
+  "thoughtTokens": 331
+ },
+ "cost": 0.008904,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This clip consists mostly of setup commentary and rules explanation without a punchline or comedic payoff.",
+  "what": "Fega explains his rule about ending games early if someone leads by 5 goals while continuing routine Rocket League gameplay.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

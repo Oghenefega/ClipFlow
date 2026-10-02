@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_rnm0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 597,
+  "thoughtTokens": 473
+ },
+ "cost": 0.008990999999999999,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "Solid hype reaction to 100 Thieves winning a crucial round with high energy and genuine excitement.",
+  "what": "The creator celebrates 100 Thieves closing out the map as the rookie gets the final kill, shouting 'Let's go!'",
+  "playQuality": 7,
+  "reactionSize": 7,
+  "payoffT": 1,
+  "reactionEndT": 10,
+  "keep_score": 75
+ }
+}

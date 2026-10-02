@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_ltpx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 1316,
+  "thoughtTokens": 1190
+ },
+ "cost": 0.014990999999999997,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "An impossible no-scope shot combined with the creator immediately being proven wrong makes this a top-tier clip.",
+  "what": "The creator claims the opponent AWPer isn't that good right as the player hits an insane jumping no-scope Operator headshot.",
+  "playQuality": 9,
+  "reactionSize": 8,
+  "payoffT": 19.5,
+  "reactionEndT": 27,
+  "keep_score": 88
+ }
+}

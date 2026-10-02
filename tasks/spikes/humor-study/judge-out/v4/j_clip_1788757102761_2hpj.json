@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_2hpj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 663,
+  "thoughtTokens": 554
+ },
+ "cost": 0.0098505,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "Routine kills with standard stream commentary do not make a highlight clip.",
+  "what": "The streamer watches routine single kills during a 100T Valorant round, repeatedly saying 'Lovely baby, come on.'",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

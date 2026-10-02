@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_a1ub",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 587,
+  "thoughtTokens": 484
+ },
+ "cost": 0.009292499999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is standard gameplay mixed with chat banter and has no comedic payoff or standout moment.",
+  "what": "Fega scores a routine kickoff goal while talking to chat and commenting on his opponent's lag.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

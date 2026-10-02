@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_vf7y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4648,
+  "outputTokens": 623,
+  "thoughtTokens": 517
+ },
+ "cost": 0.0116445,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine menu navigation with mild technical friction and no strong comedic payoff.",
+  "what": "The creator tries to select a public server in the menu, but the server list keeps refreshing and disappearing as he clicks.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

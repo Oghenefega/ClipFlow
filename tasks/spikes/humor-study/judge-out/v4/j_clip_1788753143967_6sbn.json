@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_6sbn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3900,
+  "outputTokens": 607,
+  "thoughtTokens": 487
+ },
+ "cost": 0.010402499999999999,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "A routine early death of the player he is rooting for is not a highlight worth keeping.",
+  "what": "The creator reacts with hands on his head as Cryo gets picked off early in the round, yelling 'NOOO!'",
+  "playQuality": 2,
+  "reactionSize": 5,
+  "payoffT": 29,
+  "reactionEndT": 37,
+  "keep_score": 15
+ }
+}

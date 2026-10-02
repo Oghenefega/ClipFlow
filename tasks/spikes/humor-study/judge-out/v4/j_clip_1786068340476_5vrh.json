@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_5vrh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4961,
+  "outputTokens": 1171,
+  "thoughtTokens": 1044
+ },
+ "cost": 0.016224000000000002,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "While high energy, this is just a routine match win celebration rather than a funny clip with a comedic setup or subversion.",
+  "what": "Fega scores the game-winning overtime goal to win 5-4 and celebrates loudly, shouting 'GET HIM OUT OF HERE BRO!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 1,
+  "reactionEndT": 15,
+  "keep_score": 35
+ }
+}

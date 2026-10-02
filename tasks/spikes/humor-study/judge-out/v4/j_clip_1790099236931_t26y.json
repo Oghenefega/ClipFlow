@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099236931_t26y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6011,
+  "outputTokens": 774,
+  "thoughtTokens": 641
+ },
+ "cost": 0.0148215,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "His genuine, high-energy reaction to robots being programmed to do Ronaldo's signature celebration makes for funny commentary on absurd footage.",
+  "what": "The creator laughs hysterically while reacting to humanoid robots doing Ronaldo's 'Siu' celebration, shouting 'And people say Ronaldo is not the GOAT!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 17,
+  "reactionEndT": 28,
+  "keep_score": 70
+ }
+}

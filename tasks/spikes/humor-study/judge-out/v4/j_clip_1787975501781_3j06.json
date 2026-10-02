@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_3j06",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1875,
+  "outputTokens": 537,
+  "thoughtTokens": 429
+ },
+ "cost": 0.006840000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is pre-match commentary with no actual gameplay or standout moment.",
+  "what": "The creator comments on Sacy changing off Phoenix, joking that Sacy knew he was 'no match for Asuna'.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

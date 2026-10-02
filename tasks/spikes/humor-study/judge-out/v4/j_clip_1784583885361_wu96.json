@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_wu96",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 496,
+  "thoughtTokens": 390
+ },
+ "cost": 0.0094605,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Just routine pre-match talk and casual gameplay commentary with no punchline or highlight moment.",
+  "what": "The streamer loads into a Rocket League match while talking about his drifting and misses a casual hit on the ball.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

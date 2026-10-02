@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737928_q810",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 878,
+  "thoughtTokens": 755
+ },
+ "cost": 0.0098955,
+ "judged": {
+  "score": 50,
+  "kind": "comedy",
+  "reason": "It's a good-humored reaction to getting scored on, but lacks a strong comedy beat or clear subversion.",
+  "what": "Fega gets scored on in Rocket League and praises the opponent's play during the replay, shouting 'Oh my goodness, what the heck! This dude is insane!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 1.5,
+  "reactionEndT": 13,
+  "keep_score": 50
+ }
+}

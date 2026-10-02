@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_4atu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 650,
+  "thoughtTokens": 541
+ },
+ "cost": 0.0108585,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just standard post-game menu navigation and chat banter with no funny payoff or gameplay highlight.",
+  "what": "Fega checks post-game stats after a Rocket League match and chats with viewers while queueing into the next game.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

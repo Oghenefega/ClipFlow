@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_6kfy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 426,
+  "thoughtTokens": 320
+ },
+ "cost": 0.008328,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine gameplay commentary and practice with no funny moment or punchline.",
+  "what": "The streamer talks about how his shot accuracy has improved over the past few days while practicing routine shots in Rocket League.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -129,6 +129,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   // Pipeline quality (Issue #72 Phase 1 + Phase 3)
   const [strictMode, setStrictMode] = useState(true);
   const [yamnetSilenceSkip, setYamnetSilenceSkip] = useState(true);
+  const [clipJudgeEnabled, setClipJudgeEnabled] = useState(false); // #483
   // Clip cutting encoder (Issue #75 Phase 1) — "auto" | "gpu" | "cpu"
   const [clipCutEncoder, setClipCutEncoderState] = useState("auto");
   const [nvencAvailable, setNvencAvailable] = useState(null); // null = unknown, true/false once probed
@@ -174,6 +175,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (sm !== undefined && sm !== null) setStrictMode(!!sm);
         const yss = await window.clipflow.storeGet("yamnetSilenceSkip");
         if (yss !== undefined && yss !== null) setYamnetSilenceSkip(!!yss);
+        setClipJudgeEnabled((await window.clipflow.storeGet("clipJudgeEnabled")) === true);
         // Clip cutting encoder (#75) — load setting + probe NVENC capability
         const cce = await window.clipflow.storeGet("clipCutEncoder");
         if (cce === "gpu" || cce === "cpu" || cce === "auto") setClipCutEncoderState(cce);
@@ -918,6 +920,30 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
         <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 18px 0", lineHeight: 1.5 }}>
           Abort the pipeline if any audio signal fails. Recommended &mdash; your clips reflect every signal we promised. Turn off only if you want to ship clips even when signal extraction degrades.
+        </p>
+
+        {/* Clip judge (#483) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Rank new clips by watching them</div>
+          <button
+            onClick={() => {
+              const next = !clipJudgeEnabled;
+              setClipJudgeEnabled(next);
+              window.clipflow?.storeSet("clipJudgeEnabled", next);
+            }}
+            style={{
+              ...BTN,
+              background: clipJudgeEnabled ? "rgba(34,197,94,0.15)" : "rgba(var(--lift),0.04)",
+              border: `1px solid ${clipJudgeEnabled ? "rgba(34,197,94,0.4)" : T.border}`,
+              color: clipJudgeEnabled ? T.green : T.textTertiary,
+              fontWeight: 700,
+            }}
+          >
+            {clipJudgeEnabled ? "ON" : "OFF"}
+          </button>
+        </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 18px 0", lineHeight: 1.5 }}>
+          Corva watches and listens to each clip it finds and puts the likely keepers first, with a short reason on each. About 1 cent per clip. Nothing is hidden or rejected for you.
         </p>
 
         {/* YAMNet silence skip */}

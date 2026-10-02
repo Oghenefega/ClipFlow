@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_4oxr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3098,
+  "outputTokens": 681,
+  "thoughtTokens": 557
+ },
+ "cost": 0.0097545,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "A fun, self-aware moment where he self-deprecates before celebrating a simple goal with high energy.",
+  "what": "The creator jokes that neither player is putting their best foot forward before scoring and yelling 'That's my bread and butter man!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 16,
+  "reactionEndT": 22,
+  "keep_score": 65
+ }
+}

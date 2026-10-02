@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_4d6v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2029,
+  "outputTokens": 556,
+  "thoughtTokens": 438
+ },
+ "cost": 0.0072135,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Nothing funny or notable occurs in this clip, which consists only of routine gameplay narration with no payoff.",
+  "what": "The streamer runs toward an extraction point while saying 'Don't tell me it's too early to be extracting, I don't believe it.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

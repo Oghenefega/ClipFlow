@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_7fmy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 919,
+  "thoughtTokens": 785
+ },
+ "cost": 0.012621,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "While there is no gameplay during this timeout, his self-aware failure at delivering a dramatic speech is a fun moment.",
+  "what": "During a timeout, the creator tries to deliver a dramatic speech about never losing belief, messes up, attempts a retake, and laughs when it goes even worse.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": 34,
+  "reactionEndT": 37,
+  "keep_score": 55
+ }
+}

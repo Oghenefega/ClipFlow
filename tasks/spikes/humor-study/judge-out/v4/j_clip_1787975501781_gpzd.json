@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_gpzd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 638,
+  "thoughtTokens": 520
+ },
+ "cost": 0.008934000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "No actual play or kill is shown in the clip, making it mostly routine round-end analysis.",
+  "what": "The creator celebrates 100 Thieves winning a round shouting 'Let's go baby!', then transitions into explaining their proactivity on Ascent.",
+  "playQuality": 2,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

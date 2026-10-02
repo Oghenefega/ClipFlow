@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_1gw6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 705,
+  "thoughtTokens": 584
+ },
+ "cost": 0.0104205,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "Conceding an instant kickoff goal right after downplaying the opponent's previous score creates a classic funny failure.",
+  "what": "After brushing off a goal, Fega immediately concedes off the kickoff to tie the game, shouting 'That is nonsense!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 24.5,
+  "reactionEndT": 28,
+  "keep_score": 80
+ }
+}

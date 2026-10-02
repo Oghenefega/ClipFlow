@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_y2zf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3576,
+  "outputTokens": 738,
+  "thoughtTokens": 627
+ },
+ "cost": 0.010899,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or hype moment happening, only basic commentary during the map veto phase.",
+  "what": "The creator looks at the map veto selection and complains 'Talk about the three worst maps bro, what the heck'.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

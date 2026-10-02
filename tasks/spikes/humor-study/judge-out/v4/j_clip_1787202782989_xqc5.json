@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_xqc5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2604,
+  "outputTokens": 624,
+  "thoughtTokens": 516
+ },
+ "cost": 0.008586,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is plain story talk over broadcast B-roll with no actual play or hype moment happening.",
+  "what": "The creator talks about his toxic trait of watching pro gamers and thinking he can do what they do.",
+  "playQuality": 2,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

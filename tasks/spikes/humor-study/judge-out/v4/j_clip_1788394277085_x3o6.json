@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_x3o6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4567,
+  "outputTokens": 572,
+  "thoughtTokens": 446
+ },
+ "cost": 0.011140500000000001,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A funny self-own where his premature celebration immediately turns into hilarious disappointment and self-directed laughter.",
+  "what": "The streamer confidently searches for a hider and screams 'OH I JUST FOUND HIM!' before realizing a teammate made the find instead, laughing at his own mistake.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 33,
+  "reactionEndT": 43,
+  "keep_score": 85
+ }
+}

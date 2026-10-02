@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551595_2iya",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 608,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0090855,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "It is a mild self-own after a goal, but lacks a sharp punchline or big comedic payoff to make it a standout clip.",
+  "what": "After getting scored on, the creator laughs at his own overconfidence saying, 'That was mad confident of me to think he wasn't gonna catch that.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 5,
+  "reactionEndT": 12,
+  "keep_score": 40
+ }
+}

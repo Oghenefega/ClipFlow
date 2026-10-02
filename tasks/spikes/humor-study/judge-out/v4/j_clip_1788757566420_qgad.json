@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_qgad",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1632,
+  "outputTokens": 626,
+  "thoughtTokens": 514
+ },
+ "cost": 0.007143,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just intro setup for a post-match interview with no gameplay or noteworthy reaction.",
+  "what": "The creator watches the post-match interview intro announcing 100 Thieves as the VCT Americas champions while smiling quietly.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

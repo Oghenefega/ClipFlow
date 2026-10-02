@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_045a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6011,
+  "outputTokens": 797,
+  "thoughtTokens": 663
+ },
+ "cost": 0.014994,
+ "judged": {
+  "score": 78,
+  "kind": "comedy",
+  "reason": "His genuine, high-energy laughter at the absurd sight of a robot doing Ronaldo's celebration makes for an instantly funny clip.",
+  "what": "The creator breaks into contagious laughter watching a humanoid robot perform Ronaldo's signature 'Siu' celebration, shouting 'Not the robots freaking doing the Ronaldo Siu!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 14,
+  "reactionEndT": 33,
+  "keep_score": 78
+ }
+}

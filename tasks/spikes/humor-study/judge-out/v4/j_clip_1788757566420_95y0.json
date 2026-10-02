@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_95y0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2685,
+  "outputTokens": 626,
+  "thoughtTokens": 512
+ },
+ "cost": 0.008722500000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just calm, plain commentary over interview footage with no gameplay or standout reaction.",
+  "what": "The creator watches post-match interview footage and remarks, 'He looks like such a mature guy in a young man's body.'",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

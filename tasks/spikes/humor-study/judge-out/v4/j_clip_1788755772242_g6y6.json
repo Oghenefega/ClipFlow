@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_g6y6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 878,
+  "thoughtTokens": 748
+ },
+ "cost": 0.012192,
+ "judged": {
+  "score": 70,
+  "kind": "hype_reaction",
+  "reason": "An entertaining, passionate rant and jersey throw from the creator that stands out even without a highlight play.",
+  "what": "The creator throws off his 100T hoodie and angrily mocks Asuna's Neon movement, shouting 'Get him out of my face, bro!'",
+  "playQuality": 3,
+  "reactionSize": 8,
+  "payoffT": 26.5,
+  "reactionEndT": 32,
+  "keep_score": 70
+ }
+}

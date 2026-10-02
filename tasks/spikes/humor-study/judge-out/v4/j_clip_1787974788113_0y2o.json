@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788113_0y2o",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 574,
+  "thoughtTokens": 456
+ },
+ "cost": 0.009183,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "High energy celebratory reaction to a clutch play with 1 HP remaining.",
+  "what": "The creator hypes up a clutch round win from 100 Thieves, screaming 'One HP bro!' while flexing his muscles.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 18,
+  "reactionEndT": 25,
+  "keep_score": 75
+ }
+}

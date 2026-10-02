@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426951_a4yv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 559,
+  "thoughtTokens": 440
+ },
+ "cost": 0.0085965,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "The clip lacks a clear punchline or funny reversal, devolving into quiet gameplay after his initial comment.",
+  "what": "Fega remarks 'When I get my chance, all of a sudden he's good' and then quietly drives around setting up defense without any comedic payoff.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

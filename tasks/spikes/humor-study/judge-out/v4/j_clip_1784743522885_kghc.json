@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_kghc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 554,
+  "thoughtTokens": 448
+ },
+ "cost": 0.008559,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just menu talk and rank setup between matches with no comedic payoff or gameplay.",
+  "what": "The creator answers chat about 1v1ing after reaching Champ rank while sitting in the Rocket League menus.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

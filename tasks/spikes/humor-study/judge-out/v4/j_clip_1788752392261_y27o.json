@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_y27o",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2847,
+  "outputTokens": 737,
+  "thoughtTokens": 616
+ },
+ "cost": 0.009798000000000001,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "A round loss for his team without showing an extraordinary clutch or play on screen does not make a strong highlight.",
+  "what": "The creator screams 'Check his computer, bro!' in disbelief after 100 Thieves loses a round advantage.",
+  "playQuality": 3,
+  "reactionSize": 7,
+  "payoffT": 5,
+  "reactionEndT": 18,
+  "keep_score": 35
+ }
+}

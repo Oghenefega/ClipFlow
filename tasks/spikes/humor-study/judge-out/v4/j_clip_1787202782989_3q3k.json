@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_3q3k",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2442,
+  "outputTokens": 782,
+  "thoughtTokens": 645
+ },
+ "cost": 0.009528000000000002,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "His reaction is passionate, but the moment lacks actual gameplay footage on screen to support a top-tier highlight.",
+  "what": "The creator reacts with genuine hype upon realizing 100 Thieves won their first international grand finals, shouting 'They're 1 for 1 baby, LET'S GO!'",
+  "playQuality": 3,
+  "reactionSize": 7,
+  "payoffT": 11.5,
+  "reactionEndT": 16,
+  "keep_score": 55
+ }
+}

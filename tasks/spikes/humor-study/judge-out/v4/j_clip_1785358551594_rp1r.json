@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_rp1r",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4718,
+  "outputTokens": 878,
+  "thoughtTokens": 753
+ },
+ "cost": 0.013662,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A great self-own where he makes a defensive boast only to immediately fumble and laugh at his own clumsy car control.",
+  "what": "Fega shouts 'Not on my watch!' after a save, but immediately loses control of his car and laughs as the opponent scores.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 30,
+  "reactionEndT": 34,
+  "keep_score": 82
+ }
+}

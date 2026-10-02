@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_tw1u",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 688,
+  "thoughtTokens": 572
+ },
+ "cost": 0.009916500000000002,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay play shown, just low-energy coping during replay downtime.",
+  "what": "The creator tries to cope during round downtime while 100 Thieves fall behind, saying 'I think I'm telling myself at this point.'",
+  "playQuality": 1,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

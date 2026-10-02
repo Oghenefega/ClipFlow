@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_950m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4941,
+  "outputTokens": 471,
+  "thoughtTokens": 373
+ },
+ "cost": 0.010943999999999999,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just routine menu navigation and loading screen downtime with no funny payoff.",
+  "what": "Fega checks his menus and loads into a match of Arc Raiders while adjusting his setup.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

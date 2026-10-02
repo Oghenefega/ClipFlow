@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968560_xenk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3348,
+  "outputTokens": 571,
+  "thoughtTokens": 479
+ },
+ "cost": 0.0093045,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Nothing notable happens in the gameplay and the streamer provides minimal commentary without any funny moment or payoff.",
+  "what": "The streamer silently drives around in Rocket League with minimal commentary as the clock ticks down.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

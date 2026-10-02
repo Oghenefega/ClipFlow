@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_v2xg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 595,
+  "thoughtTokens": 473
+ },
+ "cost": 0.0074085,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "A standard reaction to getting scored on without a strong comedic setup or unexpected turn.",
+  "what": "After conceding another goal to fall behind 0-4, Fega puts his hands on his head and says, 'I am getting absolutely destroyed right now guys.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 1.5,
+  "reactionEndT": 8.5,
+  "keep_score": 35
+ }
+}

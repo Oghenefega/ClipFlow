@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_imel",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2847,
+  "outputTokens": 654,
+  "thoughtTokens": 531
+ },
+ "cost": 0.0091755,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is routine match commentary and a standard round win without a standout play or notable reaction.",
+  "what": "The creator watches a Valorant match clip where 100 Thieves wins a flawless round, casually remarking 'Flawless'.",
+  "playQuality": 3,
+  "reactionSize": 2,
+  "payoffT": 21.5,
+  "reactionEndT": 24,
+  "keep_score": 15
+ }
+}

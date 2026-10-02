@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737930_cy2u",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 519,
+  "thoughtTokens": 403
+ },
+ "cost": 0.0070815,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "A routine goal concession with mild commentary and no strong comedic payoff.",
+  "what": "Fega concedes a goal, admiring the opponent's goal by saying 'That was such a good butt shot' before asking for a million subs.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 8,
+  "reactionEndT": 11,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_aeww",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 896,
+  "thoughtTokens": 759
+ },
+ "cost": 0.010395,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "This is standard chat banter while waiting for kickoff with no strong comedic payoff or gameplay event.",
+  "what": "Fega rejects a chat request to 1v1 from a Champ 3 player, joking 'I want to hear I'm bronze 4... with 2000 hours, then I invite you.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 12.5,
+  "reactionEndT": 16,
+  "keep_score": 30
+ }
+}

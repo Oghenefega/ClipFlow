@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_b8ny",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1389,
+  "outputTokens": 632,
+  "thoughtTokens": 517
+ },
+ "cost": 0.0068235,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is just casual commentary during early round setup with no highlight play or kill occurring.",
+  "what": "The creator laughs in disbelief at Asuna playing Phoenix in a pro match, asking 'What timeline are we in?'",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": 2,
+  "reactionEndT": 6,
+  "keep_score": 20
+ }
+}

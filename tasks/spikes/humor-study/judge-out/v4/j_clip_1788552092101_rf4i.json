@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092101_rf4i",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 640,
+  "thoughtTokens": 512
+ },
+ "cost": 0.009192,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction with an iconic quote following a round-winning play by his team's IGL.",
+  "what": "The creator hypes up a 3k round win by Boostio, yelling 'That's my IGL! Are you not entertained?!'",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 5,
+  "reactionEndT": 15,
+  "keep_score": 88
+ }
+}

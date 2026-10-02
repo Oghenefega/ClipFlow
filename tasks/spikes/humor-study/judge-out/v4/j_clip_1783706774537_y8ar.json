@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_y8ar",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3166,
+  "outputTokens": 724,
+  "thoughtTokens": 595
+ },
+ "cost": 0.010179,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Classic comedy structure with confident trash talk leading directly into an immediate backfire and big reaction.",
+  "what": "Fega boasts 'All part of the plan baby, y'all don't get it' right before getting scored on and screaming 'NOOO! Oh my goodness!'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 17,
+  "reactionEndT": 22,
+  "keep_score": 85
+ }
+}

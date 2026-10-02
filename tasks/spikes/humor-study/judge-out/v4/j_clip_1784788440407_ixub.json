@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_ixub",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 695,
+  "thoughtTokens": 578
+ },
+ "cost": 0.008766,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine gameplay narration without a funny twist, self-own, or comedy payoff.",
+  "what": "The creator makes a simple save in Rocket League and says, 'Not on my watch, get him out of my face, bro.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 5,
+  "reactionEndT": 7,
+  "keep_score": 15
+ }
+}

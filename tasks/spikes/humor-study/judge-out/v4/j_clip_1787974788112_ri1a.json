@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788112_ri1a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 675,
+  "thoughtTokens": 529
+ },
+ "cost": 0.009819000000000001,
+ "judged": {
+  "score": 82,
+  "kind": "hype_reaction",
+  "reason": "His energetic reaction to 100T securing the final round of a dominant 13-2 map win is a great match-closing highlight.",
+  "what": "The creator reacts with hysterical excitement and stands up as 100 Thieves close out the map 13-2, yelling 'What did he think he was trying to do?!'",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 22,
+  "reactionEndT": 28,
+  "keep_score": 82
+ }
+}

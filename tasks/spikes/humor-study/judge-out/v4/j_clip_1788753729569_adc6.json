@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_adc6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 593,
+  "thoughtTokens": 471
+ },
+ "cost": 0.010054500000000001,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "This clip consists mostly of commentary over a replay and round buy phase without a major live play or clutch moment.",
+  "what": "The creator hype-talks over a replay and round setup, saying \"They took a timeout, thought it was gonna work out? Absolutely not!\"",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 30
+ }
+}

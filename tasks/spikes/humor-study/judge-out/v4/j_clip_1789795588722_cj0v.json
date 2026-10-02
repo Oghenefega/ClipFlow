@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_cj0v",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4243,
+  "outputTokens": 612,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0109545,
+ "judged": {
+  "score": 72,
+  "kind": "comedy",
+  "reason": "Funny self-own where he laughs at another player's terrible hiding spot right before ending up in the spectator pool himself.",
+  "what": "The creator laughs in disbelief at a hider's spot before getting eliminated himself and telling the spectators 'How about you hop in here, Mr. I know how it's done?'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 27,
+  "reactionEndT": 38,
+  "keep_score": 72
+ }
+}

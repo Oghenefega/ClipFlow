@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392262_k0z7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 567,
+  "thoughtTokens": 447
+ },
+ "cost": 0.0086445,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is routine pre-round chat banter and a single opening kill against his team with no notable play or reaction.",
+  "what": "The creator talks to chat while his 100 Thieves jersey falls off his chair as LOUD gets an opening kill on Asuna.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

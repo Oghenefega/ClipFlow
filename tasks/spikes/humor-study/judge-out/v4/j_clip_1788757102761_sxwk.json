@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_sxwk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4872,
+  "outputTokens": 1028,
+  "thoughtTokens": 879
+ },
+ "cost": 0.015018,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "His reaction to 100T winning the round is energetic and fun, but the clip drags on into pre-round downtime.",
+  "what": "The creator celebrates 100 Thieves winning a round to go up 11-9 against LOUD, yelling '100 Thieves, LET'S GO!' and laughing at LOUD's silent team cams.",
+  "playQuality": 5,
+  "reactionSize": 8,
+  "payoffT": 4,
+  "reactionEndT": 22,
+  "keep_score": 65
+ }
+}

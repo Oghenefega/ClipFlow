@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440406_dq5c",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 932,
+  "thoughtTokens": 815
+ },
+ "cost": 0.0105435,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "Standard enthusiasm for a routine goal with no comedic setup or funny subversion.",
+  "what": "The creator passionately hypes up his teammate's goal, shouting 'Let's go baby! You're better! Nice shot!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 1.5,
+  "reactionEndT": 10,
+  "keep_score": 30
+ }
+}

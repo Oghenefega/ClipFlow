@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_cajt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 437,
+  "thoughtTokens": 325
+ },
+ "cost": 0.008775,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is routine stream commentary and excuse-making without a distinct punchline or comedic payoff.",
+  "what": "The creator jokes about his terrible score and blames not having eaten before making a save and asking 'Do you know who I am?'.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

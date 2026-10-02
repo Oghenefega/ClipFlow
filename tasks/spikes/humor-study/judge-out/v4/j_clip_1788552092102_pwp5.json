@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_pwp5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3495,
+  "outputTokens": 557,
+  "thoughtTokens": 453
+ },
+ "cost": 0.00942,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This clip contains only downtime commentary and setup talk with no actual gameplay highlight or hype moment.",
+  "what": "The streamer provides commentary during a round break and setup phase without any gameplay action occurring.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

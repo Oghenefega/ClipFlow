@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_7oqn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3758,
+  "outputTokens": 404,
+  "thoughtTokens": 300
+ },
+ "cost": 0.008667,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "Nothing entertaining or funny happens in this clip, as it is just routine looting and inventory management.",
+  "what": "The streamer quietly loots containers and manages his inventory while talking briefly about encumbrance.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

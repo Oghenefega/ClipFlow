@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277519_xhy5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 834,
+  "thoughtTokens": 697
+ },
+ "cost": 0.0100395,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "It is a routine round win to reach match point without an extraordinary multi-kill or clutch to make it a standout clip.",
+  "what": "The creator celebrates 100T winning a round to reach 12-3, shouting 'It's so easy bro! These guys are not ready!'",
+  "playQuality": 4,
+  "reactionSize": 5,
+  "payoffT": 12,
+  "reactionEndT": 16,
+  "keep_score": 35
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_kzmu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4796,
+  "outputTokens": 744,
+  "thoughtTokens": 636
+ },
+ "cost": 0.012774,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This clip contains only setup commentary without any funny robot fail or payoff.",
+  "what": "The streamer speculates about robots chasing people for minor crimes and wonders why they need to learn long jump, ending right before the video plays.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_huq2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2505,
+  "outputTokens": 621,
+  "thoughtTokens": 506
+ },
+ "cost": 0.008414999999999999,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "Low-energy gameplay moment with a mild boast that lacks a funny failure or strong punchline.",
+  "what": "The streamer complains about loading an egg onto a drone platform before declaring 'I actually I mastered the game.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 13,
+  "reactionEndT": 15,
+  "keep_score": 30
+ }
+}

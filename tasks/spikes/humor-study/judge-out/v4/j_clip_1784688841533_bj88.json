@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_bj88",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 672,
+  "thoughtTokens": 544
+ },
+ "cost": 0.011937,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A high-energy victory moment featuring a clean execution on a hard jump and an explosive, funny reaction.",
+  "what": "Fega successfully bounces the egg off a tire onto a wooden track and screams with hype as he reaches a new checkpoint, shouting 'Let's freaking go!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23,
+  "reactionEndT": 34,
+  "keep_score": 75
+ }
+}

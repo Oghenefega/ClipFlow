@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_k4d6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5326,
+  "outputTokens": 572,
+  "thoughtTokens": 452
+ },
+ "cost": 0.012279,
+ "judged": {
+  "score": 68,
+  "kind": "comedy",
+  "reason": "A solid setup and immediate punishment format, though his reaction is a bit quiet rather than a big punchline.",
+  "what": "The creator confidently claims 'I'm a close my eye and do this jump,' only to immediately miss and fall.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 15,
+  "reactionEndT": 35,
+  "keep_score": 68
+ }
+}

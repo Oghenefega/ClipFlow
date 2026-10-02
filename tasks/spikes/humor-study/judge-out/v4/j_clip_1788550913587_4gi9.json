@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_4gi9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2361,
+  "outputTokens": 603,
+  "thoughtTokens": 478
+ },
+ "cost": 0.008064,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High energy clutch moment with a big, passionate reaction from the creator that fits his stream style perfectly.",
+  "what": "The creator gets hyped and jumps out of his chair when 100T clutches the round, shouting 'LET'S GO!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 16.5,
+  "reactionEndT": 18.5,
+  "keep_score": 85
+ }
+}

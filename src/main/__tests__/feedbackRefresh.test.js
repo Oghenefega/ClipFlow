@@ -45,7 +45,7 @@ beforeAll(async () => {
     clip_start TEXT, clip_end TEXT, title TEXT, transcript_segment TEXT, peak_energy REAL,
     has_frame INTEGER DEFAULT 0, claude_reason TEXT, peak_quote TEXT, energy_level TEXT,
     confidence REAL, decision TEXT NOT NULL, user_note TEXT, timestamp INTEGER NOT NULL,
-    reject_reasons TEXT)`);
+    reject_reasons TEXT, judge_score REAL, judge_kind TEXT)`);
   mockDb.run(`CREATE TABLE maintenance_runs (name TEXT PRIMARY KEY, ran_at TEXT NOT NULL DEFAULT (datetime('now')), note TEXT)`);
   fs.writeFileSync(mockDbPath, Buffer.from(mockDb.export()));
 });
@@ -60,6 +60,20 @@ afterAll(() => {
 
 const project = { name: "2026-09-18 MC Day3 Pt1", gameTag: "MC" };
 const approve = (clip) => feedback.handleStatusTransition(project, "none", clip);
+
+describe("#483 — the decision row records what the clip judge said", () => {
+  const judged = () => mockDb.exec("SELECT decision, judge_score, judge_kind FROM feedback ORDER BY id")[0]?.values || [];
+
+  test("a judged clip stores its score and kind", () => {
+    approve(clipAt({ judge: { score: 82, kind: "comedy", reason: "r" } }));
+    expect(judged()).toEqual([["approved", 82, "comedy"]]);
+  });
+
+  test("an unjudged clip stores nulls", () => {
+    feedback.handleStatusTransition(project, "none", clipAt({ status: "rejected" }));
+    expect(judged()).toEqual([["rejected", null, null]]);
+  });
+});
 
 describe("refreshApproved — the row follows the saved clip", () => {
   test("approve first, then edit: the row takes the edited words and the real title", () => {

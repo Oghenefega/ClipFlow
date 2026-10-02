@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_strm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 616,
+  "thoughtTokens": 506
+ },
+ "cost": 0.00804,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No action or kills occur during this clip, making it routine narration without a highlight play.",
+  "what": "The creator laughs about getting heart attacks while watching 100 Thieves play as utility goes up mid-round.",
+  "playQuality": 1,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

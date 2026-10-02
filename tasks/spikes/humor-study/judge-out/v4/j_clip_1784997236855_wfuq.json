@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_wfuq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3722,
+  "outputTokens": 967,
+  "thoughtTokens": 837
+ },
+ "cost": 0.0128355,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "His confident callout actually pays off with a impressive jump and high-energy hype reaction.",
+  "what": "After telling viewers 'check this out boys', he executes a huge egg catapult jump onto a high ledge and screams 'OH BABY! Let's go! It's too easy!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 14.5,
+  "reactionEndT": 25,
+  "keep_score": 80
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_5ffm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2280,
+  "outputTokens": 600,
+  "thoughtTokens": 473
+ },
+ "cost": 0.00792,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "A routine round loss for the creator's team without a remarkable clutch or ace is not a keeper highlight.",
+  "what": "The creator reacts with dismay saying 'Oh my god, no! Lucky shots bro' as 100T loses a round to LOUD.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 2,
+  "reactionEndT": 7,
+  "keep_score": 15
+ }
+}

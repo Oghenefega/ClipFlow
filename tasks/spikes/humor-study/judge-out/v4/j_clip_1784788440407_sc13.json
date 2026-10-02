@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_sc13",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 737,
+  "thoughtTokens": 604
+ },
+ "cost": 0.0094455,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "A funny mid-game backtrack after boasting 'boss music is playing' right before getting scored on.",
+  "what": "Fega claims boss music is playing right as the opponents score, then immediately backtracks saying 'I meant like after we just get scored on 3-1, just watch us lock in!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 4,
+  "reactionEndT": 12,
+  "keep_score": 65
+ }
+}

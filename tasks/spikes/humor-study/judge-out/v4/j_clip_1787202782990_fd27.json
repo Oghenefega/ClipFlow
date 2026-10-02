@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_fd27",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 551,
+  "thoughtTokens": 445
+ },
+ "cost": 0.009618,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "Plain commentary before a video starts with no gameplay on screen is not a highlight.",
+  "what": "The creator talks about how people assume games like Valorant are dead just because they stopped playing them.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

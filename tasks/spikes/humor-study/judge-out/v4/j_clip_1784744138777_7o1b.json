@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_7o1b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 1034,
+  "thoughtTokens": 905
+ },
+ "cost": 0.0127665,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "Celebrating a routine goal with standard commentary lacks a clear comedic setup or subversion to make it a clip-worthy moment.",
+  "what": "Fega scores to extend his lead to 3-0 and hypes up his angle on the replay, exclaiming 'We are locked in bro!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 3,
+  "reactionEndT": 16,
+  "keep_score": 30
+ }
+}

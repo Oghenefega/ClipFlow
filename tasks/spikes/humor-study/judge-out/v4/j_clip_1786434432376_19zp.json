@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_19zp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 524,
+  "thoughtTokens": 411
+ },
+ "cost": 0.008698500000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay following a mild comment with no major joke, punchline, or funny payoff.",
+  "what": "Fega says \"I might as well be drunk right now and I just want to say I apologize\" before casually driving around in Rocket League.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

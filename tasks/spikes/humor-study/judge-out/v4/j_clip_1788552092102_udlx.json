@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_udlx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6168,
+  "outputTokens": 632,
+  "thoughtTokens": 521
+ },
+ "cost": 0.013992,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is post-match desk analysis and stat screen reading without any live gameplay or standout moment.",
+  "what": "The creator reacts to the post-match MVP fan vote and desk banter after 100 Thieves defeat NRG.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

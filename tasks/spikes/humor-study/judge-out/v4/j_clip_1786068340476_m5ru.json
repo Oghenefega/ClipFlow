@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_m5ru",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 859,
+  "thoughtTokens": 725
+ },
+ "cost": 0.011575499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious self-own with a big, contagious laughing reaction as the opponent completely demolishes his positioning.",
+  "what": "After saying he wants to sign out when opponents start getting fancy, Fega gets savagely bumped out of the way and scored on, laughing hard while calling it 'Savage, brutal!'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 8.5,
+  "reactionEndT": 23,
+  "keep_score": 85
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_p1tn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 518,
+  "thoughtTokens": 414
+ },
+ "cost": 0.008289,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just pre-game matchmaking menu banter with no funny gameplay payoff or comedy moment.",
+  "what": "Fega puts on his headset and hype talks his teammate Chili while waiting in the Rocket League matchmaking queue.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

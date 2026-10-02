@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788752392261_4kyz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3576,
+  "outputTokens": 731,
+  "thoughtTokens": 618
+ },
+ "cost": 0.0108465,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just commentary during pre-round build-up with no actual gameplay play or highlight occurring.",
+  "what": "The creator commentary compares a young IGL to an AI trained on the greatest IGLs ever during a match break.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

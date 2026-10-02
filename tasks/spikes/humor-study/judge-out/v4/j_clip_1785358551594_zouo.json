@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_zouo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6581,
+  "outputTokens": 674,
+  "thoughtTokens": 546
+ },
+ "cost": 0.0149265,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "The sudden rage quit right after he scores creates a funny payoff with an infectious laugh reaction.",
+  "what": "Fega predicts a 7-2 win, scores to make it 6-2 with 11 seconds remaining, and bursts into laughter when the opponent instantly rage quits.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 53,
+  "reactionEndT": 67,
+  "keep_score": 85
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_l23e",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5925,
+  "outputTokens": 640,
+  "thoughtTokens": 513
+ },
+ "cost": 0.0136875,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "Standard kills scattered across a round without a major clutch or multi-kill do not make a standout highlight clip.",
+  "what": "The creator watches 100 Thieves get routine kills and shut down the spike carrier in overtime while yelling 'Let's go!'",
+  "playQuality": 4,
+  "reactionSize": 5,
+  "payoffT": 14,
+  "reactionEndT": 18,
+  "keep_score": 25
+ }
+}

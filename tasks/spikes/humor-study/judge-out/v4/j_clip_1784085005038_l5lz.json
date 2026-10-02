@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_l5lz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3142,
+  "outputTokens": 571,
+  "thoughtTokens": 453
+ },
+ "cost": 0.0089955,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "Classic comedy setup where confident bragging immediately leads to chaotic failure and a funny frustrated reaction.",
+  "what": "The creator confidently claims 'I'm on a roll!' right before his egg rolls uncontrollably off the wooden structure and cracks open.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 16.5,
+  "reactionEndT": 21,
+  "keep_score": 88
+ }
+}

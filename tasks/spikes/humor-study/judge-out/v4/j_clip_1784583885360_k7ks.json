@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_k7ks",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 636,
+  "thoughtTokens": 531
+ },
+ "cost": 0.008688000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine stream chat banter during warm-up with no comedic payoff or funny moment.",
+  "what": "The creator chats with a viewer while practicing in Rocket League, saying he is preparing for his champ game.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

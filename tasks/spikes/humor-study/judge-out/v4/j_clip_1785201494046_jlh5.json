@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_jlh5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 594,
+  "thoughtTokens": 488
+ },
+ "cost": 0.0094665,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine gameplay commentary and self-analysis with no joke or comedic payoff.",
+  "what": "Fega reflects on making mistakes and notes that not conceding is as important as scoring while driving around the arena.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

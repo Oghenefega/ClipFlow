@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_86n8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 599,
+  "thoughtTokens": 473
+ },
+ "cost": 0.0088845,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "A hype, high-energy reaction to a dominant 100T round win that fits his watchparty brand well.",
+  "what": "The creator screams 'You can't stop us, bro!' as 100 Thieves shuts down an opponent site push.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 4.5,
+  "keep_score": 75
+ }
+}

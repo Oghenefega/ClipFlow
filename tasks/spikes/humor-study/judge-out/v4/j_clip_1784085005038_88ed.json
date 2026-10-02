@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_88ed",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1868,
+  "outputTokens": 373,
+  "thoughtTokens": 262
+ },
+ "cost": 0.0055995,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just intro menu setup and commentary with no comedic payoff or gameplay event.",
+  "what": "The streamer sits at the title screen of Egging On and claims 'It's literally the best game in the world' before hitting continue.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

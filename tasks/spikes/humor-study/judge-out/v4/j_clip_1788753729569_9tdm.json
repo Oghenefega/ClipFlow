@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_9tdm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2523,
+  "outputTokens": 639,
+  "thoughtTokens": 519
+ },
+ "cost": 0.008577,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "High energy hype reaction to a key player making a round-winning play.",
+  "what": "The creator shouts 'LET'S GO BANG! LET'S GO!' as Bang secures a crucial round win for 100 Thieves.",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 4,
+  "reactionEndT": 10,
+  "keep_score": 75
+ }
+}

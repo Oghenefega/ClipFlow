@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_2v8q",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1875,
+  "outputTokens": 474,
+  "thoughtTokens": 357
+ },
+ "cost": 0.0063675,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "A routine replay double kill paired with a very quiet, low-energy reaction.",
+  "what": "The creator watches a replay of Asuna getting two kills on A site and quietly remarks 'oh that was phenomenal'.",
+  "playQuality": 4,
+  "reactionSize": 3,
+  "payoffT": 10,
+  "reactionEndT": 12,
+  "keep_score": 25
+ }
+}

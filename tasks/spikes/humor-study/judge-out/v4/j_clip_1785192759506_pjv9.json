@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785192759506_pjv9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 519,
+  "thoughtTokens": 417
+ },
+ "cost": 0.007446,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just setup and tech talk in the menus with no joke or comedic payoff.",
+  "what": "The streamer navigates Rocket League menus into training while explaining that his headphones won't turn on.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

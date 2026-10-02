@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_qsfw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 481,
+  "thoughtTokens": 379
+ },
+ "cost": 0.008133,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just stream commentary about an upcoming tournament with no comedic payoff or notable gameplay.",
+  "what": "The creator talks about hosting a 1v1 Rocket League tournament while routine gameplay continues.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841626_uqyx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1713,
+  "outputTokens": 367,
+  "thoughtTokens": 269
+ },
+ "cost": 0.0053219999999999995,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "No kills or hype plays happen in this slow round setup segment.",
+  "what": "The creator quietly watches early round setup and commentates that they are good on defense.",
+  "playQuality": 0,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

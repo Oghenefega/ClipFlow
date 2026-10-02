@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_ppxe",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2947,
+  "outputTokens": 618,
+  "thoughtTokens": 502
+ },
+ "cost": 0.0090555,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "Funny commentary and reaction to another player's absurd and terrible hiding spot.",
+  "what": "The creator spectates a player named Chilly hiding conspicuously against a vertical pipe and laughs, saying 'What is this, bro?'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 15,
+  "reactionEndT": 23,
+  "keep_score": 70
+ }
+}

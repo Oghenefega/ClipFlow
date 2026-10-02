@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236854_h88y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4208,
+  "outputTokens": 702,
+  "thoughtTokens": 582
+ },
+ "cost": 0.011577,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "A clutch accidental skip paired with a hilarious, high-energy standing pop-off.",
+  "what": "The streamer accidentally pulls off an insane shortcut jump with the egg and pops off, shouting 'Wait a minute, I did not just do that!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 1.5,
+  "reactionEndT": 36,
+  "keep_score": 88
+ }
+}

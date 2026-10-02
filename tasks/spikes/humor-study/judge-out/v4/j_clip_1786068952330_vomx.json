@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068952330_vomx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4718,
+  "outputTokens": 655,
+  "thoughtTokens": 516
+ },
+ "cost": 0.0119895,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny and relatable cope moment where he uses absurd math logic to claim superiority after getting crushed.",
+  "what": "The creator analyzes post-game stats and hilariously claims he is the better player because his 2 goals on 3 shots is a 'better ratio' than his opponent's 12 goals on 22 shots.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 13,
+  "reactionEndT": 41,
+  "keep_score": 75
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088823_kl17",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3341,
+  "outputTokens": 510,
+  "thoughtTokens": 396
+ },
+ "cost": 0.0088365,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Routine gameplay banter with no strong comedy payoff or notable setup to make it stand out.",
+  "what": "Fega apologizes to his teammate for bumping into him and talks trash about the opponents right as his teammate scores.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 19,
+  "reactionEndT": 22,
+  "keep_score": 25
+ }
+}

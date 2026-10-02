@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_7g54",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 791,
+  "thoughtTokens": 662
+ },
+ "cost": 0.009121500000000001,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is just calm praise and narration of a decent goal replay without any significant hype or comedic payoff.",
+  "what": "Fega watches a Rocket League replay goal and calmly praises the play, saying 'This is not a diamond player ladies and gentlemen, that is a good player.'",
+  "playQuality": 6,
+  "reactionSize": 3,
+  "payoffT": 4,
+  "reactionEndT": 11,
+  "keep_score": 25
+ }
+}

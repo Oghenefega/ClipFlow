@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_bwhn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4799,
+  "outputTokens": 609,
+  "thoughtTokens": 487
+ },
+ "cost": 0.011765999999999999,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "A standard reaction to getting scored on without a strong setup or standout comedic payoff.",
+  "what": "Fega gets outplayed in Rocket League and exclaims, \"He read me like a book, bro! What the flip!\" after the opponent scores.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 22,
+  "reactionEndT": 25,
+  "keep_score": 45
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_mx0m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2288,
+  "outputTokens": 587,
+  "thoughtTokens": 480
+ },
+ "cost": 0.0078345,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Low-energy play-by-play sarcastic commentary on a teammate's mistake with no funny payoff or big reaction.",
+  "what": "Fega sarcastically compliments his teammate's pass, saying 'That's a great pass to the opponents.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 5,
+  "reactionEndT": 7,
+  "keep_score": 20
+ }
+}

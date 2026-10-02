@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_fht0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4729,
+  "outputTokens": 613,
+  "thoughtTokens": 503
+ },
+ "cost": 0.011691,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just lobby setup and idle talk with no gameplay payoff or funny moment.",
+  "what": "The creator struggles to remember the term for hiders while standing around in the lobby, complaining 'I'm so old, man.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

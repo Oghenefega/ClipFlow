@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_fegu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8112,
+  "outputTokens": 737,
+  "thoughtTokens": 600
+ },
+ "cost": 0.0176955,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "Extremely high-energy reaction to a major comeback victory and multi-kill highlight that fans of the team will love.",
+  "what": "The creator celebrates 100 Thieves' major VCT comeback win, pulling out his 100T jersey and hyping Cryo's four-piece round win.",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 8,
+  "reactionEndT": 28,
+  "keep_score": 85
+ }
+}

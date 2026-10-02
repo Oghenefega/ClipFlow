@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068952330_kxcs",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 639,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0106545,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A hilarious self-own with great comedic timing as he delivers an inspirational speech only to subvert it while down 1-17.",
+  "what": "Fega dramatically says 'You're not gonna break my spirit, bro... because it's already broken!' while losing 1-17.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 7,
+  "reactionEndT": 10,
+  "keep_score": 82
+ }
+}

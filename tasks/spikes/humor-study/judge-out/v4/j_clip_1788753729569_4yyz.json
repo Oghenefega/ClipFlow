@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753729569_4yyz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2118,
+  "outputTokens": 663,
+  "thoughtTokens": 537
+ },
+ "cost": 0.0081495,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just pre-round timeout setup and build-up with no gameplay or play occurring in the clip.",
+  "what": "The creator hypes up 100 Thieves during a crucial timeout, saying 'It's time, it's time... we know what we gotta do'.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

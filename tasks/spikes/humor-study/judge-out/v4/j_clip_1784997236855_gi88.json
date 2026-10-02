@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_gi88",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5099,
+  "outputTokens": 635,
+  "thoughtTokens": 504
+ },
+ "cost": 0.012411000000000002,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "Funny self-correction moment where his overconfidence catches up with him mid-sentence.",
+  "what": "Fega starts proposing a $100 bet on not falling once, then immediately stops himself saying 'let's just stop there, I don't know what I'm saying'.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 35,
+  "reactionEndT": 46,
+  "keep_score": 65
+ }
+}

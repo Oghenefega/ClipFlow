@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_2gr5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 561,
+  "thoughtTokens": 443
+ },
+ "cost": 0.0086115,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "His frantic effort to save the goal fails, giving a humorous payoff and animated reaction.",
+  "what": "Fega frantically tries to get back on defense, but the opponent scores and he yells in frustration: 'Oh my goodness, NO!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 8,
+  "reactionEndT": 20,
+  "keep_score": 65
+ }
+}

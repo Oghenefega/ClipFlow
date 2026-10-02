@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_0ccx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3433,
+  "outputTokens": 651,
+  "thoughtTokens": 540
+ },
+ "cost": 0.010032,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "The clip is just routine searching with ongoing commentary and no funny payoff or punchline.",
+  "what": "The creator confidently shoots at the canvas searching for a hidden player while saying 'I'm gonna catch your ass,' but finds no one.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

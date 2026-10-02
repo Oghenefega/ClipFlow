@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_q9h4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4961,
+  "outputTokens": 673,
+  "thoughtTokens": 553
+ },
+ "cost": 0.012489,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine end-of-match gameplay with a stream plug and no comedy payoff or notable moment.",
+  "what": "The streamer plays out the final seconds of a 7-3 Rocket League win while asking viewers to like the stream and saying 'GG bro, well played'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

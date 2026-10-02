@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788236213121_tu54",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4877,
+  "outputTokens": 885,
+  "thoughtTokens": 765
+ },
+ "cost": 0.013953,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "A hilarious breakdown of an absurd robot fail with huge genuine laughter and visual commentary.",
+  "what": "The creator reacts with hysterics to a robot goalie freezing during a soccer shot, joking 'Not the sound wave being what pushed the keeper back!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 11,
+  "reactionEndT": 33,
+  "keep_score": 88
+ }
+}

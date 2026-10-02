@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_d2zx",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1956,
+  "outputTokens": 756,
+  "thoughtTokens": 637
+ },
+ "cost": 0.008604,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "A routine single kill during a round does not meet the standard for a clip-worthy esports highlight.",
+  "what": "The streamer watches a standard post-plant kill for 100T and shouts 'Nice baby, nice!'",
+  "playQuality": 4,
+  "reactionSize": 5,
+  "payoffT": 6.5,
+  "reactionEndT": 8.5,
+  "keep_score": 30
+ }
+}

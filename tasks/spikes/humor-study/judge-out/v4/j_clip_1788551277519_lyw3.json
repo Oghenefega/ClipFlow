@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277519_lyw3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 646,
+  "thoughtTokens": 535
+ },
+ "cost": 0.0108165,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just excitement during a broadcast transition with no gameplay or actual play taking place.",
+  "what": "The creator hypes up 100 Thieves during broadcast transitions between maps, shouting 'Another trophy is coming home!'",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

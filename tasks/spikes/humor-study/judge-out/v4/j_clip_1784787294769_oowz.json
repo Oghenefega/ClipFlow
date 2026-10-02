@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294769_oowz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 1086,
+  "thoughtTokens": 965
+ },
+ "cost": 0.0126705,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is routine gameplay and standard post-goal celebration without a clear comedic subversion or standout punchline.",
+  "what": "Fega celebrates scoring a goal, saying \"I was out here just praying on this guy... wanting the best outcome, and I got it baby!\"",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 7,
+  "reactionEndT": 11,
+  "keep_score": 25
+ }
+}

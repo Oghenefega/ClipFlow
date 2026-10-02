@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695048_at8s",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2056,
+  "outputTokens": 417,
+  "thoughtTokens": 313
+ },
+ "cost": 0.0062115,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Low comedy value with mild narration and no strong punchline or big reaction.",
+  "what": "The streamer notices a teammate immediately get caught right after switching spectator camera to them.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 2,
+  "reactionEndT": 11,
+  "keep_score": 15
+ }
+}

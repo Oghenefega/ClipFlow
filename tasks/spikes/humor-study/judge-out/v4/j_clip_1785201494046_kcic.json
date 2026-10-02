@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_kcic",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 972,
+  "thoughtTokens": 846
+ },
+ "cost": 0.0125445,
+ "judged": {
+  "score": 72,
+  "kind": "comedy",
+  "reason": "A funny beat of pure disbelief after getting scored on twice in quick succession.",
+  "what": "After his opponent scores again to make it 4-8, Fega reacts in disbelief shouting 'Ain't no way, fam! Ain't no way, dude!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 25,
+  "reactionEndT": 29.5,
+  "keep_score": 72
+ }
+}

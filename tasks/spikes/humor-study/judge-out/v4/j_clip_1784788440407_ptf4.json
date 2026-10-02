@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_ptf4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1883,
+  "outputTokens": 524,
+  "thoughtTokens": 413
+ },
+ "cost": 0.0067545,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine goal celebration and casual commentary without any major comedic payoff or subversion.",
+  "what": "The creator celebrates scoring a goal and forces his opponent to watch the replay while admitting 'I almost didn't'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 1,
+  "reactionEndT": 4,
+  "keep_score": 15
+ }
+}

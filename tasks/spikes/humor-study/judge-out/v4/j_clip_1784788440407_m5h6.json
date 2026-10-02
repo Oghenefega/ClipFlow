@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_m5h6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2288,
+  "outputTokens": 664,
+  "thoughtTokens": 534
+ },
+ "cost": 0.008412,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "A casual joke about zero ping at the start of a match lacks a strong gameplay payoff or big reaction.",
+  "what": "The creator tells his opponent he won't take it easy, then checks the latency and says, 'Zero ping is crazy, who's your dad? NASA?'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 11.5,
+  "reactionEndT": 14.5,
+  "keep_score": 25
+ }
+}

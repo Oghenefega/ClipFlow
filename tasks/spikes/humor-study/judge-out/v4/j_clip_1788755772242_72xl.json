@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_72xl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3900,
+  "outputTokens": 752,
+  "thoughtTokens": 616
+ },
+ "cost": 0.01149,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "A clutch round at map point forcing overtime combined with an energetic callout and reaction makes this a strong highlight.",
+  "what": "The creator frantically points out an enemy hidden in the smoke shouting 'He's in the smoke, brother!' right before a clutch kill forces overtime at 12-12.",
+  "playQuality": 8,
+  "reactionSize": 8,
+  "payoffT": 19,
+  "reactionEndT": 35,
+  "keep_score": 85
+ }
+}

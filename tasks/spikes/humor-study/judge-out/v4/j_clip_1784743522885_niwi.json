@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_niwi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2369,
+  "outputTokens": 701,
+  "thoughtTokens": 571
+ },
+ "cost": 0.008811,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A classic self-own featuring his signature deflection line and self-deprecating humor right after a big mistake.",
+  "what": "The creator whiffs a save in Rocket League and immediately tries to cover it up, saying 'Let's not talk about it... I just sold, bro.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 3,
+  "reactionEndT": 15,
+  "keep_score": 82
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_dt63",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 524,
+  "thoughtTokens": 422
+ },
+ "cost": 0.0099015,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "This is slow round analysis with no highlight play or big reaction occurring.",
+  "what": "The creator quietly comments on player agent picks and weapon meta while early round positioning takes place on screen.",
+  "playQuality": 0,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

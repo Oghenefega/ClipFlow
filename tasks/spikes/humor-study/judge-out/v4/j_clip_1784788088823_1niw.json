@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088823_1niw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6338,
+  "outputTokens": 860,
+  "thoughtTokens": 732
+ },
+ "cost": 0.015957,
+ "judged": {
+  "score": 60,
+  "kind": "comedy",
+  "reason": "The reaction to getting demoed is lighthearted and funny, but the clip contains over thirty seconds of filler gameplay beforehand.",
+  "what": "After an opponent disconnects, Fega gets demoed in his own goal and laughs, saying 'That was actually so toxic what the heck!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 48,
+  "reactionEndT": 61,
+  "keep_score": 60
+ }
+}

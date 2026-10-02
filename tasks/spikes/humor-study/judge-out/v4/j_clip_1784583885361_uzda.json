@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885361_uzda",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 574,
+  "thoughtTokens": 460
+ },
+ "cost": 0.006765,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "The clip ends during kickoff setup before any funny mistake, payoff, or reaction takes place.",
+  "what": "Fega says 'I got this, I can get used to this' during a kickoff setup, but the clip cuts off before any action occurs.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

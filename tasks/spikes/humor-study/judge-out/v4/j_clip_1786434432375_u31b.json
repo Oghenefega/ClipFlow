@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_u31b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 772,
+  "thoughtTokens": 654
+ },
+ "cost": 0.009708000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "It is just casual commentary during a goal replay with no major comedic payoff or gameplay event.",
+  "what": "Fega jokes about being open to constructive criticism on his rotations, concluding with 'You suck, dude' before laughing at kickoff.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 14,
+  "reactionEndT": 17,
+  "keep_score": 25
+ }
+}

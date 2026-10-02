@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_phc9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 719,
+  "thoughtTokens": 597
+ },
+ "cost": 0.0090675,
+ "judged": {
+  "score": 78,
+  "kind": "comedy",
+  "reason": "Great comedic irony when his complaint about missing shots is immediately contradicted by an absurdly lucky play.",
+  "what": "Fega claims he can't hit shots anymore, then immediately pulls off a bizarre successful touch and screams 'Ain't no way fam!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 9.5,
+  "reactionEndT": 15,
+  "keep_score": 78
+ }
+}

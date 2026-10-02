@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_n7by",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4416,
+  "outputTokens": 710,
+  "thoughtTokens": 580
+ },
+ "cost": 0.011949,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "His energetic outburst and over-the-top celebration of 'big brain' timing make for an entertaining comedic clip.",
+  "what": "Fega rhythmically counts the egg's movement before suddenly celebrating, exclaiming 'Big brain, man! That's what I was thinking, bro!'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 18,
+  "reactionEndT": 29,
+  "keep_score": 70
+ }
+}

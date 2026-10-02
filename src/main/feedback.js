@@ -10,8 +10,8 @@ function logFeedback(entry) {
   if (!db) return { error: "Database not initialized" };
 
   db.run(
-    `INSERT INTO feedback (video_id, game_tag, clip_start, clip_end, title, transcript_segment, peak_energy, has_frame, claude_reason, peak_quote, energy_level, confidence, decision, user_note, timestamp)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO feedback (video_id, game_tag, clip_start, clip_end, title, transcript_segment, peak_energy, has_frame, claude_reason, peak_quote, energy_level, confidence, decision, user_note, timestamp, judge_score, judge_kind)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       entry.videoId || "",
       entry.gameTag || "",
@@ -28,6 +28,8 @@ function logFeedback(entry) {
       entry.decision,
       entry.userNote || "",
       Math.floor(Date.now() / 1000),
+      Number.isFinite(entry.judgeScore) ? entry.judgeScore : null,
+      entry.judgeKind || null,
     ]
   );
 
@@ -138,6 +140,9 @@ function entryFromClip(project, clip, decision) {
     hasFrame: !!clip.hasFrame,
     energyLevel: clip.energyLevel || "",
     confidence: clip.confidence || 0,
+    // #483: what the clip judge said, so keep-rate by score is queryable
+    judgeScore: clip.judge?.score,
+    judgeKind: clip.judge?.kind,
     decision,
     userNote: "",
   };

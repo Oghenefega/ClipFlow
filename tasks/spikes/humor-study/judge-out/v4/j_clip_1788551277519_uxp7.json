@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277519_uxp7",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3171,
+  "outputTokens": 778,
+  "thoughtTokens": 635
+ },
+ "cost": 0.0105915,
+ "judged": {
+  "score": 70,
+  "kind": "hype_reaction",
+  "reason": "Solid victory hype reaction for his team's dominant match win, though it focuses on the scoreboard/map win rather than a specific individual highlight kill.",
+  "what": "The creator hype-reacts to 100 Thieves closing out a dominant map victory, exclaiming 'These guys aren't good! We're the best!'",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 12,
+  "reactionEndT": 28,
+  "keep_score": 70
+ }
+}

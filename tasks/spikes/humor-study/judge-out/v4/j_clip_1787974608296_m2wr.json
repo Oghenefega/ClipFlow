@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_m2wr",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4467,
+  "outputTokens": 654,
+  "thoughtTokens": 526
+ },
+ "cost": 0.0116055,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "Great high-energy standing reaction to a stylish round-winning kill by his favored team.",
+  "what": "The creator loses his mind and stands up hype when Asuna secures a round win with a crazy kill, shouting 'You can't stop him, man!'",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 24.5,
+  "reactionEndT": 36,
+  "keep_score": 85
+ }
+}

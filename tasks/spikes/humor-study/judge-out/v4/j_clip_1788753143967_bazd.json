@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788753143967_bazd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4548,
+  "outputTokens": 766,
+  "thoughtTokens": 625
+ },
+ "cost": 0.012567,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "He correctly calls Voranoid's multi-kill ahead of time and boasts about it, making for a solid hype reaction moment.",
+  "what": "The creator predicts Voranoid's 3k multi-kill in a VCT match, throwing his hands up exclaiming 'What I say? What I say guys?'",
+  "playQuality": 6,
+  "reactionSize": 6,
+  "payoffT": 22,
+  "reactionEndT": 30,
+  "keep_score": 65
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072345_mt9p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3667,
+  "outputTokens": 421,
+  "thoughtTokens": 312
+ },
+ "cost": 0.008657999999999999,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is routine navigation and map checking with no comedic setup, payoff, or highlight moment.",
+  "what": "Fega checks his map to find an extraction point after a good raid, saying 'I have a reason to live.'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

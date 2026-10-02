@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945274_hc6l",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4637,
+  "outputTokens": 814,
+  "thoughtTokens": 688
+ },
+ "cost": 0.0130605,
+ "judged": {
+  "score": 95,
+  "kind": "comedy",
+  "reason": "He boasts that nobody can beat him right before scoring an own goal, delivering a perfect comedic failure and big laugh.",
+  "what": "Fega confidently says 'Ain't nobody who could do it to you, bro' right before scoring an own goal and laughing in disbelief.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 28.5,
+  "reactionEndT": 41,
+  "keep_score": 95
+ }
+}

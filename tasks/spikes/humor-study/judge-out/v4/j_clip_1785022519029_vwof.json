@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519029_vwof",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3584,
+  "outputTokens": 638,
+  "thoughtTokens": 531
+ },
+ "cost": 0.010161,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just casual story talk on a menu screen with no gameplay or comedic punchline.",
+  "what": "Fega talks about hosting a World Cup watch party at his house and enjoying being the villain against Messi fanboys.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

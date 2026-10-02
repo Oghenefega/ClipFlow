@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_m2wz",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 644,
+  "thoughtTokens": 525
+ },
+ "cost": 0.00972,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "While he gets quick revenge with a demolition, his delivery is low-energy and lacks a strong comic payoff.",
+  "what": "Fega complains about an opponent bumping him, saying 'This dude is always hitting me,' before demolishing them.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 16.5,
+  "reactionEndT": 18,
+  "keep_score": 30
+ }
+}

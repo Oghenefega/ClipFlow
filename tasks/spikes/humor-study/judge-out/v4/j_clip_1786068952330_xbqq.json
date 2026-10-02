@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068952330_xbqq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4313,
+  "outputTokens": 761,
+  "thoughtTokens": 630
+ },
+ "cost": 0.012177,
+ "judged": {
+  "score": 90,
+  "kind": "comedy",
+  "reason": "A perfect comedy moment where confident taunting is immediately punished by the game and followed by a funny, self-aware reaction.",
+  "what": "Fega confidently taunts his opponent asking 'Did he think it was just going to be an easy win?', only for the opponent to immediately score on him.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 12,
+  "reactionEndT": 27,
+  "keep_score": 90
+ }
+}

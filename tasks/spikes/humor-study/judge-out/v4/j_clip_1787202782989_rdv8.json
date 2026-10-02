@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_rdv8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 1125,
+  "thoughtTokens": 992
+ },
+ "cost": 0.014651999999999998,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "A funny observation on the team's pre-match chant with a good laugh, though the end drags as he searches for the timestamp.",
+  "what": "The creator notices an unusual huddle chant, rewinds to check, and bursts out laughing when the team yells 'Ding dong chief!'",
+  "playQuality": 0,
+  "reactionSize": 7,
+  "payoffT": 19.5,
+  "reactionEndT": 24,
+  "keep_score": 65
+ }
+}

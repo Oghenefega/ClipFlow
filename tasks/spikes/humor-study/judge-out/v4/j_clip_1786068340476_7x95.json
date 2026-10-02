@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_7x95",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5042,
+  "outputTokens": 579,
+  "thoughtTokens": 472
+ },
+ "cost": 0.0119055,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is purely stream setup and lobby instructions with no funny payoff or gameplay moment.",
+  "what": "The creator hypes up his performance and invites chat to join a 1v1 private match while setting up the lobby.",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974788113_0ezk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3090,
+  "outputTokens": 839,
+  "thoughtTokens": 705
+ },
+ "cost": 0.0109275,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "Although his reaction is energetic, the play itself is just standard trading into a round win without a major clutch or multi-kill.",
+  "what": "The creator gets hyped and stands up shouting 'LET'S GO BABY!' as 100 Thieves secures a routine 2v1 round win.",
+  "playQuality": 4,
+  "reactionSize": 7,
+  "payoffT": 22,
+  "reactionEndT": 27,
+  "keep_score": 35
+ }
+}

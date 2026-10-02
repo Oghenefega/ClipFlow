@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_fagj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5422,
+  "outputTokens": 489,
+  "thoughtTokens": 385
+ },
+ "cost": 0.011800499999999998,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just tedious menu navigation and setup talk with no comedic payoff or gameplay.",
+  "what": "The creator forgets his Rocket League keybindings while setting up controls in Deadline Delivery and opens Steam to check them.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099916957_olg3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5363,
+  "outputTokens": 565,
+  "thoughtTokens": 442
+ },
+ "cost": 0.012282,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Funny and hilarious commentary on absurd footage with a great comedic monologue delivery.",
+  "what": "The streamer watches footage of humanoid robot games and comically despairs about the impending robot apocalypse, claiming \"the West is cooked, I'm going back to Nigeria.\"",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 40,
+  "reactionEndT": 53,
+  "keep_score": 85
+ }
+}

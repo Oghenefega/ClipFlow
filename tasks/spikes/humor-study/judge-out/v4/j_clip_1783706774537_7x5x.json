@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_7x5x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4895,
+  "outputTokens": 776,
+  "thoughtTokens": 652
+ },
+ "cost": 0.0131625,
+ "judged": {
+  "score": 35,
+  "kind": "comedy",
+  "reason": "It is a standard gameplay moment with a mild reaction to an opponent mistake rather than a standalone comedy highlight.",
+  "what": "Fega laughs in surprise when his opponents inexplicably throw away a scoring chance, exclaiming, 'In no way they actually throw that!'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 17.5,
+  "reactionEndT": 23.5,
+  "keep_score": 35
+ }
+}

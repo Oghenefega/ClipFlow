@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551595_2khc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3503,
+  "outputTokens": 653,
+  "thoughtTokens": 537
+ },
+ "cost": 0.010152000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is routine gameplay mixed with chat banter, lacking a funny setup or memorable comedy payoff.",
+  "what": "The creator greets a viewer while playing Rocket League and makes a save, shouting 'Not on my watch, bro!'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 25,
+  "reactionEndT": 29.5,
+  "keep_score": 20
+ }
+}

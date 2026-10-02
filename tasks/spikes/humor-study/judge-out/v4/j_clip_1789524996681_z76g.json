@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789524996681_z76g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1866,
+  "outputTokens": 718,
+  "thoughtTokens": 589
+ },
+ "cost": 0.008184,
+ "judged": {
+  "score": 45,
+  "kind": "hype_reaction",
+  "reason": "It is a humorous observation of a crowd member with a genuine laugh, but lacks any actual gameplay highlight.",
+  "what": "The creator laughs uncontrollably as a fan in the crowd notices the camera and poses, saying 'She's like ah, I got to look pretty!'",
+  "playQuality": 2,
+  "reactionSize": 7,
+  "payoffT": 4,
+  "reactionEndT": 10,
+  "keep_score": 45
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551594_ny2b",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4394,
+  "outputTokens": 546,
+  "thoughtTokens": 434
+ },
+ "cost": 0.010686000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just pre-match setup and talk with no gameplay or comedic payoff in the clip.",
+  "what": "Fega confidently predicts he will win his upcoming match 7-2 and expose his opponent, but the match has not started yet.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

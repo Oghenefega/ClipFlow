@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358551595_0d1d",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2855,
+  "outputTokens": 831,
+  "thoughtTokens": 703
+ },
+ "cost": 0.010515,
+ "judged": {
+  "score": 62,
+  "kind": "comedy",
+  "reason": "Fega doubts the opponent, scores a clean aerial goal himself, and gives a funny confident speech to his stream.",
+  "what": "Fega doubts his opponent's ability to fly, then hits a clean aerial goal himself and declares, 'Guys, we are not losing tonight.'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 11,
+  "reactionEndT": 21,
+  "keep_score": 62
+ }
+}

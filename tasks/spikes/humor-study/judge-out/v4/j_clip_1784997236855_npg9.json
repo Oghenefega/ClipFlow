@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_npg9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4208,
+  "outputTokens": 640,
+  "thoughtTokens": 526
+ },
+ "cost": 0.011112,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine gameplay navigation and narration with no comedic payoff or unexpected event.",
+  "what": "The streamer rambles about being lost in Egging On before figuring out where to go, saying 'I don't know where I'm going next!'",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787669491065_rtht",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3908,
+  "outputTokens": 725,
+  "thoughtTokens": 592
+ },
+ "cost": 0.0112995,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "His dramatic complaint to his teammates is mildly funny, but the moment lacks a strong comedic payoff or subverted expectation.",
+  "what": "The creator sets up a pass in Rocket League and dramatically complains, \"Somebody be there to finish the job! I have already done... what more do you want from me?!\"",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 29.5,
+  "reactionEndT": 35,
+  "keep_score": 45
+ }
+}

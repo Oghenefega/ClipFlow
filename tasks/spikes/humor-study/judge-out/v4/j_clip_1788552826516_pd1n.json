@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_pd1n",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2037,
+  "outputTokens": 622,
+  "thoughtTokens": 497
+ },
+ "cost": 0.007720500000000001,
+ "judged": {
+  "score": 30,
+  "kind": "hype_reaction",
+  "reason": "A routine misplay and single kill that lacks the high-stakes multi-kill or clutch play required for a keeper.",
+  "what": "The creator laughs and mocks Mada's misplay after a routine kill, asking 'What was Mada thinking?'",
+  "playQuality": 3,
+  "reactionSize": 5,
+  "payoffT": 3.5,
+  "reactionEndT": 11.5,
+  "keep_score": 30
+ }
+}

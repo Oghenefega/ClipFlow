@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784743522885_tc70",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4232,
+  "outputTokens": 641,
+  "thoughtTokens": 517
+ },
+ "cost": 0.011155499999999999,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A classic self-own comedy moment where he confidently blames his teammate before realizing on replay that it was his fault.",
+  "what": "Fega angrily blames his teammate for letting in a goal, only to realize during the replay that he was the one who messed up.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 37,
+  "reactionEndT": 39,
+  "keep_score": 85
+ }
+}

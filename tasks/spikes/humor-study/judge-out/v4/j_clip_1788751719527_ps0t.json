@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719527_ps0t",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 491,
+  "thoughtTokens": 380
+ },
+ "cost": 0.009897,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or hype play reaction in this clip, only pre-match commentary over stage footage.",
+  "what": "The creator talks about team dynamics and veteran player Asuna while watching pre-match player intros and stage footage.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426951_ll9o",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3584,
+  "outputTokens": 530,
+  "thoughtTokens": 421
+ },
+ "cost": 0.009351,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine menu commentary and queuing between matches with no comedic payoff or funny moment.",
+  "what": "Fega sits in the Rocket League menu complaining about giving up his previous match before queuing into a 3v3 game.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_q7xj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 694,
+  "thoughtTokens": 587
+ },
+ "cost": 0.007665,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "The delivery is flat and lacks a clear comedic punchline or strong reaction.",
+  "what": "The creator makes a save in Rocket League and calmly says, \"My teammate is not good.\"",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 5,
+  "reactionEndT": 6,
+  "keep_score": 20
+ }
+}

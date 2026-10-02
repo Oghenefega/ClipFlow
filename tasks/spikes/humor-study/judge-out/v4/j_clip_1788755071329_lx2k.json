@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_lx2k",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 513,
+  "thoughtTokens": 404
+ },
+ "cost": 0.009576000000000001,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This clip consists entirely of halftime commentary and pre-round waiting without any gameplay or plays happening.",
+  "what": "The creator comments on halftime interview footage and hypes up 100 Thieves before the match starts.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

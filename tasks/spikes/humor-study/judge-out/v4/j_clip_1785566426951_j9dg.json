@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426951_j9dg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2774,
+  "outputTokens": 568,
+  "thoughtTokens": 447
+ },
+ "cost": 0.008421,
+ "judged": {
+  "score": 70,
+  "kind": "comedy",
+  "reason": "His genuine shock and hyped reaction to getting outplayed makes for a fun clip.",
+  "what": "The streamer gets outplayed by an opponent's shot and screams in disbelief, 'Ain't no way dude! He's actually wild.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 12,
+  "reactionEndT": 17,
+  "keep_score": 70
+ }
+}

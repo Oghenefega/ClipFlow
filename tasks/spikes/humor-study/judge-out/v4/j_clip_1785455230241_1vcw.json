@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_1vcw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1939,
+  "outputTokens": 537,
+  "thoughtTokens": 406
+ },
+ "cost": 0.006936000000000001,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "A funny self-own with high-energy hysterical laughter after ruining his timed delivery run.",
+  "what": "The creator panics shouting 'I ruined it! I ruined it!' as he crosses the finish line with a slow time of 21.891 seconds and laughs uncontrollably at his run.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 2.5,
+  "reactionEndT": 9,
+  "keep_score": 80
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608295_uhda",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2442,
+  "outputTokens": 470,
+  "thoughtTokens": 338
+ },
+ "cost": 0.007188,
+ "judged": {
+  "score": 90,
+  "kind": "hype_reaction",
+  "reason": "An incredible shot triggers a massive, genuine head-in-hands shocked reaction that fits the hype reaction style perfectly.",
+  "what": "The creator reacts with utter disbelief to an incredible Valorant shot, putting his hands on his head and screaming 'OH MY GOD! WHAT DID I JUST WATCH?!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 6.5,
+  "reactionEndT": 18,
+  "keep_score": 90
+ }
+}

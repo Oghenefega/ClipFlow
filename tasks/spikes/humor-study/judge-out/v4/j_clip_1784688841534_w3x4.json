@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_w3x4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3233,
+  "outputTokens": 633,
+  "thoughtTokens": 506
+ },
+ "cost": 0.009597000000000001,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "The instant flip from calm confidence to top-volume screaming and hands-in-the-air panic makes for a great comedy highlight.",
+  "what": "The creator claims to understand the game plan right before screaming in sudden terror as his egg teeters precariously on a wooden ledge.",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 19,
+  "reactionEndT": 24,
+  "keep_score": 85
+ }
+}

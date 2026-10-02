@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_unun",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 567,
+  "thoughtTokens": 447
+ },
+ "cost": 0.008049,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "The mistakes happened before the clip started, leaving only the tail end of his reaction followed by quiet gameplay.",
+  "what": "Fega reacts to a botched flip that caused a goal, asking 'Somebody explain to me what the flip I'm doing.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 2,
+  "reactionEndT": 7,
+  "keep_score": 25
+ }
+}

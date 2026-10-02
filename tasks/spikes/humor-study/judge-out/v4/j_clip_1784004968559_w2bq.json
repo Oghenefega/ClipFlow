@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968559_w2bq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2802,
+  "outputTokens": 444,
+  "thoughtTokens": 344
+ },
+ "cost": 0.007533,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just post-match menu talk with no gameplay or comedic payoff.",
+  "what": "The creator looks at his post-match scoreboard stats and casually talks about missing his friend Chili.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

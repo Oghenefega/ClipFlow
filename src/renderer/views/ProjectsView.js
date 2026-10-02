@@ -779,6 +779,12 @@ function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = fa
 }
 
 // ============ SCORE DISPLAY ============
+// #483: once the clip judge has ranked a project, its scores are the only ones
+// shown — a clip it could not watch shows none rather than a detection score
+// on what looks like the same scale.
+const isRanked = (project) => (project?.clips || []).some((c) => c.judge);
+const clipScore = (clip, project) => (isRanked(project) ? clip.judge?.score : clip.highlightScore);
+
 function ScoreDisplay({ score, size = 24 }) {
   if (!score || score <= 0) return null;
   const displayScore = (score / 10).toFixed(1);
@@ -1140,9 +1146,14 @@ function ClipDetails({ clip, project, onUpdateClip, onUpdateClipFields, onEditCl
 
       {/* Score + length */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <ScoreDisplay score={clip.highlightScore} size={38} />
+        <ScoreDisplay score={clipScore(clip, project)} size={38} />
         <span style={{ fontSize: 12.5, color: T.textTertiary, fontWeight: 600 }}>{fmtTime(clipLength(clip, project))} long</span>
       </div>
+      {clip.judge?.reason ? (
+        <div style={{ fontSize: 12.5, color: T.textSecondary, lineHeight: 1.45 }}>{clip.judge.reason}</div>
+      ) : isRanked(project) && (
+        <div style={{ fontSize: 12.5, color: T.textTertiary, lineHeight: 1.45 }}>Corva couldn&apos;t watch this clip, so it isn&apos;t ranked.</div>
+      )}
 
       <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} project={project} />
 
@@ -1352,7 +1363,7 @@ function ClipTile({ clip, project, template, posterW, selected, onSelect, onUpda
         {clip.title || "Untitled Clip"}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "7px 2px 0" }}>
-        <ScoreDisplay score={clip.highlightScore} size={16} />
+        <ScoreDisplay score={clipScore(clip, project)} size={16} />
         <span style={{ flex: 1 }} />
         <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} project={project} compact />
       </div>
@@ -2380,7 +2391,12 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
     onUpdateClip(pid, cid, status);
   };
 
-  const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? (isClipUndecided(c) || stickyRejected.has(c.id)) : true);
+  const matching = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? (isClipUndecided(c) || stickyRejected.has(c.id)) : true);
+  // #483: once the clip judge has scored this project, likely keepers come
+  // first; unscored clips follow, ties keep detection order (stable sort).
+  const filtered = clips.some((c) => c.judge)
+    ? [...matching].sort((a, b) => (b.judge?.score ?? -1) - (a.judge?.score ?? -1))
+    : matching;
   const approved = clips.filter(isApproved).length;
   const pending = clips.filter(isClipUndecided).length;
   const rendered = clips.filter((c) => c.renderStatus === "rendered").length;

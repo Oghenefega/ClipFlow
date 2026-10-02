@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945274_v3hg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4313,
+  "outputTokens": 463,
+  "thoughtTokens": 332
+ },
+ "cost": 0.009942,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny self-own where his comedic monologue ends in a missed shot and instant punishment from his opponent.",
+  "what": "Fega laments his opponent's aggression saying 'All I want is to breathe', misses a shot, and immediately gets scored on, admitting 'I deserve that one.'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 34,
+  "reactionEndT": 39,
+  "keep_score": 75
+ }
+}

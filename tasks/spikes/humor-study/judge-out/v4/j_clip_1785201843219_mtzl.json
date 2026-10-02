@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201843219_mtzl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 653,
+  "thoughtTokens": 535
+ },
+ "cost": 0.0088155,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine menu setup banter with no gameplay or strong comedic payoff.",
+  "what": "Fega struggles to think of synonyms for 'waiting' while navigating menus and admits, 'Damn, I gotta read more man, Jesus.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 17.5,
+  "reactionEndT": 18.5,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788550913587_0lqq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 842,
+  "thoughtTokens": 719
+ },
+ "cost": 0.012043499999999999,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just downtime during halftime and an advertisement with no actual gameplay play.",
+  "what": "The creator celebrates 100 Thieves taking the halftime lead by shouting 'We are going to Champs, man!', but no gameplay is shown before an ad plays.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": 3,
+  "reactionEndT": 17,
+  "keep_score": 10
+ }
+}

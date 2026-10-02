@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1790099949324_5ava",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1961,
+  "outputTokens": 517,
+  "thoughtTokens": 397
+ },
+ "cost": 0.006819,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious and relatable joke with genuine, infectious laughter as workers scramble to hold down the flailing robot.",
+  "what": "The creator laughs hysterically while comparing a malfunctioning flailing robot to 'The cockroach in my house trying to stand up'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 11,
+  "keep_score": 85
+ }
+}

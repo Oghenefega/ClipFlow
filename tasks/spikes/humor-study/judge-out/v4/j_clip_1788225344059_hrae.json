@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788225344059_hrae",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2602,
+  "outputTokens": 719,
+  "thoughtTokens": 588
+ },
+ "cost": 0.0092955,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This clip shows only post-match handshakes and end-game screens without any actual gameplay or winning play.",
+  "what": "The creator celebrates 100 Thieves' 2-0 match victory during post-game handshakes, shouting '2-0! Come on! Get 'em out of here!'.",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

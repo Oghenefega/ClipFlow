@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_5edq",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5363,
+  "outputTokens": 578,
+  "thoughtTokens": 447
+ },
+ "cost": 0.012379499999999998,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "His humorous existential panic about the robot uprising and declaring 'the West is cooked' makes for a strong, hilarious commentary moment.",
+  "what": "The creator reacts to footage from the World Humanoid Robot Games and jokes that 'we are living in the end times' and 'the West is cooked'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 44,
+  "reactionEndT": 53,
+  "keep_score": 82
+ }
+}

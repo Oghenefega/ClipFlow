@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695047_ec8g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3514,
+  "outputTokens": 609,
+  "thoughtTokens": 475
+ },
+ "cost": 0.0098385,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "A hilarious self-own where his completely visible hiding spot and naive question create a great laugh with his teammate.",
+  "what": "The creator fails to hide in a wall and floats completely in mid-air, asking his friend 'How do I make myself like flatten into the wall?' before learning he can't.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 19,
+  "reactionEndT": 30,
+  "keep_score": 85
+ }
+}

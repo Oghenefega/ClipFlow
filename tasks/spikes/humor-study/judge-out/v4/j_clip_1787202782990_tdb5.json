@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_tdb5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2037,
+  "outputTokens": 782,
+  "thoughtTokens": 646
+ },
+ "cost": 0.008920500000000001,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "The creator shows fun excitement for 100 Thieves, but the clip lacks a standout highlight play or clutch moment.",
+  "what": "The creator excitedly reacts to 100 Thieves round wins, shouting '100 Thieves about to win VCT! It's gonna be the best year ever!'",
+  "playQuality": 3,
+  "reactionSize": 6,
+  "payoffT": 3.5,
+  "reactionEndT": 12,
+  "keep_score": 35
+ }
+}

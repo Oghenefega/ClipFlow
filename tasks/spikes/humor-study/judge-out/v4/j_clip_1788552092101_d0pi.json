@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092101_d0pi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4872,
+  "outputTokens": 889,
+  "thoughtTokens": 751
+ },
+ "cost": 0.013975499999999998,
+ "judged": {
+  "score": 75,
+  "kind": "hype_reaction",
+  "reason": "His over-the-top taunt toward NRG fans during agent selection is highly entertaining and quotable despite having no live gameplay.",
+  "what": "The creator gets wildly hyped during agent select over 100 Thieves picking Phoenix and Neon, taunting NRG fans by yelling 'Are you an NRG fan? Go home!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 21,
+  "reactionEndT": 28,
+  "keep_score": 75
+ }
+}

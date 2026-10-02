@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202987979_08tg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 788,
+  "thoughtTokens": 651
+ },
+ "cost": 0.010301999999999999,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "While there is no active gameplay, the creator's genuine joy and hype during the trophy lift make for a solid team victory highlight.",
+  "what": "The creator passionately celebrates 100 Thieves winning and lifting the trophy, exclaiming 'That is insane! Nah, the joy in their hearts, man!'",
+  "playQuality": 6,
+  "reactionSize": 7,
+  "payoffT": 12,
+  "reactionEndT": 15,
+  "keep_score": 65
+ }
+}

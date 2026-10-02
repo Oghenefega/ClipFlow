@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788088824_ihpm",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 559,
+  "thoughtTokens": 441
+ },
+ "cost": 0.0071385,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "It is just mild sarcastic commentary during a routine goal replay without a big payoff or funny escalation.",
+  "what": "The creator sarcastically reacts after getting demolished on an opponent goal, saying 'Keep blowing me up man... Priorities my dude.'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 1,
+  "reactionEndT": 8,
+  "keep_score": 30
+ }
+}

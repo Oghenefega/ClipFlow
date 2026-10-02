@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788149370220_gqno",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4548,
+  "outputTokens": 732,
+  "thoughtTokens": 595
+ },
+ "cost": 0.012312,
+ "judged": {
+  "score": 65,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay in this clip, but the creator's genuine laughter and funny commentary about the giant timeout button make it an entertaining side moment.",
+  "what": "The creator cracks up laughing when the coach dramatically slams a giant glowing red timeout button on stage, saying 'That is so dramatic for no reason.'",
+  "playQuality": 0,
+  "reactionSize": 7,
+  "payoffT": 19,
+  "reactionEndT": 45,
+  "keep_score": 65
+ }
+}

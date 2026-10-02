@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_m6kd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6330,
+  "outputTokens": 932,
+  "thoughtTokens": 802
+ },
+ "cost": 0.016485,
+ "judged": {
+  "score": 55,
+  "kind": "hype_reaction",
+  "reason": "The creator hypes up the round win, but the clip doesn't showcase an extraordinary multi-kill or clutch live on screen.",
+  "what": "The creator shouts 'Let's go! Oh my goodness!' as 100 Thieves secures a round win against LOUD.",
+  "playQuality": 5,
+  "reactionSize": 6,
+  "payoffT": 1,
+  "reactionEndT": 13,
+  "keep_score": 55
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_kbdg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 753,
+  "thoughtTokens": 608
+ },
+ "cost": 0.010416,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "A hilarious self-own followed by a huge laugh and a great self-deprecating line.",
+  "what": "The creator panics and accidentally sets up an opponent goal, then laughs hysterically and says, \"I panicked! I was doing too much! I'm like, you know what, you want an assist? I'll show you an assist!\"",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 9.5,
+  "reactionEndT": 22,
+  "keep_score": 88
+ }
+}

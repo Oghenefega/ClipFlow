@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826515_sjg8",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 835,
+  "thoughtTokens": 722
+ },
+ "cost": 0.011991,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or competitive action in this clip, only a team walkout and fan interaction.",
+  "what": "The creator cheers as the 100 Thieves Valorant roster walks out onto the stage and signs autographs for fans.",
+  "playQuality": 0,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

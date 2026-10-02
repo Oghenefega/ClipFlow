@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784085005038_z19p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1959,
+  "outputTokens": 593,
+  "thoughtTokens": 470
+ },
+ "cost": 0.007386,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "A low-stakes moment where he simply realizes why he is on the ground, lacking a funny payoff or dynamic reaction.",
+  "what": "Fega wakes up on the ground asking 'Why am I on the ground?' before calmly realizing he probably fell in his last session.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 1,
+  "reactionEndT": 7,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_8iy0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4143,
+  "outputTokens": 628,
+  "thoughtTokens": 509
+ },
+ "cost": 0.0109245,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A funny premature celebration that immediately pivots into complete confusion when he realizes he is lost.",
+  "what": "Fega celebrates making a huge skip with 'Let's fucking go baby!' only to immediately realize he has no idea where he landed.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 12,
+  "reactionEndT": 28,
+  "keep_score": 82
+ }
+}

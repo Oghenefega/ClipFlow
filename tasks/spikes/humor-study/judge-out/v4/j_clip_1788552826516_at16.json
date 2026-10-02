@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_at16",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1875,
+  "outputTokens": 625,
+  "thoughtTokens": 508
+ },
+ "cost": 0.0075,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction with a great physical response right as 100T closes out the round.",
+  "what": "100T secures a fast round-ending sequence, causing the creator to leap out of his chair screaming 'GET HIM OUT OF THERE!'",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 6.5,
+  "reactionEndT": 12,
+  "keep_score": 85
+ }
+}

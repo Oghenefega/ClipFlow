@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_oa49",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4208,
+  "outputTokens": 702,
+  "thoughtTokens": 569
+ },
+ "cost": 0.011577,
+ "judged": {
+  "score": 68,
+  "kind": "comedy",
+  "reason": "His immediate fall right after complaining about no checkpoints is funny, though his reaction is fairly subdued.",
+  "what": "After declaring that playing with no checkpoints is the worst thing anyone could do, he immediately slips and rolls all the way down into the grass, asking 'Are y'all seeing this nonsense?'.",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 21,
+  "reactionEndT": 36,
+  "keep_score": 68
+ }
+}

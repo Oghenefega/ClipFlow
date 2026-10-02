@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_cp35",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 578,
+  "thoughtTokens": 461
+ },
+ "cost": 0.008253,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A solid comedic setup where his confident prediction is immediately punished by getting scored on.",
+  "what": "Fega wonders if he will finally score on his opponent, only to immediately concede a goal and say 'I spoke too early.'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 16.5,
+  "reactionEndT": 19.5,
+  "keep_score": 75
+ }
+}

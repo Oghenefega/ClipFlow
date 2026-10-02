@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784997236855_0813",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3236,
+  "outputTokens": 636,
+  "thoughtTokens": 519
+ },
+ "cost": 0.009624,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A high-energy victory moment with genuine excitement after clutching a difficult checkpoint.",
+  "what": "Fega carefully guides his egg onto the helipad and screams with pure joy, 'CHECK FREAKING POINT! LET'S GO!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 8.5,
+  "reactionEndT": 16,
+  "keep_score": 75
+ }
+}

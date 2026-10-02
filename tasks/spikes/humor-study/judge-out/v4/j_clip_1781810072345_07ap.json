@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072345_07ap",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4031,
+  "outputTokens": 559,
+  "thoughtTokens": 457
+ },
+ "cost": 0.010239,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just routine inventory setup and menu talk without any comedic payoff or action.",
+  "what": "The streamer customizes his loadout in the game menu while complaining that his gun mods are horrible.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785022519029_jefc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 1173,
+  "thoughtTokens": 1057
+ },
+ "cost": 0.014294999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just stream banter while idling on a menu screen without any play or clip happening.",
+  "what": "The creator passionately celebrates Argentina's loss, claiming it was one of the best days of his adult life and calling them \"frauds\".",
+  "playQuality": 0,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

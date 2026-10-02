@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_u1it",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5609,
+  "outputTokens": 711,
+  "thoughtTokens": 601
+ },
+ "cost": 0.013746000000000001,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is mostly setup narration and routine match start with no real comedic payoff or standout moment.",
+  "what": "Fega announces he means business because his headphones are on, then enters a Rocket League match where his teammate scores an early goal.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

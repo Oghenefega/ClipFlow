@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440146_fhip",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2623,
+  "outputTokens": 766,
+  "thoughtTokens": 641
+ },
+ "cost": 0.0096795,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "An unexpected surprise tag leads to a genuinely hyped, funny reaction and clapping celebration.",
+  "what": "While asking if someone can hide on the wall, he tests slapping a picture frame and unexpectedly catches a hidden player, screaming 'Did I get him?! Let's go!'",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 5.5,
+  "reactionEndT": 12.5,
+  "keep_score": 88
+ }
+}

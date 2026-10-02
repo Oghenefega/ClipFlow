@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294770_l4x1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 503,
+  "thoughtTokens": 402
+ },
+ "cost": 0.007447499999999999,
+ "judged": {
+  "score": 8,
+  "kind": "comedy",
+  "reason": "This is just pre-match setup commentary with no gameplay action or comedic payoff.",
+  "what": "The creator talks about setting up a match with Owen while idling on the Rocket League team selection screen.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 8
+ }
+}

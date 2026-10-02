@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757102761_9kag",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 592,
+  "thoughtTokens": 461
+ },
+ "cost": 0.0099255,
+ "judged": {
+  "score": 45,
+  "kind": "hype_reaction",
+  "reason": "While the stakes are high on match point, the clip cuts off mid-round without showing a major multi-kill or round-winning payoff.",
+  "what": "The creator reacts with hype shouting 'Let's go!' as 100T executes on site during match point.",
+  "playQuality": 6,
+  "reactionSize": 6,
+  "payoffT": 31,
+  "reactionEndT": 35,
+  "keep_score": 45
+ }
+}

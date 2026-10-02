@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_gjwc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 666,
+  "thoughtTokens": 523
+ },
+ "cost": 0.010602,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "The dramatic hoodie reveal perfectly synced with 100T's entry kills creates a highly entertaining, quotable hype moment.",
+  "what": "The creator hype-predicts 100T's round tactics and dramatically rips off his red hoodie to reveal a Portugal jersey right as 100T secures two quick site kills.",
+  "playQuality": 6,
+  "reactionSize": 9,
+  "payoffT": 18,
+  "reactionEndT": 30,
+  "keep_score": 85
+ }
+}

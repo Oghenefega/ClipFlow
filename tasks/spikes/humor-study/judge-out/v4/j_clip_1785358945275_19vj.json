@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_19vj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3098,
+  "outputTokens": 577,
+  "thoughtTokens": 478
+ },
+ "cost": 0.0089745,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just serious game commentary and analysis without any funny payoff or comedy moment.",
+  "what": "The streamer calmly explains his strategy for collecting boost pads and recovering faster in Rocket League.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

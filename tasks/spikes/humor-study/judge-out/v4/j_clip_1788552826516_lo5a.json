@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_lo5a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3900,
+  "outputTokens": 683,
+  "thoughtTokens": 545
+ },
+ "cost": 0.0109725,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is a routine round start with standard opening kills, lacking the multi-kill or clutch play needed for a hype highlight.",
+  "what": "The creator watches 100T get opening kills in a round, saying 'Ayo, what the flip' and 'There we go, there we go!'.",
+  "playQuality": 4,
+  "reactionSize": 3,
+  "payoffT": 20,
+  "reactionEndT": 37,
+  "keep_score": 25
+ }
+}

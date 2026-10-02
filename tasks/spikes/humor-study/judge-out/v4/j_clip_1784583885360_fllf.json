@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784583885360_fllf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3989,
+  "outputTokens": 861,
+  "thoughtTokens": 746
+ },
+ "cost": 0.012441,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This clip consists mostly of setup and tech talk in the settings menu without a strong comedy payoff.",
+  "what": "Fega laughs at his own Rocket League settings and spends the rest of the clip adjusting control and camera menus.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

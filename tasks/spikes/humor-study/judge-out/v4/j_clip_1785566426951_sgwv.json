@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566426951_sgwv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4151,
+  "outputTokens": 663,
+  "thoughtTokens": 540
+ },
+ "cost": 0.011199,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "His sarcastic reaction to an absurd viewer message creates a funny, relatable streamer moment.",
+  "what": "Fega recounts a viewer demanding to play with him because 'no one's watching you', then dryly responds 'that's very compelling' and laughs.",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 22,
+  "reactionEndT": 33,
+  "keep_score": 75
+ }
+}

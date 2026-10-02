@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782989_ngxn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6006,
+  "outputTokens": 660,
+  "thoughtTokens": 531
+ },
+ "cost": 0.013959,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "A match-winning round for 100 Thieves with a big, high-energy celebration from the creator.",
+  "what": "The streamer cheers 'Let's freaking go, dude!' with hands raised as 100 Thieves wins the final match-winning round.",
+  "playQuality": 8,
+  "reactionSize": 8,
+  "payoffT": 53,
+  "reactionEndT": 60,
+  "keep_score": 85
+ }
+}

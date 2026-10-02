@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_rtaf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3758,
+  "outputTokens": 533,
+  "thoughtTokens": 421
+ },
+ "cost": 0.0096345,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "The moment consists mostly of slow gameplay setup and quietly hiding in a bush without a comedic payoff or clear joke.",
+  "what": "The creator loots a player body while asking why there are so many dead individuals before ducking quietly into a bush.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

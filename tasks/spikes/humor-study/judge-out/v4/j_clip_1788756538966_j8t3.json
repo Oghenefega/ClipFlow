@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_j8t3",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3819,
+  "outputTokens": 517,
+  "thoughtTokens": 410
+ },
+ "cost": 0.009606,
+ "judged": {
+  "score": 5,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or hype reaction in this clip, only casual commentary during a technical pause.",
+  "what": "The creator watches a tech pause during a VCT match and comments on a player warming his hands.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_i588",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3576,
+  "outputTokens": 684,
+  "thoughtTokens": 543
+ },
+ "cost": 0.010494,
+ "judged": {
+  "score": 45,
+  "kind": "hype_reaction",
+  "reason": "This is a standard round-closing kill rather than a high-stakes clutch or multi-kill.",
+  "what": "The creator celebrates 100T winning the round after a Shorty kill, yelling 'Let's go! I don't even know how the other guy died, but we don't care!'",
+  "playQuality": 4,
+  "reactionSize": 6,
+  "payoffT": 23.5,
+  "reactionEndT": 30,
+  "keep_score": 45
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_p3lp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2766,
+  "outputTokens": 749,
+  "thoughtTokens": 601
+ },
+ "cost": 0.009766500000000001,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-stakes round win at 11-11 to reach map point paired with a huge, energetic reaction from the creator.",
+  "what": "100 Thieves secures a crucial round win to reach map point 12-11, prompting the creator to jump out of his chair screaming 'LET'S GO!' and 'JOB'S NOT DONE!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 5.5,
+  "reactionEndT": 19.5,
+  "keep_score": 88
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138777_c9i4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2693,
+  "outputTokens": 595,
+  "thoughtTokens": 487
+ },
+ "cost": 0.008502,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just standard post-game wrap-up and menu navigation with no comedy payoff or highlight.",
+  "what": "Fega finishes a Rocket League match with a win and checks his end-game stats while talking through the victory.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

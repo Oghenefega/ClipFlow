@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788751719526_0km1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5844,
+  "outputTokens": 908,
+  "thoughtTokens": 770
+ },
+ "cost": 0.015576,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "An impressive 1v3 clutch against his team triggers a big, dramatic despair reaction that fans love to see.",
+  "what": "LOUD cauanzin pulls off a 1v3 clutch against 100T, prompting the creator to throw his hands up and yell 'NOOO!' in absolute despair.",
+  "playQuality": 8,
+  "reactionSize": 8,
+  "payoffT": 32,
+  "reactionEndT": 38,
+  "keep_score": 85
+ }
+}

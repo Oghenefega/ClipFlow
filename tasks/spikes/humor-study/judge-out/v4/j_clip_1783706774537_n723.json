@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_n723",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4076,
+  "outputTokens": 496,
+  "thoughtTokens": 392
+ },
+ "cost": 0.009833999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just routine downtime and chat banter between matches with no gameplay or comedy payoff.",
+  "what": "Fega chats with his stream between Rocket League matches, jokingly denying that he lost any games that night.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

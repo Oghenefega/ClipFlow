@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138778_txny",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3179,
+  "outputTokens": 603,
+  "thoughtTokens": 483
+ },
+ "cost": 0.009291,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is routine post-goal analysis and normal gameplay commentary with no comedic payoff or standout moment.",
+  "what": "After conceding a goal and analyzing his poor positioning during the replay, Fega restarts the match saying 'All right, that's all you bro. Easy, lightweight.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

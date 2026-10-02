@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_0y3h",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 630,
+  "thoughtTokens": 497
+ },
+ "cost": 0.009603,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "A high-stakes match-winning round paired with an energetic jersey-reveal reaction makes this a great hype highlight.",
+  "what": "The creator shouts 'LET'S GO!' and reveals his 100 Thieves jersey as 100T secures the match-winning round in overtime.",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 19,
+  "reactionEndT": 29,
+  "keep_score": 88
+ }
+}

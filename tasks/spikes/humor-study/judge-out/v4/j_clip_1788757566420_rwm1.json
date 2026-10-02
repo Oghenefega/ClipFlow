@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_rwm1",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1956,
+  "outputTokens": 495,
+  "thoughtTokens": 386
+ },
+ "cost": 0.0066465,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay play and the creator's reaction is just mild chuckling during post-match interviews.",
+  "what": "The streamer smiles and chuckles while watching post-match interview footage looking for Asuna.",
+  "playQuality": 0,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787805514632_udn4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4391,
+  "outputTokens": 818,
+  "thoughtTokens": 690
+ },
+ "cost": 0.0127215,
+ "judged": {
+  "score": 45,
+  "kind": "comedy",
+  "reason": "The initial reaction to the failing combat robot is amusing, but the clip drags on into dull video browsing and ends flatly.",
+  "what": "The creator roasts a fighting robot for getting easily knocked down, exclaiming, 'The dude in silver literally did not land one shot!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 11,
+  "reactionEndT": 18,
+  "keep_score": 45
+ }
+}

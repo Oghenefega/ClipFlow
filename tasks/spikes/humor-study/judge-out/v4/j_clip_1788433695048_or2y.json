@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695048_or2y",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4081,
+  "outputTokens": 519,
+  "thoughtTokens": 385
+ },
+ "cost": 0.010014,
+ "judged": {
+  "score": 88,
+  "kind": "comedy",
+  "reason": "A hilarious self-own where his terrible wall-pose leaves his character completely exposed, triggering genuine wheezing laughter.",
+  "what": "The creator attempts to pose on a wall in Meccha Chameleon but bursts into uncontrollable laughter as his character's legs and butt stick out blatantly (\"Oh my god, my butt!\").",
+  "playQuality": null,
+  "reactionSize": 9,
+  "payoffT": 9,
+  "reactionEndT": 37,
+  "keep_score": 88
+ }
+}

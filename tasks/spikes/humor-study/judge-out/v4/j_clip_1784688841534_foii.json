@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841534_foii",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4689,
+  "outputTokens": 762,
+  "thoughtTokens": 648
+ },
+ "cost": 0.0127485,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "Clear setup and immediate fail comedy moment, though the energy trails off towards the end.",
+  "what": "Fega counts down to time a jump and immediately falls, shouting 'Hey! Oh! No, damn it!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 8.5,
+  "reactionEndT": 14,
+  "keep_score": 65
+ }
+}

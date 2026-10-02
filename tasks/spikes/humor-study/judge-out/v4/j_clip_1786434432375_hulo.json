@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432375_hulo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4070,
+  "outputTokens": 457,
+  "thoughtTokens": 343
+ },
+ "cost": 0.0095325,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "Nothing notable or funny happens in the clip, consisting mostly of silent, routine gameplay without a comedic payoff.",
+  "what": "Fega wonders how a shot didn't go in and proceeds to play Rocket League in near silence for the rest of the clip.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

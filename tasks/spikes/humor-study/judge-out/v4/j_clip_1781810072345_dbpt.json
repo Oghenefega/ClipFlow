@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072345_dbpt",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3758,
+  "outputTokens": 577,
+  "thoughtTokens": 472
+ },
+ "cost": 0.009964500000000001,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just setup and routine commentary on a loading screen with no funny moment or payoff.",
+  "what": "The creator watches a deployment cutscene and talks through his objectives for the upcoming raid while on a loading screen.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

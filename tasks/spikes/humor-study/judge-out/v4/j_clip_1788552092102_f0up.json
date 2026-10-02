@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_f0up",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 546,
+  "thoughtTokens": 410
+ },
+ "cost": 0.009094500000000002,
+ "judged": {
+  "score": 92,
+  "kind": "hype_reaction",
+  "reason": "A high-impact multi-kill round win for his team paired with a passionate, full-body hype reaction.",
+  "what": "The creator hypes up Asuna's multi-kill round win for 100 Thieves, jumping out of his chair and shouting 'It's too easy!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 10,
+  "reactionEndT": 29,
+  "keep_score": 92
+ }
+}

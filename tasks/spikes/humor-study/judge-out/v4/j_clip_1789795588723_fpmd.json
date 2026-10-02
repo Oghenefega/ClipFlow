@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588723_fpmd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4081,
+  "outputTokens": 483,
+  "thoughtTokens": 385
+ },
+ "cost": 0.009744,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "Nothing funny or eventful happens during the gameplay search, lacking any payoff.",
+  "what": "The streamer says he will get real good soon and then quietly walks around searching for hidden players.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

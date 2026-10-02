@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340476_60x0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3746,
+  "outputTokens": 777,
+  "thoughtTokens": 637
+ },
+ "cost": 0.011446500000000002,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "A relatable self-own as he hands his opponent two easy back-to-back goals and laughs at his own mistakes.",
+  "what": "After conceding two goals in quick succession off his own misplays, the creator despairs, 'Oh my goodness! I just gave this guy two free back-to-back, come on man!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 22,
+  "reactionEndT": 28,
+  "keep_score": 65
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_qgcd",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3260,
+  "outputTokens": 712,
+  "thoughtTokens": 587
+ },
+ "cost": 0.01023,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "Standard gameplay and hype commentary that lacks a strong comedic payoff or subverted expectation.",
+  "what": "The creator scores a goal and celebrates his shot before continuing to play and hype up his defense, saying 'What a shot bro. I couldn't do that on the octane.'",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 1,
+  "reactionEndT": 6,
+  "keep_score": 30
+ }
+}

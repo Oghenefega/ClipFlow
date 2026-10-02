@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_h8g5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5115,
+  "outputTokens": 402,
+  "thoughtTokens": 280
+ },
+ "cost": 0.010687499999999999,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-impact pro clutch with a passionate, energetic reaction and memorable quotes.",
+  "what": "The creator reacts wildly to an incredible round-saving clutch play by Asuna, shouting \"What a save! Asuna is THAT Phoenix guy!\"",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 10,
+  "reactionEndT": 39,
+  "keep_score": 88
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785908334594_4nhn",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3597,
+  "outputTokens": 689,
+  "thoughtTokens": 563
+ },
+ "cost": 0.010563,
+ "judged": {
+  "score": 85,
+  "kind": "comedy",
+  "reason": "Great comedic timing with his confident question being immediately answered by getting smacked by the obstacle.",
+  "what": "Fega wonders if he can make a jump in four seconds right before getting slapped by a moving wooden board, laughing and saying 'You're on your own here!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 15,
+  "reactionEndT": 20,
+  "keep_score": 85
+ }
+}

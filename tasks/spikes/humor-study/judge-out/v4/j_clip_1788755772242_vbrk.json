@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_vbrk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5358,
+  "outputTokens": 621,
+  "thoughtTokens": 504
+ },
+ "cost": 0.0126945,
+ "judged": {
+  "score": 15,
+  "kind": "hype_reaction",
+  "reason": "This is just downtime during a timeout with no gameplay or highlighted play happening on screen.",
+  "what": "The creator gets excited during a match timeout as casters begin discussing a 100 Thieves comeback, joking 'Now the casters are believing'.",
+  "playQuality": 0,
+  "reactionSize": 5,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

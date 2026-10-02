@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_3d52",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3961,
+  "outputTokens": 635,
+  "thoughtTokens": 526
+ },
+ "cost": 0.010704000000000002,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "This is slow post-fall rambling and chat greeting without a comedic punchline or funny payoff.",
+  "what": "The creator rolls around as an egg while lamenting how he fumbled his best run and greeting a viewer in chat.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

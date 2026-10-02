@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975841625_800i",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4872,
+  "outputTokens": 842,
+  "thoughtTokens": 715
+ },
+ "cost": 0.013623,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "A great match-winning series climax with high energy and a passionate victory reaction.",
+  "what": "100 Thieves secures a flawless final round to win the series 2-0, causing the creator to jump up and shout 'I am that fan baby!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 12,
+  "reactionEndT": 48,
+  "keep_score": 88
+ }
+}

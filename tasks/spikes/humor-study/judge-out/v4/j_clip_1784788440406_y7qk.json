@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440406_y7qk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2450,
+  "outputTokens": 905,
+  "thoughtTokens": 772
+ },
+ "cost": 0.0104625,
+ "judged": {
+  "score": 50,
+  "kind": "comedy",
+  "reason": "A standard goal hype moment with his signature lines, but lacks a comedic twist or strong payoff to make it a standout clip.",
+  "what": "Fega scores a goal to tie the game and loudly boasts during the replay when he sees an opponent tried to demo him, shouting 'Do you know who I am?'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 2,
+  "reactionEndT": 16,
+  "keep_score": 50
+ }
+}

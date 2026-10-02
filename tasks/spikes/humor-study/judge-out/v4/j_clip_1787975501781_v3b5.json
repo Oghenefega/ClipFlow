@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501781_v3b5",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 646,
+  "thoughtTokens": 514
+ },
+ "cost": 0.009966,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "A routine round-ending single kill with standard hype does not qualify as a clip-worthy play.",
+  "what": "Bang gets a single kill to close out the round for 100T while the creator chants 'Get him out of there! He's not that guy!'",
+  "playQuality": 4,
+  "reactionSize": 5,
+  "payoffT": 10.5,
+  "reactionEndT": 24,
+  "keep_score": 25
+ }
+}

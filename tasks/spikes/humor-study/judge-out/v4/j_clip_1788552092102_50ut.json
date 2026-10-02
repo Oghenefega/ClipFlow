@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_50ut",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2928,
+  "outputTokens": 802,
+  "thoughtTokens": 679
+ },
+ "cost": 0.010407,
+ "judged": {
+  "score": 35,
+  "kind": "hype_reaction",
+  "reason": "The reaction is loud and hyped, but the clip shows the round win screen rather than the actual play that caused it.",
+  "what": "The creator screams 'GET HIM OUT OF HERE!' and celebrates 100 Thieves winning a round against NRG.",
+  "playQuality": 4,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 14,
+  "keep_score": 35
+ }
+}

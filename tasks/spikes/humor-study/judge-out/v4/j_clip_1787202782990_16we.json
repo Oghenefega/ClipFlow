@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787202782990_16we",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3252,
+  "outputTokens": 622,
+  "thoughtTokens": 499
+ },
+ "cost": 0.009543000000000001,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "There is no gameplay or play highlight shown, only stage celebrations and post-match interview commentary.",
+  "what": "The creator watches a team celebrate a match win and transitions into post-match interviews, exclaiming 'Let's freaking go, dude.'",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": 1.5,
+  "reactionEndT": 4,
+  "keep_score": 20
+ }
+}

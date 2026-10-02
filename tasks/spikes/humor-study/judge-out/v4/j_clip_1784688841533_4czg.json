@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784688841533_4czg",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4416,
+  "outputTokens": 699,
+  "thoughtTokens": 574
+ },
+ "cost": 0.011866499999999999,
+ "judged": {
+  "score": 90,
+  "kind": "comedy",
+  "reason": "Classic setup and payoff where extreme overconfidence immediately results in a disastrous fall and loud reaction.",
+  "what": "Fega boasts 'It's so easy, I make it look so easy!' right before dropping his egg and screaming 'NO BRO! What the heck?!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 30,
+  "reactionEndT": 34,
+  "keep_score": 90
+ }
+}

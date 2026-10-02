@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294769_qlqo",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4313,
+  "outputTokens": 696,
+  "thoughtTokens": 595
+ },
+ "cost": 0.011689499999999999,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Routine gameplay with casual commentary and no strong comedic payoff or funny moment.",
+  "what": "Fega plays Rocket League, watching standard goals and commenting, 'Damn, okay Player 1.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

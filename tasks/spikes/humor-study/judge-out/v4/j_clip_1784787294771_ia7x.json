@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787294771_ia7x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7148,
+  "outputTokens": 618,
+  "thoughtTokens": 485
+ },
+ "cost": 0.015356999999999999,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "This is routine 1v1 Rocket League play paired with chat banter, lacking a strong comedy setup or punchline.",
+  "what": "Fega scores goals in 1v1 Rocket League while bantering with his opponent who refuses to be humble in chat: 'You couldn't even be humble?'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 38,
+  "reactionEndT": 48,
+  "keep_score": 25
+ }
+}

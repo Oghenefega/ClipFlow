@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786068340477_e7bh",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4961,
+  "outputTokens": 989,
+  "thoughtTokens": 856
+ },
+ "cost": 0.014859,
+ "judged": {
+  "score": 65,
+  "kind": "comedy",
+  "reason": "He backs up his stakes bet with back-to-back goals and loud signature hype, though the plays themselves are fairly standard.",
+  "what": "Fega bets gift subs on winning his match and immediately scores back-to-back goals while screaming 'Easy! Get him out of here, bro!'.",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23,
+  "reactionEndT": 47,
+  "keep_score": 65
+ }
+}

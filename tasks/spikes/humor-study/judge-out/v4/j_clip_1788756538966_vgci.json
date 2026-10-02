@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_vgci",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3333,
+  "outputTokens": 659,
+  "thoughtTokens": 536
+ },
+ "cost": 0.009942,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "A routine round win paired with a low-key reaction is not a standout clip.",
+  "what": "The creator watches 100 Thieves secure a round win to tie the score and says 'There we go, there we go baby'.",
+  "playQuality": 4,
+  "reactionSize": 3,
+  "payoffT": 22,
+  "reactionEndT": 26,
+  "keep_score": 25
+ }
+}

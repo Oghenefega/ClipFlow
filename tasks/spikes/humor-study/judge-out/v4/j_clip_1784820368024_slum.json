@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784820368024_slum",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2126,
+  "outputTokens": 949,
+  "thoughtTokens": 830
+ },
+ "cost": 0.0103065,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "It is a routine missed shot with a loud reaction, lacking a comedic setup or confident setup that backfires.",
+  "what": "Fega hits the crossbar on a close shot and screams, 'Ain't no way! Oh my goodness!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 4.5,
+  "reactionEndT": 8.5,
+  "keep_score": 40
+ }
+}

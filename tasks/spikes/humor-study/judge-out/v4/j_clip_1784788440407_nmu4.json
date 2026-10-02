@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_nmu4",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2288,
+  "outputTokens": 392,
+  "thoughtTokens": 293
+ },
+ "cost": 0.006372,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "There is no funny setup, payoff, or comedic reaction in this standard gameplay clip.",
+  "what": "Fega briefly complains about a previous play and then silently plays Rocket League with focus.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

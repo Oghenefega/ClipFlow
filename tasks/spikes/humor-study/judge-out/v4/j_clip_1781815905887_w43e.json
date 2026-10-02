@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781815905887_w43e",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1665,
+  "outputTokens": 557,
+  "thoughtTokens": 454
+ },
+ "cost": 0.006675,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "It is just basic gameplay narration without any comedic punchline, surprise, or action payoff.",
+  "what": "Fega states that his job is to stay alive and get home safe before preparing to run.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

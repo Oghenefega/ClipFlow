@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787974608296_9k2f",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 537,
+  "thoughtTokens": 428
+ },
+ "cost": 0.0096345,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "No gameplay action or kills occur in this clip, it is just pre-round commentary.",
+  "what": "The creator discusses 100 Thieves' path to qualifying for Champs as the round begins with no combat.",
+  "playQuality": 0,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

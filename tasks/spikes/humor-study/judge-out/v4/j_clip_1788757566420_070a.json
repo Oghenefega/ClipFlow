@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788757566420_070a",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3495,
+  "outputTokens": 763,
+  "thoughtTokens": 638
+ },
+ "cost": 0.010964999999999999,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "This is general post-match emotional talk without an actual gameplay play or clutch happening on screen.",
+  "what": "The creator passionately celebrates 100 Thieves' success while watching post-match footage, exclaiming 'We prayed for times like this!'",
+  "playQuality": 2,
+  "reactionSize": 6,
+  "payoffT": 20,
+  "reactionEndT": 25,
+  "keep_score": 25
+ }
+}

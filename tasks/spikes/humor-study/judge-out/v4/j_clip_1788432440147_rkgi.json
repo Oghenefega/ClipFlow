@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_rkgi",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2542,
+  "outputTokens": 498,
+  "thoughtTokens": 395
+ },
+ "cost": 0.007547999999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just setup and menu customization talk without any punchline or comedic payoff.",
+  "what": "The creator looks at another player's character skin and opens his customization menu to paint his own avatar.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785358945275_g9p0",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4475,
+  "outputTokens": 759,
+  "thoughtTokens": 653
+ },
+ "cost": 0.012405,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just post-game lobby chatter and downtime with no funny moment or gameplay payoff.",
+  "what": "The streamer sits on the post-game menu talking casually with chat about an opponent's ping and queue history.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

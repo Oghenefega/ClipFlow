@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_ecbw",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 523,
+  "thoughtTokens": 410
+ },
+ "cost": 0.009055500000000001,
+ "judged": {
+  "score": 10,
+  "kind": "comedy",
+  "reason": "This is just routine end-of-match wrap-up and chat banter with no joke or comedic payoff.",
+  "what": "The creator leaves a Rocket League match after losing 5-0, closes the game, and thanks his viewers for playing.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

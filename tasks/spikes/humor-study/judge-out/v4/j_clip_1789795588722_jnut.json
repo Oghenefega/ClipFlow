@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_jnut",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3109,
+  "outputTokens": 612,
+  "thoughtTokens": 489
+ },
+ "cost": 0.0092535,
+ "judged": {
+  "score": 50,
+  "kind": "comedy",
+  "reason": "A relatable lobby mistake with a funny cope, though the stakes are relatively low.",
+  "what": "The streamer realizes he accidentally stood on the Hunter spot in the lobby and tries to play it off saying, \"that's fine, all part of the plan.\"",
+  "playQuality": null,
+  "reactionSize": 5,
+  "payoffT": 8,
+  "reactionEndT": 20,
+  "keep_score": 50
+ }
+}

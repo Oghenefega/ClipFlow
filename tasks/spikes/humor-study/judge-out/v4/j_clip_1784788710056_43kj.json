@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_43kj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2288,
+  "outputTokens": 633,
+  "thoughtTokens": 494
+ },
+ "cost": 0.0081795,
+ "judged": {
+  "score": 40,
+  "kind": "comedy",
+  "reason": "While it is a fun moment, a routine goal replay with a light chuckle lacks the big punchline or strong joke needed for a top comedy clip.",
+  "what": "The creator scores a goal and laughs during the replay when he notices the opponent attempted to blow him up, saying 'Ooh, he tried to blow me up there!'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 10,
+  "reactionEndT": 13,
+  "keep_score": 40
+ }
+}

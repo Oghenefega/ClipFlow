@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_b3bk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2749,
+  "outputTokens": 403,
+  "thoughtTokens": 297
+ },
+ "cost": 0.0071460000000000004,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just intro setup talk on the menu screen with no comedic moment or action.",
+  "what": "The creator sits on the game's menu screen explaining that he sucks at the game while scrolling through locked maps.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

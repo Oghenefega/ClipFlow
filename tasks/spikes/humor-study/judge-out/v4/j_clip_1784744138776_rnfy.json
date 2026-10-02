@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784744138776_rnfy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6986,
+  "outputTokens": 634,
+  "thoughtTokens": 526
+ },
+ "cost": 0.015234000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "Standard gameplay narration and victory excitement without a specific comedic subversion or standout funny moment.",
+  "what": "The creator plays out the remaining seconds of a Rocket League match and celebrates the win shouting 'Get him out of here!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

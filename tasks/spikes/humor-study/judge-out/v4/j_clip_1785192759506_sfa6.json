@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785192759506_sfa6",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3665,
+  "outputTokens": 654,
+  "thoughtTokens": 554
+ },
+ "cost": 0.010402499999999999,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "Routine training pack practice with flat delivery and no comedic payoff.",
+  "what": "The creator quietly attempts shots in a Rocket League training pack, calmly saying 'Nope, missed it' after missing.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

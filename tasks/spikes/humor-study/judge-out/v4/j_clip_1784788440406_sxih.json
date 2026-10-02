@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440406_sxih",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 513,
+  "thoughtTokens": 402
+ },
+ "cost": 0.007644,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just end-of-game menu navigation and rank checking with no funny play or comedic payoff.",
+  "what": "Fega finishes a match and checks his rank on the post-game menu while saying 'GG, that was fun.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

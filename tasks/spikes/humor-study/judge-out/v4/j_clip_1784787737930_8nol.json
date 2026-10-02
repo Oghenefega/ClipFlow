@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737930_8nol",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2207,
+  "outputTokens": 793,
+  "thoughtTokens": 678
+ },
+ "cost": 0.009257999999999999,
+ "judged": {
+  "score": 30,
+  "kind": "comedy",
+  "reason": "A mild reaction to a late goal against his team without a strong comedic setup or payout.",
+  "what": "Fega laughs in disbelief as the opponent ties the game with 17 seconds left, saying \"Oh, no way!\"",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 2,
+  "reactionEndT": 8,
+  "keep_score": 30
+ }
+}

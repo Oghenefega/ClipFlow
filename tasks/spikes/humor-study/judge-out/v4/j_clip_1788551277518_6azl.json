@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788551277518_6azl",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 765,
+  "thoughtTokens": 625
+ },
+ "cost": 0.010251,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "A high-energy, quotable reaction with a perfect prediction payoff that gets the creator out of his chair.",
+  "what": "The creator predicts the opponent will fail, then jumps out of his chair screaming 'Get him out of here! He's not that guy, bro!' when 100T secures the kill.",
+  "playQuality": 7,
+  "reactionSize": 9,
+  "payoffT": 10,
+  "reactionEndT": 24,
+  "keep_score": 88
+ }
+}

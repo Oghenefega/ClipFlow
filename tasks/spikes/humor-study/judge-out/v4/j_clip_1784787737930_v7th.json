@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737930_v7th",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2936,
+  "outputTokens": 519,
+  "thoughtTokens": 417
+ },
+ "cost": 0.0082965,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Routine gameplay with minor commentary and no comedic payoff or standout moment.",
+  "what": "Fega remarks 'We should be winning way more than two' while driving around in Rocket League during standard gameplay.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

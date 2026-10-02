@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_xuud",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3584,
+  "outputTokens": 558,
+  "thoughtTokens": 436
+ },
+ "cost": 0.009561,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Routine casual gameplay with mild commentary and no major comedic payoff or highlight moment.",
+  "what": "Fega drives around awkwardly while his teammate makes plays, remarking 'I don't want to talk about what the heck I'm doing right now'.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 20,
+  "reactionEndT": 23,
+  "keep_score": 20
+ }
+}

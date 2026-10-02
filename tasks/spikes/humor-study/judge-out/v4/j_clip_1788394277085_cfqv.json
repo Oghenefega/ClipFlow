@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_cfqv",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3271,
+  "outputTokens": 792,
+  "thoughtTokens": 675
+ },
+ "cost": 0.0108465,
+ "judged": {
+  "score": 55,
+  "kind": "comedy",
+  "reason": "A teammate lands a funny line over open mic that gets a genuine laugh from the creator.",
+  "what": "A teammate gives him absurd advice over voice chat saying 'If you fail, simply succeed next time', making him burst out laughing.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 6,
+  "reactionEndT": 12,
+  "keep_score": 55
+ }
+}

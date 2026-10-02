@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_2a88",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4880,
+  "outputTokens": 888,
+  "thoughtTokens": 765
+ },
+ "cost": 0.01398,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Over thirty seconds of silent downtime leads into a routine goal and a mild teammate compliment.",
+  "what": "Fega plays silently for over thirty seconds before his teammate scores and he reacts, 'Nah, Chilly on fire right now, dude, what the heck!'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": 41,
+  "reactionEndT": 46,
+  "keep_score": 15
+ }
+}

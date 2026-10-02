@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_lhpa",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1551,
+  "outputTokens": 732,
+  "thoughtTokens": 601
+ },
+ "cost": 0.0078165,
+ "judged": {
+  "score": 50,
+  "kind": "hype_reaction",
+  "reason": "It is a nice double kill by 100T, but lacks the multi-kill or clutch stakes needed for a top-tier highlight.",
+  "what": "EEiu gets a fast double kill with the Operator, prompting the streamer to shout 'There we go! No freaking way!'",
+  "playQuality": 5,
+  "reactionSize": 7,
+  "payoffT": 4,
+  "reactionEndT": 8,
+  "keep_score": 50
+ }
+}

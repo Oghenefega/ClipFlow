@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1786434432376_2vsu",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3827,
+  "outputTokens": 665,
+  "thoughtTokens": 547
+ },
+ "cost": 0.010728,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "A mild complaint with no comedic subversion or memorable payoff leaves this clip too weak to keep.",
+  "what": "The creator complains about his teammate being idle, asking 'why is Savior AFK, bruv?', before quiet routine gameplay continues.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 9,
+  "reactionEndT": 11,
+  "keep_score": 15
+ }
+}

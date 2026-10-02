@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788433695049_vpio",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3109,
+  "outputTokens": 569,
+  "thoughtTokens": 463
+ },
+ "cost": 0.008930999999999998,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is just setup gameplay during the prep timer with no funny punchline, fail, or comedic payoff.",
+  "what": "The creator boasts about finding an unbeatable hiding spot near the ceiling during the hiding phase setup.",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

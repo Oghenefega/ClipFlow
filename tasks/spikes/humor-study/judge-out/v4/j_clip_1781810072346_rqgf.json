@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1781810072346_rqgf",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4395,
+  "outputTokens": 610,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0111675,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This is routine gameplay and quiet narration without a punchline or funny payoff.",
+  "what": "The streamer kills a minor robot while talking to himself about forgetting his pickaxe keybind and checking his map.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

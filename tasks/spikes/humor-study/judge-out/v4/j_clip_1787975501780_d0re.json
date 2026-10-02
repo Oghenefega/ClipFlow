@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1787975501780_d0re",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3657,
+  "outputTokens": 753,
+  "thoughtTokens": 620
+ },
+ "cost": 0.011133,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "There is no hype play, and after a brief laugh at the suicide reset, the clip devolves into routine round analysis.",
+  "what": "The creator reacts with amusement when the opposing team kills themselves at round start, asking 'They just killed themselves? What, when and how did that happen?'",
+  "playQuality": 2,
+  "reactionSize": 4,
+  "payoffT": 8,
+  "reactionEndT": 13,
+  "keep_score": 20
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788394277085_p6uc",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3919,
+  "outputTokens": 577,
+  "thoughtTokens": 465
+ },
+ "cost": 0.010206,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This clip consists entirely of pre-game lobby setup and boasting with no funny payoff or actual gameplay.",
+  "what": "The creator brags about his hunting skills while waiting for a mod to download, claiming 'No one is getting past me!'",
+  "playQuality": null,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

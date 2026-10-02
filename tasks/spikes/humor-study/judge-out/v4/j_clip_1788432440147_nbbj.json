@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788432440147_nbbj",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4000,
+  "outputTokens": 611,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0105825,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "The clip consists entirely of searching gameplay with no comedic payoff or punchline.",
+  "what": "The creator clicks around a painting praying to find a hidden player, but fails to find anyone before the clip ends.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

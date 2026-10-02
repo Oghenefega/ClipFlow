@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1783706774537_529t",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2256,
+  "outputTokens": 621,
+  "thoughtTokens": 507
+ },
+ "cost": 0.0080415,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "This moment lacks a clear comedic payoff or significant reaction to make it entertaining for viewers.",
+  "what": "Fega begs his teammates to make a play while driving up the wall, saying 'I'm gonna need you to do something... Please guys'.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 15
+ }
+}

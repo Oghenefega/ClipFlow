@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772242_gw3j",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 594,
+  "thoughtTokens": 465
+ },
+ "cost": 0.0104265,
+ "judged": {
+  "score": 88,
+  "kind": "hype_reaction",
+  "reason": "High-quality VCT multi-kill/solo hold replay paired with a genuinely hyped, energetic reaction.",
+  "what": "The creator reacts passionately to an incredible Op shot from Timotino during a round replay, shouting 'Oh my goodness, what is that op shot bro?!'",
+  "playQuality": 8,
+  "reactionSize": 9,
+  "payoffT": 8,
+  "reactionEndT": 32,
+  "keep_score": 88
+ }
+}

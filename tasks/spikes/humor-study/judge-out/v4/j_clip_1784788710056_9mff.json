@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_9mff",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2774,
+  "outputTokens": 447,
+  "thoughtTokens": 341
+ },
+ "cost": 0.007513499999999999,
+ "judged": {
+  "score": 5,
+  "kind": "comedy",
+  "reason": "This is just plain story talk and chat banter with no gameplay or comedic payoff.",
+  "what": "The creator casually tells chat about getting a role playing Jesus in a church show before saying he needs to go eat.",
+  "playQuality": null,
+  "reactionSize": 1,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 5
+ }
+}

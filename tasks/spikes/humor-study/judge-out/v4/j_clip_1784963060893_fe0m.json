@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784963060893_fe0m",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4052,
+  "outputTokens": 827,
+  "thoughtTokens": 700
+ },
+ "cost": 0.0122805,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "His absurdly intense, championship-level celebration over moving an egg a few feet makes for a great comedy moment.",
+  "what": "The creator gets extremely hyped after landing an egg jump, leaping out of his chair and yelling 'Let's go baby! Come on, man!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 7,
+  "reactionEndT": 12,
+  "keep_score": 82
+ }
+}

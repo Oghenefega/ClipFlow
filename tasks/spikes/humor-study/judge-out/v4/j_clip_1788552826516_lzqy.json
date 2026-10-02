@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552826516_lzqy",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3009,
+  "outputTokens": 644,
+  "thoughtTokens": 527
+ },
+ "cost": 0.009343500000000001,
+ "judged": {
+  "score": 20,
+  "kind": "hype_reaction",
+  "reason": "This is a routine round win without an extraordinary play or a standout hype reaction.",
+  "what": "The creator celebrates a routine round win for 100 Thieves, saying 'There we go, so easy.'",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": 12,
+  "reactionEndT": 22,
+  "keep_score": 20
+ }
+}

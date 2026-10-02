@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788756538966_wh64",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2685,
+  "outputTokens": 573,
+  "thoughtTokens": 473
+ },
+ "cost": 0.008324999999999999,
+ "judged": {
+  "score": 10,
+  "kind": "hype_reaction",
+  "reason": "This is just casual analytical commentary over a replay with no major play or big reaction.",
+  "what": "The creator calmly analyzes team positioning and stacking during a VCT replay.",
+  "playQuality": 2,
+  "reactionSize": 2,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 10
+ }
+}

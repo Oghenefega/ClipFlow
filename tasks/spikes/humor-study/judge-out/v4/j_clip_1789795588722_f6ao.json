@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_f6ao",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4891,
+  "outputTokens": 929,
+  "thoughtTokens": 802
+ },
+ "cost": 0.014304,
+ "judged": {
+  "score": 80,
+  "kind": "comedy",
+  "reason": "Finding an impossible hiding spot clipped inside a shelf pole at round end provides a surprising payoff and a solid reaction.",
+  "what": "The streamer discovers the last player was hidden inside a metal shelf post after the round ends, exclaiming 'He's literally inside the freaking thing!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 30.5,
+  "reactionEndT": 47,
+  "keep_score": 80
+ }
+}

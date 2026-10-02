@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788552092102_vjka",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3414,
+  "outputTokens": 823,
+  "thoughtTokens": 711
+ },
+ "cost": 0.011293499999999998,
+ "judged": {
+  "score": 25,
+  "kind": "hype_reaction",
+  "reason": "Routine early-round commentary with no multi-kill, clutch, or notable play.",
+  "what": "The creator warns his audience not to get overly hopeful, telling them to 'think small' while watching an early-round engagement.",
+  "playQuality": 3,
+  "reactionSize": 4,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 25
+ }
+}

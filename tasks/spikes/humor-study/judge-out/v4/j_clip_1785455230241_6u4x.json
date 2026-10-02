@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785455230241_6u4x",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4288,
+  "outputTokens": 632,
+  "thoughtTokens": 504
+ },
+ "cost": 0.011172,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "A hilarious chaotic finish where he tumbles through the woods right over the line with great energy.",
+  "what": "The streamer frantically flies off course near the finish line but accidentally crosses it through the trees while screaming 'No freaking way, dude! I got to the finish thingy!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 23.5,
+  "reactionEndT": 36,
+  "keep_score": 82
+ }
+}

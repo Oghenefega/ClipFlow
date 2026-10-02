@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785201494046_u10g",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2531,
+  "outputTokens": 768,
+  "thoughtTokens": 641
+ },
+ "cost": 0.009556499999999999,
+ "judged": {
+  "score": 82,
+  "kind": "comedy",
+  "reason": "Great comedy timing when his taunt and confidence are immediately punished by an instant kickoff goal.",
+  "what": "After scoring and taunting his opponent, Fega gets instantly scored on off kickoff and says, 'I don't want to talk about that bro, cause what?'",
+  "playQuality": null,
+  "reactionSize": 7,
+  "payoffT": 13,
+  "reactionEndT": 17,
+  "keep_score": 82
+ }
+}

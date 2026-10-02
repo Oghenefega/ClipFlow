@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784004968560_c4yp",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2711,
+  "outputTokens": 785,
+  "thoughtTokens": 663
+ },
+ "cost": 0.009954000000000001,
+ "judged": {
+  "score": 25,
+  "kind": "comedy",
+  "reason": "A routine goal celebration that lacks a funny setup, subversion, or comedic payoff.",
+  "what": "Fega scores a simple goal in Rocket League to go up 3-0 and claps shouting 'Come on, come on, come on!'",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 10,
+  "reactionEndT": 15,
+  "keep_score": 25
+ }
+}

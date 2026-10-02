@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755071329_gsl2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3981,
+  "outputTokens": 571,
+  "thoughtTokens": 437
+ },
+ "cost": 0.010254,
+ "judged": {
+  "score": 80,
+  "kind": "hype_reaction",
+  "reason": "His energetic, quotable reaction to his team shutting down an opponent's aggressive play makes this a solid highlight.",
+  "what": "The creator passionately celebrates 100T shutting down Cryo's slide play to win the round, shouting 'Get him out of my face, bro!'",
+  "playQuality": 6,
+  "reactionSize": 8,
+  "payoffT": 15,
+  "reactionEndT": 26,
+  "keep_score": 80
+ }
+}

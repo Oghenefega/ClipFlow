@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784787737930_wa8p",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1640,
+  "outputTokens": 585,
+  "thoughtTokens": 465
+ },
+ "cost": 0.006847499999999999,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "It is just mild commentary explaining a mistake during a goal replay with no big comedy payoff or reaction.",
+  "what": "Fega reviews a replay of a goal scored against his team, admitting 'My bad, I actually thought I would get there fast.'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": 5,
+  "reactionEndT": 6.5,
+  "keep_score": 15
+ }
+}

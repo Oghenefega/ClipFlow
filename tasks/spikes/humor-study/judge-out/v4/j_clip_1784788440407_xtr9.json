@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788440407_xtr9",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3017,
+  "outputTokens": 606,
+  "thoughtTokens": 495
+ },
+ "cost": 0.009070499999999999,
+ "judged": {
+  "score": 20,
+  "kind": "comedy",
+  "reason": "Routine gameplay narration with no clear punchline or funny payoff for a viewer.",
+  "what": "The creator calls for his teammates and tracks the clock during a Rocket League match, saying 'Oh my goodness, where is JP and Thick Rob?'",
+  "playQuality": null,
+  "reactionSize": 3,
+  "payoffT": null,
+  "reactionEndT": null,
+  "keep_score": 20
+ }
+}

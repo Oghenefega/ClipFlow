@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1788755772243_e1hk",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3738,
+  "outputTokens": 673,
+  "thoughtTokens": 546
+ },
+ "cost": 0.0106545,
+ "judged": {
+  "score": 85,
+  "kind": "hype_reaction",
+  "reason": "High-energy reaction to a round win from 100T with a strong, passionate delivery.",
+  "what": "The creator screams wildly as 100T wins the round, shouting 'GET HIM OUT OF HERE BRO! IT'S TOO EASY!'",
+  "playQuality": 7,
+  "reactionSize": 8,
+  "payoffT": 1.5,
+  "reactionEndT": 10.5,
+  "keep_score": 85
+ }
+}

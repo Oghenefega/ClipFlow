@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1784788710056_802n",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2612,
+  "outputTokens": 749,
+  "thoughtTokens": 619
+ },
+ "cost": 0.0095355,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "A funny, sarcastic self-own that frames a bad 4-9 defeat as a selfless act of community service.",
+  "what": "Fega sarcastically claims he only lost 4-9 to warm up his opponent's cold hands because he is a 'community-focused individual'.",
+  "playQuality": null,
+  "reactionSize": 6,
+  "payoffT": 8,
+  "reactionEndT": 18,
+  "keep_score": 75
+ }
+}

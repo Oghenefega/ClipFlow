@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1789795588722_fk5q",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4162,
+  "outputTokens": 697,
+  "thoughtTokens": 586
+ },
+ "cost": 0.011470500000000002,
+ "judged": {
+  "score": 15,
+  "kind": "comedy",
+  "reason": "Mundane searching sequence with flat delivery and no significant comedic payoff.",
+  "what": "The creator slowly searches around a room questioning if anyone is hidden there before shooting a doll prop and finding a player.",
+  "playQuality": null,
+  "reactionSize": 2,
+  "payoffT": 37.5,
+  "reactionEndT": 38.5,
+  "keep_score": 15
+ }
+}

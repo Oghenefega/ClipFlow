@@ -1,0 +1,22 @@
+{
+ "key": "j_clip_1785566928375_l4j2",
+ "arm": "v4",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3422,
+  "outputTokens": 886,
+  "thoughtTokens": 764
+ },
+ "cost": 0.011778,
+ "judged": {
+  "score": 75,
+  "kind": "comedy",
+  "reason": "An energetic and fun victory celebration with hilarious self-hype after clutching the win.",
+  "what": "Fega scores the match-winning goal and hysterically celebrates, shouting 'Who's the guy who shows up when it matters? It's this guy!'",
+  "playQuality": null,
+  "reactionSize": 8,
+  "payoffT": 2.5,
+  "reactionEndT": 23,
+  "keep_score": 75
+ }
+}
