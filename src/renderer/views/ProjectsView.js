@@ -1053,7 +1053,8 @@ function ClipDetails({ clip, project, onUpdateClip, onUpdateClipFields, onEditCl
   const energyLabel = lvl ? lvl.charAt(0) + lvl.slice(1).toLowerCase() : "";
   const metaItems = [];
   if (energyLabel) metaItems.push(<span style={{ color: energyColor, fontWeight: 600 }}>{energyLabel} energy</span>);
-  if (clip.confidence > 0) metaItems.push(<span style={{ color: T.textSecondary }}>{(clip.confidence * 100).toFixed(0)}% confidence</span>);
+  // #483: a ranked project shows the judge's score only (Fega, s283)
+  if (clip.confidence > 0 && !isRanked(project)) metaItems.push(<span style={{ color: T.textSecondary }}>{(clip.confidence * 100).toFixed(0)}% confidence</span>);
   metaItems.push(<span style={{ color: T.textTertiary }}>{fmtTime(clip.startTime)} → {fmtTime(clip.endTime)}</span>);
 
   return (
