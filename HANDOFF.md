@@ -39,7 +39,7 @@ The session also ran the research behind it, all under `tasks/spikes/humor-study
 - **Gemini and Anthropic are both prepaid with no auto-recharge.** The Gemini balance ran out mid-test this session, and the app's titles fell back to Claude stills until Fega topped up. State each run's cost and the day's total.
 - **The judge's prompt is generic on purpose** (a test fails if "100 Thieves", "Valorant" or a catchphrase appears in `clip-judge.js`). Creator specifics go in the game description, never the code.
 - **The 100T rubric:** "plays against the team" needs the ace-or-clutch-plus-hard-reaction limit. The looser v3 wording over-fired (0.716 vs 0.750).
-- **Test scratch on W:** `W:\corva-s283-verify\` holds two recording copies (~4.4 GB), scratch projects and logs. It's safe to delete; it was left for Fega to decide.
+- **Test scratch on W:** `W:\corva-s283-verify\` was moved to the Recycle Bin at Fega's request (recording copies, scratch projects, logs, and the end-to-end harness script).
 - `tasks/spikes/humor-study/_report.txt` is an untracked leftover (delete was blocked).
 
 ## Logs/Debugging
@@ -47,4 +47,4 @@ The session also ran the research behind it, all under `tasks/spikes/humor-study
 - Judge calls: `ai_calls` rows with `kind = 'clip_judge'` (ok, duration_ms, cost_usd, error). The pipeline log has a "Clip Judge" step with judged/failed/cost. Skips are logged with the reason (setting off, test mode, no key/gateway).
 - Feedback migration 16 added `feedback.judge_score` and `judge_kind`.
 - Re-running the gate: `node tasks/spikes/humor-study/judge.js --arm v4 --manifest scorer-manifest.json` (resumable, ~$8). Then score it with the snippet in spec Step 7d, or `judge-score.py` / `stream-score.py` for the older cells. `scorer.py` needs the transcription venv for scikit-learn: `D:\whisper\betterwhisperx-venv\Scripts\python.exe`.
-- End-to-end harness: `W:\corva-s283-verify\judge-harness.js`. Run it with `npx electron <harness> "<mp4>" <tag> on|off [--gateway-only]`; it isolates userData, the library and processing on W: and uses a copy of the prod DB.
+- End-to-end harness: the s283 script went to the Recycle Bin with its folder (restore `W:\corva-s283-verify\judge-harness.js` from there if needed). Run it with `npx electron <harness> "<mp4>" <tag> on|off [--gateway-only]`; it isolates userData, the library and processing on W: and uses a copy of the prod DB.
