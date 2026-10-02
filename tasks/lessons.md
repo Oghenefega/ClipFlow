@@ -6,6 +6,11 @@
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
+## The layout mockups stripped Corva's colour, and one turned the Projects tab into a spreadsheet (2026-10-02, session 284, Fega's review of #485)
+**What happened:** the #485 mockups rebuilt Rename and Projects for the full window, using the impeccable skill's "restrained" product rules (neutral panels, one accent). Fega: Projects A "doesn't beat the original… the nice highlights and gradients were stripped away". The Projects B triage board with its Done table was "a total downgrade… boring spreadsheet work". He also wants colourful custom icons, not monochrome line icons. Separately, Rename A filled the width by stretching each row, which moved the dead space into the middle of the row instead of using it.
+**Why it happened:** I applied a generic product-UI rulebook (restrained colour, tables for density) over the look Corva already has and Fega likes: game-colour gradient cards, glossy clip orbs, posters. I also counted "fills the width" as done without checking that the new width held content.
+**Rule:** a redesign keeps Corva's existing visual language (game-colour gradients, glossy orbs, posters, glow) and only changes structure, unless Fega asks for a new look. Corva should feel exciting for a creator: no tables or spreadsheet layouts for creative content. Use spare width for content (a filmstrip, a preview, clips), never for stretched gaps.
+
 ## The Gemini prepaid balance ran out mid-test, one session after the same thing happened to Anthropic (2026-10-02, session 283, self-caught on HTTP 402 "prepayment credits are depleted")
 **What happened:** the #483 judge tests ran about $17 of Gemini in one day (humor study, two judge cells, the 100T cell) before the v3 run on 770 clips. 607 calls then failed with 402. Until Fega topped up, title/caption generation in his installed Corva silently ran on the Claude stills fallback. I had quoted each run's cost, but never the day's running total, and never said it drew on the balance his app uses for titles.
 **Why it happened:** the s282 rule was written about "the prepaid AI balance" with Anthropic in mind, and I read it as Anthropic-only. Gemini is a second prepaid balance with no auto-recharge.
