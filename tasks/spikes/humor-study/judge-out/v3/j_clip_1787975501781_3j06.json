@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_3j06",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1811,
+  "outputTokens": 461,
+  "thoughtTokens": 341
+ },
+ "cost": 0.006174,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches pre-game player footage and jokes that Sacy switched agents because 'he knows he's no match for Asuna'.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No actual gameplay or play occurs in this clip; it is strictly commentary during the pre-game setup phase."
+ }
+}

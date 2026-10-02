@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_uqyx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1649,
+  "outputTokens": 701,
+  "thoughtTokens": 576
+ },
+ "cost": 0.007731,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves set up on defense and says 'We've got this, we've got this, we're good on defense.'",
+  "play_quality": 2,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No kills or high-stakes action occur in this clip segment, making it routine narration during round setup."
+ }
+}

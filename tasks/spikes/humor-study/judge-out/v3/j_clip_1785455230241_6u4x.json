@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_6u4x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4034,
+  "outputTokens": 968,
+  "thoughtTokens": 835
+ },
+ "cost": 0.013311,
+ "judged": {
+  "kind": "comedy",
+  "what": "After confidently saying 'I got it', he flies off a cliff into the trees, frantically screaming 'Don't die!', and accidentally tumbles right into the finish line.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 18,
+  "reaction_end_t": 35,
+  "reason": "High comedy value when his confident driving immediately turns into a chaotic tumble down a mountain that unexpectedly counts as a level finish."
+ }
+}

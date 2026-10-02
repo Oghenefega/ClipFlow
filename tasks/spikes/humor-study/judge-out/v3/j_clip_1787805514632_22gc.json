@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_22gc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6292,
+  "outputTokens": 522,
+  "thoughtTokens": 387
+ },
+ "cost": 0.013353,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as a humanoid robot gets distracted watching robot cheerleaders and falls off a ledge, asking 'Why is this guy getting distracted?'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 38,
+  "reaction_end_t": 52,
+  "reason": "The ridiculous clip of a robot climbing up to watch robot cheerleaders and immediately falling off combined with his animated commentary makes for a very funny reaction moment."
+ }
+}

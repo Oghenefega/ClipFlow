@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440406_sxih",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 543,
+  "thoughtTokens": 418
+ },
+ "cost": 0.0075675,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wraps up a Rocket League match, claps, and checks his post-game rank screen after winning, noting he reached Diamond 3 Division 4.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing funny happens in this clip; it is simply post-game menu navigation and casual wrap-up commentary about reaching his rank."
+ }
+}

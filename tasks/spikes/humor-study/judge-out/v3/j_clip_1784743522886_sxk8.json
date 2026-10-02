@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522886_sxk8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3545,
+  "outputTokens": 513,
+  "thoughtTokens": 407
+ },
+ "cost": 0.009165,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator plays Rocket League 3v3 while casually narrating the gameplay and expressing confusion over player colors.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain gameplay narration with a flat delivery and no punchline or funny payoff."
+ }
+}

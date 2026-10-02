@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_kaf4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 739,
+  "thoughtTokens": 616
+ },
+ "cost": 0.0098385,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator expresses confidence in Bang during a 1v3 situation, saying 'If there's anybody that could and would, it is Bang!'",
+  "play_quality": 2,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is just build-up and narration before any action happens, cutting off before any kills or payoff occur."
+ }
+}

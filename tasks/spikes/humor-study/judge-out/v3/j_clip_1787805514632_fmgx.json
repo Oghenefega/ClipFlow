@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_fmgx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5320,
+  "outputTokens": 801,
+  "thoughtTokens": 671
+ },
+ "cost": 0.0139875,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to a video of a humanoid robot knocking out another robot in a fight cage, hilariously imagining Jon Jones trying to fight it.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 7,
+  "reaction_end_t": 28,
+  "reason": "While the idea of robot MMA is amusing, the clip is mostly extended narration and repeating footage without a sharp comedic punchline or sudden event."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143968_ilsk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1730,
+  "outputTokens": 568,
+  "thoughtTokens": 456
+ },
+ "cost": 0.006855,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reassures his chat about 100 Thieves being a 'young squad' during the round transition and buy phase.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in gameplay during this clip; it is entirely setup and narration between rounds."
+ }
+}

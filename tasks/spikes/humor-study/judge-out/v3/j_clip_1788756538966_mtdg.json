@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_mtdg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 627,
+  "thoughtTokens": 489
+ },
+ "cost": 0.0094845,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves secure a routine round win to tie the match 3-3, quietly praising them with 'Good job squad, let's go.'",
+  "play_quality": 2,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 16,
+  "reaction_end_t": 18,
+  "reason": "This clip contains no major plays or clutches, featuring only routine round cleanup accompanied by low-energy commentary and score tracking."
+ }
+}

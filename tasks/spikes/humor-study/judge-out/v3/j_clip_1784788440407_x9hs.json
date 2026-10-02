@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_x9hs",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 632,
+  "thoughtTokens": 503
+ },
+ "cost": 0.0083565,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently sets up a counter-attack saying 'JP, all yours', but the play immediately falters as his teammate whiffs.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 18,
+  "payoff_t": 16.5,
+  "reaction_end_t": 18.5,
+  "reason": "While there is a setup and failure structure, the creator's reaction is extremely muted and flat with no strong punchline or laugh."
+ }
+}

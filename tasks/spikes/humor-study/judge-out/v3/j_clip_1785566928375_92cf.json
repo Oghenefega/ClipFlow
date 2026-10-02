@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_92cf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 815,
+  "thoughtTokens": 669
+ },
+ "cost": 0.0130095,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega accidentally passes the ball straight to the opponent for an easy goal and laughs at his own mistake, asking 'What kind of pass was that, bro?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 60,
+  "payoff_t": 2,
+  "reaction_end_t": 14,
+  "reason": "Fega self-owns after giving away a free goal to the opponent and laughs at his awful pass on replay. It is a solid comedic beat, though the clip trails off into chat reading afterward."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_g1ky",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5132,
+  "outputTokens": 595,
+  "thoughtTokens": 474
+ },
+ "cost": 0.012160500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives a pep talk during a 100 Thieves timeout, asking 'Did we eat this morning?' as they trail 2-5.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains no gameplay highlights or major plays, consisting entirely of downtime during a tactical timeout and round setup."
+ }
+}

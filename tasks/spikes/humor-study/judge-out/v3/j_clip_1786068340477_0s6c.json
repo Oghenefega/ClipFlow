@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_0s6c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 609,
+  "thoughtTokens": 466
+ },
+ "cost": 0.0095205,
+ "judged": {
+  "kind": "comedy",
+  "what": "After getting scored on early in Rocket League, the creator compliments the opponent in quick chat and jokes, 'Let's play some mind games here... let's get in his head, boys!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 45,
+  "payoff_t": 18,
+  "reaction_end_t": 21,
+  "reason": "It is a amusing moment of self-aware banter after getting scored on, but lacks a dramatic gameplay outcome or big reaction to stand out."
+ }
+}

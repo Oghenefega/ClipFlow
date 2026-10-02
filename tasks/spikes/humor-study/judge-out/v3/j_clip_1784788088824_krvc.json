@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_krvc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 645,
+  "thoughtTokens": 531
+ },
+ "cost": 0.006996,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently asks 'What a sick joke, you're gonna get through the three of us?' as the opponent advances.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip cuts off right after he makes a confident statement, leaving the moment without any comedic payoff or reaction."
+ }
+}

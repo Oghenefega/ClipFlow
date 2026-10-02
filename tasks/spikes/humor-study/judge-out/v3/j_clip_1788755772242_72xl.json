@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_72xl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3836,
+  "outputTokens": 851,
+  "thoughtTokens": 694
+ },
+ "cost": 0.012136500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator accurately predicts an enemy hiding in the smoke, shouting 'He's in the smoke brother!', right before his team loses the round to force overtime, prompting a huge 'NOOOOO!' reaction.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 19.5,
+  "reaction_end_t": 35,
+  "reason": "High-stakes round ending with match point on the line. His intense prediction followed by total heartbreak and funny cope ('Let's give the people a show!') makes for a strong reaction clip."
+ }
+}

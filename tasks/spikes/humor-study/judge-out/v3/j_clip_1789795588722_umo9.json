@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_umo9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3587,
+  "outputTokens": 730,
+  "thoughtTokens": 589
+ },
+ "cost": 0.0108555,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator is stunned and bursts into laughter after finding a player perfectly camouflaged against a picture on the wall, screaming 'I did not see him next to the roses, what?!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 8,
+  "reaction_end_t": 27,
+  "reason": "A hilarious prop-hunt camouflage moment where an enemy was blending in plain sight on a wall portrait, sparking a sudden scream and extended wheezing laughter."
+ }
+}

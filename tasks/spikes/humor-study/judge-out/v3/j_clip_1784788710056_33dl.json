@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_33dl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4031,
+  "outputTokens": 922,
+  "thoughtTokens": 798
+ },
+ "cost": 0.0129615,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding another quick goal in Rocket League, he reacts with exaggerated mock praise, shouting \"I'm so happy for you man! Nice shot!\"",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 25,
+  "reaction_end_t": 36,
+  "reason": "His immediate pivot from self-disappointment to enthusiastic mock celebration for his opponent is funny and highly relatable for viewers."
+ }
+}

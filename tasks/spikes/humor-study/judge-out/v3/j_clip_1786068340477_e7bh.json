@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_e7bh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4760,
+  "outputTokens": 897,
+  "thoughtTokens": 770
+ },
+ "cost": 0.013867500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer bets sub gifts on winning, then scores two quick Rocket League goals while shouting 'EASY! GET HIM OUT OF HERE BRO!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 30,
+  "payoff_t": 23,
+  "reaction_end_t": 47,
+  "reason": "While energetic, the clip lacks a comedic subversion or punchline, consisting only of standard goals with repetitive hype shouts."
+ }
+}

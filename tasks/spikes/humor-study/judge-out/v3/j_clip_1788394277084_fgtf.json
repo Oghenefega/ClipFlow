@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277084_fgtf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4721,
+  "outputTokens": 549,
+  "thoughtTokens": 437
+ },
+ "cost": 0.011199,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator attempts to hide as a large character on a wall painting while figuring out how to flatten himself.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of setup and narration as he figures out the game controls, lacking a clear punchline or comedic payoff."
+ }
+}

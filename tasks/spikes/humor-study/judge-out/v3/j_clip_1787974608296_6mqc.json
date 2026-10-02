@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_6mqc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7967,
+  "outputTokens": 723,
+  "thoughtTokens": 580
+ },
+ "cost": 0.017373,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Bang wins a clutch round for 100 Thieves, prompting the creator to leap out of his chair and scream 'GET HIM OUT OF HERE! He's that guy, baby!'",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 39,
+  "reaction_end_t": 69,
+  "reason": "An incredible clutch play by Bang combined with an explosive, standing-up reaction from the creator makes this a high-tier hype moment."
+ }
+}

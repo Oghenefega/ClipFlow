@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_tzie",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2540,
+  "outputTokens": 793,
+  "thoughtTokens": 629
+ },
+ "cost": 0.009757499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks about good flash usage right as 100T Asuna gets eliminated following a flash, prompting him to hold his head and ask 'What? I was just talking about flashes just now!'",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 11.5,
+  "reaction_end_t": 16,
+  "reason": "This is a routine single opening kill where Asuna dies early in the round. Despite the ironic timing with the creator's commentary, the play itself lacks the multi-kill or clutch quality needed for a hype highlight."
+ }
+}

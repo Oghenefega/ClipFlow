@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_qsfw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2816,
+  "outputTokens": 613,
+  "thoughtTokens": 512
+ },
+ "cost": 0.0088215,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about plans to host a 1v1 tournament while playing Rocket League.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is just setup and stream commentary with no comedic payoff or subverted expectations."
+ }
+}

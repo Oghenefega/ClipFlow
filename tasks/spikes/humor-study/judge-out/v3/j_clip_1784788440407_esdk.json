@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_esdk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 502,
+  "thoughtTokens": 372
+ },
+ "cost": 0.0059235,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs and asks \"Why am I playing with people whose cars look like this?\" while looking at an opponent's Rocket League car design.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 3,
+  "reaction_end_t": 6,
+  "reason": "It is just a brief, minor comment on a weird car skin without a strong punchline, funny game event, or major payoff."
+ }
+}

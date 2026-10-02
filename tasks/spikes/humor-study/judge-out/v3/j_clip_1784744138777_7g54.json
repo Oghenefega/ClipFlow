@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_7g54",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 705,
+  "thoughtTokens": 586
+ },
+ "cost": 0.008175,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reviews a Rocket League replay goal and praises the player, saying, 'This is not a diamond player ladies and gentlemen, that is a good player.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is calm commentary over a replay with no comedic setup, surprising punchline, or funny interaction."
+ }
+}

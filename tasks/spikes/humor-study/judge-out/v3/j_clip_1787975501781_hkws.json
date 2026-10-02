@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_hkws",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 653,
+  "thoughtTokens": 526
+ },
+ "cost": 0.0096795,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator holds up a Phoenix action figure during the VCT agent select screen, chanting 'I want a Phoenix ace tonight.'",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This moment takes place during the agent select phase before the match starts with no gameplay or play occurring. Hype reaction clips require an actual gameplay play to judge."
+ }
+}

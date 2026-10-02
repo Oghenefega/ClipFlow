@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737930_39oe",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 467,
+  "thoughtTokens": 354
+ },
+ "cost": 0.006147,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about needing to learn positioning in Rocket League while mentioning he scored a goal in his real-life soccer league last week.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just casual background chatter during a kickoff with no joke, game event, or funny payoff."
+ }
+}

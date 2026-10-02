@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789956899839_1e1y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4154,
+  "outputTokens": 604,
+  "thoughtTokens": 471
+ },
+ "cost": 0.010761,
+ "judged": {
+  "kind": "comedy",
+  "what": "A player asks over voice chat 'who's ready to die first' and is immediately sniped, causing the creator to burst out laughing.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 30.5,
+  "reaction_end_t": 36,
+  "reason": "Perfect comedic timing occurs when a player announces his intent to kill on open voice chat and gets instantly shot dead, giving an instant payoff and genuine laughter."
+ }
+}

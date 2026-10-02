@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068952330_kxcs",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 730,
+  "thoughtTokens": 591
+ },
+ "cost": 0.0110355,
+ "judged": {
+  "kind": "comedy",
+  "what": "Down 1-17 in Rocket League, the creator yells 'You're not gonna break my spirit bro... because it's already broken!' and bursts into laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 7.5,
+  "reaction_end_t": 10.5,
+  "reason": "Getting utterly crushed 1-17 leads into a hilarious, perfectly delivered self-own that is instantly relatable and funny without needing prior stream context."
+ }
+}

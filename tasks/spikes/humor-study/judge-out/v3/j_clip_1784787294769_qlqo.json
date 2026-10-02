@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294769_qlqo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4112,
+  "outputTokens": 553,
+  "thoughtTokens": 435
+ },
+ "cost": 0.0103155,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer celebrates a teammate's goal and then reacts with a quiet 'Wow' when an opponent scores shortly after.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Standard Rocket League gameplay with low-key reactions and no clear comedic setup, self-own, or funny punchline for an outside viewer."
+ }
+}

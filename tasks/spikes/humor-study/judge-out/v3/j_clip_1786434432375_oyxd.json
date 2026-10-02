@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_oyxd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 743,
+  "thoughtTokens": 601
+ },
+ "cost": 0.0112545,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega tells his team to 'chill, chill team' after getting scored on, only to concede another goal immediately on kickoff while deadpanning 'No problem.'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 82,
+  "payoff_t": 22,
+  "reaction_end_t": 35,
+  "reason": "Classic irony where Fega tries to rally his team to stay calm, but they immediately give up a goal right off the kickoff, leading to a hilarious deadpan acceptance."
+ }
+}

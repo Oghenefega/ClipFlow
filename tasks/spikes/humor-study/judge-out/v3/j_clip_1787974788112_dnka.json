@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788112_dnka",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 677,
+  "thoughtTokens": 555
+ },
+ "cost": 0.0091305,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves' map victory over Leviatán, declaring '100% Bang, are you kidding me?' as map MVP.",
+  "play_quality": 2,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists of post-match stage celebrations and victory chatter rather than a live highlight play or clutch."
+ }
+}

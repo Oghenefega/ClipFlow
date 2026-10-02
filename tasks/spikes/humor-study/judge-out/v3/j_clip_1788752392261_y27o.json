@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_y27o",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2783,
+  "outputTokens": 725,
+  "thoughtTokens": 588
+ },
+ "cost": 0.009611999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in disbelief as 100 Thieves loses a round advantage, shouting 'CHECK HIS COMPUTER BRO!' at the opposing player's stone-cold reaction.",
+  "play_quality": 7,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 5.5,
+  "reaction_end_t": 18,
+  "reason": "Features a hilarious and high-energy signature reaction ('Check his computer bro!') following a dramatic round conclusion against 100 Thieves."
+ }
+}

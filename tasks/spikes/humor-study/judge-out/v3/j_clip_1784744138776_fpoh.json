@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138776_fpoh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 12779,
+  "outputTokens": 862,
+  "thoughtTokens": 720
+ },
+ "cost": 0.025633500000000004,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer provides enthusiastic sports-caster commentary while his Rocket League teammates score goals, then discovers he ended up in last place on the scoreboard.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 125,
+  "reaction_end_t": 132,
+  "reason": "This is a long clip of continuous match play-by-play narration rather than a focused comedic moment with a strong subversion or punchline. Continuous gameplay narration without a quick payoff gets rejected under comedy rules."
+ }
+}

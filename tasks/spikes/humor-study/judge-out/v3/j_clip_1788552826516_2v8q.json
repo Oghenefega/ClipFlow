@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_2v8q",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1811,
+  "outputTokens": 646,
+  "thoughtTokens": 520
+ },
+ "cost": 0.007561499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a replay sequence showing a single kill and remarks 'Oh that was phenomenal'.",
+  "play_quality": 3,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 3.5,
+  "reaction_end_t": 12,
+  "reason": "This is a quiet replay clip featuring only a single kill and minimal reaction from the creator, lacking the high-stakes play or high energy needed to keep."
+ }
+}

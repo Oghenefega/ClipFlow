@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_mz7c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4484,
+  "outputTokens": 727,
+  "thoughtTokens": 589
+ },
+ "cost": 0.0121785,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator despairs over a lost round replay before shouting 'Get him out of your face bro!' after a routine Operator kill.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 39,
+  "reaction_end_t": 42,
+  "reason": "The clip consists of post-round despair followed by a routine opening Operator pick. His signature hype line triggers on an ordinary single kill, making this a skippable candidate."
+ }
+}

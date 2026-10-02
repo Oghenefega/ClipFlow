@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_2qd4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 440,
+  "thoughtTokens": 311
+ },
+ "cost": 0.008324999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer mocks opposing team NRG for calling another timeout, shouting 'We've had these guys take every timeout possible!'",
+  "play_quality": 0,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": 8,
+  "reaction_end_t": 20,
+  "reason": "No gameplay or play occurs during this segment as it takes place entirely during a broadcast timeout break, making it unsuited for a highlight clip."
+ }
+}

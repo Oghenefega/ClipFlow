@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_2vsu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 677,
+  "thoughtTokens": 544
+ },
+ "cost": 0.010516499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains about his teammate sitting idle, asking 'Teammate... teammate, why is save your AFK, bruv?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 9,
+  "reaction_end_t": 12,
+  "reason": "This clip consists of standard gameplay commentary with a flat delivery. There is no major subversion, punchline, or comedy payoff to make it clip-worthy."
+ }
+}

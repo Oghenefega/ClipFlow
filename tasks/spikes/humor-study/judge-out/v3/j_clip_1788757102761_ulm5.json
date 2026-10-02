@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_ulm5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6104,
+  "outputTokens": 718,
+  "thoughtTokens": 591
+ },
+ "cost": 0.014541000000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator freaks out as LOUD wins round 24 to force overtime, exclaiming 'It's overtime in Sao Paulo! Even better!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 3,
+  "reaction_end_t": 26,
+  "reason": "A high-stakes match point round forcing overtime triggers an explosive and memorable reaction from the creator."
+ }
+}

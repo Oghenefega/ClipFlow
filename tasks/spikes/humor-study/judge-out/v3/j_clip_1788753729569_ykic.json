@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_ykic",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 808,
+  "thoughtTokens": 670
+ },
+ "cost": 0.010842000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams 'NO!' and grabs his head in despair as 100 Thieves secures a clutch round win to reach 12-10.",
+  "play_quality": 8,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 13,
+  "reaction_end_t": 28,
+  "reason": "High-stakes round-winning clutch play paired with a passionate, head-in-hands agony reaction from the creator makes this an engaging highlight."
+ }
+}

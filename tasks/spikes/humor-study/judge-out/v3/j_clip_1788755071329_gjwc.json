@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_gjwc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 659,
+  "thoughtTokens": 529
+ },
+ "cost": 0.010453500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-predicts the play and screams 'GET HIM OUT OF THERE!' when Asuna gets an entry kill.",
+  "play_quality": 4,
+  "reaction_size": 7,
+  "keep_score": 30,
+  "payoff_t": 25,
+  "reaction_end_t": 31,
+  "reason": "Despite his high energy and signature catchphrase, the underlying play is just a routine single kill rather than a highlight multi-kill or clutch."
+ }
+}

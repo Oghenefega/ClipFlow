@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_v3b5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 964,
+  "thoughtTokens": 808
+ },
+ "cost": 0.012255,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T bang secures a round-closing kill, prompting the streamer to repeatedly shout 'GET HIM OUT OF THERE!' and taunt the opponent.",
+  "play_quality": 4,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 10,
+  "reaction_end_t": 27,
+  "reason": "This is a routine single kill to win a round. Although he uses his signature 'GET HIM OUT OF THERE!' catchphrase with high energy, standard kills without a multi-kill or clutch do not make for a high-priority clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_ecju",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 712,
+  "thoughtTokens": 581
+ },
+ "cost": 0.0102435,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves wins a round to lead 3-1, and the creator celebrates saying, 'We are actually cooking right now bro!'",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 3,
+  "reaction_end_t": 10,
+  "reason": "This moment features post-round commentary and waiting through a replay transition rather than highlighting a specific multi-kill or clutch play."
+ }
+}

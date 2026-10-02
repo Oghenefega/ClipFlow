@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_23ds",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 559,
+  "thoughtTokens": 442
+ },
+ "cost": 0.0087315,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator uses his hands to demonstrate high-low tactical positioning to avoid collateral damage while narrating over a round.",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely tactical analysis and narration with no major gameplay highlight or big reaction occurring, which fails the requirements for hype clips."
+ }
+}

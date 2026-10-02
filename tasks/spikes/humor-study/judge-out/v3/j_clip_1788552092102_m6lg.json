@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_m6lg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3512,
+  "outputTokens": 676,
+  "thoughtTokens": 552
+ },
+ "cost": 0.010338,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator taunts an opposing player and hypes the stakes, shouting 'This is our qualification match, ladies and gentlemen!', but no major play occurs.",
+  "play_quality": 1,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing significant happens in the actual gameplay during this clip. It is purely narration and setup talk without a play or payoff."
+ }
+}

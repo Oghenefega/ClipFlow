@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_x5hb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 463,
+  "thoughtTokens": 325
+ },
+ "cost": 0.0084975,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts with head in hands and screams as Timotino lands a multi-kill over a Sage wall in replay, shouting 'GET HIM OUT OF HERE!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 10,
+  "reaction_end_t": 19,
+  "reason": "This is a high-quality multi-kill play highlighted in replay with the creator delivering an energetic, signature reaction including his iconic line."
+ }
+}

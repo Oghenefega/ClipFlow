@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143968_clib",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 707,
+  "thoughtTokens": 563
+ },
+ "cost": 0.009963,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer screams 'GET HIM OUT OF HERE!' and jumps out of his chair as 100 Thieves Cryo closes out the round with clean kills.",
+  "play_quality": 8,
+  "reaction_size": 8,
+  "keep_score": 80,
+  "payoff_t": 23,
+  "reaction_end_t": 28,
+  "reason": "A clean multi-kill round win for 100 Thieves paired with the creator's full-energy reaction and signature catchphrases makes this a strong highlight clip."
+ }
+}

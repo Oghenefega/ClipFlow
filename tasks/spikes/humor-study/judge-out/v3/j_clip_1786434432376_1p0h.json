@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_1p0h",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 541,
+  "thoughtTokens": 409
+ },
+ "cost": 0.0094965,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sits on the post-game scoreboard screen and jokingly denies a chat callout, saying 'That never happened, I don't know what you're talking about'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 21,
+  "reaction_end_t": 33,
+  "reason": "This is post-game menu downtime with mild chat banter and no clear visual payoff or funny clip moment."
+ }
+}

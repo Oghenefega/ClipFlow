@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_9tdm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2459,
+  "outputTokens": 676,
+  "thoughtTokens": 552
+ },
+ "cost": 0.008758499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator shouts 'LET'S GO BANG! LET'S GO!' as a replay ends and the match transitions into round setup on match point.",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 4,
+  "reaction_end_t": 10,
+  "reason": "The clip features setup and buy-phase downtime between rounds without showing the underlying highlight play."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_wth1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3263,
+  "outputTokens": 588,
+  "thoughtTokens": 470
+ },
+ "cost": 0.0093045,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator searches for hidden players on a museum map while monologue-taunting them, saying 'Do it again, I dare you' before shooting at paintings.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine search gameplay without a comedic payoff, sudden surprise, or memorable reaction from the creator."
+ }
+}

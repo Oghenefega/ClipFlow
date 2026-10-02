@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_0y3h",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 562,
+  "thoughtTokens": 409
+ },
+ "cost": 0.008997,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves closes out the final round to win the match 14-12, prompting the creator to leap up and show off his 100T shirt while screaming \"LET'S GO!\".",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 92,
+  "payoff_t": 18,
+  "reaction_end_t": 29,
+  "reason": "A high-stakes match-winning clutch round for 100 Thieves leads to an explosive, passionate jersey-flashing celebration from the streamer."
+ }
+}

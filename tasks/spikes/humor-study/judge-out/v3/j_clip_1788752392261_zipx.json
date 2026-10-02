@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_zipx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6347,
+  "outputTokens": 1012,
+  "thoughtTokens": 869
+ },
+ "cost": 0.0171105,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves winning a round, shouting 'Round after round after round!' before comically arguing with the casters during the buy phase.",
+  "play_quality": 3,
+  "reaction_size": 7,
+  "keep_score": 25,
+  "payoff_t": 5,
+  "reaction_end_t": 15,
+  "reason": "This clip features round-end graphics and downtime between rounds rather than a highlight play like a multi-kill or clutch, making it a reject under the hype reaction rules."
+ }
+}

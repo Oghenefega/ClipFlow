@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_zi0i",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2657,
+  "outputTokens": 792,
+  "thoughtTokens": 637
+ },
+ "cost": 0.0099255,
+ "judged": {
+  "kind": "comedy",
+  "what": "He drives all the way to the end of the level only to crash directly into the finish line wall, resulting in a 'DELIVERY FAILED!' screen as he says, 'Yep, I failed. That is crazy. Died on the finish line.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 35,
+  "payoff_t": 13.5,
+  "reaction_end_t": 19,
+  "reason": "Failing right at the finish line is a funny gameplay moment, but his reaction is relatively subdued rather than a memorable burst of outrage or humor."
+ }
+}

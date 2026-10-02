@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737930_3zdt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 411,
+  "thoughtTokens": 305
+ },
+ "cost": 0.007671000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator practices flicking the ball with new camera settings in Rocket League free play and ponders changing his car.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is basic practice and routine narration with no comedic setup, contrast, or payoff."
+ }
+}

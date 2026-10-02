@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099953756_depm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4753,
+  "outputTokens": 656,
+  "thoughtTokens": 519
+ },
+ "cost": 0.012049500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into hysterical laughter watching a robot goalkeeper stand completely still while a goal is scored, only to react seconds after the ball enters the net.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 10,
+  "reaction_end_t": 30,
+  "reason": "The ridiculous delayed reaction from the robot goalie combined with the creator's genuine, laugh-out-loud reaction and animated physical breakdown makes for a hilarious standalone clip."
+ }
+}

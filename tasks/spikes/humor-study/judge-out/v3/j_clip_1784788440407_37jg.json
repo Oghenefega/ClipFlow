@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_37jg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 664,
+  "thoughtTokens": 541
+ },
+ "cost": 0.0078675,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator finishes a Rocket League match saying 'Get him out of my face bro' and transitions to post-game chat with his stream.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip begins at the match end screen and consists almost entirely of post-game menu navigation and casual chat banter without a comedic setup or payoff."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_rp1r",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4517,
+  "outputTokens": 587,
+  "thoughtTokens": 450
+ },
+ "cost": 0.011178,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer loses control of his vehicle in Rocket League, asking 'What is my car doing?' right before conceding a goal and laughing at himself.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 30,
+  "reaction_end_t": 35,
+  "reason": "A strong self-own comedy moment where he panics over his car's movement right before the opponent scores, leading to a loud, genuine laugh and facepalm."
+ }
+}

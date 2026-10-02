@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_i0kg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 883,
+  "thoughtTokens": 746
+ },
+ "cost": 0.0121335,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T wins the round and the creator hypes them up shouting 'GET HIM OUT OF HERE!' while pointing out their Trojan horse setup inside the generator.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 72,
+  "payoff_t": 1,
+  "reaction_end_t": 33,
+  "reason": "He delivers his signature hype catchphrase on a clean 100T round win and follows up with entertaining commentary about their site positioning."
+ }
+}

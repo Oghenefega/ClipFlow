@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772243_e1hk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 1160,
+  "thoughtTokens": 1007
+ },
+ "cost": 0.014211,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts wildly to 100T winning another round to go up 6-0, screaming 'GET HIM OUT OF HERE BRO! IT'S TOO EASY!' and hyping up Bang smiling.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 68,
+  "payoff_t": 1.5,
+  "reaction_end_t": 35,
+  "reason": "A high-energy reaction to 100T taking a dominant 6-0 lead, highlighted by his signature hype line and pointing out Bang smiling on camera."
+ }
+}

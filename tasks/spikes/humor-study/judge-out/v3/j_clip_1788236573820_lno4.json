@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788236573820_lno4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1837,
+  "outputTokens": 498,
+  "thoughtTokens": 363
+ },
+ "cost": 0.0064905,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at a malfunctioning robot flailing on the floor while staff hold it down, saying, \"The cockroach in my house trying to stand up.\"",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 1.8,
+  "reaction_end_t": 11,
+  "reason": "Absurd commentary on absurd footage that lands immediately without needing setup or prior context. The visual match with his cockroach joke makes it very funny."
+ }
+}

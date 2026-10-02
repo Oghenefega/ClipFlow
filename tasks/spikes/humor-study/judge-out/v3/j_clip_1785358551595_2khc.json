@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551595_2khc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 548,
+  "thoughtTokens": 441
+ },
+ "cost": 0.009063,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chats with his stream while making a routine save in Rocket League, saying 'Not on my watch, bro.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is casual chat banter over basic gameplay with no funny twist or comedic payoff."
+ }
+}

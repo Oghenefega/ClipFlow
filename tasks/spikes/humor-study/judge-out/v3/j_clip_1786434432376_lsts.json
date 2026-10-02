@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_lsts",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 488,
+  "thoughtTokens": 378
+ },
+ "cost": 0.0063045,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator drives around in Rocket League while casually remarking that he is 'the only one who's actually playing soft right now.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Flat delivery and routine narration with no joke, surprise payoff, or funny moment."
+ }
+}

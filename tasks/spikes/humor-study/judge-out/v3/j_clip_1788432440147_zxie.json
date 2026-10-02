@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_zxie",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2777,
+  "outputTokens": 571,
+  "thoughtTokens": 442
+ },
+ "cost": 0.008448,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reviews his post-round results and regrets not shooting every part of a tree earlier, laughing and asking 'I don't know why I stopped.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is post-round commentary where he explains and regrets a past play while standing in the lobby, lacking an active gameplay setup or comedic payoff."
+ }
+}

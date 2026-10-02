@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_zafy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3383,
+  "outputTokens": 791,
+  "thoughtTokens": 666
+ },
+ "cost": 0.011007,
+ "judged": {
+  "kind": "comedy",
+  "what": "He demands power and conviction from his team right as a teammate scores, shouting 'I need conviction! ... Oh! Let's go!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 22.5,
+  "reaction_end_t": 27,
+  "reason": "The instant timing between his call for conviction and his teammate scoring creates a satisfying payoff and high-energy moment."
+ }
+}

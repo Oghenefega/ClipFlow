@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_qn2w",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2777,
+  "outputTokens": 535,
+  "thoughtTokens": 425
+ },
+ "cost": 0.008178,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator asks his teammate to freecam and check his prop texture while complaining that his painting looks too smooth.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is just pre-round setup and casual commentary about prop textures with no funny payoff or comedic moment."
+ }
+}

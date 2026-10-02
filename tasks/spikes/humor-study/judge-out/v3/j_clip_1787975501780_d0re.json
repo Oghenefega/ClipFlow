@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501780_d0re",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3593,
+  "outputTokens": 611,
+  "thoughtTokens": 481
+ },
+ "cost": 0.009972,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs in confusion after a round ends instantly with players dying, asking 'They just killed themselves? What? When and how did that happen?'",
+  "play_quality": 2,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 8,
+  "reaction_end_t": 13,
+  "reason": "This is mostly inter-round replay analysis and talking over casters with no actual gameplay action or hype play occurring."
+ }
+}

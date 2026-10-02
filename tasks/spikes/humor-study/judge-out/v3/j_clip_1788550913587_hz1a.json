@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_hz1a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4565,
+  "outputTokens": 652,
+  "thoughtTokens": 512
+ },
+ "cost": 0.0117375,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps up and taunts the opponent team after Ethan is eliminated early in the round, screaming 'GET HIM OUT OF HERE BRO! That's your best player right now!'",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 45,
+  "payoff_t": 3,
+  "reaction_end_t": 13,
+  "reason": "While his reaction and taunt are energetic, it triggers on a routine early pick in the round rather than a major multi-kill or clutch play."
+ }
+}

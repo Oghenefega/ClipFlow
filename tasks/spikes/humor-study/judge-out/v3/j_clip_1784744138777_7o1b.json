@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_7o1b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 994,
+  "thoughtTokens": 857
+ },
+ "cost": 0.012165,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores a tight-angle goal in Rocket League, hyping himself up by saying 'We are locked in bro!', before missing a boost pad on the restart.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 45,
+  "payoff_t": 1.5,
+  "reaction_end_t": 16,
+  "reason": "He hypes up his own play with good energy, but the comedic contrast of missing the boost pad afterwards is mild and lacks a big funny payoff."
+ }
+}

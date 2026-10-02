@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_rhl7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 630,
+  "thoughtTokens": 500
+ },
+ "cost": 0.0102855,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator breaks down a routine Rocket League goal during replay, calling it 'Rocket League 101.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 7,
+  "reaction_end_t": 19,
+  "reason": "The creator simply narrates and breaks down a standard play like a tutorial. Without a comedic subversion, twist, or funny payoff, purely educational or play-by-play commentary is rejected."
+ }
+}

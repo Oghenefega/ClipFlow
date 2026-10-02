@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_ukka",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4727,
+  "outputTokens": 1028,
+  "thoughtTokens": 896
+ },
+ "cost": 0.014800500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates a round win by shouting 'Get him out of here!' and spraying a bottle in the air before the broadcast transitions to replays.",
+  "play_quality": 3,
+  "reaction_size": 7,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 18,
+  "reason": "The clip catches only the post-round celebration screen and subsequent broadcast downtime rather than showing the actual highlight play that won the round."
+ }
+}

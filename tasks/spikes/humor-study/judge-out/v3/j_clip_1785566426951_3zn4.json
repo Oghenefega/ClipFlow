@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426951_3zn4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 615,
+  "thoughtTokens": 499
+ },
+ "cost": 0.007986,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wonders how they gave up a comeback as the match goes into overtime, saying 'Can you stop that? Oh wow, no problem.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no comedic payoff or significant reaction, just flat routine commentary as the match transitions into overtime."
+ }
+}

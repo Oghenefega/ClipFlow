@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_j713",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1844,
+  "outputTokens": 503,
+  "thoughtTokens": 395
+ },
+ "cost": 0.006538499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "After scoring a goal in Rocket League, the streamer reassures his chat saying 'never a doubt' during the replay.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is standard post-goal commentary with no comedic setup, fail, or funny payoff."
+ }
+}

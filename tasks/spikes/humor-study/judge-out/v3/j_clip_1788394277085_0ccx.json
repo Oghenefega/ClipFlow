@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_0ccx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3263,
+  "outputTokens": 544,
+  "thoughtTokens": 430
+ },
+ "cost": 0.0089745,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently searches a painting while talking trash to a hidden hider, but fails to find them before the clip ends.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists purely of ongoing gameplay searching and setup talk without any comedic payoff, subversion, or punchline."
+ }
+}

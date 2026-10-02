@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_ymm4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3998,
+  "outputTokens": 851,
+  "thoughtTokens": 691
+ },
+ "cost": 0.0123795,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves closing out a round against LOUD, shouting \"Let's go Asuna!\" and telling Cryo his only job in life is to play back.",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 38,
+  "payoff_t": 36,
+  "reaction_end_t": 39,
+  "reason": "The play is a standard round win without a spectacular multi-kill or clutch play. While his reactions and play-by-play commentary are energetic, it lacks the exceptional play quality needed to stand out."
+ }
+}

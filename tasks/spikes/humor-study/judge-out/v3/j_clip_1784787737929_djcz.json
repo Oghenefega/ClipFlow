@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_djcz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 649,
+  "thoughtTokens": 546
+ },
+ "cost": 0.008362499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega praises his teammate's goal in Rocket League while acknowledging a new follower and chatting with his stream.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Standard gameplay commentary and routine chat interaction with no comedic payoff or subversion."
+ }
+}

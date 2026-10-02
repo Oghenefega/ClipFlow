@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_gtsl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5375,
+  "outputTokens": 640,
+  "thoughtTokens": 514
+ },
+ "cost": 0.0128625,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a Valorant match replay and repeatedly asks 'Who is this spike guy, bro?'",
+  "play_quality": 4,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 35,
+  "reaction_end_t": 42,
+  "reason": "The round concludes routinely without a big multi-kill or clutch, and the creator's reaction is low-key confusion rather than hype."
+ }
+}

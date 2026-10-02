@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551595_2iya",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2816,
+  "outputTokens": 669,
+  "thoughtTokens": 534
+ },
+ "cost": 0.0092415,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs off getting scored on in Rocket League, admitting, \"That was mad confident of me to think he wasn't gonna catch that.\"",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 35,
+  "payoff_t": 4,
+  "reaction_end_t": 10,
+  "reason": "He chuckles at his own overconfidence after conceding a goal, but the delivery and setup are casual post-goal banter rather than a strong comedy payoff."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841625_800i",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4808,
+  "outputTokens": 803,
+  "thoughtTokens": 650
+ },
+ "cost": 0.0132345,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves closes out the final round to win the match 2-0 and qualify for Brazil, prompting the creator to celebrate hysterically shouting 'I'M THAT FAN BABY! GET 'EM OUT OF HERE!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 11,
+  "reaction_end_t": 48,
+  "reason": "A match-winning series victory for 100 Thieves paired with an energetic stand-up reaction featuring signature taunts and high-stakes celebration."
+ }
+}

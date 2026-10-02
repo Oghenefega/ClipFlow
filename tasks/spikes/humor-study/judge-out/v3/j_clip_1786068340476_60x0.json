@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_60x0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3545,
+  "outputTokens": 680,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0104175,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator accidentally concedes consecutive goals in Rocket League, exclaiming 'Ain't no freaking way, dude!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 3,
+  "reaction_end_t": 12,
+  "reason": "While his frustration after misplaying the ball is energetic, there is no confident prediction or funny subversion to elevate it beyond standard gameplay frustration."
+ }
+}

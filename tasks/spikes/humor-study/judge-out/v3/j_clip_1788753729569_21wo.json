@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_21wo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3998,
+  "outputTokens": 686,
+  "thoughtTokens": 540
+ },
+ "cost": 0.011141999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to a round win and then complains during the replay about a player hitting a headshot while stunned, saying 'That's what I'm saying, these guys are cheating bro!'",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 1.5,
+  "reaction_end_t": 3,
+  "reason": "The initial round-winning hype is brief and generic, and the rest of the clip devolves into slow replay analysis and narration complaining about stun mechanics."
+ }
+}

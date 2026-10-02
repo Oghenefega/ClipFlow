@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277519_0hte",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 695,
+  "thoughtTokens": 559
+ },
+ "cost": 0.0085365,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator taunts Ethan asking, 'Bro, are you sure? Are you sure about that?' right as 100 Thieves gets swiftly wiped out in the round.",
+  "play_quality": 5,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 6,
+  "reaction_end_t": 13,
+  "reason": "The creator's energetic taunt aligns well with the sudden round loss, yielding a solid laugh and hat-off reaction."
+ }
+}

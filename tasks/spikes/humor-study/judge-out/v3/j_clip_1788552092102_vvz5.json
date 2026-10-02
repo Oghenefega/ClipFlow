@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_vvz5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 982,
+  "thoughtTokens": 845
+ },
+ "cost": 0.0120255,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves as Cryo secures the final Operator kill to win the round, shouting 'GET HIM OUT OF HERE!'",
+  "play_quality": 6,
+  "reaction_size": 7,
+  "keep_score": 45,
+  "payoff_t": 25.5,
+  "reaction_end_t": 28.5,
+  "reason": "The creator gives a passionate reaction to the round win, but the gameplay features standard Operator kills rather than a dramatic multi-kill or clutch."
+ }
+}

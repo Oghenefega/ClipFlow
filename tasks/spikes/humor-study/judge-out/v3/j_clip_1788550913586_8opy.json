@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913586_8opy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3431,
+  "outputTokens": 854,
+  "thoughtTokens": 726
+ },
+ "cost": 0.0115515,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures a round victory and the creator intensely celebrates, yelling 'LET'S GO BABY! COME ON!' with arms raised.",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 4,
+  "reaction_end_t": 12,
+  "reason": "A high-energy, genuine hype moment celebrating a round win for 100 Thieves with great emotional engagement."
+ }
+}

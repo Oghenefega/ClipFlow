@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071330_x8gi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 651,
+  "thoughtTokens": 518
+ },
+ "cost": 0.0091785,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives motivational commentary during a broadcast tech pause, saying 'We're not afraid... We're so close and we're gonna get it.'",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay occurring during this tech pause, only background broadcast shots and stream talk. Without a play to react to, this clip should be rejected."
+ }
+}

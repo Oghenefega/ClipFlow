@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277084_i0f6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5612,
+  "outputTokens": 703,
+  "thoughtTokens": 568
+ },
+ "cost": 0.0136905,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a teammate who is perfectly camouflaged inside a wall painting and bursts into hysterical laughter, shouting 'This is so good! Oh my goodness!'",
+  "play_quality": null,
+  "reaction_size": 8.5,
+  "keep_score": 85,
+  "payoff_t": 6,
+  "reaction_end_t": 45,
+  "reason": "The visual of a player blending seamlessly into a cartoon wall painting leads to a genuinely funny, infectious burst of laughter from the creator."
+ }
+}

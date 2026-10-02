@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_9rjh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 816,
+  "thoughtTokens": 675
+ },
+ "cost": 0.0105375,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator encourages a player to get a triple kill, reacting with 'Oh my word, how is he getting that?' when a single shot lands through the darkness.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 24,
+  "reaction_end_t": 27,
+  "reason": "The creator spends most of the clip talking through the setup, and the payoff is only a routine single kill through smoke rather than a highlight multi-kill."
+ }
+}

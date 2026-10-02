@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_hsha",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 585,
+  "thoughtTokens": 468
+ },
+ "cost": 0.0078825,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores a goal in Rocket League and screams 'GET HIM OUT OF HERE BRO!' while laughing uncontrollably.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 1,
+  "reaction_end_t": 8,
+  "reason": "He lands a goal and delivers a high-energy signature hype line with genuine laughter, creating an entertaining moment."
+ }
+}

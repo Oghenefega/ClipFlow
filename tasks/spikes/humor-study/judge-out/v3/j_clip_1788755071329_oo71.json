@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_oo71",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 604,
+  "thoughtTokens": 475
+ },
+ "cost": 0.010162500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with utter shock as LOUD wins the round against 100T, exclaiming 'No freaking way, dude!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 4,
+  "reaction_end_t": 13,
+  "reason": "A big painful round loss against the team he roots for triggers a strong genuine reaction with hands on his head and shouting."
+ }
+}

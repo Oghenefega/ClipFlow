@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945274_iy03",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 464,
+  "thoughtTokens": 353
+ },
+ "cost": 0.008919,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laments losing his Rocket League match, asking 'Do I really need five minutes of this humiliation?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is continuous complaining while trailing in a match without a punchline, subversion, or standout comedic moment."
+ }
+}

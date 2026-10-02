@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_838f",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 670,
+  "thoughtTokens": 538
+ },
+ "cost": 0.0109005,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves winning VCT Americas Stage 2 while putting on his jersey and shouting 'We bringing it home!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 3,
+  "reaction_end_t": 27,
+  "reason": "100 Thieves taking the stage as tournament champions sparks a big, passionate celebration from the creator as he puts on his team jersey."
+ }
+}

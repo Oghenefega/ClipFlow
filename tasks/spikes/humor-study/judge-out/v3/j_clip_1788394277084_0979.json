@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277084_0979",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2858,
+  "outputTokens": 618,
+  "thoughtTokens": 466
+ },
+ "cost": 0.008922,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator assumes the hider is caught, saying 'I think they got him', but the player survives right under the seeker's nose, leaving him shocked: 'WHAT?! Oh my god, he's right there!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 12,
+  "reaction_end_t": 24,
+  "reason": "A classic funny subversion where his confident call that the hider is dead turns into total disbelief when the hider remains undetected right next to the seeker."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_qjj3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4970,
+  "outputTokens": 647,
+  "thoughtTokens": 502
+ },
+ "cost": 0.012307499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches NRG close out a Valorant round against 100 Thieves, shouting 'Get him out of here!' on a kill.",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 19.5,
+  "reaction_end_t": 35,
+  "reason": "The play is a standard round win for the opposing team without a major clutch or multi-kill. His reaction features his standard catchphrase but lacks the high-stakes hype needed for a highlight."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_vgci",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 720,
+  "thoughtTokens": 568
+ },
+ "cost": 0.0103035,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves wins a round on C site against LOUD, and the streamer hypes them up shouting, 'There we go, baby! There we go, boys!'",
+  "play_quality": 6,
+  "reaction_size": 5,
+  "keep_score": 45,
+  "payoff_t": 21.5,
+  "reaction_end_t": 26,
+  "reason": "100 Thieves closes out a clean round win and the creator hypes them up, but the play itself is a standard round conversion without a flashy individual multi-kill or insane clutch."
+ }
+}

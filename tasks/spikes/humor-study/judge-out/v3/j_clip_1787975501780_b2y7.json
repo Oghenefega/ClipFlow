@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501780_b2y7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 663,
+  "thoughtTokens": 525
+ },
+ "cost": 0.009633,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Lev completely wipes out 100 Thieves in a flawless round, causing him to throw his hands over his head shouting 'NO NO NO... GOD DAMN!'",
+  "play_quality": 8,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 5,
+  "reaction_end_t": 13,
+  "reason": "A swift, dominant flawless round against the team he roots for triggers a genuine, big hands-on-head reaction of shock and disbelief."
+ }
+}

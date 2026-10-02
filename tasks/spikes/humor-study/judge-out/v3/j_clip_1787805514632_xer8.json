@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_xer8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 9694,
+  "outputTokens": 607,
+  "thoughtTokens": 470
+ },
+ "cost": 0.0190935,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into wheezing laughter as a cheerleading robot glitches out and thrashes on the floor, joking \"The cockroach in my house trying to stand up.\"",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 93,
+  "reaction_end_t": 104,
+  "reason": "The absurd footage of a malfunctioning robot spazzing out on the floor produces top-tier hysterical laughter and a hilarious commentary joke."
+ }
+}

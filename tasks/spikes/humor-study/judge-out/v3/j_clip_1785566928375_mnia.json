@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_mnia",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4193,
+  "outputTokens": 639,
+  "thoughtTokens": 508
+ },
+ "cost": 0.011082,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets distracted reading stream chat during a match and gets scored on, reacting with 'Oh my goodness... I was looking at chat for a second.'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 60,
+  "payoff_t": 22,
+  "reaction_end_t": 28,
+  "reason": "Getting immediately scored on because he was distracted answering a chat question provides a clear, relatable comedy setup and self-own payoff."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_sc13",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 937,
+  "thoughtTokens": 802
+ },
+ "cost": 0.010644,
+ "judged": {
+  "kind": "comedy",
+  "what": "After getting scored on, he tells his stream 'Just watch us lock in, we've got this', only to give up an instant kickoff goal.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 80,
+  "payoff_t": 14,
+  "reaction_end_t": 17.5,
+  "reason": "Follows the ideal comedy pattern where he makes a confident declaration to lock in, only for the game to immediately punish him with an instant kickoff goal."
+ }
+}

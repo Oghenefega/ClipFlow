@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789185416777_7tbz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2297,
+  "outputTokens": 688,
+  "thoughtTokens": 555
+ },
+ "cost": 0.0086055,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer goes wild screaming 'GET HIM OUT OF HERE!' after 100T Cryo wins the round with an incredible Operator flick shot.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 1,
+  "reaction_end_t": 9,
+  "reason": "Cryo secures an impressive round-winning Op flick kill, triggering an energetic reaction with classic hype lines and hands-on-head disbelief."
+ }
+}

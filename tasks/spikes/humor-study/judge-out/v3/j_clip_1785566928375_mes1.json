@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_mes1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 743,
+  "thoughtTokens": 611
+ },
+ "cost": 0.011132999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "After setting up a ball aerial, the creator shouts, \"Somebody be there to finish the job! I have already done—what more do you want from me?!\"",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 29.5,
+  "reaction_end_t": 35,
+  "reason": "It is mild gameplay narration and minor team frustration without a clear comical payoff or subverted setup to make it stand out."
+ }
+}

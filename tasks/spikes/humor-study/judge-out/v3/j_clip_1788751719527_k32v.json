@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_k32v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 856,
+  "thoughtTokens": 737
+ },
+ "cost": 0.0130245,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves before explaining that they are playing against Loud in the VCT finals.",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay or play in this clip; it is entirely pre-match narration and setup, which is an explicit reject."
+ }
+}

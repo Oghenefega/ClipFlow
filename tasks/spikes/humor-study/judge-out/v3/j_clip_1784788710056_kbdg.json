@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_kbdg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 592,
+  "thoughtTokens": 453
+ },
+ "cost": 0.008907,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics and sets up an accidental own-goal, screaming loudly and laughing as he admits 'I panicked, I was doing too much!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 9,
+  "reaction_end_t": 20,
+  "reason": "A funny self-own where he panics in front of his goal and accidentally assists the opponent, followed by a loud scream, laughter, and comedic self-criticism."
+ }
+}

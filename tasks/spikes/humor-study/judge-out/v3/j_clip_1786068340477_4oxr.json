@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_4oxr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2897,
+  "outputTokens": 759,
+  "thoughtTokens": 637
+ },
+ "cost": 0.010038,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores a Rocket League goal and repeatedly shouts 'That's my bread and butter man!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 15.5,
+  "reaction_end_t": 22,
+  "reason": "It is a standard kickoff goal with mild excitement and lacks a strong comedic subversion or memorable joke to make it a must-keep clip."
+ }
+}

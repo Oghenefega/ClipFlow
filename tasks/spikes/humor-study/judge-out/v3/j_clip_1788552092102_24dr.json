@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_24dr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4646,
+  "outputTokens": 954,
+  "thoughtTokens": 809
+ },
+ "cost": 0.014124,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to NRG winning an eco round against 100T, dismissing it as lucky and coping with 'We were winning a little bit too easy'.",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 10,
+  "reaction_end_t": 44,
+  "reason": "An eco round loss for 100T prompts a moderate reaction, but the moment devolves into commentary and cope during the replay rather than a big highlight play."
+ }
+}

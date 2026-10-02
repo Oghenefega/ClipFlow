@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_st53",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7076,
+  "outputTokens": 776,
+  "thoughtTokens": 625
+ },
+ "cost": 0.016434,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer despairs and screams 'WHY ARE WE GIVING HIM A 1V3?!' as LOUD's player clutches a 1v3 against 100 Thieves.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 46,
+  "reaction_end_t": 63,
+  "reason": "An opponent's impressive 1v3 clutch against 100 Thieves triggers a huge, emotional reaction as the creator grabs his jersey and stands up in utter disbelief."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_mhqu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 614,
+  "thoughtTokens": 489
+ },
+ "cost": 0.0090225,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator banters with his stream chat about LOUD fans before the round starts, saying 'Psych it's not all love man, get him out of here!'.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No gameplay action or plays occur in this clip. It is purely stream chat banter during round setup."
+ }
+}

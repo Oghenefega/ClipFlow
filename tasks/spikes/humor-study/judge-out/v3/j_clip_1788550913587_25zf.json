@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_25zf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3593,
+  "outputTokens": 776,
+  "thoughtTokens": 657
+ },
+ "cost": 0.0112095,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator comments on team tactics between rounds and laughs at a player's reaction to a jump scare.",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains mostly round downtime, strategy commentary, and mild reactions to player facecams without any high-stakes gameplay or multi-kills."
+ }
+}

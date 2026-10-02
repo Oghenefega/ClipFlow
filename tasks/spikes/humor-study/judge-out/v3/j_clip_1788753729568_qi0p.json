@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729568_qi0p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5132,
+  "outputTokens": 666,
+  "thoughtTokens": 527
+ },
+ "cost": 0.012693,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator passionately celebrates a series of clutch plays and map wins in a VCT match, shouting 'That's what I'm talking about! We take map two!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 43,
+  "reaction_end_t": 50,
+  "reason": "The creator delivers a continuous high-energy reaction with iconic hype lines to round wins and a key map victory in a tournament match."
+ }
+}

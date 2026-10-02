@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772243_2w1h",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 755,
+  "thoughtTokens": 644
+ },
+ "cost": 0.010201499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up Cryo and comments on a Cypher camera setup during a round against LEV.",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of commentary and round setup without a completed highlight play or multi-kill payoff."
+ }
+}

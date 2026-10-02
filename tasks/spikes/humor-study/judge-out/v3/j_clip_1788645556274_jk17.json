@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788645556274_jk17",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 809,
+  "thoughtTokens": 656
+ },
+ "cost": 0.012186,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator is confused by the players' somber camera faces until he realizes 100 Thieves won the round, shouting 'We won! Oh my god! Everyone's clutching up, bro!'",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 22.5,
+  "reaction_end_t": 32,
+  "reason": "A fun and high-energy moment where his genuine confusion turns into hype when he realizes 100T actually won the round despite the players' deadpan expressions."
+ }
+}

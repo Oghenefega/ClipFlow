@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_ppxe",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2777,
+  "outputTokens": 796,
+  "thoughtTokens": 659
+ },
+ "cost": 0.0101355,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates other players hiding, cracking up at a teammate's strange hiding spot while asking, 'What is this, bro?'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 15,
+  "reaction_end_t": 23,
+  "reason": "The moment consists of casual spectating commentary with mild laughter at another player's spot, lacking a strong setup, reversal, or big payoff needed for a standalone clip."
+ }
+}

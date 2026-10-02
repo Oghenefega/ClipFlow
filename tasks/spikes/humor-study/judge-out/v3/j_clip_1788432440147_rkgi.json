@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_rkgi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2372,
+  "outputTokens": 427,
+  "thoughtTokens": 319
+ },
+ "cost": 0.0067605,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator admires another player's artwork and decides to paint his own character's head before the round starts.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is quiet pre-round setup and character customization talk with no punchline or funny payoff."
+ }
+}

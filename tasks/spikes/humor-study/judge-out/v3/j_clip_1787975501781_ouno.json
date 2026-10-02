@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_ouno",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2054,
+  "outputTokens": 612,
+  "thoughtTokens": 488
+ },
+ "cost": 0.007671,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator expresses confusion while watching round setup play, saying 'I don't know what I've just seen in the past 15 seconds.'",
+  "play_quality": 2,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No kills or hype plays happen during this clip, and the creator's reaction is low-energy and quiet."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_0qq7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 568,
+  "thoughtTokens": 435
+ },
+ "cost": 0.0076335,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs and yells \"Took me out!\" while watching a replay of an opponent demoing him right before scoring a goal in Rocket League.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 1,
+  "reaction_end_t": 12,
+  "reason": "The clip catches the tail end of a goal and consists mostly of him laughing at a routine Rocket League demolition replay without a strong comedic setup or payoff."
+ }
+}

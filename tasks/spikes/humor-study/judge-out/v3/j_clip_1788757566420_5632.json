@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_5632",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2378,
+  "outputTokens": 734,
+  "thoughtTokens": 604
+ },
+ "cost": 0.009072,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches post-match interview footage of 100 Thieves signing autographs, softly saying 'Let's go, let's go, let's go'.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay in this clip, only post-match interview footage, and the creator's reaction is very low energy."
+ }
+}

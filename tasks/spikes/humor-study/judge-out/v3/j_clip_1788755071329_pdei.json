@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_pdei",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3998,
+  "outputTokens": 590,
+  "thoughtTokens": 461
+ },
+ "cost": 0.010422,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "During a technical pause in the VCT match, the creator jokes that the opposing team unplugged a computer to ruin his team's momentum.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip takes place entirely during a technical pause with no gameplay occurring. Under hype reaction rules, downtime and waiting between rounds or during pauses must be rejected."
+ }
+}

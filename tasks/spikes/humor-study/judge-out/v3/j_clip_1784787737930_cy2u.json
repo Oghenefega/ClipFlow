@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737930_cy2u",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 624,
+  "thoughtTokens": 498
+ },
+ "cost": 0.0075675000000000004,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding a goal, the creator admits 'that was such a good butt shot' before casually shouting 'Yo, I want a million subs!'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 8.5,
+  "reaction_end_t": 12,
+  "reason": "The clip lacks a clear comedic setup or subverted expectation, featuring only mild commentary and flat delivery after a goal."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_m6kd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6266,
+  "outputTokens": 1100,
+  "thoughtTokens": 952
+ },
+ "cost": 0.017648999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures a round win and the streamer shouts 'Let's go Asuna, that's the energy!' while hyping up the team during post-round replays.",
+  "play_quality": 5,
+  "reaction_size": 7,
+  "keep_score": 35,
+  "payoff_t": 1,
+  "reaction_end_t": 13,
+  "reason": "The clip catches only the very end of the round win screen and spends most of its duration on replays and inter-round setup rather than a live highlight play."
+ }
+}

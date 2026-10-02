@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_fshf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 699,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0106815,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer accidentally scores an own goal and laughs it off saying 'No way I put that in myself bro', then scores on his opponent and boasts 'That was too easy!'.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 7,
+  "reaction_end_t": 14,
+  "reason": "Accidentally scoring an own goal is a classic self-own, but his reaction is relatively calm and standard Rocket League gameplay banter rather than a standout comedic moment."
+ }
+}

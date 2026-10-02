@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102762_9ixz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4241,
+  "outputTokens": 734,
+  "thoughtTokens": 583
+ },
+ "cost": 0.011866499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer groans in disappointment as 100 Thieves loses the round to LOUD, asking 'Did Asuna use both flashes?'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 1,
+  "reaction_end_t": 8,
+  "reason": "This is a quiet round-end disappointment moment as 100T loses to fall behind 7-5. There is no big play featured and his reaction is low-energy groaning rather than a clip-worthy moment."
+ }
+}

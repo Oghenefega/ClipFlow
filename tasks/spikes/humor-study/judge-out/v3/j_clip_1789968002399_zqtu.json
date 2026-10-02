@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789968002399_zqtu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2372,
+  "outputTokens": 524,
+  "thoughtTokens": 416
+ },
+ "cost": 0.007488,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator greets his friend Chilly and figures out how to switch to free cam to look around the map.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just setup and casual talk while figuring out controls, lacking a funny moment or punchline."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_zbql",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 735,
+  "thoughtTokens": 617
+ },
+ "cost": 0.010222499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently claims 'Surely there's no way they score two more goals in 16 seconds... Not on my watch at least.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The creator provides setup commentary, but the clip ends before any comedic payoff or jinxed moment actually happens."
+ }
+}

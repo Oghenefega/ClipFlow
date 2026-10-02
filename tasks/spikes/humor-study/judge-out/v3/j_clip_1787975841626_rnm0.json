@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_rnm0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 1146,
+  "thoughtTokens": 1006
+ },
+ "cost": 0.0130125,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves securing round 12, exclaiming 'I thought it was a 1v1 after he killed that guy!'",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 2,
+  "reaction_end_t": 10,
+  "reason": "The clip begins at the very end of the round, missing the actual play that led to the clutch, leaving mostly post-round cheering and replay commentary."
+ }
+}

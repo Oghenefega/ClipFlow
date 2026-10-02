@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392262_k0z7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 443,
+  "thoughtTokens": 323
+ },
+ "cost": 0.007618499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer watches the start of a Valorant round as lukxo gets an early single kill on Asuna.",
+  "play_quality": 3,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": 20,
+  "reaction_end_t": 25,
+  "reason": "This is a routine single kill at the beginning of a round with very low reaction strength from the creator."
+ }
+}

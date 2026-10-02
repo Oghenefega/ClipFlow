@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_7i25",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8486,
+  "outputTokens": 906,
+  "thoughtTokens": 759
+ },
+ "cost": 0.019524,
+ "judged": {
+  "kind": "comedy",
+  "what": "After losing badly in Rocket League, Fega tries to manually change the score in match admin settings and tells chat he lost on purpose for a 'Make-A-Wish foundation type of thing'.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 85,
+  "reaction_end_t": 92,
+  "reason": "Fega's attempt to cheat the match score mid-game combined with his absurd Make-A-Wish excuse to chat delivers an extremely funny self-own."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440146_66i0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4802,
+  "outputTokens": 734,
+  "thoughtTokens": 594
+ },
+ "cost": 0.012707999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts with disbelief when the round ends, realizing he missed hiding spots on the paintings and shouting 'I am so pissed!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 32,
+  "reaction_end_t": 37,
+  "reason": "The clip consists mostly of post-round review and narration as he checks the map reveal. Without a real-time comedic setup and sudden payoff, it functions more as commentary than a tight highlight."
+ }
+}

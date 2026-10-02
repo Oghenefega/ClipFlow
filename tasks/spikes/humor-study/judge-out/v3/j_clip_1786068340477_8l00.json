@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_8l00",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 798,
+  "thoughtTokens": 669
+ },
+ "cost": 0.010452,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator mocks his opponent's driving, asking 'Where was he going, sir?', only to get scored on seconds later and burst into hysterical laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 21,
+  "reaction_end_t": 25.5,
+  "reason": "Confident commentary mocking the opponent immediately backfires when the opponent scores, producing a great self-own and genuine laugh reaction."
+ }
+}

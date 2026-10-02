@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_fagj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5168,
+  "outputTokens": 740,
+  "thoughtTokens": 613
+ },
+ "cost": 0.013302000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer realizes he forgot his Rocket League keybindings while setting up controls in a menu, saying 'That is actually ridiculous', and tabs out to launch Rocket League to check.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The entire clip consists of menu setup, adjusting keybindings, and checking settings in another game, which offers no comedic gameplay payoff."
+ }
+}

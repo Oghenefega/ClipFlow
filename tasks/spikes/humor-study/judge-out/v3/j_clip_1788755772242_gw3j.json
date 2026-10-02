@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_gw3j",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 616,
+  "thoughtTokens": 478
+ },
+ "cost": 0.010495500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator goes wild over Timotino's insane Operator play, shouting 'What is that op shot from Timotino, what the flip?!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 8,
+  "reaction_end_t": 32,
+  "reason": "High-level esports highlight with an energetic, hilarious reaction from the creator describing Timotino's aura growing. Great candidate for a hype reaction clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_4buw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3998,
+  "outputTokens": 786,
+  "thoughtTokens": 680
+ },
+ "cost": 0.011892,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator pauses the video to talk about how fast young players like Benjyfishy grow up.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain story talk on a paused screen with no gameplay or hype moment taking place."
+ }
+}

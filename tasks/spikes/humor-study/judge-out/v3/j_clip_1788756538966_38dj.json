@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_38dj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2540,
+  "outputTokens": 550,
+  "thoughtTokens": 433
+ },
+ "cost": 0.007935000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator compliments his team's energy after losing a round, saying 'Nice try Sean! I love that, that's the spirit man.'",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is quiet narration between rounds with no highlight play or hype reaction happening on screen."
+ }
+}

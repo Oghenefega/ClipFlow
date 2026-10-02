@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_tbhj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4834,
+  "outputTokens": 692,
+  "thoughtTokens": 564
+ },
+ "cost": 0.012441,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs as a weightlifting robot wobbles and collapses under a barbell, joking 'Somebody said that's me in the gym!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 68,
+  "payoff_t": 20,
+  "reaction_end_t": 48,
+  "reason": "The visual fail of the robot collapsing mid-lift combined with his genuine laughter and witty commentary creates a funny, relatable clip."
+ }
+}

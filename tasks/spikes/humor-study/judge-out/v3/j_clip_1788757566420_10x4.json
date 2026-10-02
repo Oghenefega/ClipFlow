@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_10x4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2459,
+  "outputTokens": 1092,
+  "thoughtTokens": 957
+ },
+ "cost": 0.0118785,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs while watching a VCT event trailer advertising Shanghai with 'great food' and 'great transit', exclaiming 'Great food, great transit, I'm sold!'",
+  "play_quality": 0,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": 9.5,
+  "reaction_end_t": 18,
+  "reason": "This is commentary on a promotional tournament teaser rather than a gameplay play, meaning there is no action to feature."
+ }
+}

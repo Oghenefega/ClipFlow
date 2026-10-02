@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088823_kl17",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 783,
+  "thoughtTokens": 657
+ },
+ "cost": 0.010582499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega claims the opponents must be drunk if they think they can win, only for them to score seconds later.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 45,
+  "payoff_t": 18.5,
+  "reaction_end_t": 22,
+  "reason": "He makes a confident boast about the opponents being bad right before they score on him, though his reaction to the goal is fairly low-energy."
+ }
+}

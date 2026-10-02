@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_u1it",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5408,
+  "outputTokens": 716,
+  "thoughtTokens": 602
+ },
+ "cost": 0.013482,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator puts on his serious face for a Rocket League match and narrates as his teammate scores a goal, declaring 'I mean business.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 12,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of standard match setup and routine gameplay narration without any funny subversion or comedic payoff."
+ }
+}

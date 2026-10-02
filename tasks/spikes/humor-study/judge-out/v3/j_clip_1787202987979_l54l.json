@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202987979_l54l",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1325,
+  "outputTokens": 675,
+  "thoughtTokens": 541
+ },
+ "cost": 0.007050000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Asuna gets a single kill through a satchel/smoke entry before getting immediately traded, prompting the creator to shout 'Ooooh! Come on!'",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 1.5,
+  "reaction_end_t": 4,
+  "reason": "This is a routine single kill and trade rather than a multi-kill or clutch, making it an ordinary moment despite his vocal hype."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_me9k",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 591,
+  "thoughtTokens": 466
+ },
+ "cost": 0.0081705,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs in disbelief at a Rocket League goal, repeatedly asking 'What was that?' before lining up for the next kickoff.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 1,
+  "reaction_end_t": 6,
+  "reason": "The clip starts after the main action has already occurred, offering only lingering laughter at a goal replay without a clear setup or comedic payoff."
+ }
+}

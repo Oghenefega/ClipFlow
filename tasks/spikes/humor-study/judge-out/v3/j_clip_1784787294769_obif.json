@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294769_obif",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 671,
+  "thoughtTokens": 539
+ },
+ "cost": 0.010228500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer energetically celebrates his teammate scoring a Rocket League goal, shouting 'Oh yes Jickel! Let's go buddy, come on!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 17,
+  "reaction_end_t": 30,
+  "reason": "Standard enthusiasm for a teammate scoring in Rocket League, but lacks a subversion, self-own, or comedic payoff that makes it memorable."
+ }
+}

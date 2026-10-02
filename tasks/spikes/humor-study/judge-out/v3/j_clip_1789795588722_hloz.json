@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_hloz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5450,
+  "outputTokens": 545,
+  "thoughtTokens": 432
+ },
+ "cost": 0.012262499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer complains about being assigned the hunter role again while aimlessly inspecting objects in the game lobby.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists mostly of low-energy complaining and waiting during the lobby phase without a strong punchline, surprise, or comedic payoff."
+ }
+}

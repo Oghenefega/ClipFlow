@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_f0up",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 743,
+  "thoughtTokens": 594
+ },
+ "cost": 0.010476,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T Ethan secures a crucial round win, prompting the creator to jump up, clap hysterically, and shout 'WHAT'S UP ETHAN?! IT'S TOO EASY!'.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 11.5,
+  "reaction_end_t": 29,
+  "reason": "A high-stakes round win for 100 Thieves featuring a great multi-kill play that elicits a huge, energetic standing reaction from the creator."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788112_bem5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 667,
+  "thoughtTokens": 523
+ },
+ "cost": 0.0083265,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves securing the map win 13-2, shouting 'Too easy! Next map! Come on! Let's wrap it up here!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 4,
+  "reaction_end_t": 10.5,
+  "reason": "A dominant map-closing round win for 100 Thieves triggers an energetic, quote-filled reaction from the creator calling for the next map."
+ }
+}

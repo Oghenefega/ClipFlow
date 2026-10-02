@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_i588",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3512,
+  "outputTokens": 778,
+  "thoughtTokens": 631
+ },
+ "cost": 0.011103,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures a round win and the creator screams, 'LET'S GO! I don't even know how the other guy died, but we don't care!'",
+  "play_quality": 5,
+  "reaction_size": 7,
+  "keep_score": 60,
+  "payoff_t": 24,
+  "reaction_end_t": 31,
+  "reason": "A solid round-winning moment with an energetic reaction, though the play itself is a standard site hold finish rather than a standout multi-kill or clutch."
+ }
+}

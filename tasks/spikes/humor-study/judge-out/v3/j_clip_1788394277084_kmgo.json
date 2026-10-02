@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277084_kmgo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3263,
+  "outputTokens": 618,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0095295,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics while disguised as a giant wall painting as a hunter searches right next to him, yelling, 'He's literally with the shotgun right here!' before bursting into hilarious laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 23,
+  "reaction_end_t": 29,
+  "reason": "The hilarious contrast between his massive disguised form and the oblivious hunter right next to him with a shotgun creates a great comedic beat with a loud, laughing payoff."
+ }
+}

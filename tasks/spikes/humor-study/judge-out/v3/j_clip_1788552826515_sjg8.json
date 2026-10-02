@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826515_sjg8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 848,
+  "thoughtTokens": 710
+ },
+ "cost": 0.0119925,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up the 100 Thieves squad as they walk onto the stage and greet fans, exclaiming 'Let's go!'",
+  "play_quality": 0,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip shows stage walkout footage and fan interactions with no actual gameplay occurring. Hype reaction clips require a strong in-game play, clutch, or multi-kill to be kept."
+ }
+}

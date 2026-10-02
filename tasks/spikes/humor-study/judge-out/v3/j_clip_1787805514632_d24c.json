@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_d24c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8236,
+  "outputTokens": 739,
+  "thoughtTokens": 603
+ },
+ "cost": 0.0178965,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts in disbelief as a referee gives a robot a yellow card and a robot goalkeeper stands completely motionless while a goal is scored.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 88,
+  "payoff_t": 43,
+  "reaction_end_t": 58,
+  "reason": "The creator's funny commentary on the referee yellow-carding a robot and his loud laughter at the robot goalkeeper standing motionless during a goal make this an entertaining comedy clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_m3j7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 477,
+  "thoughtTokens": 363
+ },
+ "cost": 0.0069015,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator quietly watches team comms and early-round positioning on A site without any kills or action taking place.",
+  "play_quality": 1,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in this clip beyond standard round setup and team communications, with zero highlight plays or reaction from the streamer."
+ }
+}

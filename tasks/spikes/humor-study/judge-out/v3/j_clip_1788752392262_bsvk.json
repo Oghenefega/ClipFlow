@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392262_bsvk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 471,
+  "thoughtTokens": 343
+ },
+ "cost": 0.0075855,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "During a match timeout, the streamer paces around talking about being hungry and says 'Can someone throw the boys a banana or something?'.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This moment takes place entirely during a tactical timeout with no active gameplay or plays occurring. It is pure filler talk between rounds, which fails the hype reaction rules."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_4yyz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2054,
+  "outputTokens": 771,
+  "thoughtTokens": 633
+ },
+ "cost": 0.0088635,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves during a timeout saying 'We've got this, come on' while pointing at his hoodie, before the round even starts.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay or play occurring in this clip, only waiting between rounds during a timeout. Hype reaction rules reject build-up and waiting moments without action."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_4sh6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 548,
+  "thoughtTokens": 439
+ },
+ "cost": 0.007119,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator drives around the pitch in Rocket League saying 'Nah, that's what you call gaming bro.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing noteworthy or funny happens during the clip, with no comedic setup, payoff, or notable interaction."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_un0m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3263,
+  "outputTokens": 547,
+  "thoughtTokens": 447
+ },
+ "cost": 0.008996999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator searches for hidden players in a prop hunt game while narrating his search.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain setup and narration with no funny payoff, surprise, or comedic interaction."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_qgcd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 808,
+  "thoughtTokens": 678
+ },
+ "cost": 0.010648500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hype-narrates his own Rocket League play, shouting \"Who does he think he's doing that to, bro?\" after making a save.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 23,
+  "reaction_end_t": 26.5,
+  "reason": "This is routine gameplay narration with standard hyped commentary, lacking a funny subversion, fail, or clear punchline."
+ }
+}

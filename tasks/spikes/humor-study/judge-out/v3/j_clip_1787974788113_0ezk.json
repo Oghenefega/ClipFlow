@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788113_0ezk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 727,
+  "thoughtTokens": 585
+ },
+ "cost": 0.0099915,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures a clutch round win, prompting him to jump out of his chair shouting 'LET'S GO BABY! GET THEM OUT OF HERE!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 22,
+  "reaction_end_t": 27,
+  "reason": "100T completes a tense clutch round win, and his reaction is high-energy as he stands up to fist pump and shout his signature catchphrase."
+ }
+}

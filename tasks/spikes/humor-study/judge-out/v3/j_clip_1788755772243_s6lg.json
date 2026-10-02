@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772243_s6lg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2054,
+  "outputTokens": 693,
+  "thoughtTokens": 566
+ },
+ "cost": 0.008278500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator comments on a player's shot during a replay, shouting that 'he turned on the cheats again bro, quite literally.'",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 4,
+  "reaction_end_t": 12,
+  "reason": "This is narration over a replay and crowd shots after the round ended, rather than reacting live to an incredible play."
+ }
+}

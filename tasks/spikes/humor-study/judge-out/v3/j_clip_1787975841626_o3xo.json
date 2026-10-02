@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_o3xo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2378,
+  "outputTokens": 514,
+  "thoughtTokens": 395
+ },
+ "cost": 0.007422,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator comments on 100 Thieves' post-match stage celebration, saying 'One more tomorrow ladies and gentlemen, one more'.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay shown in this clip, only post-match stage footage with calm commentary about tournament scheduling."
+ }
+}

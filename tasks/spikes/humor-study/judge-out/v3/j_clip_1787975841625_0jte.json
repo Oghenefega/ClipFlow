@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841625_0jte",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 782,
+  "thoughtTokens": 647
+ },
+ "cost": 0.010404,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator shouts 'GET HIM OUT OF HERE! GET HIM OUT OF HERE BRO!' after a single routine kill by 100 Thieves.",
+  "play_quality": 3,
+  "reaction_size": 7,
+  "keep_score": 25,
+  "payoff_t": 12,
+  "reaction_end_t": 17,
+  "reason": "This is only a single routine kill in the round. Per the rules, his signature hype lines on standard kills do not justify keeping the clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_0km1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5780,
+  "outputTokens": 714,
+  "thoughtTokens": 576
+ },
+ "cost": 0.014025000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "LOUD cauanzin shuts down 100 Thieves to win the round, prompting the creator to scream 'OH MY GOD HE JUST SMOKED US!' in total agony.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 32.5,
+  "reaction_end_t": 38,
+  "reason": "A clean multi-kill against his favored team produces an explosive, funny reaction of pure pain followed by immediate copium."
+ }
+}

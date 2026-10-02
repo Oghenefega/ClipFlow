@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588723_mlvs",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4964,
+  "outputTokens": 600,
+  "thoughtTokens": 477
+ },
+ "cost": 0.011945999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spends the clip figuring out how to navigate the emote wheel while in a crowded lobby, asking 'How do I switch the tabs of the poses guys?' before quietly figuring it out.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely UI menu navigation and setup talk with no punchline, surprise, or comedic payoff."
+ }
+}

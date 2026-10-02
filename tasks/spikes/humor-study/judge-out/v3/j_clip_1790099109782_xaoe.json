@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099109782_xaoe",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 9694,
+  "outputTokens": 693,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0197385,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as dancing humanoid robots malfunction and collapse, commenting 'The cockroach in my house trying to stand up' when technicians restrain a flailing robot.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 5,
+  "reaction_end_t": 105,
+  "reason": "Extremely funny reaction to absurd robot fail footage with hilarious commentary. His uncontrollable laughter and cockroach joke make it very entertaining to a general audience."
+ }
+}

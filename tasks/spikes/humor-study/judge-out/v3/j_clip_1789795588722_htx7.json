@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_htx7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2615,
+  "outputTokens": 610,
+  "thoughtTokens": 487
+ },
+ "cost": 0.008497500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator searches around wondering where the hidden player is before spotting a tiny yellow frog on the ground and bursting into hysterical laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 80,
+  "payoff_t": 12.5,
+  "reaction_end_t": 18,
+  "reason": "A clean comedic moment where he spots a absurdly tiny prop hiding in plain sight and reacts with contagious, genuine laughter."
+ }
+}

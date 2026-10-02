@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_o82x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7967,
+  "outputTokens": 592,
+  "thoughtTokens": 467
+ },
+ "cost": 0.0163905,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves before a match-point round, pulling up his jersey and shouting 'It's time to finish the heist!'",
+  "play_quality": 1,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains only pre-round talk and build-up without any actual gameplay kills or play payoff happening."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_5lnx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2573,
+  "outputTokens": 572,
+  "thoughtTokens": 434
+ },
+ "cost": 0.0081495,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chuckles on the post-game screen after a victory, complimenting his teammate by saying 'Chili leave some for us, you know?' before loading into the next match.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 8,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip shows only end-of-match stats and a loading screen with mild post-game chatter. There is no funny setup, subverted expectation, or comedic payoff."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099748194_1jit",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2728,
+  "outputTokens": 614,
+  "thoughtTokens": 475
+ },
+ "cost": 0.008697,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads a tweet stating there are 666 teams in the World Humanoid Robot Games and jokes that it's a sign they are in trouble.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 7,
+  "reaction_end_t": 18,
+  "reason": "This is just casual social media reading with a brief joke about 666 being an omen. It lacks a strong visual punchline or a major comedic payoff."
+ }
+}

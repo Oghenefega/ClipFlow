@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_pys7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5213,
+  "outputTokens": 485,
+  "thoughtTokens": 362
+ },
+ "cost": 0.011457,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer taunts team LOUD for calling an early timeout, mocking them by saying 'All of a sudden they get uncomfortable!'",
+  "play_quality": 0,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay occurring in this clip as it takes place entirely during a timeout, making it commentary filler rather than a highlight play."
+ }
+}

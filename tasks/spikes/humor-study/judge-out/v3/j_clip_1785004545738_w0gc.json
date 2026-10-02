@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785004545738_w0gc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3866,
+  "outputTokens": 880,
+  "thoughtTokens": 759
+ },
+ "cost": 0.012399,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator asks chat what 'GP' means, guessing 'general practitioner', before scoring a goal and realizing it stands for 'ground pinch'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 18,
+  "reaction_end_t": 28,
+  "reason": "The clip consists of routine chat banter about Rocket League acronyms without a comedic punchline or funny gameplay interaction."
+ }
+}

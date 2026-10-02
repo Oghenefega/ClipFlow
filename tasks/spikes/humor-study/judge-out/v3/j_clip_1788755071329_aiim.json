@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_aiim",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 682,
+  "thoughtTokens": 559
+ },
+ "cost": 0.0100185,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves and then bickers with his stream chat during the pre-round buy phase.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No gameplay action or highlight occurs in this clip; it consists entirely of waiting between rounds and chatting with stream chat, which is an explicit reject."
+ }
+}

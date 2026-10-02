@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913586_73lp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 658,
+  "thoughtTokens": 523
+ },
+ "cost": 0.009717,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves forcing NRG into using two timeouts in one half, shouting 'We're in their heads!' while pointing to his shirt.",
+  "play_quality": 0,
+  "reaction_size": 6,
+  "keep_score": 20,
+  "payoff_t": 4,
+  "reaction_end_t": 26,
+  "reason": "This clip takes place entirely during a match timeout with no active gameplay happening, falling under the rule rejecting waiting between rounds."
+ }
+}

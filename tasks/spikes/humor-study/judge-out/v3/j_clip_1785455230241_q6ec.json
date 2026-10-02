@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_q6ec",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2576,
+  "outputTokens": 528,
+  "thoughtTokens": 390
+ },
+ "cost": 0.007824000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "After asking not to replay a level, the creator starts the next track and immediately crashes his car into a tree four seconds in, stating \"Yeah, I actually suck at this, man.\"",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 65,
+  "payoff_t": 17,
+  "reaction_end_t": 21,
+  "reason": "Good comedic timing with a classic expectation vs reality subversion when he instantly crashes on the very first turn of the new level."
+ }
+}

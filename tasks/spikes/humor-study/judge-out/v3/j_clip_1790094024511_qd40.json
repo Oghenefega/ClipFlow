@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790094024511_qd40",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4721,
+  "outputTokens": 525,
+  "thoughtTokens": 377
+ },
+ "cost": 0.011019000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loses a prop hunt round and is stunned to discover the last hider glitched inside a metal shelf beam, exclaiming, 'He's literally inside the freaking thing!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 55,
+  "payoff_t": 29,
+  "reaction_end_t": 44,
+  "reason": "It has a good comedic reveal at the end of the round when the impossibly hidden opponent is highlighted inside the shelf frame, though the pacing prior to the reveal is slightly slow."
+ }
+}

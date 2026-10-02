@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_vd0e",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 519,
+  "thoughtTokens": 400
+ },
+ "cost": 0.0081885,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer provides analytical commentary on 100 Thieves' round setup in B garage without any kills or action occurring.",
+  "play_quality": 1,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely mid-round narration and strategy analysis with no kills or major play, making it a clear reject for hype reactions."
+ }
+}

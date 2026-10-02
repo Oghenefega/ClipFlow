@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_a1ub",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 842,
+  "thoughtTokens": 734
+ },
+ "cost": 0.0109035,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator notices a viewer in his lobby and scores a quick goal while casually chatting about his rank.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay with relaxed stream commentary, lacking a punchline, surprising twist, or strong comedic payoff."
+ }
+}

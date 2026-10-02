@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522886_zg9c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 705,
+  "thoughtTokens": 580
+ },
+ "cost": 0.0082965,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega complains about his teammate during a Rocket League replay, asking 'JP, where are you bro?... I can't be bronze and my teammate is bronze as well'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no comedic payoff or actionable gameplay moment; it is just standard narration and complaining during a replay and kickoff."
+ }
+}

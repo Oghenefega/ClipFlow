@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_4d7h",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6185,
+  "outputTokens": 907,
+  "thoughtTokens": 751
+ },
+ "cost": 0.01608,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator critiques pro player Vora's weird mouse grip but stumbles over basic gaming terminology by calling ADS 'zoom in', laughing at himself and shouting, 'I'm old, bro! I'm old!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 48,
+  "reaction_end_t": 53,
+  "reason": "A funny self-own moment where the creator's attempt to critique a pro's mouse technique backfires as he forgets basic gaming terms and laughs at his own aging moment."
+ }
+}

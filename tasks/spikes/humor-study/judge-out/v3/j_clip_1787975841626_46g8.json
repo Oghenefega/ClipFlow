@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_46g8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4727,
+  "outputTokens": 810,
+  "thoughtTokens": 671
+ },
+ "cost": 0.0131655,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs hysterically while watching a replay player cam of the opponents, mocking them with 'Where you running to, bro?'",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 28,
+  "reaction_end_t": 39,
+  "reason": "His mock taunt at the opposing player's defeat on screen is high energy and quotable, fulfilling the rule that over-the-top opponent taunts work well."
+ }
+}

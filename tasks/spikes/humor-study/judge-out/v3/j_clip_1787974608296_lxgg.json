@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_lxgg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4565,
+  "outputTokens": 689,
+  "thoughtTokens": 537
+ },
+ "cost": 0.012015,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves shutting down an enemy Raze ultimate to secure the round win, shouting 'GET HIM OUT OF THERE! It's too easy! Read him like a book!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 22,
+  "reaction_end_t": 46,
+  "reason": "He delivers a high-energy signature reaction as 100 Thieves shuts down an enemy ult to win the round, maintaining his hype into the replay."
+ }
+}

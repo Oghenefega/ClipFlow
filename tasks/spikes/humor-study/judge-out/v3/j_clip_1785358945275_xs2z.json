@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_xs2z",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2897,
+  "outputTokens": 537,
+  "thoughtTokens": 410
+ },
+ "cost": 0.008373,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about pre-jumping to make a save, only to immediately get demolished as the opponent scores, laughing 'Damn, okay!'.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 65,
+  "payoff_t": 7,
+  "reaction_end_t": 17,
+  "reason": "Good comedic timing as he self-complements his pre-jump save right before getting instantly blown up and scored on."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_0g1g",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 840,
+  "thoughtTokens": 688
+ },
+ "cost": 0.011739,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator boasts after a save, then whiffs a shot on goal and mutters 'I don't want to talk about that, bro... I'm lowkey throwing, man.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 23,
+  "reaction_end_t": 33,
+  "reason": "After hyping himself up early on, he misses a play on goal and offers a low-energy self-own. The delivery is too flat and routine to stand out as a highlight."
+ }
+}

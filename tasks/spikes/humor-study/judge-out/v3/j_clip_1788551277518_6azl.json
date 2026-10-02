@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277518_6azl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 553,
+  "thoughtTokens": 402
+ },
+ "cost": 0.008565,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T Vora wins the round, causing the creator to stand up and shout 'GET HIM OUT OF HERE! GET HIM OUT OF HERE! I said it, he's not that guy bro!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 10,
+  "reaction_end_t": 26,
+  "reason": "High energy reaction with his iconic lines following a round-winning play by 100 Thieves, combined with a confident prediction that immediately pays off."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392262_p94c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4322,
+  "outputTokens": 566,
+  "thoughtTokens": 440
+ },
+ "cost": 0.010728000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through match footage and excuses a loss, saying \"It's not easy being at the top, there's not a lot of oxygen up there.\"",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is narrative commentary and storytelling over match footage rather than a reaction to a hype multi-kill or clutch."
+ }
+}

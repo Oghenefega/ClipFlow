@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_xtr9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2816,
+  "outputTokens": 521,
+  "thoughtTokens": 410
+ },
+ "cost": 0.0081315,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator plays Rocket League down 1-3, calling for his teammates and tracking the match timer.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip lacks a clear comedic beat or punchline, consisting only of routine gameplay commentary with no hilarious fail or surprise."
+ }
+}

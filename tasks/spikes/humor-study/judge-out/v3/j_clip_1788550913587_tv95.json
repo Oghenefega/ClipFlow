@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_tv95",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 550,
+  "thoughtTokens": 412
+ },
+ "cost": 0.008664,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Ethan clutches an intense round for 100 Thieves, causing the creator to jump out of his chair screaming 'OH MY GOD!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 14,
+  "reaction_end_t": 27,
+  "reason": "An incredible clutch round in a pro Valorant match paired with a massive, energetic reaction where the creator jumps out of his chair makes this a top-tier clip."
+ }
+}

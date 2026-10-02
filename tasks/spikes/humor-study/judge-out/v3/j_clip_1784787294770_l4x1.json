@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294770_l4x1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 529,
+  "thoughtTokens": 412
+ },
+ "cost": 0.007341,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tells a story about Owen asking to play before spawning into a Rocket League match, asking, 'How good is he gonna be?'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is purely story setup and commentary while loading into a match, with no comedic payoff or gameplay event."
+ }
+}

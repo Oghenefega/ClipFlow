@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_xksx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2540,
+  "outputTokens": 908,
+  "thoughtTokens": 761
+ },
+ "cost": 0.010620000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer taunts the opposing team for trying to save weapons, calling out 'Fight me like a man!' as 100 Thieves closes out the round.",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 14,
+  "reaction_end_t": 18,
+  "reason": "The play is a routine end-of-round save hunt rather than a notable clutch or multi-kill. Despite his energetic taunting, the low play quality makes this a reject."
+ }
+}

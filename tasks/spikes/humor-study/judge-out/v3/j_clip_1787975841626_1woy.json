@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_1woy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4322,
+  "outputTokens": 930,
+  "thoughtTokens": 792
+ },
+ "cost": 0.013458000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs during a Valorant timeout, commenting on players pressing the button, saying 'The way this guy slams that timeout is so funny bro.'",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 10,
+  "payoff_t": 3,
+  "reaction_end_t": 37,
+  "reason": "The clip occurs entirely during a tactical timeout with no gameplay or play happening. Hype reactions require high-quality gameplay or clutches to be kept, so downtime chatter is rejected."
+ }
+}

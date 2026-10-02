@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_2r7b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1973,
+  "outputTokens": 620,
+  "thoughtTokens": 511
+ },
+ "cost": 0.0076095,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator casually talks about 100 Thieves losing the second game while basic gameplay plays on screen.",
+  "play_quality": 2,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain narration and background talk with no high-stakes play or energetic reaction taking place."
+ }
+}

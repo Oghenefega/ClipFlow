@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_gy30",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5450,
+  "outputTokens": 621,
+  "thoughtTokens": 492
+ },
+ "cost": 0.0128325,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator customizes his character's camouflage while confidently declaring, 'They're gonna be scared... they're gonna be like yo, this guy looks like he knows what he's doing.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip is purely menu customization and self-narration without any in-game action or comedic payoff."
+ }
+}

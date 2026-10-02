@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277519_we54",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 637,
+  "thoughtTokens": 508
+ },
+ "cost": 0.011382,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a VCT round unfold while giving continuous commentary and encouragement to Bang, saying 'You've got this Bang, I just want you to know that.'",
+  "play_quality": 3,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of routine round narration and mild encouragement without a clean multi-kill, clutch, or major highlight play."
+ }
+}

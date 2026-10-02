@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588723_h89d",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3668,
+  "outputTokens": 544,
+  "thoughtTokens": 437
+ },
+ "cost": 0.009582,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer browses the in-game public server list and decides to join a server named casual-fun.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains only menu navigation and server selection with no humor, unexpected events, or comedic payoff."
+ }
+}

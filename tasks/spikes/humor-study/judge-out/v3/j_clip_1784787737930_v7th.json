@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737930_v7th",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 688,
+  "thoughtTokens": 574
+ },
+ "cost": 0.0092625,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer says 'We should be winning way more than two' and chuckles at the gameplay during a Rocket League match.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 17,
+  "reaction_end_t": 22,
+  "reason": "This clip features routine gameplay narration and mild chuckling without a clear comedy setup or strong payoff."
+ }
+}

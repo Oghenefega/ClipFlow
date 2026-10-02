@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538965_erkn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 731,
+  "thoughtTokens": 596
+ },
+ "cost": 0.011115,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves winning a round, shouting 'LET'S GO! COME ON BABY!' as Vora gets multiple kills while completely blind.",
+  "play_quality": 8,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 8,
+  "reaction_end_t": 12,
+  "reason": "Vora secures a 3k while completely blind through smoke to win the round, triggering a big hype reaction from the streamer."
+ }
+}

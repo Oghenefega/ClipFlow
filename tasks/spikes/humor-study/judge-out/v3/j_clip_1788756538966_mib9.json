@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_mib9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1325,
+  "outputTokens": 585,
+  "thoughtTokens": 464
+ },
+ "cost": 0.0063750000000000005,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly reassures his audience saying, 'It's all good. We're gonna bring it home,' during a round transition.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is downtime between rounds with no gameplay action or big reaction, which is an explicit reject for hype reaction clips."
+ }
+}

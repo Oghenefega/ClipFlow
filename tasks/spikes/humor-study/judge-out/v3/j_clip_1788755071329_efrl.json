@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_efrl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 667,
+  "thoughtTokens": 529
+ },
+ "cost": 0.009420000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves hold B site and comments 'You're quite literally not that guy' before quietly drinking water as a single pick-off occurs.",
+  "play_quality": 3,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": 21,
+  "reaction_end_t": 24,
+  "reason": "This is a routine single pick-off during round setup with virtually no reaction from the streamer while he drinks from his water bottle."
+ }
+}

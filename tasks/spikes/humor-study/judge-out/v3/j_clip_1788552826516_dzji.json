@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_dzji",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 852,
+  "thoughtTokens": 708
+ },
+ "cost": 0.010929,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves leading 10-5 against former champions NRG, shouting 'WE ARE TAKING THOSE TICKETS MAN! GIVE ME MY TICKET TO SHANGHAI BRO!'",
+  "play_quality": 2,
+  "reaction_size": 7,
+  "keep_score": 30,
+  "payoff_t": 18.5,
+  "reaction_end_t": 24,
+  "reason": "This moment consists entirely of narrative talk and hype during a timeout without any live play or kills happening on screen."
+ }
+}

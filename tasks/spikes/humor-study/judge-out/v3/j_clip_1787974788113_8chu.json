@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788113_8chu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2783,
+  "outputTokens": 733,
+  "thoughtTokens": 607
+ },
+ "cost": 0.009672,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures the map victory and the creator celebrates shouting, 'My boys! We make it look too easy bro!'",
+  "play_quality": 2,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 3,
+  "reaction_end_t": 11,
+  "reason": "This clip shows the end-of-map score screen and broadcast graphics rather than an actual highlight play or clutch moment."
+ }
+}

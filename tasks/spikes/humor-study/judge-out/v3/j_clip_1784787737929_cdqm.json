@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_cdqm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6218,
+  "outputTokens": 851,
+  "thoughtTokens": 722
+ },
+ "cost": 0.015709499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator screams in disbelief \"Ain't no way, dude! What the heck? What?!\" when the opponent scores a goal.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 27,
+  "reaction_end_t": 37,
+  "reason": "It is a standard gameplay reaction to an opponent's goal without a funny setup, subverted expectation, or comedic self-own."
+ }
+}

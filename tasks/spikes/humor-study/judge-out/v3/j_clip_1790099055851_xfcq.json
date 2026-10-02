@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099055851_xfcq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8236,
+  "outputTokens": 850,
+  "thoughtTokens": 720
+ },
+ "cost": 0.018729,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator cracks up watching humanoid robot soccer, pointing out the frozen goalkeeper and saying 'That goalie was me in Rocket League, dude!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 43,
+  "reaction_end_t": 129,
+  "reason": "An amusing reaction to absurd robot soccer footage featuring a hilarious punchline where he compares the frozen robot goalkeeper to his own Rocket League skills."
+ }
+}

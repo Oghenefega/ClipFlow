@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088823_1niw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6137,
+  "outputTokens": 756,
+  "thoughtTokens": 628
+ },
+ "cost": 0.0148755,
+ "judged": {
+  "kind": "comedy",
+  "what": "After an opponent leaves early, the streamer plays on until he gets demolished inside his own goal and laughs 'That was toxic!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 48,
+  "reaction_end_t": 61,
+  "reason": "The clip contains over thirty seconds of filler gameplay between the opponent leaving and getting demolished, making it too slow and padded for a solid edit."
+ }
+}

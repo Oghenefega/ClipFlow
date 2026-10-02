@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_q7xj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 589,
+  "thoughtTokens": 471
+ },
+ "cost": 0.006576,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator makes a aerial save in Rocket League and remarks 'My teammate is not good.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 5,
+  "reaction_end_t": 6,
+  "reason": "This is routine gameplay commentary without a funny subversion, ironic setup, or big reaction. Simply complaining about a teammate lacks the payoff needed for a clip."
+ }
+}

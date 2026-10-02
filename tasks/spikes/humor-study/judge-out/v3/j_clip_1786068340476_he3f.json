@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_he3f",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 901,
+  "thoughtTokens": 754
+ },
+ "cost": 0.011953499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding a goal and laughing that it was 'all part of the plan', Fega scores right off the kickoff and shouts 'When I say it's all part of the plan boys, I mean it!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 23,
+  "reaction_end_t": 28,
+  "reason": "Fega sarcastically claims conceding was part of the plan, then immediately scores off the kickoff to prove himself right, delivering a funny and high-energy payoff."
+ }
+}

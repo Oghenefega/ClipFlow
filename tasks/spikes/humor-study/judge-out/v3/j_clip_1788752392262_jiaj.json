@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392262_jiaj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 918,
+  "thoughtTokens": 767
+ },
+ "cost": 0.013489499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a close round finish where Bang plants the spike last second, only for vorz to drop from heaven for a quick kill, prompting him to shout 'Oh my goodness!'",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 39,
+  "reaction_end_t": 44,
+  "reason": "The clip features nearly 40 seconds of passive watching for a routine single kill at the end of the round, which doesn't meet the standard for a highlighted esports moment."
+ }
+}

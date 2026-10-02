@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_jmat",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 570,
+  "thoughtTokens": 451
+ },
+ "cost": 0.008328,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator expresses relief about Yoru patch changes while watching tournament commentary and replay footage, saying 'Glory to God, because that was super broken.'",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists of commentary and patch analysis between rounds rather than an exciting live play or clutch."
+ }
+}

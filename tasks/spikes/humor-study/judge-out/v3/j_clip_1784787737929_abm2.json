@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_abm2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1682,
+  "outputTokens": 595,
+  "thoughtTokens": 468
+ },
+ "cost": 0.0069855,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chuckles while watching a Rocket League goal replay and says, 'I didn't see him coming, I just came out of nowhere.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 0,
+  "reaction_end_t": 8,
+  "reason": "This is routine commentary and a light laugh during a goal replay with no comedic setup, surprising turn, or strong reaction."
+ }
+}

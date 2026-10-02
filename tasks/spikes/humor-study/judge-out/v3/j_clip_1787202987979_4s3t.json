@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202987979_4s3t",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1973,
+  "outputTokens": 715,
+  "thoughtTokens": 570
+ },
+ "cost": 0.008322,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a post-match interview with 100T players talking about winning together and nods along, saying, 'Nah, winning with your best friends, oh my goodness.'",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": 8,
+  "reaction_end_t": 14,
+  "reason": "This clip contains no gameplay or clutch plays, only post-match interview footage. Plain story talk and interview reactions without exciting gameplay action are automatic rejects."
+ }
+}

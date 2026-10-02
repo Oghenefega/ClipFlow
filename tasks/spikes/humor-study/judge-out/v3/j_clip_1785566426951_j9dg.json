@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426951_j9dg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2573,
+  "outputTokens": 581,
+  "thoughtTokens": 444
+ },
+ "cost": 0.008217,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to an opponent's play in Rocket League, laughing and shouting 'Ain't no way, dude! He's actually wild.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 12.5,
+  "reaction_end_t": 16.5,
+  "reason": "It's standard gameplay commentary with a mild reaction that lacks a strong comedic punchline or self-own to make it stand out to a casual viewer."
+ }
+}

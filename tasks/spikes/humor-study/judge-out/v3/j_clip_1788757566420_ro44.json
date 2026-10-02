@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_ro44",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 512,
+  "thoughtTokens": 361
+ },
+ "cost": 0.0077715,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches the VCT Americas Stage 2 post-match interview following 100 Thieves' victory, celebrating happily and shouting \"Chilly we won, we won!\" and \"We did it Joe, we did it!\"",
+  "play_quality": 2,
+  "reaction_size": 7,
+  "keep_score": 30,
+  "payoff_t": 6.5,
+  "reaction_end_t": 22,
+  "reason": "This is a post-match interview segment rather than gameplay footage, which usually gets rejected unless paired with the match-winning moment."
+ }
+}

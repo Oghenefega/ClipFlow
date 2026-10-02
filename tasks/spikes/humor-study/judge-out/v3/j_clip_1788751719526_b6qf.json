@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_b6qf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 569,
+  "thoughtTokens": 439
+ },
+ "cost": 0.009170999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves during the pre-match crowd intro, declaring 'We're about to silence this arena.'",
+  "play_quality": 0,
+  "reaction_size": 5,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is pre-match build-up commentary over player cams and crowd footage with no actual gameplay or play payoff."
+ }
+}

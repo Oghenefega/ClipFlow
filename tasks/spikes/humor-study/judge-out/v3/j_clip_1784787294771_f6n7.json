@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294771_f6n7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 833,
+  "thoughtTokens": 706
+ },
+ "cost": 0.008406,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator exclaims 'Ain't no freaking way, dude!' as his opponent makes a play on the ball in Rocket League.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 3,
+  "reaction_end_t": 5.5,
+  "reason": "The clip is too brief and lacks a clear setup, punchline, or comedic payoff. It is just a routine reaction to standard gameplay."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_j6um",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1844,
+  "outputTokens": 570,
+  "thoughtTokens": 443
+ },
+ "cost": 0.007041,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega boasts about being up 5-0 during a match pause, saying 'This feels like Spain versus Argentina all over again', before laughingly apologizing.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 6,
+  "reaction_end_t": 10,
+  "reason": "This is idle chat during a paused match with no gameplay action or comedic inversion to give it a strong payoff."
+ }
+}

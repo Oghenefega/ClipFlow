@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_yuv6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4484,
+  "outputTokens": 910,
+  "thoughtTokens": 765
+ },
+ "cost": 0.013551,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures a round win to reach map point, causing the creator to shout 'Let's go baby, come on!' and flex at the camera.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 70,
+  "payoff_t": 11,
+  "reaction_end_t": 23,
+  "reason": "While the round win itself isn't a flashy solo clutch, 100 Thieves closing in on match victory inspires a big, energetic flex celebration from the creator."
+ }
+}

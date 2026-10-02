@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788645603331_v2om",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 605,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0090765,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "NRG Ethan clutches an intense round under pressure, causing the streamer to jump out of his chair screaming 'OH MY GOD!'.",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 92,
+  "payoff_t": 13,
+  "reaction_end_t": 27,
+  "reason": "An incredible clutch play in a high-stakes match combined with an energetic stand-up reaction makes this a top-tier highlight clip."
+ }
+}

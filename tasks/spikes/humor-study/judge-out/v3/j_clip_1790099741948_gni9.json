@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099741948_gni9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6292,
+  "outputTokens": 563,
+  "thoughtTokens": 437
+ },
+ "cost": 0.0136605,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as a robot gets distracted watching robot cheerleaders and steps right off the stage.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 38,
+  "reaction_end_t": 53,
+  "reason": "The clip features absurd footage of a robot falling off a ledge while distraction-watching female cheerleading robots, backed by funny personified commentary and genuine laughter."
+ }
+}

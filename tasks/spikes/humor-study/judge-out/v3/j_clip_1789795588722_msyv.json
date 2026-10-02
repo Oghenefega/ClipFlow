@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_msyv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5045,
+  "outputTokens": 532,
+  "thoughtTokens": 419
+ },
+ "cost": 0.0115575,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wanders around shelves in Prop Hunt trying to locate a hiding player, saying 'I'll figure him out.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of aimless searching and quiet commentary without any comedic payoff, reversal, or funny moment."
+ }
+}

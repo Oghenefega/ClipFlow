@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_rvfz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5084,
+  "outputTokens": 535,
+  "thoughtTokens": 409
+ },
+ "cost": 0.0116385,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer comments on the opponents' aggressive plays as they score a goal, exclaiming 'Damn, these guys bump! What the heck?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 37,
+  "reaction_end_t": 41,
+  "reason": "This is standard match commentary with a mild reaction to getting scored on, lacking a strong comedy setup or notable payoff."
+ }
+}

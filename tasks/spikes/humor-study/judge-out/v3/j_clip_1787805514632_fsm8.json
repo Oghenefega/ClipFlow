@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_fsm8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5968,
+  "outputTokens": 643,
+  "thoughtTokens": 534
+ },
+ "cost": 0.0137745,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator speculates at length about how future Robot Olympics will involve teams hacking and DDoS attacking each other's robots.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely conversational setup and commentary without any comedic action or funny visual payoff in the clip."
+ }
+}

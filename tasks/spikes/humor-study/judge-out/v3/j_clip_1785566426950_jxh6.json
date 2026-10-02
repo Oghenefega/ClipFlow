@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_jxh6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4193,
+  "outputTokens": 661,
+  "thoughtTokens": 539
+ },
+ "cost": 0.011247,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer stares in open-mouthed shock as a goal is instantly scored, asking 'What the heck did I just watch?'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 3,
+  "reaction_end_t": 8,
+  "reason": "His funny visual expression of wide-mouthed shock to a sudden Rocket League goal provides a solid comedic reaction moment."
+ }
+}

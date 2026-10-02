@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_0lqq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 799,
+  "thoughtTokens": 661
+ },
+ "cost": 0.011625,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates the halftime score by jumping up and shouting 'We are going to Champs man, we are winning it all!' during a match intermission.",
+  "play_quality": 0,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": 2,
+  "reaction_end_t": 17,
+  "reason": "No gameplay takes place in this clip, which only shows a halftime score screen and a commercial break. Hype reactions during intermissions with no plays are rejected."
+ }
+}

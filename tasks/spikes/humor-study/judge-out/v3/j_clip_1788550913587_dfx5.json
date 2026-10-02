@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_dfx5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 799,
+  "thoughtTokens": 661
+ },
+ "cost": 0.009924,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Asuna lands a quick Operator pick and multi-kill, prompting the creator to yell 'Get him out of here! You can't catch him off guard!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 6,
+  "reaction_end_t": 20,
+  "reason": "A solid multi-kill play paired with the creator's signature hype catchphrase and high-energy physical reaction makes for a strong keep."
+ }
+}

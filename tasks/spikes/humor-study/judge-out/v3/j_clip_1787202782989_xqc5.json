@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_xqc5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2540,
+  "outputTokens": 1215,
+  "thoughtTokens": 1095
+ },
+ "cost": 0.0129225,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator admits his toxic trait is watching 100 Thieves and thinking 'Yeah, I can do this', over tournament intro b-roll.",
+  "play_quality": 1,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just casual chat and narration over tournament b-roll clips without any actual play or hype reaction."
+ }
+}

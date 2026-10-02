@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143968_6b55",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 592,
+  "thoughtTokens": 457
+ },
+ "cost": 0.0083715,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator complains that the audience spoiled a play, saying 'Damn it bro, the crowd gave that away.'",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 2,
+  "reaction_end_t": 5,
+  "reason": "This is calm commentary/narration on crowd noise rather than a reaction to a major play or clutch. The rules explicitly reject plain commentary and low-action moments without a big play."
+ }
+}

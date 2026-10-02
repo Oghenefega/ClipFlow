@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_cajt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 553,
+  "thoughtTokens": 429
+ },
+ "cost": 0.009343500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega looks at his dismal match stats, excuses his play by saying he hasn't eaten today, and asks an opponent 'Do you know who I am?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is continuous self-explanation and low-key commentary with no comedic payoff or standout funny moment for a external viewer."
+ }
+}

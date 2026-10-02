@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_kwl7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2459,
+  "outputTokens": 597,
+  "thoughtTokens": 460
+ },
+ "cost": 0.008166,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator listens to 100 Thieves' team comms during a round setup and laughs about how clean they are, saying 'Look at the clean comms guys! It's so clean!'",
+  "play_quality": 2,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just listening to team comms during round setup without any actual gameplay play, kills, or high-stakes action happening."
+ }
+}

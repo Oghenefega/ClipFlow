@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737930_wa8p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 452,
+  "thoughtTokens": 341
+ },
+ "cost": 0.0055485,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator apologizes to his teammate and explains his thought process on why he missed the ball in Rocket League.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain post-goal narration and self-explanation without any comedic timing, punchline, or funny payoff."
+ }
+}

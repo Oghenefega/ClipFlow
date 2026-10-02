@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_8nuq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 781,
+  "thoughtTokens": 644
+ },
+ "cost": 0.011976,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to 100 Thieves taking the site and securing a flawless round, shouting 'It's so easy bro!'",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 10,
+  "reaction_end_t": 15,
+  "reason": "This is a standard site execute and round win without a standout multi-kill or clutch. The creator's reaction is routine hype that happens throughout every match."
+ }
+}

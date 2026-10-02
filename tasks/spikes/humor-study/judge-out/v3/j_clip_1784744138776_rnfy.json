@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138776_rnfy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6785,
+  "outputTokens": 689,
+  "thoughtTokens": 571
+ },
+ "cost": 0.015345000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator finishes a Rocket League match with a win and celebrates shouting 'GET HIM OUT OF HERE!' before noticing his lights went off.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Standard gameplay and end-of-match win commentary without a clear comedic setup, subversion, or stand-alone joke."
+ }
+}

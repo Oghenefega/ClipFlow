@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588723_ezuu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4073,
+  "outputTokens": 673,
+  "thoughtTokens": 566
+ },
+ "cost": 0.011157,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer walks around shelves in a prop hunt game while wondering aloud if hiders can climb on top of boxes.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists only of routine gameplay searching and commentary with no comedic payoff or big reaction."
+ }
+}

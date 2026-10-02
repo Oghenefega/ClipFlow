@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_djbm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3263,
+  "outputTokens": 499,
+  "thoughtTokens": 395
+ },
+ "cost": 0.008636999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer tests his controls and explores painting his character during the pre-game lobby.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is pre-game setup and control testing with no punchline, funny interaction, or comedic payoff."
+ }
+}

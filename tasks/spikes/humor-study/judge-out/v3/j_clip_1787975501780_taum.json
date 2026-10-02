@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501780_taum",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 686,
+  "thoughtTokens": 558
+ },
+ "cost": 0.0117495,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts as 100 Thieves dominates another round, shouting 'IT'S TOO EASY!' and celebrating passionately.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 30,
+  "reaction_end_t": 42,
+  "reason": "100 Thieves closes out a round in convincing fashion, triggering a very hyped reaction from the creator who cheers on his team."
+ }
+}

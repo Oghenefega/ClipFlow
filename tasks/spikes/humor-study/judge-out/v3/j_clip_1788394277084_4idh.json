@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277084_4idh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3587,
+  "outputTokens": 741,
+  "thoughtTokens": 601
+ },
+ "cost": 0.010938,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a player blending flatly into a painting and laughs at his own terrible hiding spot, saying \"I was just bulging out of the painting!\"",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 50,
+  "payoff_t": 22,
+  "reaction_end_t": 28,
+  "reason": "A funny self-own comparing his oversized character build to a teammate's perfect flat camouflage, though it relies on stream reflection rather than a live visual punchline."
+ }
+}

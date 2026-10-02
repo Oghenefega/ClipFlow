@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_f6ao",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4721,
+  "outputTokens": 662,
+  "thoughtTokens": 532
+ },
+ "cost": 0.012046500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer loses the round and discovers the last opponent was hidden inside a metal shelf frame, shouting 'How is someone supposed to find that?!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 75,
+  "payoff_t": 30,
+  "reaction_end_t": 47,
+  "reason": "The absurd reveal of an opponent hiding inside solid map geometry at the end of the round generates a strong, hilarious reaction of total disbelief."
+ }
+}

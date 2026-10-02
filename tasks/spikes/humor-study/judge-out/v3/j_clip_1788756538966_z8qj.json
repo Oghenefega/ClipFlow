@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_z8qj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2459,
+  "outputTokens": 600,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0081885,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer nods along with the casters during a tech pause, praising Bang's confidence by saying, 'He moves like he's scared of nobody'.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip takes place entirely during a tech pause with no gameplay or action happening, making it a routine downtime talk moment."
+ }
+}

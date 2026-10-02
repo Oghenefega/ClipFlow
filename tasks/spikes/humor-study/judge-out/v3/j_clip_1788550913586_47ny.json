@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913586_47ny",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 730,
+  "thoughtTokens": 596
+ },
+ "cost": 0.0120795,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with massive excitement to 100T dominating a round, shouting 'It's so easy bro!' and taunting 'You're not that guy!'.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 2,
+  "reaction_end_t": 30,
+  "reason": "An impressive pro play matched by huge hype, great energy, and memorable taunts from the creator."
+ }
+}

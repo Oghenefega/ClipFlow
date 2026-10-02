@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_vpio",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2939,
+  "outputTokens": 542,
+  "thoughtTokens": 426
+ },
+ "cost": 0.008473499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator places his sign prop high on a wall while boasting to his teammate, 'I think I figured it out... I'm actually goated.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely pre-round setup talk with no comedic payoff or gameplay event taking place."
+ }
+}

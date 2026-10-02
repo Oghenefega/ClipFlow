@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_h3rd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7021,
+  "outputTokens": 690,
+  "thoughtTokens": 537
+ },
+ "cost": 0.0157065,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts with hilarity to a terrifying matte-black robot, imagining it breaking into his house before joking, 'I'll be doing the job myself. I'm not gonna wait for this thing to drag me!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 64,
+  "reaction_end_t": 71,
+  "reason": "His absurd commentary on the creepy black robot is genuinely funny to a general audience, peaking with a great punchline about giving up before it saws through his door."
+ }
+}

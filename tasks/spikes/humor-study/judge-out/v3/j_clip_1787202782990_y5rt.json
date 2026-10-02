@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_y5rt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2297,
+  "outputTokens": 698,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0086805,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves close out the match victory and casually remarks, 'I need to watch some more 100 Thieves Valorant, I've missed it.'",
+  "play_quality": 4,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 14,
+  "reaction_end_t": 18,
+  "reason": "This is quiet post-match commentary with no standout gameplay highlight or energetic reaction. It falls under plain narration after the round ends."
+ }
+}

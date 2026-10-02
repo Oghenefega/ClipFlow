@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440406_66cj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 502,
+  "thoughtTokens": 383
+ },
+ "cost": 0.009447,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically after getting scored on, exclaiming, 'How dare you do that to me on live television!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 40,
+  "payoff_t": 0,
+  "reaction_end_t": 15,
+  "reason": "A drawn-out playful reaction to getting scored on in Rocket League without a sharp comedic subversion."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788645584705_toae",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4889,
+  "outputTokens": 988,
+  "thoughtTokens": 844
+ },
+ "cost": 0.0147435,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Asuna wallbangs an enemy through smoke, prompting the creator to jump out of his seat yelling 'Get him out of there! Read him like a book!'",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 40,
+  "payoff_t": 11,
+  "reaction_end_t": 16,
+  "reason": "The creator's energy and taunts are great, but the play is ultimately just an isolated single kill through smoke rather than a major multi-kill or clutch."
+ }
+}

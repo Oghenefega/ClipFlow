@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_v3i1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1973,
+  "outputTokens": 687,
+  "thoughtTokens": 550
+ },
+ "cost": 0.008112,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rewatches an unbelievable defuse play that leaves the casters jumping out of their chairs as he exclaims 'HOW IS HE GETTING AWAY WITH THAT!'",
+  "play_quality": 8,
+  "reaction_size": 7,
+  "keep_score": 80,
+  "payoff_t": 9,
+  "reaction_end_t": 13.5,
+  "reason": "An incredible clutch defuse play combined with the casters' ecstatic physical reaction makes for a highly entertaining highlight that the creator thoroughly enjoys."
+ }
+}

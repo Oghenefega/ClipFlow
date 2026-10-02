@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_8b83",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3512,
+  "outputTokens": 656,
+  "thoughtTokens": 536
+ },
+ "cost": 0.010188,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reviews pre-match win statistics and tells his stream to grab popcorn because it will be a long best-of-five series.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay or reaction to a play in this clip, only pre-match stat breakdown and stream setup talk."
+ }
+}

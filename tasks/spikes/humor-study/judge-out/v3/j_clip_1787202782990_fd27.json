@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_fd27",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3593,
+  "outputTokens": 823,
+  "thoughtTokens": 706
+ },
+ "cost": 0.011562,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator monologues about how gamers mistakenly assume Valorant is dying just because they and their friends stopped playing it.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain commentary and monologue with no gameplay or match action happening, which falls directly under the reject rules for hype reaction clips."
+ }
+}

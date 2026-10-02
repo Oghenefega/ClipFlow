@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_e4rx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 667,
+  "thoughtTokens": 522
+ },
+ "cost": 0.009712499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "After losing a Rocket League match, the creator laments on the end screen, shouting 'The amount of bars I hit in that game!' while grabbing his head in frustration.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 27,
+  "reason": "The entire clip takes place on post-game reward screens rather than during active gameplay. While his reaction is energetic, post-game menu commentary without seeing the live misses lacks comedic payoff."
+ }
+}

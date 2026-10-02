@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_mlew",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 642,
+  "thoughtTokens": 522
+ },
+ "cost": 0.009646499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs off a 0-4 loss in Rocket League, admitting 'I absolutely got cooked by this guy.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is post-match commentary and reflection on a menu/loading screen after losing, lacking a comedic setup-payoff or funny gameplay moment."
+ }
+}

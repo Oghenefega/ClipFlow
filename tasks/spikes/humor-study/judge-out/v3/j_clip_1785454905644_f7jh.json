@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785454905644_f7jh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3182,
+  "outputTokens": 535,
+  "thoughtTokens": 410
+ },
+ "cost": 0.008785499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer spawns into a match confused about the controls and exclaims 'I only know how to jump!' while struggling to figure out which character he is.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of setup and control confusion as the streamer figures out how to move, lacking a clear punchline or comedic payoff."
+ }
+}

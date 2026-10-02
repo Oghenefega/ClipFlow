@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_qgad",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1568,
+  "outputTokens": 675,
+  "thoughtTokens": 533
+ },
+ "cost": 0.0074145,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator tunes into the VCT post-match interview after a tournament win, saying 'Ah 100 Thieves 100 Thieves! Here are your VCT Americas champions!'",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains no gameplay or plays, only the transition into a post-match interview segment. Under hype_reaction rules, narration and interview waiting without highlights are rejected."
+ }
+}

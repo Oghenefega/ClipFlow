@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_neqn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1682,
+  "outputTokens": 537,
+  "thoughtTokens": 399
+ },
+ "cost": 0.006550500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator claps and laughs at his post-game stats after a Rocket League match, saying, 'Well played, well played, well played. One save, one assist.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 4,
+  "reaction_end_t": 8,
+  "reason": "The clip takes place entirely on the post-game screen with no active gameplay or notable comedic setup and payoff to hold a stranger's interest."
+ }
+}

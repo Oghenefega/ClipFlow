@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737928_q810",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 869,
+  "thoughtTokens": 733
+ },
+ "cost": 0.0095265,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega reacts with genuine shock and laughter to an absurd goal, exclaiming 'Oh my goodness! What the heck?! This dude is insane!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 55,
+  "payoff_t": 1,
+  "reaction_end_t": 13,
+  "reason": "Fega's energetic reaction and laughter at the crazy sequence are entertaining, but it lacks a clear comedic subversion or punchline to make it a standout clip."
+ }
+}

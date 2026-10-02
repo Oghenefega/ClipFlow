@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_jzrd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 675,
+  "thoughtTokens": 541
+ },
+ "cost": 0.008314499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at a dirty Rocket League demolition goal during the replay, saying, 'That was actually so toxic, what the heck?'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 9,
+  "reaction_end_t": 13,
+  "reason": "While he has a lighthearted laugh at a demolition play, there is no strong subversion, setup, or big comedic moment that stands out to a casual viewer."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_m5h6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2087,
+  "outputTokens": 577,
+  "thoughtTokens": 455
+ },
+ "cost": 0.007458,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently tells his opponent 'I'm not gonna take it easy on ya', only to get immediately scored on off the kickoff.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 85,
+  "payoff_t": 8.5,
+  "reaction_end_t": 14,
+  "reason": "This features the ideal comedy structure: a confident boast followed immediately by an instant, humiliating payoff on kickoff."
+ }
+}

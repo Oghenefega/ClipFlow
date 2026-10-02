@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071330_1pxh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 870,
+  "thoughtTokens": 726
+ },
+ "cost": 0.011307000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator advises Asuna to spam the angle, and when Asuna immediately gets a kill through smoke, he screams 'THERE WE GO! It's like he can hear me!'",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 45,
+  "payoff_t": 13,
+  "reaction_end_t": 21,
+  "reason": "While the timing aligns perfectly with his commentary, it is still only a routine single kill rather than a high-stakes clutch or multi-kill."
+ }
+}

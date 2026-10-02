@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_5ffm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 806,
+  "thoughtTokens": 659
+ },
+ "cost": 0.009369,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in disbelief when LOUD wins a round to tie the match 9-9, exclaiming 'Oh my god, no! Lucky shots, bro!'",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 50,
+  "payoff_t": 2,
+  "reaction_end_t": 8,
+  "reason": "The creator gives a good animated reaction to 100 Thieves dropping a round, but the play itself is cut short right at the round-ending screen, limiting its highlight value."
+ }
+}

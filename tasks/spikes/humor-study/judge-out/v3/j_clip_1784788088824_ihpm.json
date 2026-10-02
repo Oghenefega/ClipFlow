@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_ihpm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 525,
+  "thoughtTokens": 395
+ },
+ "cost": 0.006582,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sarcastically vents during a goal replay after getting demoed, saying 'Keep blowing me up man... Priorities, my dude!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 9.5,
+  "reason": "This is routine venting during a goal replay after getting demolished in Rocket League, lacking a comedic setup or subverted expectation to make it stand out."
+ }
+}

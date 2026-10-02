@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_6tdv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2783,
+  "outputTokens": 584,
+  "thoughtTokens": 442
+ },
+ "cost": 0.0085545,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator analyzes player stats during buy phase and reacts when Cryo dies early in the round saying, 'What? They just took down Cryo?'",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 22,
+  "reaction_end_t": 25,
+  "reason": "Most of the clip is pre-round talk and scoreboard analysis. The only action is a standard opening death with a mild reaction, making it unsuitable for a highlight clip."
+ }
+}

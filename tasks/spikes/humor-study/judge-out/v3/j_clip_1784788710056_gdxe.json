@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_gdxe",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 637,
+  "thoughtTokens": 528
+ },
+ "cost": 0.008879999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs during a goal replay while joking that they are giving the opponent enough headroom before starting the next kickoff.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is standard gameplay commentary during a goal replay without a clear joke, inversion, or comedic payoff."
+ }
+}

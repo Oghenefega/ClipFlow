@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_4gi9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2297,
+  "outputTokens": 663,
+  "thoughtTokens": 519
+ },
+ "cost": 0.008417999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up a 100 Thieves round-winning clutch, screaming 'Wait a minute, I think I'm rooting for the wrong person! WAIT! LET'S GO!'",
+  "play_quality": 7,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 16,
+  "reaction_end_t": 19,
+  "reason": "A crisp 1v1 round-winning clutch combined with a hilarious and extremely energetic reaction where he jumps out of his chair."
+ }
+}

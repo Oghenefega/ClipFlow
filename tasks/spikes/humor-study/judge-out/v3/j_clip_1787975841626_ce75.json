@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975841626_ce75",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 1070,
+  "thoughtTokens": 932
+ },
+ "cost": 0.0139005,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator analyzes the broadcast replay and round setup before realizing his mic was muted, shouting 'I've been muted bro! Oh my god!'.",
+  "play_quality": 1,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 36.5,
+  "reaction_end_t": 39,
+  "reason": "No big play or clutch occurs during this moment. Streamer tech blunders and round setup talk without gameplay highlights are standard rejects for hype reaction clips."
+ }
+}

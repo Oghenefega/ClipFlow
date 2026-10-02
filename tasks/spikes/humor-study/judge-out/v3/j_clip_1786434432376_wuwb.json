@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_wuwb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 698,
+  "thoughtTokens": 570
+ },
+ "cost": 0.010188,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tells his team to lock in, saying 'Let me lock in team, don't worry', but drives around idly while another player scores.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 16,
+  "reaction_end_t": 26,
+  "reason": "The moment lacks a strong comedic punchline or big reaction. His commentary remains flat and passive throughout the play."
+ }
+}

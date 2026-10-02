@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_pien",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 480,
+  "thoughtTokens": 362
+ },
+ "cost": 0.0064875,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator jokes that he had to give his opponent a head start as a replay shows him flying aimlessly across the arena.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 11,
+  "reason": "This is mild casual stream commentary over a kickoff replay without a strong comedic punchline or sudden reaction."
+ }
+}

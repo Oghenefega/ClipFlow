@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_gie3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3587,
+  "outputTokens": 601,
+  "thoughtTokens": 477
+ },
+ "cost": 0.009888,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator accidentally backs out of a game loading screen and despairs, saying 'I didn't know what I was doing!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 6,
+  "reaction_end_t": 25,
+  "reason": "Accidentally clicking out of a server download menu is routine tech hassle rather than a funny gameplay moment or comedic payoff."
+ }
+}

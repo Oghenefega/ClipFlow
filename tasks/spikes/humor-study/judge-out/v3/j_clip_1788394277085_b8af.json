@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_b8af",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4721,
+  "outputTokens": 766,
+  "thoughtTokens": 635
+ },
+ "cost": 0.012826500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates after getting caught early and laughs at his own bad performance, saying 'I suck at this game.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 9,
+  "reaction_end_t": 16,
+  "reason": "While the creator's self-deprecating reaction is somewhat entertaining, the clip is mostly slow spectating chatter after his death with no sudden comedic punchline."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_qw13",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5051,
+  "outputTokens": 666,
+  "thoughtTokens": 527
+ },
+ "cost": 0.0125715,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer goes wild yelling 'GET HIM OUT OF HERE!' as Cryo secures a multi-kill round win for 100 Thieves.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 30,
+  "reaction_end_t": 38,
+  "reason": "Cryo locks down an impressive multi-kill round win for 100 Thieves, triggering a huge standing hype reaction with the streamer's signature catchphrase."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_snrs",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4760,
+  "outputTokens": 824,
+  "thoughtTokens": 699
+ },
+ "cost": 0.01332,
+ "judged": {
+  "kind": "comedy",
+  "what": "After boasting that he always clutches up, the creator immediately gets scored on and screams 'NO WAY! OH MY GOD!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 37,
+  "reaction_end_t": 41,
+  "reason": "It follows the classic setup-payoff comedic structure: he gives a very confident speech about clutching up, then gets instantly scored on."
+ }
+}

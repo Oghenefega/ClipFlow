@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294769_gi1b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4922,
+  "outputTokens": 809,
+  "thoughtTokens": 673
+ },
+ "cost": 0.0134505,
+ "judged": {
+  "kind": "comedy",
+  "what": "The opponent scores an impressive goal and the creator reacts in disbelief saying 'No way! What the flip?!' before warning his chat to watch out.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 45,
+  "payoff_t": 32.5,
+  "reaction_end_t": 44,
+  "reason": "He gives a genuine surprised reaction to an opponent's goal, but the moment lacks a strong comedic setup or punchline to be a top-tier clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_js2k",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 769,
+  "thoughtTokens": 635
+ },
+ "cost": 0.0114,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives a dramatic motivational speech while 100 Thieves is down 4-12, saying 'I just came from church and I know what's possible man.'",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 20,
+  "reaction_end_t": 27,
+  "reason": "The clip consists of talking and narration between rounds without any major play or clutch happening on screen."
+ }
+}

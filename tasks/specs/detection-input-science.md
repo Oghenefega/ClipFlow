@@ -517,3 +517,39 @@ scored (Day3 Pt3 timed out in `single` twice and is left out). Scored by `stream
 - **Do not average with confidence on 100T:** confidence is weak there and drags the judge down. On
   comedy the average is what helps (Step 7). So the candidate design is routed by kind: hype → judge
   alone, comedy → judge + confidence.
+
+### Step 7c: rules v3 on every reviewed clip + a personal scorer (#483, session 283, 2026-10-02)
+
+Judge v3 (`judge.js --arm v3`): cell-1 rubric + the play-quality rule + Fega's round-2 answers (plays
+against 100T count, lost clutches can count, live over replay unless the replay condenses a multi-kill,
+over-the-top taunts yes / story talk no, a friend's joke with Fega laughing is a keep). Run on all 770
+reviewed clips over 54 recordings (`scorer-set.py`; mechanical rejects and GTA6-R excluded), $8.30.
+`scorer.py` (run with the transcription venv for scikit-learn) trains on Fega's keep/reject with every
+recording held out in turn. Features: judge keep/play/reaction scores, detection confidence, kind,
+duration, max per event-timeline signal in the window, max YAMNet probability per mic/game sound group.
+AR rows weighted 0.3.
+
+| Score (770 clips, 229 keeps) | Hype AUC | Comedy AUC | Top-k (show as many as kept) | Rejects removed at ≤10% keeps lost |
+|---|---|---|---|---|
+| Detection confidence | 0.628 | 0.717 | 135/229 | 20% |
+| Judge v3 | 0.697 | 0.807 | 141/229 | 26% |
+| Learned: signals only (no judge) | 0.623 | 0.722 | 129/229 | 28% |
+| Learned: confidence + judge | 0.682 | 0.805 | 140/229 | 36% |
+| Learned: everything | 0.658 | 0.808 | 146/229 | 35% |
+| Learned: everything, boosted trees | 0.633 | 0.767 | 138/229 | 34% |
+
+- **The judge carries it; a trained scorer adds little.** Sound and loudness features alone are about as
+  good as detection confidence, and adding them to the judge does not raise AUC. A learned blend of
+  confidence + judge removes more rejects at the 10% line (36% vs 26%) but ranks no better overall. Not
+  worth shipping yet; revisit when the label count has grown.
+- **v3 is not better than v2 on 100T.** Same 269 clips: v2 0.750, v3 0.716 (CI of v3 − v2: −0.09 to
+  +0.02). v3 now scores some rejected opponent plays and routine round wins high (e.g. LOUD's 1v3
+  against 100T, 15 → 88). Keep the v2 hype rubric; the "plays against 100T count" line needs Fega's
+  examples of which ones, or it over-fires. Comedy v3 ≈ cell 1 (0.807 vs 0.800).
+- **Views are not predictable from the clip yet.** Within each kind (published ≥ 7 days, percentile within
+  kind), the best single links are reaction words (hype, Spearman 0.32), judge keep score (hype 0.26,
+  comedy 0.18) and detection confidence (comedy 0.21). A views model trained on the other recordings
+  barely ranks a held-out recording (0.10 hype, 0.05 comedy). What drives views mostly sits outside the
+  clip (which match and teams, posting time, platform algorithm). Retention data (#484 next steps) is
+  the better views signal.
+- Ship candidate: judge only, rubric per kind (v2 for hype, v3 for comedy), as a sort with a reason line.

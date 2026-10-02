@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_u8g5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 779,
+  "thoughtTokens": 645
+ },
+ "cost": 0.0107955,
+ "judged": {
+  "kind": "comedy",
+  "what": "After bragging that locking in could make him the next IShowSpeed, he immediately whiffs an open goal and shouts 'Ain't no way I missed the open net!'",
+  "play_quality": null,
+  "reaction_size": 8.5,
+  "keep_score": 88,
+  "payoff_t": 13.5,
+  "reaction_end_t": 16.5,
+  "reason": "Follows the ideal comedy pattern: confident talk followed instantly by a complete fail and a loud, hilarious outburst."
+ }
+}

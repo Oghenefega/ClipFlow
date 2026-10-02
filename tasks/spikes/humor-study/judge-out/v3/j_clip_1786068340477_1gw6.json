@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_1gw6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 723,
+  "thoughtTokens": 590
+ },
+ "cost": 0.010254,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding to make it 4-3, the creator gets instantly scored on off the kickoff and shouts in disbelief, 'That is nonsense!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 80,
+  "payoff_t": 21.5,
+  "reaction_end_t": 28,
+  "reason": "An instant kickoff goal scored against him right after a close game build-up triggers a passionate, funny reaction that works well as a comedy highlight."
+ }
+}

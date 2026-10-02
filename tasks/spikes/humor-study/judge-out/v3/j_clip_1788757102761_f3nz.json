@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_f3nz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 654,
+  "thoughtTokens": 531
+ },
+ "cost": 0.0107805,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks over the round start saying 'We're in the endgame now', but the video cuts off during basic setup before any kills happen.",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists only of pre-round narration and standard setup with no major plays, kills, or hype moments occurring."
+ }
+}

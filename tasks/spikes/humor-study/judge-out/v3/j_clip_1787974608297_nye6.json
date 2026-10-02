@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608297_nye6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1649,
+  "outputTokens": 672,
+  "thoughtTokens": 554
+ },
+ "cost": 0.007513499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator casually talks about his past rank as the round begins with no gameplay action taking place.",
+  "play_quality": 0,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No gameplay play or highlight occurs in this clip while the creator merely chats casually. Per hype_reaction rules, setup talk without any plays should be rejected."
+ }
+}

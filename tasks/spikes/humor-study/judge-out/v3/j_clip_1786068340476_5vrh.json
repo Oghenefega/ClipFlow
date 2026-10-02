@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_5vrh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4760,
+  "outputTokens": 946,
+  "thoughtTokens": 817
+ },
+ "cost": 0.014235000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega loudly celebrates a Rocket League match win screaming 'GET HIM OUT OF HERE BRO!' before reading chat and checking post-game stats.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 28,
+  "payoff_t": 2,
+  "reaction_end_t": 13,
+  "reason": "The clip opens with a energetic victory reaction, but quickly devolves into standard post-game menu reading and thanking chat with no comedic subversion or punchline."
+ }
+}

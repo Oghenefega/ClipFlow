@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_npra",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4970,
+  "outputTokens": 447,
+  "thoughtTokens": 310
+ },
+ "cost": 0.0108075,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-talks while watching player facecams and crowd shots between rounds, saying 'I've got so much energy surging through my veins right now guys'.",
+  "play_quality": 0,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay occurring in this clip, only player cams and pre-match broadcast talk. Rules explicitly reject waiting between rounds or narration when nothing is happening."
+ }
+}

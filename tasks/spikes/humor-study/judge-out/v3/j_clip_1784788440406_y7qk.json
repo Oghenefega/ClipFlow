@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440406_y7qk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 959,
+  "thoughtTokens": 826
+ },
+ "cost": 0.010566,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores a goal after dodging a demolition attempt and hypes himself up, yelling 'Trying to blow me up? Do you know who I am?'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 50,
+  "payoff_t": 2,
+  "reaction_end_t": 15,
+  "reason": "He delivers funny, energetic trash talk after a good play, though it lacks the strong comedic reversal or ironic failure that makes clips top tier."
+ }
+}

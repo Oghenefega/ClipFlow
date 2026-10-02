@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_pd1n",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1973,
+  "outputTokens": 557,
+  "thoughtTokens": 430
+ },
+ "cost": 0.007136999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator mocks an opponent's failed push, exclaiming 'What was Mazin thinking?!'",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 70,
+  "payoff_t": 3.5,
+  "reaction_end_t": 11,
+  "reason": "While the kill itself is a simple shutdown, the creator's animated taunt mocking the opponent's mistake creates a very funny and memorable reaction moment."
+ }
+}

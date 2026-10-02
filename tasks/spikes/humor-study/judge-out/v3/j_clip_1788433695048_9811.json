@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695048_9811",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3263,
+  "outputTokens": 578,
+  "thoughtTokens": 440
+ },
+ "cost": 0.009229499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator spectates a player's shiny metallic character model and asks in disbelief, 'Why do you have nipples, bro, on your chrome body?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 45,
+  "payoff_t": 4,
+  "reaction_end_t": 13,
+  "reason": "It is lighthearted stream banter about an awkward character model design. While mildly humorous, it lacks a sharp punchline or major comedic payoff to make a strong highlight."
+ }
+}

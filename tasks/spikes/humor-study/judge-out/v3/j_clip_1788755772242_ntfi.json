@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_ntfi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3998,
+  "outputTokens": 663,
+  "thoughtTokens": 523
+ },
+ "cost": 0.0109695,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams in triumph and sheds tears of joy as 100 Thieves shuts down the site push, exclaiming 'I want to cry! Tears of joy!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 12,
+  "reaction_end_t": 35,
+  "reason": "A crucial round shutdown putting 100 Thieves within reach of the championship, paired with an incredibly genuine and emotional reaction from the creator."
+ }
+}

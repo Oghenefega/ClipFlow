@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_q5rg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 705,
+  "thoughtTokens": 554
+ },
+ "cost": 0.009219,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-reacts to a Cryo multi-kill replay, shouting 'Look at Cryo with the three-piece!' and repeating the caster's phrase 'Snappy without adjustment!'",
+  "play_quality": 8,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 4,
+  "reaction_end_t": 20,
+  "reason": "A solid hype moment reviewing a strong multi-kill play from 100T Cryo, with energetic reactions and an entertaining repetition of the caster's commentary."
+ }
+}

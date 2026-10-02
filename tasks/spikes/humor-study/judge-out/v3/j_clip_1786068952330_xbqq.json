@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068952330_xbqq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4112,
+  "outputTokens": 698,
+  "thoughtTokens": 570
+ },
+ "cost": 0.011403,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator mockingly asks if his opponent expected an easy win, only for the opponent to immediately score on him, forcing him to say 'Hold on, I can explain!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 88,
+  "payoff_t": 12,
+  "reaction_end_t": 26,
+  "reason": "Perfect execution of a confident statement immediately backfiring, followed by genuine embarrassed laughter and excuses."
+ }
+}

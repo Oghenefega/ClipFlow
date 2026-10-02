@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772243_1zoj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3593,
+  "outputTokens": 824,
+  "thoughtTokens": 686
+ },
+ "cost": 0.0115695,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T wins a flawless round to reach map point as the streamer yells along with player Boostio, 'LET'S GO BOYS!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 30,
+  "reaction_end_t": 35,
+  "reason": "The player cam reaction from Boostio feeds directly into the creator's high energy yelling, making it a great contagious hype moment for a highlight reel."
+ }
+}

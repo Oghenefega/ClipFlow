@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_z13t",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1568,
+  "outputTokens": 792,
+  "thoughtTokens": 663
+ },
+ "cost": 0.008292,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator asks 'What are we doing, Scoop?' before shouting 'ABSOLUTELY NOTHING!' as 100 Thieves easily secures the round.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 7.5,
+  "reaction_end_t": 9,
+  "reason": "This is a routine round end without a major play, multi-kill, or clutch to justify keeping the clip."
+ }
+}

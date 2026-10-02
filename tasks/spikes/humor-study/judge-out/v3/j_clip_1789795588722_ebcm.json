@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_ebcm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5817,
+  "outputTokens": 551,
+  "thoughtTokens": 429
+ },
+ "cost": 0.012858000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer sits on the main menu screen and complains about his roommate cooking food that smells delicious but isn't for him, saying 'That's so unfair bro.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 12,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just casual stream storytelling while sitting on a game menu, lacking any punchline or game interaction."
+ }
+}

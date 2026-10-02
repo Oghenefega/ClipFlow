@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_r7o7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4889,
+  "outputTokens": 682,
+  "thoughtTokens": 543
+ },
+ "cost": 0.0124485,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer compares 100 Thieves' slow play style to pulling off a heist, telling his chat 'When you're doing a heist, you don't make a lot of noise guys'.",
+  "play_quality": 1,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely story talk and monologue between rounds without any highlight gameplay occurring on screen. Plain narration and commentary without a major play are rejected."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_4z21",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4436,
+  "outputTokens": 747,
+  "thoughtTokens": 621
+ },
+ "cost": 0.0122565,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts with loud outrage to a Rocket League goal replay, exclaiming 'That does not even make any sense!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 65,
+  "payoff_t": 1,
+  "reaction_end_t": 13,
+  "reason": "His energetic mock outrage and laughter during the replay at the start is very funny, though the clip includes nearly thirty seconds of filler gameplay afterward."
+ }
+}

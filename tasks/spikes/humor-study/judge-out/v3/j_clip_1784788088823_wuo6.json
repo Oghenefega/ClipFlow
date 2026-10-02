@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088823_wuo6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 743,
+  "thoughtTokens": 598
+ },
+ "cost": 0.011132999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega cracks up after his teammate scores while he was uselessly floating through the air, laughing, \"I'm out here just flying around, bro! Like, are we gonna talk about what that was?\"",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 1.5,
+  "reaction_end_t": 15,
+  "reason": "Great self-deprecating comedy where Fega genuinely laughs at his own awkward aerial whiff while his teammate carries, delivering an infectious reaction."
+ }
+}

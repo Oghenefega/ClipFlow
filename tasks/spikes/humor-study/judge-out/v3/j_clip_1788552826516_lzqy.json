@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_lzqy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 762,
+  "thoughtTokens": 624
+ },
+ "cost": 0.0101325,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves close out a round victory to reach 8-5 and repeatedly chants 'It's too easy!'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 11.5,
+  "reaction_end_t": 22,
+  "reason": "This is a routine end-of-round cleanup rather than an extraordinary multi-kill or clutch play, and his reaction is just standard, repeated hype."
+ }
+}

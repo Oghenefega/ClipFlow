@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202987978_zgv7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 671,
+  "thoughtTokens": 523
+ },
+ "cost": 0.0090855,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gets emotional watching 100T lift a trophy at the end of a video, saying 'Man, why am I feeling so emotional bro?'",
+  "play_quality": 1,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 11,
+  "reaction_end_t": 23,
+  "reason": "This is a post-match video reaction with no live gameplay or hype play occurring. Hype reaction clips require actual high-quality plays or clutches, not emotional commentary over video outro celebrations."
+ }
+}

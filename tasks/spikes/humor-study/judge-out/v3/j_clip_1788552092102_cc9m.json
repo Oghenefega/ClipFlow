@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_cc9m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3431,
+  "outputTokens": 629,
+  "thoughtTokens": 505
+ },
+ "cost": 0.009864000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up Bang after watching a replay of him securing multiple kills, shouting 'Bang! Bang! Yeah Bang!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 18,
+  "reaction_end_t": 27,
+  "reason": "The replay highlights Bang securing multiple kills in a round, driving a passionate and energetic reaction from the creator."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392262_ekno",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 495,
+  "thoughtTokens": 367
+ },
+ "cost": 0.0080085,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator chats during the pre-round setup about wanting 100 Thieves to silence the opponent crowd, saying 'Man I can't wait for the crowd to be quiet!'",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of pre-round waiting and stream commentary with no gameplay or play highlight taking place."
+ }
+}

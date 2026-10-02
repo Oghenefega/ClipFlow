@@ -1,0 +1,149 @@
+{
+ "n": 770,
+ "keeps": 229,
+ "recordings": 54,
+ "features": [
+  "confidence",
+  "judge_keep",
+  "judge_play",
+  "judge_reaction",
+  "kind_hype",
+  "duration",
+  "sig_energy",
+  "sig_pitch_spike",
+  "sig_reaction_words",
+  "sig_transcript_density",
+  "sig_silence_spike",
+  "sig_yamnet",
+  "sig_game_energy",
+  "sig_game_yamnet",
+  "mic_laugh",
+  "mic_scream",
+  "mic_cheer",
+  "mic_gasp",
+  "game_shots",
+  "game_crowd",
+  "game_speech"
+ ],
+ "confidence": {
+  "auc": 0.675,
+  "auc_hype": 0.628,
+  "auc_comedy": 0.717,
+  "top_k": "135/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.198
+ },
+ "judge_v3": {
+  "auc": 0.752,
+  "auc_hype": 0.697,
+  "auc_comedy": 0.807,
+  "top_k": "141/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.257
+ },
+ "hand_routed": {
+  "auc": 0.68,
+  "auc_hype": 0.697,
+  "auc_comedy": 0.802,
+  "top_k": "142/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.157
+ },
+ "signals_only_lr": {
+  "auc": 0.68,
+  "auc_hype": 0.623,
+  "auc_comedy": 0.722,
+  "top_k": "129/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.279
+ },
+ "conf_judge_lr": {
+  "auc": 0.761,
+  "auc_hype": 0.682,
+  "auc_comedy": 0.805,
+  "top_k": "140/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.362
+ },
+ "all_lr": {
+  "auc": 0.752,
+  "auc_hype": 0.658,
+  "auc_comedy": 0.808,
+  "top_k": "146/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.349
+ },
+ "all_gb": {
+  "auc": 0.722,
+  "auc_hype": 0.633,
+  "auc_comedy": 0.767,
+  "top_k": "138/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.336
+ },
+ "all_lr_per_kind": {
+  "auc": 0.753,
+  "auc_hype": 0.633,
+  "auc_comedy": 0.809,
+  "top_k": "145/229",
+  "rejects_removed_at_10pct_keeps_lost": 0.34
+ },
+ "weights": {
+  "judge_keep": 0.65,
+  "kind_hype": 0.37,
+  "judge_play": -0.36,
+  "judge_reaction": 0.35,
+  "mic_laugh": 0.26,
+  "duration": 0.23,
+  "sig_silence_spike": -0.18,
+  "sig_game_yamnet": 0.16,
+  "confidence": 0.14,
+  "game_crowd": -0.11,
+  "game_shots": -0.08,
+  "mic_gasp": 0.08,
+  "sig_yamnet": -0.08,
+  "sig_game_energy": -0.08,
+  "sig_transcript_density": -0.07,
+  "sig_pitch_spike": -0.06,
+  "sig_reaction_words": 0.01,
+  "mic_scream": 0.0,
+  "game_speech": 0.0,
+  "sig_energy": 0.0,
+  "mic_cheer": 0.0
+ },
+ "views": {
+  "n": 219,
+  "hype": {
+   "n": 102,
+   "spearman": {
+    "sig_reaction_words": 0.32,
+    "judge_keep": 0.26,
+    "judge_play": 0.26,
+    "judge_reaction": 0.22,
+    "duration": 0.08,
+    "mic_gasp": 0.08,
+    "sig_pitch_spike": 0.06,
+    "sig_transcript_density": -0.06,
+    "mic_scream": 0.06,
+    "confidence": -0.04,
+    "sig_yamnet": -0.02,
+    "mic_laugh": 0.01
+   },
+   "learned_spearman_loro": 0.1
+  },
+  "comedy": {
+   "n": 117,
+   "spearman": {
+    "confidence": 0.21,
+    "judge_keep": 0.18,
+    "game_speech": -0.18,
+    "sig_reaction_words": 0.14,
+    "judge_reaction": 0.11,
+    "sig_game_energy": 0.1,
+    "sig_game_yamnet": 0.1,
+    "mic_scream": -0.06,
+    "sig_pitch_spike": 0.05,
+    "game_shots": 0.05,
+    "mic_laugh": 0.04,
+    "sig_transcript_density": -0.03,
+    "mic_gasp": 0.02,
+    "duration": 0.0,
+    "sig_yamnet": -0.0
+   },
+   "learned_spearman_loro": 0.054
+  }
+ }
+}

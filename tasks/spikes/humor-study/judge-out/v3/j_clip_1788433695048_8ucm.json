@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695048_8ucm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3749,
+  "outputTokens": 712,
+  "thoughtTokens": 580
+ },
+ "cost": 0.0109635,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator cracks up laughing when his teammate gives hiding advice out loud during setup, yelling 'Don't say that! This dude is the worst, man!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 55,
+  "payoff_t": 25.5,
+  "reaction_end_t": 32,
+  "reason": "A fun setup moment where a teammate gives away tactical advice over open audio, prompting genuine laughter and mock outrage from the creator."
+ }
+}

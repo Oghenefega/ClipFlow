@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501780_q03i",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4484,
+  "outputTokens": 795,
+  "thoughtTokens": 660
+ },
+ "cost": 0.0126885,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs hysterically at the coach slamming the large glowing red button on stage, shouting 'Not the big red button! That is so dramatic for no reason.'",
+  "play_quality": 0,
+  "reaction_size": 7,
+  "keep_score": 20,
+  "payoff_t": 19.5,
+  "reaction_end_t": 38,
+  "reason": "This is downtime during a team timeout rather than gameplay. Hype reaction clips require actual gameplay plays to be worth keeping."
+ }
+}

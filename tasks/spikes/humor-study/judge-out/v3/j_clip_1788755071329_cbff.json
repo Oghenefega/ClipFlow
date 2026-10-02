@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_cbff",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3836,
+  "outputTokens": 907,
+  "thoughtTokens": 767
+ },
+ "cost": 0.012556500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a tense 1v1 clutch slip away from 100 Thieves and screams 'THERE IT IS! NO!' in despair before throwing a shirt over his head.",
+  "play_quality": 6,
+  "reaction_size": 9,
+  "keep_score": 82,
+  "payoff_t": 26,
+  "reaction_end_t": 35,
+  "reason": "A high-stakes 1v1 clutch round loss produces an extremely passionate reaction as he screams and covers his head in agony."
+ }
+}

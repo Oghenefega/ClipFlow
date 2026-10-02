@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_occt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4235,
+  "outputTokens": 744,
+  "thoughtTokens": 626
+ },
+ "cost": 0.0119325,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator shoots aimlessly at Van Gogh paintings while searching for hidden players, concluding 'I thought I had the vision bro' when he finds no one.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of continuous rambling gameplay commentary without a clear punchline, contrast moment, or funny payoff."
+ }
+}

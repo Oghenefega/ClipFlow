@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_cp35",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 563,
+  "thoughtTokens": 421
+ },
+ "cost": 0.007839,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wonders if his opponent is the only person he'll score on tonight, only for the opponent to immediately score on him, prompting him to say, 'Never mind, never mind. I spoke too early.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 65,
+  "payoff_t": 16.5,
+  "reaction_end_t": 19,
+  "reason": "Classic jinx structure where his confident commentary is immediately contradicted by the opponent scoring, though his reaction is relatively calm."
+ }
+}

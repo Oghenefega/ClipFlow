@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_lwl4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5165,
+  "outputTokens": 813,
+  "thoughtTokens": 695
+ },
+ "cost": 0.013845000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega starts explaining how glitchy his game is today, only to get scored on mid-sentence.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 72,
+  "payoff_t": 46,
+  "reaction_end_t": 52,
+  "reason": "Classic comedic timing where he starts making pre-game excuses about lag and glitches right as his opponent scores past him."
+ }
+}

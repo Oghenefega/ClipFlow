@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_aa91",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2087,
+  "outputTokens": 846,
+  "thoughtTokens": 711
+ },
+ "cost": 0.0094755,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer scores a clutch Rocket League goal with four seconds left and leaps out of his chair shouting 'GET HIM OUT OF HERE! I'M THAT GUY BABY!'",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 75,
+  "payoff_t": 1,
+  "reaction_end_t": 12,
+  "reason": "His explosive standing pop-off and pure hype after hitting a late goal provides high-energy entertainment that works even without full match context."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913586_itlm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 1092,
+  "thoughtTokens": 945
+ },
+ "cost": 0.014308500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator is confused by the players' somber camera faces before realizing 100 Thieves won the round, exclaiming 'Everyone's clutching up, bro! That is insane!'",
+  "play_quality": 6,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 23,
+  "reaction_end_t": 33,
+  "reason": "His transition from confusion to hype over the team's nonchalant clutch reaction is entertaining, though the actual gameplay is mostly obscured by replay transitions and UI."
+ }
+}

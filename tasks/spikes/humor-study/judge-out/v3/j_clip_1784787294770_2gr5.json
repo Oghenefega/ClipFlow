@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294770_2gr5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 715,
+  "thoughtTokens": 570
+ },
+ "cost": 0.009465000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer panics while trying to defend, fails as the opponent scores, and screams 'Oh my goodness NO!' before bursting into laughter at the opponent's gamertag 'ITOTALLYSQUIRTED'.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 75,
+  "payoff_t": 8,
+  "reaction_end_t": 20,
+  "reason": "A fun gameplay mishap with a frantic setup, loud reaction to conceding, and extra comedy payoff from reading the opponent's ridiculous username."
+ }
+}

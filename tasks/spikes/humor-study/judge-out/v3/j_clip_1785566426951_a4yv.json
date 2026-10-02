@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426951_a4yv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 483,
+  "thoughtTokens": 373
+ },
+ "cost": 0.007725,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains 'When I get my chance, all of a sudden he's good' before silently driving around the pitch.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens after his initial comment, leading into extended gameplay with no comedic payoff or reaction."
+ }
+}

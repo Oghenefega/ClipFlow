@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440406_gria",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 655,
+  "thoughtTokens": 503
+ },
+ "cost": 0.0081645,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gives up a goal while sitting in the corner and laughs uncontrollably at his own replay, saying 'I was camping boost... Look at me bro! Oh my god, embarrassing.'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 78,
+  "payoff_t": 2,
+  "reaction_end_t": 14,
+  "reason": "A solid self-own where he openly laughs at his terrible positioning during the instant replay. The moment is self-contained, funny to any viewer, and highlights his self-deprecating humor."
+ }
+}

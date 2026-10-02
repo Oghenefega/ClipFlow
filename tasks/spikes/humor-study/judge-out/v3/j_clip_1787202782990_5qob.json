@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_5qob",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 477,
+  "thoughtTokens": 331
+ },
+ "cost": 0.009453,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through player names during a Valorant match, then laughs at player Asuna's post-match gesture on camera saying, 'Asuna always doing like this is crazy!'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 35,
+  "reaction_end_t": 38,
+  "reason": "The clip consists mostly of calm player-name commentary rather than a highlighted multi-kill or clutch, ending on a minor laugh at stage camera footage."
+ }
+}

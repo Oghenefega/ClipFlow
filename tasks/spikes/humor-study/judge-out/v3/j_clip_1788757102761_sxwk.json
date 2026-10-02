@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_sxwk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4808,
+  "outputTokens": 986,
+  "thoughtTokens": 837
+ },
+ "cost": 0.014606999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves securing round 11 against LOUD, shouting 'Let's go! Oh my god! 100 Thieves!' as the round win banner appears.",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 50,
+  "payoff_t": 4,
+  "reaction_end_t": 12,
+  "reason": "His reaction is high energy and passionate, but the clip catches only the round win banner and replay rather than showing the actual action play as it happened."
+ }
+}

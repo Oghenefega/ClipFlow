@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_6qix",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 946,
+  "thoughtTokens": 822
+ },
+ "cost": 0.012777,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator jumps out of his chair shouting 'Get him out of here!' after his teammate scores back-to-back goals.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 30,
+  "payoff_t": 2,
+  "reaction_end_t": 12,
+  "reason": "Although his energy is high, this is straightforward hype over basic Rocket League goals rather than a comedic subversion or funny moment."
+ }
+}

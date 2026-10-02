@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277519_uxp7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 773,
+  "thoughtTokens": 620
+ },
+ "cost": 0.010458,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to 100 Thieves securing a dominant 12-3 lead over NRG, celebrating with taunts, 'These guys ain't good! We're the best!'",
+  "play_quality": 6,
+  "reaction_size": 7,
+  "keep_score": 70,
+  "payoff_t": 17.5,
+  "reaction_end_t": 28,
+  "reason": "A fun hype moment as 100 Thieves closes in on victory with a 12-3 scoreline, paired with energetic taunting and banter from the creator."
+ }
+}

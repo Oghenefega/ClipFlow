@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784820368024_slum",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 741,
+  "thoughtTokens": 619
+ },
+ "cost": 0.008445000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The opponent scores an unbelievable goal on him, prompting him to scream in shock, 'Ain't no way! Oh my goodness!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 4.5,
+  "reaction_end_t": 9,
+  "reason": "A clean surprise moment where an opponent lands a great shot past him and he delivers a loud, genuine reaction."
+ }
+}

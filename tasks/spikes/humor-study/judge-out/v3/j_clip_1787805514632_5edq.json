@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_5edq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5239,
+  "outputTokens": 620,
+  "thoughtTokens": 489
+ },
+ "cost": 0.012508499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches absurd footage from the World Humanoid Robot Games and hilariously panics, stating, \"Guys, we are living in the end times... the West is cooked!\"",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 15,
+  "reaction_end_t": 52,
+  "reason": "His energetic and hyperbolic monologue about the impending robot apocalypse makes for a very entertaining, funny commentary segment."
+ }
+}

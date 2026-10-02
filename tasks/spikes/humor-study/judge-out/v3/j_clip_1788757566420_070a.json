@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_070a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3431,
+  "outputTokens": 729,
+  "thoughtTokens": 610
+ },
+ "cost": 0.010614,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves' success post-match, singing 'We prayed for times like this' while looking at tournament graphics and clips.",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is post-match commentary and celebration with no active gameplay play or clutch happening on screen."
+ }
+}

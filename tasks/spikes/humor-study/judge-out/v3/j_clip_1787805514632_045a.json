@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_045a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5887,
+  "outputTokens": 534,
+  "thoughtTokens": 410
+ },
+ "cost": 0.0128355,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically while watching a humanoid robot perform Ronaldo's celebration, exclaiming, 'And people say Ronaldo is not the GOAT!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 15,
+  "reaction_end_t": 30,
+  "reason": "Absurd commentary on ridiculously entertaining robot footage with energetic, infectious laughter during the Ronaldo celebration joke."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_4atu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 515,
+  "thoughtTokens": 399
+ },
+ "cost": 0.009544500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator finishes a Rocket League match, checks ranks and ping on the scoreboard while chatting with stream viewers and thanking a subscriber.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is standard end-of-match stream maintenance, chat banter, and subscriber shoutouts with no comedic joke or unexpected payoff."
+ }
+}

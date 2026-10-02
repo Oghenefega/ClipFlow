@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788113_0y2o",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 800,
+  "thoughtTokens": 663
+ },
+ "cost": 0.010782,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up Bang clutching out a round with 1 HP, shouting 'Get him out of here! One HP bro!' while flexing.",
+  "play_quality": 8,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 18,
+  "reaction_end_t": 25,
+  "reason": "A impressive 1 HP clutch play by Bang combined with the creator's high-energy reaction and classic hypeman lines makes for a solid highlight."
+ }
+}

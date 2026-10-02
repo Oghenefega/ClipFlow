@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_vf7y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4478,
+  "outputTokens": 553,
+  "thoughtTokens": 410
+ },
+ "cost": 0.010864500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer tries to select a public server from the menu, but each one vanishes as soon as he clicks it, prompting him to ask, 'Why am I picking stuff and it's vanishing guys?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 29.5,
+  "reaction_end_t": 44,
+  "reason": "This is menu setup footage where a server list bug causes selected options to vanish. The reaction is mild and lacks a strong comedic payoff."
+ }
+}

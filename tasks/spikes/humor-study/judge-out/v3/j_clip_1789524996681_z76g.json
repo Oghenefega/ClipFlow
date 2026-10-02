@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789524996681_z76g",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1802,
+  "outputTokens": 956,
+  "thoughtTokens": 808
+ },
+ "cost": 0.009873,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs at a fan in the crowd who notices she is on camera and immediately adjusts her pose, saying 'She's like, uh, I gotta look pretty'.",
+  "play_quality": 0,
+  "reaction_size": 6,
+  "keep_score": 20,
+  "payoff_t": 4,
+  "reaction_end_t": 11,
+  "reason": "There is no gameplay or esports play happening in this clip, only a crowd camera moment between rounds. While his laugh is genuine, clips without action or play payoff are consistently rejected."
+ }
+}

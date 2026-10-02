@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_m6qa",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 729,
+  "thoughtTokens": 592
+ },
+ "cost": 0.011586,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100T lose a close round, reacting with a dramatic scream of 'NOOO!' while holding his head in dismay.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 31,
+  "reaction_end_t": 38,
+  "reason": "A high-stakes lost round for the team he roots for triggers a strong, visible hands-on-head reaction that makes for a solid highlight."
+ }
+}

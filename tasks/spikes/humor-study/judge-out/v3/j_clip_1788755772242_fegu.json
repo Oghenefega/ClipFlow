@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_fegu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 8048,
+  "outputTokens": 820,
+  "thoughtTokens": 651
+ },
+ "cost": 0.018222,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with intense hype as 100 Thieves completes a massive comeback victory, pulling out his team jersey and shouting 'IT'S 100 THIEVES! OH MY GOODNESS! WHAT A FREAKING COMEBACK!'.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 75,
+  "payoff_t": 14,
+  "reaction_end_t": 28,
+  "reason": "High-energy reaction celebrating a major tournament comeback win with iconic hype and holding up team merch. The clip extends into post-match interviews and replays, but the initial victory reaction is very strong."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_gpzd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 602,
+  "thoughtTokens": 475
+ },
+ "cost": 0.008568,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures a round victory as the creator yells 'LET'S GO BABY!' before shifting into analytical commentary about their proactivity.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 1.5,
+  "reaction_end_t": 4,
+  "reason": "The clip mostly consists of round-end footage and standard analytical narration rather than a major highlight play or huge reaction."
+ }
+}

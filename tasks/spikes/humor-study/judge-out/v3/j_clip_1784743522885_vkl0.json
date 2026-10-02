@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_vkl0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 756,
+  "thoughtTokens": 630
+ },
+ "cost": 0.012567,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator expresses doubt about his one-goal lead, only to immediately score another goal and yell 'Get him out of here!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 34,
+  "reaction_end_t": 41,
+  "reason": "He expresses lack of confidence in his thin lead, but immediately scores to extend it, turning his pessimism into an excited celebration."
+ }
+}

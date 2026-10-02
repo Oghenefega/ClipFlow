@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092101_rf4i",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 725,
+  "thoughtTokens": 574
+ },
+ "cost": 0.009733499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T's IGL Boostio wins a key round, prompting the creator to stand up and shout 'THAT'S MY IGL! ARE YOU NOT ENTERTAINED?!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 4,
+  "reaction_end_t": 15,
+  "reason": "A clutch round-winning play by 100T's IGL triggers a huge, memorable reaction where the creator steps away from his desk to hype up his player."
+ }
+}

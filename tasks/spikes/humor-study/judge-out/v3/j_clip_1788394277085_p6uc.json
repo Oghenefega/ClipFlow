@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_p6uc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3749,
+  "outputTokens": 637,
+  "thoughtTokens": 527
+ },
+ "cost": 0.010401,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts about his incredible game vision while waiting in the lobby, claiming 'No one is getting past me!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of lobby setup and confident boasting without any gameplay action or comedic payoff occurring yet."
+ }
+}

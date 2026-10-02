@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_s4tv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 481,
+  "thoughtTokens": 353
+ },
+ "cost": 0.0073455,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hypes up his Rocket League teammate after a goal, shouting 'Let's go Young Cheddah!' before casually discussing rank stats.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 3.5,
+  "reaction_end_t": 7,
+  "reason": "This is standard gameplay commentary with routine cheering for a teammate's goal and lacks any funny setup, subversion, or comedic payoff."
+ }
+}

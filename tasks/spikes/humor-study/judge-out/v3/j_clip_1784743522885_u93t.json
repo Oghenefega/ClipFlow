@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_u93t",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1682,
+  "outputTokens": 669,
+  "thoughtTokens": 534
+ },
+ "cost": 0.0075405,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tries to cope with conceding a goal by repeating \"It's all part of the plan\" before quietly sighing, \"Oh my god... That is great.\"",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 35,
+  "payoff_t": 0.5,
+  "reaction_end_t": 9,
+  "reason": "He uses funny copium after getting scored on, but his delivery and energy are fairly flat, lacking a big dramatic payoff or laugh."
+ }
+}

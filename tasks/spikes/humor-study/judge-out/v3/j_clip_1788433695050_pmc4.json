@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695050_pmc4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1400,
+  "outputTokens": 571,
+  "thoughtTokens": 450
+ },
+ "cost": 0.006382499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into hysterical laughter while spectating a player seamlessly disguised as a cleaning bottle next to identical props.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 2,
+  "reaction_end_t": 6,
+  "reason": "A classic prop-hunt moment with a perfect disguise that triggers a loud, genuine laugh from the creator, making it entertaining to watch."
+ }
+}

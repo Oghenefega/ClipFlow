@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_btq9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 682,
+  "thoughtTokens": 577
+ },
+ "cost": 0.010626,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives a extended speech about heist strategy and playing defense while waiting during a tournament break.",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just stream banter and commentary during an esports broadcast interval with no gameplay happening."
+ }
+}

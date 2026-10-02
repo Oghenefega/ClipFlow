@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_1ero",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3512,
+  "outputTokens": 770,
+  "thoughtTokens": 637
+ },
+ "cost": 0.011043,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator takes off his jersey and yells 'Get him out of my face!' after 100 Thieves secures a round, before going into an extended explanation about letting the team cook.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 1,
+  "reaction_end_t": 3,
+  "reason": "The clip consists primarily of commentary and narration between rounds without an exceptional gameplay play or multi-kill."
+ }
+}

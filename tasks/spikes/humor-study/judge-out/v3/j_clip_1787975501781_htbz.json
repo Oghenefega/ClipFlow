@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_htbz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2297,
+  "outputTokens": 632,
+  "thoughtTokens": 500
+ },
+ "cost": 0.008185499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves sets up a routine spike plant on B site while the creator mutters 'Let's go' and begins to speak as the clip cuts off.",
+  "play_quality": 2,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This shows routine round setup and spike planting with no significant kills or play taking place. The creator's reaction is minimal and abruptly cut off."
+ }
+}

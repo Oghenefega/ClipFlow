@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_yc0f",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3749,
+  "outputTokens": 506,
+  "thoughtTokens": 399
+ },
+ "cost": 0.0094185,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator checks toilets and graffiti in a bathroom searching for hidden props, but finds no one.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in this clip; the creator simply walks around checking bathroom stalls with no prop reveal or funny payoff."
+ }
+}

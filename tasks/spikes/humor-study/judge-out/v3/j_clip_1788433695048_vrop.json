@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695048_vrop",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2696,
+  "outputTokens": 624,
+  "thoughtTokens": 504
+ },
+ "cost": 0.008723999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics during the hide-and-seek setup phase after realizing he hasn't hidden yet and a hunter is already waiting.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists purely of prep-phase setup and scrambling before the search phase begins, lacking a clear punchline or subversion."
+ }
+}

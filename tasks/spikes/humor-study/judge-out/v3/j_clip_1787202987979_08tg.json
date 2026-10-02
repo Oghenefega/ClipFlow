@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202987979_08tg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 661,
+  "thoughtTokens": 515
+ },
+ "cost": 0.0092535,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator enthusiastically celebrates as 100 Thieves lifts the trophy, exclaiming 'That is insane! Nah, the joy in their hearts, man!' and 'Let's freaking go!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 65,
+  "payoff_t": 11,
+  "reaction_end_t": 15,
+  "reason": "Captures the peak emotional trophy lift celebration of 100 Thieves winning the tournament with genuine, high-energy excitement from the creator."
+ }
+}

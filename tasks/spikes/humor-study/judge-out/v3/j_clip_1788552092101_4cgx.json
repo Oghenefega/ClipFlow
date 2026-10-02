@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092101_4cgx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2297,
+  "outputTokens": 825,
+  "thoughtTokens": 689
+ },
+ "cost": 0.009633,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator accurately predicts Bang winning his duel and goes wild, shouting 'I called it! ... He's not that guy, Bang is!'",
+  "play_quality": 6,
+  "reaction_size": 9,
+  "keep_score": 78,
+  "payoff_t": 2.5,
+  "reaction_end_t": 10,
+  "reason": "His spot-on prediction combined with a high-energy stand-up reaction and a memorable quote elevates a single-kill moment into a great clip."
+ }
+}

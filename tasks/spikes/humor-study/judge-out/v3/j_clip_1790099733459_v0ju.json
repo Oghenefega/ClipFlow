@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099733459_v0ju",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5644,
+  "outputTokens": 663,
+  "thoughtTokens": 531
+ },
+ "cost": 0.013438499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs uncontrollably while watching a humanoid robot land a kick and immediately collapse, asking 'How do you land the kick and then die?'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 3,
+  "reaction_end_t": 39,
+  "reason": "Funny video of a robot collapsing after a move, paired with the creator's great laughter and physical impersonation of the robot slumping over."
+ }
+}

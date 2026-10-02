@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945274_ac4a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2654,
+  "outputTokens": 478,
+  "thoughtTokens": 339
+ },
+ "cost": 0.007566,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at his opponent for being too polite in Rocket League quick chat, saying 'You're not allowing me to shit talk you bro, you're just like Nice shot!'.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 8,
+  "reaction_end_t": 21,
+  "reason": "It's a lighthearted commentary moment about a wholesome opponent, but lacks a strong comedic payoff or funny gameplay interaction to make it a standout clip."
+ }
+}

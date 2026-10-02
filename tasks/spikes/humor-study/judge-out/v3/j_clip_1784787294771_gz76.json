@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294771_gz76",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 526,
+  "thoughtTokens": 416
+ },
+ "cost": 0.0075615,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sits in the post-game lobby conversing with another player about ranks and setting up a 3s match.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely lobby chat organizing the next match with no gameplay, funny moment, or punchline."
+ }
+}

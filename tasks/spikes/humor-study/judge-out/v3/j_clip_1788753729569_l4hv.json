@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_l4hv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 842,
+  "thoughtTokens": 697
+ },
+ "cost": 0.0112185,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Asuna closes out a high-stakes 12-11 round clutch, prompting the creator to scream 'GET HIM OUT OF HERE! We don't care what ult you using, WE DON'T CARE!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 10,
+  "reaction_end_t": 16,
+  "reason": "A map-point clutch round produces a loud, high-energy reaction complete with his classic taunt line."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088823_a6zk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 680,
+  "thoughtTokens": 555
+ },
+ "cost": 0.010053,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator brags that winning in Rocket League is 'too easy' before celebrating ranking up to Diamond III.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 20,
+  "reaction_end_t": 28,
+  "reason": "This is a routine post-match wrap-up and rank-up celebration, lacking a comedic setup-and-payoff or funny highlight."
+ }
+}

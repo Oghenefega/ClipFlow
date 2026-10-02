@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138778_rdzb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 754,
+  "thoughtTokens": 637
+ },
+ "cost": 0.0104865,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks through the final seconds of a Rocket League match, saying 'I think we've got it... Never celebrate too early' as time expires.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The moment lacks a dramatic punchline or humorous reversal, featuring mostly flat narration during routine gameplay."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_vjka",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 676,
+  "thoughtTokens": 547
+ },
+ "cost": 0.010095,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through the round setup before shouting 'GET HIM OUT OF THERE!' on a single routine kill.",
+  "play_quality": 2,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 25,
+  "reaction_end_t": 28,
+  "reason": "This is a routine single kill paired with his usual hype line, which the rules explicitly state is a reject without a multi-kill or major play."
+ }
+}

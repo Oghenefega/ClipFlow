@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_vbrk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5294,
+  "outputTokens": 643,
+  "thoughtTokens": 520
+ },
+ "cost": 0.0127635,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up a potential comeback during a match timeout, shouting 'Now the casters are believing!' as casters discuss 100 Thieves.",
+  "play_quality": 0,
+  "reaction_size": 6,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay action in this clip, as it takes place entirely during a tournament timeout and broadcast break."
+ }
+}

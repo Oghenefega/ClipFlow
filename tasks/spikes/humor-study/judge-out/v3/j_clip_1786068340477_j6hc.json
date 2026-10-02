@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_j6hc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 609,
+  "thoughtTokens": 497
+ },
+ "cost": 0.0078195,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator makes a save in Rocket League overtime and remarks, 'That could have been bad, bro.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing particularly funny happens in this clip; it is just routine gameplay commentary during overtime with no punchline or comedy payoff."
+ }
+}

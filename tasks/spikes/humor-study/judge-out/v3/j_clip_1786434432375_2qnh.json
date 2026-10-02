@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_2qnh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 497,
+  "thoughtTokens": 374
+ },
+ "cost": 0.0081945,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator drives around in Rocket League with low intensity before quietly asking himself, 'What am I doing?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 24,
+  "reaction_end_t": 25.5,
+  "reason": "Nothing significant happens during the gameplay and there is no funny setup or comedy payoff. It is just standard, low-energy gameplay commentary."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340477_ihyx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2087,
+  "outputTokens": 650,
+  "thoughtTokens": 526
+ },
+ "cost": 0.008005499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator apologizes for demolishing an opponent by saying 'he was just in the way', then casually fumbles the upcoming kickoff.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 12,
+  "reaction_end_t": 14.5,
+  "reason": "This is routine gameplay narration with low energy and no funny payoff or punchline to hold a viewer's attention."
+ }
+}

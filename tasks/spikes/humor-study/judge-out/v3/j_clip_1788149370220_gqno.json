@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788149370220_gqno",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4484,
+  "outputTokens": 713,
+  "thoughtTokens": 585
+ },
+ "cost": 0.012073500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs hysterically at the stage setup when a Leviatán coach slams a dramatic timeout button, saying 'That is so dramatic for no reason!'",
+  "play_quality": 1,
+  "reaction_size": 7,
+  "keep_score": 20,
+  "payoff_t": 21,
+  "reaction_end_t": 45,
+  "reason": "No esports gameplay occurs in this clip; the creator is merely making observational commentary during a stage timeout."
+ }
+}

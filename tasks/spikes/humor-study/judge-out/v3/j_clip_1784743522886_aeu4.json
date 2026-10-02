@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522886_aeu4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2573,
+  "outputTokens": 538,
+  "thoughtTokens": 415
+ },
+ "cost": 0.007894499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator calmly narrates his Rocket League match before double-committing and letting the opponent score, casually saying 'Nope, I double committed, my bad.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The creator merely narrates routine gameplay with a flat delivery. There is no funny setup, unexpected turn, or noticeable comedy payoff."
+ }
+}

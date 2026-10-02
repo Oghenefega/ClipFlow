@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_u31b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 576,
+  "thoughtTokens": 447
+ },
+ "cost": 0.007936499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega says he can handle constructive criticism about his Rocket League rotations, to which his teammate simply replies, 'You suck, dude', making him laugh.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 75,
+  "payoff_t": 13.5,
+  "reaction_end_t": 18,
+  "reason": "A teammate lands a clean, funny punchline after Fega offers to take constructive criticism, delivering a solid comedic beat."
+ }
+}

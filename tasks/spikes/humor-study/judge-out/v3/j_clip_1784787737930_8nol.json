@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737930_8nol",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 628,
+  "thoughtTokens": 497
+ },
+ "cost": 0.007719,
+ "judged": {
+  "kind": "comedy",
+  "what": "The opponent scores a goal against him to tie the game, leaving him laughing in disbelief while saying 'Oh, no way!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 2,
+  "reaction_end_t": 8,
+  "reason": "A goal is scored against him and he reacts with mild disbelief, but it lacks a strong comedic setup or subversion to make it memorable for a non-viewer."
+ }
+}

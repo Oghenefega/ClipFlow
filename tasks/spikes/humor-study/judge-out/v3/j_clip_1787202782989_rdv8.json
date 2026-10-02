@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_rdv8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 1144,
+  "thoughtTokens": 994
+ },
+ "cost": 0.014698500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator rewinds a 100 Thieves team huddle clip to figure out what they are chanting, laughing when he hears them yell 'DING DONG!'",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 18.5,
+  "reaction_end_t": 23,
+  "reason": "This moment shows pre-match huddle footage rather than an in-game esports play. Without a multi-kill, clutch, or hype gameplay play, it is a reject for this category."
+ }
+}

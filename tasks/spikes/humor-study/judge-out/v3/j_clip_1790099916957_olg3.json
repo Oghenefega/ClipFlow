@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099916957_olg3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5239,
+  "outputTokens": 590,
+  "thoughtTokens": 460
+ },
+ "cost": 0.0122835,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches humanoid robot games footage and humorously despairs about the robot apocalypse, concluding 'the West is cooked, I'm going back to Nigeria'.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 15,
+  "reaction_end_t": 53,
+  "reason": "Hilarious and absurd commentary on strange robot sports footage, escalating into a funny hyperbolic rant about the end of times."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_cten",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4322,
+  "outputTokens": 745,
+  "thoughtTokens": 606
+ },
+ "cost": 0.012070500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates intensely as 100 Thieves secures a flawless round, shouting 'Oh my goodness, let's freaking go baby!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 12,
+  "reaction_end_t": 17,
+  "reason": "High-energy reaction to a crucial flawless round win for 100 Thieves that breaks a 9-9 tie, featuring huge visual hype and clear passion."
+ }
+}

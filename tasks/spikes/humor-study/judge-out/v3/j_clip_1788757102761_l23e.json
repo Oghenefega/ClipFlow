@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_l23e",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5861,
+  "outputTokens": 630,
+  "thoughtTokens": 484
+ },
+ "cost": 0.0135165,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to 100 Thieves securing key kills and dropping the spike in OT against LOUD, shouting 'SPIKE IS DOWN! LET'S GO!'.",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 59.5,
+  "reaction_end_t": 63,
+  "reason": "While the round carries high overtime stakes, the clip spans over a minute with long lulls between routine isolated kills, making it too drawn out for a tight highlight."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277519_lyw3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 660,
+  "thoughtTokens": 524
+ },
+ "cost": 0.0108255,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates a map win during transition graphics, hype-talking about the upcoming match and screaming 'Another trophy is coming home!'",
+  "play_quality": 1,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": 16.5,
+  "reaction_end_t": 22,
+  "reason": "This moment takes place entirely during post-map transition graphics and video filler without any actual gameplay. Hyping during downtime without a featured play is an automatic reject."
+ }
+}

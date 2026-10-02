@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143968_lgo0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 748,
+  "thoughtTokens": 625
+ },
+ "cost": 0.010270499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches in disbelief after a round loss, asking 'How the actual heck is that even possible bro?'",
+  "play_quality": 4,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 14,
+  "reason": "The streamer expresses quiet disbelief during post-round downtime, but the reaction lacks energy and no major play is highlighted live."
+ }
+}

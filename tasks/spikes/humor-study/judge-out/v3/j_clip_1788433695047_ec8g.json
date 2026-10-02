@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695047_ec8g",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3344,
+  "outputTokens": 489,
+  "thoughtTokens": 352
+ },
+ "cost": 0.0086835,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator fails to blend into a wall in a prop hunt game and calls his teammate over to laugh at his terrible camouflage, asking 'How do I make myself like flatten into the wall?'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 18,
+  "reaction_end_t": 25,
+  "reason": "A solid self-own comedy clip where the creator realizes his hiding spot is completely ineffective and cracks up with his teammate."
+ }
+}

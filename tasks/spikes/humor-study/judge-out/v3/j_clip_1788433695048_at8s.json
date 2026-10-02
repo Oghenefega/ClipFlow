@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695048_at8s",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1886,
+  "outputTokens": 603,
+  "thoughtTokens": 480
+ },
+ "cost": 0.0073515,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts with mild surprise as his teammate gets found immediately after he switches to their camera view, saying 'He just found you? That is crazy!'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 2,
+  "reaction_end_t": 4,
+  "reason": "This is casual gameplay commentary and spectating talk without a strong comedic punchline or dramatic payoff."
+ }
+}

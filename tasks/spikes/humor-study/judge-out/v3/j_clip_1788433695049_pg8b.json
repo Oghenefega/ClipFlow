@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_pg8b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2696,
+  "outputTokens": 795,
+  "thoughtTokens": 667
+ },
+ "cost": 0.0100065,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs while observing his teammate quietly positioning himself upside down, saying 'JP is in security mode' and 'He's in detective mode right now.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": null,
+  "reaction_end_t": 22,
+  "reason": "This is mostly casual commentary and giggling at a teammate playing quietly, lacking a defined comedic punchline or dramatic game event."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_6sbn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3836,
+  "outputTokens": 737,
+  "thoughtTokens": 584
+ },
+ "cost": 0.0112815,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts in shock when Cryo gets picked off early in the round, yelling 'NOOO! How come he saw Cryo before Cryo saw him?'",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 29.5,
+  "reaction_end_t": 35,
+  "reason": "This is a routine first-blood death at the start of a round with a brief shout of disappointment. It lacks a multi-kill, clutch, or high-stakes outplay needed for a hype highlight."
+ }
+}

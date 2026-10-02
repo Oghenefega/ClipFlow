@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_lo5a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3836,
+  "outputTokens": 966,
+  "thoughtTokens": 836
+ },
+ "cost": 0.012999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves execute on site and cheers, 'There we go, there we go, there we go!'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 36,
+  "reaction_end_t": 38,
+  "reason": "This is a standard round setup and early execute with routine commentary, lacking any high-stakes clutch or multi-kill play."
+ }
+}

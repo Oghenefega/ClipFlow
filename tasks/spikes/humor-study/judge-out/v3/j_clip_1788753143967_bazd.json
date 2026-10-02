@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_bazd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4484,
+  "outputTokens": 1204,
+  "thoughtTokens": 1055
+ },
+ "cost": 0.015756,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator prematurely celebrates predicting a 3k from Vora (\"What I say guys?!\"), but Vora only gets one kill before dying, leaving him bewildered.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 22,
+  "reaction_end_t": 45,
+  "reason": "The creator hyped up a 3k play that turned out to be just a single routine kill before Vora was traded out. Routine single kills do not meet the standard for a highlight."
+ }
+}

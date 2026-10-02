@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294770_9pot",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 745,
+  "thoughtTokens": 614
+ },
+ "cost": 0.010540500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator misses an easy shot opportunities in Rocket League and excuses it by saying 'I don't like cheap goals bro.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 20,
+  "reaction_end_t": 22,
+  "reason": "It is casual gameplay commentary with a mild excuse joke, but lacks a sharp visual contrast, big reaction, or memorable hit to make it a standout clip."
+ }
+}

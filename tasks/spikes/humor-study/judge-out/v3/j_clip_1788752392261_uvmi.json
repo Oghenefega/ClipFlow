@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_uvmi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5213,
+  "outputTokens": 948,
+  "thoughtTokens": 807
+ },
+ "cost": 0.0149295,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator yells 'GET HIM OUT OF HERE!' after a trade kill and spends the rest of the clip arguing with the casters' commentary.",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 20,
+  "payoff_t": 1.5,
+  "reaction_end_t": 5,
+  "reason": "The clip features only a routine kill followed by passive setup gameplay with no major play occurring. His signature hype line on a basic kill and talking over caster narrative does not justify a keep."
+ }
+}

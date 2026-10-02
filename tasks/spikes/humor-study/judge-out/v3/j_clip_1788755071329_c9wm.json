@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_c9wm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2459,
+  "outputTokens": 629,
+  "thoughtTokens": 503
+ },
+ "cost": 0.008406,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to a map loss and advises that 100 Thieves needs to buy Sheriffs on the upcoming pistol round.",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of commentary and tactical talk during downtime between rounds/maps, which lacks the high-stakes play required for a keepable hype clip."
+ }
+}

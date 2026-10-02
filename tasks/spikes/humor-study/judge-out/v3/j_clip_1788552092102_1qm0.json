@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_1qm0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3593,
+  "outputTokens": 719,
+  "thoughtTokens": 592
+ },
+ "cost": 0.010782,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to an opening kill shouting 'PSYCHE! Get him out of here!' before narrating an eco round setup.",
+  "play_quality": 3,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 9.5,
+  "reaction_end_t": 12,
+  "reason": "The clip features a routine single kill with his standard signature line, followed by slow round setup and narration where nothing major happens."
+ }
+}

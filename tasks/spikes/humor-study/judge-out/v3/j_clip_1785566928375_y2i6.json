@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_y2i6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 433,
+  "thoughtTokens": 321
+ },
+ "cost": 0.007350000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator checks his Rocket League ranks in the main menu and talks about wanting to reach Division 2 so he doesn't lose Champ rank.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely menu navigation and casual rank talk with no comedic payoff or gameplay moment."
+ }
+}

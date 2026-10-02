@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099172153_6prj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5806,
+  "outputTokens": 580,
+  "thoughtTokens": 449
+ },
+ "cost": 0.013059000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts out laughing at humanoid robots running erratically during a track race, exclaiming 'These guys are so out of line, look at this dude man!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 38,
+  "reaction_end_t": 48,
+  "reason": "His genuine burst of laughter at the absurd footage of humanoid robots swerving across lanes creates a very funny reaction moment."
+ }
+}

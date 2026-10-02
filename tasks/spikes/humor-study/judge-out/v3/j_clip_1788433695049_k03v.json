@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_k03v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2858,
+  "outputTokens": 823,
+  "thoughtTokens": 701
+ },
+ "cost": 0.0104595,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chuckles at a lobby player using a voice changer and decides to quit the lobby, asking 'Why does that kid sound like that?'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine lobby waiting and backing out of a match, lacking any punchline or funny game action for a standalone clip."
+ }
+}

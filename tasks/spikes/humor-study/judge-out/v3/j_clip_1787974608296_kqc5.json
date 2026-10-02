@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_kqc5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3431,
+  "outputTokens": 807,
+  "thoughtTokens": 669
+ },
+ "cost": 0.011199,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in disbelief to a crazy round survival, shouting 'I thought we died! But HE died! That is insane!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 13,
+  "reaction_end_t": 31,
+  "reason": "An unbelievable survival play by 100T sparks a passionate, high-energy reaction from the creator. The emotional roller-coaster and quotable outburst make it a great highlight clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_ualf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3950,
+  "outputTokens": 1097,
+  "thoughtTokens": 954
+ },
+ "cost": 0.014152500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega gives an animated rant mocking opponents who claim they haven't played recently after getting scored on, saying 'I'm never believing a word out of the mouth of these people again.'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 68,
+  "payoff_t": 5,
+  "reaction_end_t": 35,
+  "reason": "Fega's relatable comedic rant impersonating gamers who make pre-game excuses is energetic, readable, and leads smoothly into him tying the score."
+ }
+}

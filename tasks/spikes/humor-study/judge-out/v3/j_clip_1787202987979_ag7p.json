@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202987979_ag7p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4646,
+  "outputTokens": 602,
+  "thoughtTokens": 482
+ },
+ "cost": 0.011484,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly reflects on 100 Thieves' journey, saying, 'I'm just really happy for them.'",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No gameplay or esports play is happening in this clip. It is entirely calm story commentary and narration about 100 Thieves."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788112_ri1a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 802,
+  "thoughtTokens": 656
+ },
+ "cost": 0.0106755,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator bursts into hysterical laughter and disbelief as 100 Thieves closes out a dominant 13-2 match victory, shouting 'What did he think he was trying to do?!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 22,
+  "reaction_end_t": 28,
+  "reason": "It captures the match-winning moment of a 13-2 blowout with an explosive, genuine reaction as he stands up and laughs in excitement."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_phc9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 643,
+  "thoughtTokens": 506
+ },
+ "cost": 0.008196,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains that he suddenly can't hit any shots, only to immediately make an improbable hit and shout 'Ain't no way fam! That worked, right?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 65,
+  "payoff_t": 9,
+  "reaction_end_t": 14,
+  "reason": "He self-deprecatingly claims he lost his touch right before surprisingly pulling off a shot, giving a funny genuine reaction of disbelief."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_ptf4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1682,
+  "outputTokens": 746,
+  "thoughtTokens": 626
+ },
+ "cost": 0.008118,
+ "judged": {
+  "kind": "comedy",
+  "what": "After scoring a goal in Rocket League, the streamer watches the replay while chuckling and saying, 'Let's make him watch it.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The goal happens right as the clip begins, leaving only replay narration and mild chat commentary with no comedic setup or punchline."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294771_928j",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5165,
+  "outputTokens": 547,
+  "thoughtTokens": 405
+ },
+ "cost": 0.01185,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator plays out the final seconds of a Rocket League match, laughs off opponent bumps, and chuckles when he whiffs a hit as time expires, saying 'I missed that?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 45,
+  "reaction_end_t": 52,
+  "reason": "This is routine gameplay narration without a strong comedic setup or sharp payoff. His reaction to missing the final hit is low-key and unmemorable."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_m5ru",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 785,
+  "thoughtTokens": 638
+ },
+ "cost": 0.010719,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator says 'sign me out' as opponents get fancy, only to get brutally bumped out of his goal and scored on, yelling 'Savage man! Savage! Brutal!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 8.5,
+  "reaction_end_t": 21,
+  "reason": "He complains about fancy players right before getting hilariously bumped out of the play for an opponent goal. His laughing, amazed reaction to getting wrecked gives the moment a great comedic payoff."
+ }
+}

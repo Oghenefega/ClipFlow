@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945274_hc6l",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4436,
+  "outputTokens": 549,
+  "thoughtTokens": 412
+ },
+ "cost": 0.0107715,
+ "judged": {
+  "kind": "comedy",
+  "what": "After hyping himself up saying 'If there's anyone who could do it to you bro', he immediately scores an own goal and buries his face in his hands laughing.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 28.5,
+  "reaction_end_t": 41,
+  "reason": "He gives a confident motivational line right before instantly scoring an own goal, leading to a hilarious burst of head-in-hands laughter."
+ }
+}

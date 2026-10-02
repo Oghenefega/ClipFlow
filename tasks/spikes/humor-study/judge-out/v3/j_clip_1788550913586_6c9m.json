@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913586_6c9m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 597,
+  "thoughtTokens": 459
+ },
+ "cost": 0.0090165,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates NRG calling an early tactical timeout at 1-3, pointing to his temple and shouting 'We in their heads!'",
+  "play_quality": 2,
+  "reaction_size": 7,
+  "keep_score": 25,
+  "payoff_t": 10,
+  "reaction_end_t": 23.5,
+  "reason": "This clip takes place entirely during a tactical timeout with no actual gameplay play occurring. Per hype reaction rules, downtime and waiting between rounds without a play should be rejected."
+ }
+}

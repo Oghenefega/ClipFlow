@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_e47i",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 927,
+  "thoughtTokens": 786
+ },
+ "cost": 0.011855999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches the post-match ceremony and reacts emotionally, saying 'I love my team, I love my team. God bless these guys.'",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay play happening in this clip, only post-match interview footage and stream chat shoutouts. Without an actual round or multi-kill play, this type of post-game footage is rejected."
+ }
+}

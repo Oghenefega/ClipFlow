@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_mivr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 685,
+  "thoughtTokens": 563
+ },
+ "cost": 0.0081465,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator criticizes his teammate for doing 'absolutely nothing' with his pass, only to get instantly demolished by an opponent.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 70,
+  "payoff_t": 12.5,
+  "reaction_end_t": 14.5,
+  "reason": "Great comedic timing where he complains about his teammate's lack of action and is immediately blown up mid-sentence."
+ }
+}

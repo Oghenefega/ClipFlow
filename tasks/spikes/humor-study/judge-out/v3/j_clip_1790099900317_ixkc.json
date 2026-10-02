@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099900317_ixkc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7021,
+  "outputTokens": 1223,
+  "thoughtTokens": 1075
+ },
+ "cost": 0.019704,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts with hilarity to a demonic-looking centaur robot, exclaiming 'I'll be doing the job myself... I'm not gonna wait for this thing to drag me!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 72,
+  "payoff_t": 35,
+  "reaction_end_t": 45,
+  "reason": "His funny visual reaction to the creepy robot render behind the door and his absurd commentary about how he would react if it came for him make for an entertaining comedy moment."
+ }
+}

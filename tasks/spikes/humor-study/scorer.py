@@ -106,7 +106,7 @@ def report(name, score, mask=None):
     out = {"auc": round(roc_auc_score(y[m], score[m], sample_weight=w[m]), 3)}
     for k in ("hype", "comedy"):
         mk = m & (kind == k)
-        out[f"auc_{k}"] = round(roc_auc_score(y[mk], score[mk]), 3)
+        out[f"auc_{k}"] = round(roc_auc_score(y[mk], score[mk]), 3) if len(np.unique(y[mk])) == 2 else None
     # top-k inside each recording: show as many as Fega kept
     hit = tot = 0
     for g in np.unique(groups[m]):

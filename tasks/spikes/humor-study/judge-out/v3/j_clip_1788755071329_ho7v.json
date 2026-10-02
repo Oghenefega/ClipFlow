@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_ho7v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 668,
+  "thoughtTokens": 552
+ },
+ "cost": 0.010034999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "During a timeout, the creator copes with 100 Thieves trailing by shouting 'It's a defense-sided map!'",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely commentary and cope during a tactical timeout with no active gameplay or play to highlight."
+ }
+}

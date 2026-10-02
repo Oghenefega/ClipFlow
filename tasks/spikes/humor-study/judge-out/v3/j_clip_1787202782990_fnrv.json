@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_fnrv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 839,
+  "thoughtTokens": 696
+ },
+ "cost": 0.011317500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches a vlog video of a player playing a phone guessing game and comments on how crazy it is that he doesn't know the movie, saying 'That's crazy. That this guy doesn't know... Brad Pitt I think.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of mild commentary over behind-the-scenes vlog footage without any comedic payoff, surprising twist, or strong reaction."
+ }
+}

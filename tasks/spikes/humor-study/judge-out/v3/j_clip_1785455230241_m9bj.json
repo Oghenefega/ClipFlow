@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_m9bj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2576,
+  "outputTokens": 962,
+  "thoughtTokens": 832
+ },
+ "cost": 0.011079,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator crosses the finish line on a driving track under 30 seconds and yells 'Let's go! Get him out of here!' while celebrating.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 65,
+  "payoff_t": 9,
+  "reaction_end_t": 19,
+  "reason": "He completes a clean driving run and erupts with his signature catchphrase, delivering good energy even without a comedic subversion."
+ }
+}

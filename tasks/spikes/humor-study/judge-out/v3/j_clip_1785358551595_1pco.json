@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551595_1pco",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 682,
+  "thoughtTokens": 555
+ },
+ "cost": 0.008124,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to a save saying 'Ain't no way bro, what a save man' before silently driving around in routine gameplay.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 1.5,
+  "reaction_end_t": 5,
+  "reason": "The clip begins mid-reaction to a play already occurring at start, followed by routine, silent gameplay with no comedic setup or payoff."
+ }
+}

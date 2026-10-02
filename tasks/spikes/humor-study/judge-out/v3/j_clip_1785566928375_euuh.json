@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_euuh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 647,
+  "thoughtTokens": 518
+ },
+ "cost": 0.009441000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator makes a Rocket League save and shouts 'Not on my watch man, get him out of here!' before continuing routine gameplay.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 1.5,
+  "reaction_end_t": 11,
+  "reason": "While his initial save reaction is energetic, there is no comedic twist, self-own, or ironic setup to carry the clip past standard gameplay."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_jnut",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2939,
+  "outputTokens": 691,
+  "thoughtTokens": 561
+ },
+ "cost": 0.009590999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator accidentally stands on the Hunter applicant platform while complaining about becoming a hunter, then tries to play it off by saying 'That's fine, all part of the plan.'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 55,
+  "payoff_t": 8,
+  "reaction_end_t": 16,
+  "reason": "A funny self-own where he accidentally locks himself into the hunter role while actively complaining about it."
+ }
+}

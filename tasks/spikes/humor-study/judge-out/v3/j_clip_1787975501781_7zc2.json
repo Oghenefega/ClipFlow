@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_7zc2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3836,
+  "outputTokens": 670,
+  "thoughtTokens": 524
+ },
+ "cost": 0.010779,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator holds his head in disbelief as 100 Thieves loses another round to go down 4-7, exclaiming 'What the freak?'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 2,
+  "reaction_end_t": 10,
+  "reason": "This moment captures general frustration over a scoreline deficit rather than a high-quality highlight play or clutch. Without an extraordinary gameplay moment, a routine round loss is not strong enough to keep."
+ }
+}

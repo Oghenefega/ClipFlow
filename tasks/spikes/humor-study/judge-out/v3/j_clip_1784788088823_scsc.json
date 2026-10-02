@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088823_scsc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6137,
+  "outputTokens": 815,
+  "thoughtTokens": 672
+ },
+ "cost": 0.015318,
+ "judged": {
+  "kind": "comedy",
+  "what": "After making a last-second epic save on the goal line, the creator screams 'Not on my watch man, get him out of here!' and jokes that he used up all his aura points.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 62,
+  "payoff_t": 45,
+  "reaction_end_t": 48,
+  "reason": "He makes an impressive goal-line save with a energetic reaction and signature hype line, followed by a funny comment about using up his aura points."
+ }
+}

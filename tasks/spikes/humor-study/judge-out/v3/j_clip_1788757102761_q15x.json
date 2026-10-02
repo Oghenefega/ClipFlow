@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_q15x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 551,
+  "thoughtTokens": 439
+ },
+ "cost": 0.0081855,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator briefly comments on a previous round while watching early-round setup where no kills occur.",
+  "play_quality": 1,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No combat or highlight plays occur during this clip, only routine round setup. It lacks any reaction or hype moment worth keeping."
+ }
+}

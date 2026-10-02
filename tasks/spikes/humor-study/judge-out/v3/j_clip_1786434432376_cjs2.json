@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_cjs2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3869,
+  "outputTokens": 702,
+  "thoughtTokens": 568
+ },
+ "cost": 0.0110685,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently asks 'Why would we be screwed in 2s, Chili?' right before the opponent scores on them, prompting him to laughingly admit 'My bad, Chili.'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 72,
+  "payoff_t": 23,
+  "reaction_end_t": 28,
+  "reason": "Classic comedy structure where overconfidence is immediately punished by an opponent goal, leading to a self-aware laugh."
+ }
+}

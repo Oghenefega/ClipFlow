@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_udlx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6104,
+  "outputTokens": 559,
+  "thoughtTokens": 437
+ },
+ "cost": 0.013348500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches the post-map MVP poll and analyst desk following a 100 Thieves victory, laughing when Bang wins MVP over Timotino.",
+  "play_quality": 1,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This moment features post-game analyst desk commentary and MVP voting graphics rather than actual gameplay or a highlight play."
+ }
+}

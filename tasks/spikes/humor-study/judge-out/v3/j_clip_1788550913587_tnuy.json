@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_tnuy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 945,
+  "thoughtTokens": 799
+ },
+ "cost": 0.0104115,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator says 'Let's see what he can do. Absolutely nothing' right before Cryo gets caught off guard and killed, prompting him to shout 'WHAT?! WHAT?!'",
+  "play_quality": 5,
+  "reaction_size": 7,
+  "keep_score": 40,
+  "payoff_t": 14,
+  "reaction_end_t": 17.5,
+  "reason": "While his reaction is loud and timing was funny, it is ultimately just a single kill where Cryo gets eliminated rather than a highlight multi-kill or clutch."
+ }
+}

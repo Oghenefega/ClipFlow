@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_s8zh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3836,
+  "outputTokens": 820,
+  "thoughtTokens": 673
+ },
+ "cost": 0.011904000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "LOUD eeiu eliminates 100T Bang despite Bang holding a one-way smoke, causing the creator to grab his head in shock shouting 'Jesus! Oh my goodness! How?!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 20,
+  "reaction_end_t": 27,
+  "reason": "A big painful moment against 100T where a key setup gets immediately shut down, prompting a passionate hands-on-head disbelief reaction."
+ }
+}

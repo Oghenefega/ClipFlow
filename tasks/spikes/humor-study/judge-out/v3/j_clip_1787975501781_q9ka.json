@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_q9ka",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 901,
+  "thoughtTokens": 760
+ },
+ "cost": 0.011661,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in disbelief as Leviatán wins another round, shouting 'Oh my goodness!', before quietly telling 100T to 'dig deep'.",
+  "play_quality": 4,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 1,
+  "reaction_end_t": 5,
+  "reason": "While his initial reaction to the round loss is genuine, the play isn't shown live and most of the clip consists of post-round narration and casters talking."
+ }
+}

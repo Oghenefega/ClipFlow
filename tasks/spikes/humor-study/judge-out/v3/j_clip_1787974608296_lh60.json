@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_lh60",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6428,
+  "outputTokens": 863,
+  "thoughtTokens": 710
+ },
+ "cost": 0.0161145,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T Bang secures an incredible 4K round win, prompting the creator to leap out of his chair shouting 'Bang might just be the best player on the planet, bro!'",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 92,
+  "payoff_t": 13.5,
+  "reaction_end_t": 50,
+  "reason": "Bang pulls off an outstanding 4K multi-kill in a pro match, driving an extremely hype reaction where the creator physically gets out of his chair and stays amazed through the replay."
+ }
+}

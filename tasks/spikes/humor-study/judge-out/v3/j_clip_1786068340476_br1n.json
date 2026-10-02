@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_br1n",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 766,
+  "thoughtTokens": 639
+ },
+ "cost": 0.010454999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega makes a clutch save, dribbles down field to score, and screams 'GET HIM OUT OF HERE!' while laughing hysterically.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 16,
+  "reaction_end_t": 23,
+  "reason": "He clutches out a save, carries the ball downfield to score, and delivers a big energetic reaction with his signature shout."
+ }
+}

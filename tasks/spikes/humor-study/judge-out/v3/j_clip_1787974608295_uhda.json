@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608295_uhda",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2378,
+  "outputTokens": 533,
+  "thoughtTokens": 391
+ },
+ "cost": 0.0075645,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with hands-on-head shock and screams 'OH MY GOD! WHAT! What did I just watch?!' after Cryo lands an impossible shot.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 6.5,
+  "reaction_end_t": 18,
+  "reason": "Cryo hits a ridiculous flick shot through visual clutter and the creator's wide-eyed, hands-on-head disbelief creates a top-tier reaction."
+ }
+}

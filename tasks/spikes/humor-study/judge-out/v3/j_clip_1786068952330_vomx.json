@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068952330_vomx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4517,
+  "outputTokens": 753,
+  "thoughtTokens": 620
+ },
+ "cost": 0.012423,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator humorously claims he is the better Rocket League player despite losing, arguing that his two goals from three shots is a better conversion ratio.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 55,
+  "payoff_t": 15,
+  "reaction_end_t": 41,
+  "reason": "He delivers a funny cope argument analyzing post-game stats after a heavy loss, though the clip is mostly post-game menu talk without active gameplay."
+ }
+}

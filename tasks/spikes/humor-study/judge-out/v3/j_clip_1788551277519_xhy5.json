@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277519_xhy5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2459,
+  "outputTokens": 952,
+  "thoughtTokens": 807
+ },
+ "cost": 0.010828500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves dominating a round to reach map point, yelling 'It's so easy bro! These guys are not ready!'",
+  "play_quality": 4,
+  "reaction_size": 7,
+  "keep_score": 35,
+  "payoff_t": 12.5,
+  "reaction_end_t": 18,
+  "reason": "While his reaction is loud and energetic with signature hype lines, the play shown is just a routine final kill to close out a round rather than a multi-kill or clutch highlight."
+ }
+}

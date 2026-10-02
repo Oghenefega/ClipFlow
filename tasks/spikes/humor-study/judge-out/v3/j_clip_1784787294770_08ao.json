@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294770_08ao",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1520,
+  "outputTokens": 597,
+  "thoughtTokens": 467
+ },
+ "cost": 0.0067575,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer gets scored on in Rocket League and yells 'Nice shot! Damn it! What rank am I?' while laughing.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 1,
+  "reaction_end_t": 6,
+  "reason": "It is a standard reaction to getting scored on with a mild self-deprecating comment, but lacks a sharp setup-payoff structure or high comedic impact."
+ }
+}

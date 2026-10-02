@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_y8nk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2573,
+  "outputTokens": 649,
+  "thoughtTokens": 514
+ },
+ "cost": 0.008726999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator mocks his opponent for typing that they are a smurf, asking if it's meant to prepare him for things getting dicey or just be embarrassing for the smurf if they lose.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is casual commentary on an opponent's chat message during routine gameplay, lacking a dramatic gameplay fail, punchline, or clear comedic payoff."
+ }
+}

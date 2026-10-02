@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787669491065_rtht",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 704,
+  "thoughtTokens": 582
+ },
+ "cost": 0.0108405,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer passes the ball and exclaims 'Somebody be there to finish the job! I have already done—what more do you want from me?!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "While he delivers a dramatic line demanding a teammate complete the play, there is no payoff or comical result before the clip ends."
+ }
+}

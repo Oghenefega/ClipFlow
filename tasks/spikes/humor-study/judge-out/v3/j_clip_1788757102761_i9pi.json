@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_i9pi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4565,
+  "outputTokens": 805,
+  "thoughtTokens": 686
+ },
+ "cost": 0.012885,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up match point before the round starts, saying 'There's gonna be tears in this crowd tonight, man!'",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is pre-round commentary and hype during the buy phase with no actual gameplay play landing in the clip."
+ }
+}

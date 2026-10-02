@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_1ubx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 559,
+  "thoughtTokens": 431
+ },
+ "cost": 0.006351,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chuckles and says, \"We're just playing with them at this point,\" while holding a comfortable 5-1 lead in Rocket League.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 3.5,
+  "reaction_end_t": 5.5,
+  "reason": "This is routine gameplay commentary while winning comfortably, lacking any funny twist, self-own, or high-energy payoff."
+ }
+}

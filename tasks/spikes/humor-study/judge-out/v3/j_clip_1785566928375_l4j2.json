@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_l4j2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 766,
+  "thoughtTokens": 627
+ },
+ "cost": 0.010576499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega scores the game-winning overtime goal in Rocket League and boasts, 'Who's the guy who shows up when it matters? It's this guy!'",
+  "play_quality": null,
+  "reaction_size": 8.5,
+  "keep_score": 78,
+  "payoff_t": 2.5,
+  "reaction_end_t": 18,
+  "reason": "He backs up his confidence with a clutch game-winning goal and delivers an energetic, charismatic self-boast that works well for his audience."
+ }
+}

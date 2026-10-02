@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788225344059_hrae",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2538,
+  "outputTokens": 860,
+  "thoughtTokens": 711
+ },
+ "cost": 0.010256999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves securing a 2-0 series win, shouting 'And that's done baby! Come on, get 'em out of here!'",
+  "play_quality": 3,
+  "reaction_size": 8,
+  "keep_score": 35,
+  "payoff_t": 5,
+  "reaction_end_t": 20,
+  "reason": "His reaction celebrating the 2-0 match win is enthusiastic, but the video only shows the post-match handshakes rather than an actual live gameplay clutch or multi-kill."
+ }
+}

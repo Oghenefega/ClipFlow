@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_fht0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4559,
+  "outputTokens": 517,
+  "thoughtTokens": 410
+ },
+ "cost": 0.010716,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer rambles while trying to figure out the lobby setup and terminology for a three-player game.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of lobby setup and filler commentary with no joke, payoff, or funny moment."
+ }
+}

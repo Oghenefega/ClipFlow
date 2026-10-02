@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_tqqr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 1022,
+  "thoughtTokens": 867
+ },
+ "cost": 0.012447,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams 'HOW DOES HE DO THAT?!' and grabs his hat in disbelief when 100T gets caught out pushing, leaving Cryo isolated in a 1v3.",
+  "play_quality": 4,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 21,
+  "reaction_end_t": 27,
+  "reason": "The creator gives a strong vocal reaction to a painful moment for his team, but the gameplay shown is just an isolated single frag shutting down a push rather than a highlight multi-kill or clutch."
+ }
+}

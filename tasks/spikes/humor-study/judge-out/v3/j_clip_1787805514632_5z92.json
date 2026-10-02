@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_5z92",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2728,
+  "outputTokens": 569,
+  "thoughtTokens": 436
+ },
+ "cost": 0.008359499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads that there are 666 teams in the World Humanoid Robot Games and jokes, 'Tell me that is not a sign for something.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 13,
+  "reaction_end_t": 19,
+  "reason": "This is just reading social media posts and making a mild 666 joke with no visual payoff or strong comedic punchline."
+ }
+}

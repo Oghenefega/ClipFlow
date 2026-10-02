@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_pfc9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 897,
+  "thoughtTokens": 743
+ },
+ "cost": 0.011509499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs at a sad couple in the crowd watching 100 Thieves lose, joking 'She might break up with you', before hyping up the upcoming round.",
+  "play_quality": 2,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 10,
+  "reaction_end_t": 20,
+  "reason": "This clip contains no actual gameplay play, focusing instead on crowd footage and waiting for the next round to start. Routine hype during downtime or round transitions without a featured multi-kill or clutch is a standard reject."
+ }
+}

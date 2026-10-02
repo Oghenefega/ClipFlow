@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788424153057_9loo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7880,
+  "outputTokens": 708,
+  "thoughtTokens": 579
+ },
+ "cost": 0.01713,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics while struggling with controls and camouflage poses before the round starts, shouting 'I'm cooked!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 29.5,
+  "reaction_end_t": 33,
+  "reason": "This clip consists entirely of prep time and figuring out game controls. Without a funny payoff or interaction with other players, it is mostly setup and menu navigation."
+ }
+}

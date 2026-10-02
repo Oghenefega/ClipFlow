@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_yhst",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 781,
+  "thoughtTokens": 641
+ },
+ "cost": 0.01149,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs hysterically as a replay shows Asuna spraying wildly into a wall, shouting 'Asuna was out here emptying that clip against that wall!'",
+  "play_quality": 2,
+  "reaction_size": 8,
+  "keep_score": 70,
+  "payoff_t": 16,
+  "reaction_end_t": 23,
+  "reason": "Although not a high-skill play, Asuna's hilarious fail spray creates a genuine laugh-out-loud moment that esports viewers will thoroughly enjoy."
+ }
+}

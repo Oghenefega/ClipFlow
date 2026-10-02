@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_hoez",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1811,
+  "outputTokens": 698,
+  "thoughtTokens": 566
+ },
+ "cost": 0.0079515,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with shock to the home crowd noise, yelling 'Crowd advantage, home advantage is real bro!'.",
+  "play_quality": 3,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 3,
+  "reaction_end_t": 5,
+  "reason": "There is no major multi-kill or clutch play shown in the video, making it mostly commentary on the crowd noise without a highlight play to back it up."
+ }
+}

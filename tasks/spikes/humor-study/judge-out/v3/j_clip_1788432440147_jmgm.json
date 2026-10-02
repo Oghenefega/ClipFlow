@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_jmgm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2048,
+  "outputTokens": 533,
+  "thoughtTokens": 424
+ },
+ "cost": 0.0070695,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loads into an Art Museum mod and confidently declares, 'I am not going to get caught!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains only setup commentary on a loading screen without any immediate gameplay payoff or funny turn of events."
+ }
+}

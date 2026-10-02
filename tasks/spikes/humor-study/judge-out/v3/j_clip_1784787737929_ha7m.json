@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_ha7m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2816,
+  "outputTokens": 401,
+  "thoughtTokens": 304
+ },
+ "cost": 0.0072315,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator queues up and starts a match of Rocket League.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing interesting or funny happens in this clip; it is just menu downtime and a standard match start."
+ }
+}

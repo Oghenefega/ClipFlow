@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_w65v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 383,
+  "thoughtTokens": 251
+ },
+ "cost": 0.008433,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator whiffs an easy shot and laughs off his mistake, saying, 'I don't wanna talk about that bro, I literally had an easy goal.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 13,
+  "reaction_end_t": 17,
+  "reason": "This is casual gameplay commentary with a mild self-own, but lacks a sharp comedic setup or strong payoff that would entertain an outside viewer."
+ }
+}

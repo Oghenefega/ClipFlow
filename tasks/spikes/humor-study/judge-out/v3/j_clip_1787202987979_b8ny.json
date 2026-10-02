@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202987979_b8ny",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1325,
+  "outputTokens": 830,
+  "thoughtTokens": 698
+ },
+ "cost": 0.0082125,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator laughs in disbelief as Asuna plays Phoenix for 100 Thieves, exclaiming, 'What timeline are we in?!'",
+  "play_quality": 2,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 5,
+  "reaction_end_t": 6,
+  "reason": "While the creator is amused by the agent pick, no kills or high-stakes play happens during this short clip, making it commentary without action."
+ }
+}

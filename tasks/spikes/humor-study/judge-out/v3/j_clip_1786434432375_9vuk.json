@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_9vuk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5165,
+  "outputTokens": 906,
+  "thoughtTokens": 770
+ },
+ "cost": 0.0145425,
+ "judged": {
+  "kind": "comedy",
+  "what": "After getting demoed in Rocket League overtime, Fega rushes back only to watch the opponent score the winning goal, screaming 'NO FREAKING WAY DUDE!' before bursting into laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 80,
+  "payoff_t": 31,
+  "reaction_end_t": 43,
+  "reason": "A sudden overtime loss delivers a solid comedic payoff, capped off by Fega's big screaming reaction and genuine laughter."
+ }
+}

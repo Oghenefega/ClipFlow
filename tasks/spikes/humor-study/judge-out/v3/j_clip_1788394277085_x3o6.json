@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_x3o6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4397,
+  "outputTokens": 650,
+  "thoughtTokens": 514
+ },
+ "cost": 0.0114705,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently searches for a hidden player and shouts 'Oh, I just found him!', only to realize a teammate got the kill instead.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 75,
+  "payoff_t": 33,
+  "reaction_end_t": 43,
+  "reason": "A classic self-own moment where he excitedly claims credit for finding a hider before realizing his teammate made the kill, leading to genuine self-deprecating laughter."
+ }
+}

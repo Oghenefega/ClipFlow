@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_8jgn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3992,
+  "outputTokens": 566,
+  "thoughtTokens": 452
+ },
+ "cost": 0.010232999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator calmly discusses how a player was spotted because their hand was sticking out while hiding, before quitting to the main menu.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is casual post-round breakdown and game chatter with no strong punchline, comedic payoff, or notable reaction."
+ }
+}

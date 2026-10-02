@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_sln5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 847,
+  "thoughtTokens": 714
+ },
+ "cost": 0.011255999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator predicts the enemy position right before Bang gets the kill, prompting him to jump out of his chair yelling \"GET HIM OUT OF THERE!\"",
+  "play_quality": 6,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 13,
+  "reaction_end_t": 18,
+  "reason": "His callout prediction lands perfectly as Bang gets the kill, resulting in a huge signature reaction where he leaps out of his chair."
+ }
+}

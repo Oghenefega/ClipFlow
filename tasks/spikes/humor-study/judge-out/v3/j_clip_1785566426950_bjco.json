@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_bjco",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4517,
+  "outputTokens": 647,
+  "thoughtTokens": 526
+ },
+ "cost": 0.011628,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator admires an opponent's goal in Rocket League before getting scored on again while casually answering a stream schedule question from chat.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists mostly of routine gameplay, mild reactions to opponent goals, and casual chat banter about stream schedules with no comedic setup or punchline."
+ }
+}

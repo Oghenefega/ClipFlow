@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_a813",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4889,
+  "outputTokens": 1003,
+  "thoughtTokens": 864
+ },
+ "cost": 0.014856,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps up out of his chair in excitement after a clean kill, yelling 'Get him out of here! Read him like a book!'",
+  "play_quality": 5,
+  "reaction_size": 8,
+  "keep_score": 65,
+  "payoff_t": 10,
+  "reaction_end_t": 16,
+  "reason": "While the kill itself is fairly routine map control, the creator's high-energy reaction and standing up out of his seat give the clip solid entertainment value."
+ }
+}

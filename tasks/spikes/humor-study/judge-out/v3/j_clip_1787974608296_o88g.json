@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_o88g",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2540,
+  "outputTokens": 528,
+  "thoughtTokens": 415
+ },
+ "cost": 0.00777,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator chats and listens to a text-to-speech message about watching pros while early round movement occurs in the match.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No noteworthy play occurs during this clip while the creator casually talks with chat during pre-round setup."
+ }
+}

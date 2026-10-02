@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785454905644_lbhu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3587,
+  "outputTokens": 818,
+  "thoughtTokens": 676
+ },
+ "cost": 0.011515500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer wonders if the game is too wild to continue right before getting kicked back to the main menu, remarking, 'I got kicked... That was one heck of an experience.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 18,
+  "reaction_end_t": 25,
+  "reason": "Getting booted mid-sentence provides a mild surprise, but his calm, explanatory delivery lacks the big reaction or punchiness needed for a strong comedy clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_2gnz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4565,
+  "outputTokens": 543,
+  "thoughtTokens": 430
+ },
+ "cost": 0.01092,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gets excited seeing Split selected as the map and talks about his familiarity with it before the match starts.",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is pre-match commentary and setup before any actual gameplay happens, which is a reject for hype reaction clips."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_vtdn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 555,
+  "thoughtTokens": 432
+ },
+ "cost": 0.007779,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about missing an open net and says, \"I need to chill bro... I am sweating so bad right now\", as he plays in overtime.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just ordinary gameplay commentary and self-narration during overtime with no punchline, comedic payoff, or highlight moment."
+ }
+}

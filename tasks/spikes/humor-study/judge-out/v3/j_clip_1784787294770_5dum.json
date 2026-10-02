@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294770_5dum",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 456,
+  "thoughtTokens": 332
+ },
+ "cost": 0.007158,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer checks his Rocket League rank screen, seeing he reached Diamond 2 Div 4, and says 'Let's play till we get Diamond 3, okay?' before loading into the next game.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just standard commentary and menu navigation between matches with no funny moment or payoff."
+ }
+}

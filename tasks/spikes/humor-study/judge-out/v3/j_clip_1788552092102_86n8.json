@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_86n8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 550,
+  "thoughtTokens": 409
+ },
+ "cost": 0.008421,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype reacts to 100 Thieves shutting down an site push, shouting 'You can't stop us, bro!' and 'Absolutely destroyed!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 1,
+  "reaction_end_t": 18,
+  "reason": "The creator gives a passionate, high-energy hype reaction to a dominant round shut down by 100 Thieves, delivering clean catchphrases during both live reaction and replay."
+ }
+}

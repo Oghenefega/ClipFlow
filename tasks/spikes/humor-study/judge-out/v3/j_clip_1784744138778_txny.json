@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138778_txny",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 578,
+  "thoughtTokens": 458
+ },
+ "cost": 0.008802,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding a goal in Rocket League, the streamer watches the replay while analyzing his positioning and says, 'I didn't have that position locked in well.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists mostly of routine goal replay analysis and standard gameplay commentary with no humorous payoff or comedic inversion."
+ }
+}

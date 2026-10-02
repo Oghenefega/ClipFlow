@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_d2zx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1892,
+  "outputTokens": 759,
+  "thoughtTokens": 623
+ },
+ "cost": 0.0085305,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves get a routine kill on A site and shouts 'Nice, baby, nice!'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 6.5,
+  "reaction_end_t": 8.5,
+  "reason": "This is a routine kill during a round advantage accompanied by his standard hype shout. Lacking a multi-kill or high-stakes clutch, it is not strong enough to keep."
+ }
+}

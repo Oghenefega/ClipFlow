@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_zouo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6380,
+  "outputTokens": 779,
+  "thoughtTokens": 628
+ },
+ "cost": 0.015412499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega predicts he will end the match 7-2, but right after scoring to make it 6-2, his opponent quits, making him burst out laughing: 'He left!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 53,
+  "reaction_end_t": 67,
+  "reason": "Fega confidently predicts a 7-2 scoreline, but immediately after scoring to reach six goals, the opponent rage-quits, causing a genuinely funny moment and big laughter."
+ }
+}

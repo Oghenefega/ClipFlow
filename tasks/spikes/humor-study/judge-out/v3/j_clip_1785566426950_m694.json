@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_m694",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 599,
+  "thoughtTokens": 460
+ },
+ "cost": 0.0101745,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs in awe while watching his teammate's goal replay, exclaiming 'He actually got a flip reset on that!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 30,
+  "payoff_t": 10,
+  "reaction_end_t": 16,
+  "reason": "It is a mild positive reaction to a teammate's good replay rather than a comedic event. Without a strong subversion or high-energy joke, it lacks enough comedy value to keep."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294769_oowz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2816,
+  "outputTokens": 764,
+  "thoughtTokens": 631
+ },
+ "cost": 0.009954000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer celebrates scoring a goal in Rocket League, shouting 'Let's go baby! I was out here just playing on this guy... and I got it baby!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 1,
+  "reaction_end_t": 11,
+  "reason": "This is a routine goal celebration with standard self-hype rather than a comedic twist, self-own, or absurd moment."
+ }
+}

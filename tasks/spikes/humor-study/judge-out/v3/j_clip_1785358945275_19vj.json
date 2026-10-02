@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_19vj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2897,
+  "outputTokens": 617,
+  "thoughtTokens": 497
+ },
+ "cost": 0.008973,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega explains why he needs to stop chasing 100 boost, only to immediately go back to hunting boost and sighing 'Oh my goodness'.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 23,
+  "reaction_end_t": 25,
+  "reason": "The clip consists almost entirely of calm gameplay narration with no significant visual payoff or strong reaction."
+ }
+}

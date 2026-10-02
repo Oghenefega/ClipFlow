@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_t3yv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 673,
+  "thoughtTokens": 542
+ },
+ "cost": 0.007206,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator notices his opponent has 0 ping in Rocket League and jokes, \"0 ping is crazy. Who's your dad? NASA?\"",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 40,
+  "payoff_t": 5,
+  "reaction_end_t": 6,
+  "reason": "A funny witty remark about the opponent's connection, but too brief and low-stakes to make a top-tier clip on its own."
+ }
+}

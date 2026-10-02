@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_gsl2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 765,
+  "thoughtTokens": 640
+ },
+ "cost": 0.011613,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator shouts 'Get him out of my face bro!' during a routine 100 Thieves round win.",
+  "play_quality": 4,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 23,
+  "reaction_end_t": 26,
+  "reason": "This is a routine round win rather than an exceptional play or clutch, and his shouted signature lines fire frequently on standard kills."
+ }
+}

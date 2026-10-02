@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695049_aqgd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2858,
+  "outputTokens": 489,
+  "thoughtTokens": 380
+ },
+ "cost": 0.0079545,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator struggles to position his prop character before the round starts, muttering that he hopes the hunter is blind.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just setup talk during the pre-round hiding phase with no funny event or payoff occurring."
+ }
+}

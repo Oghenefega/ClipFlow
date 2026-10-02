@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_fk5q",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3992,
+  "outputTokens": 718,
+  "thoughtTokens": 607
+ },
+ "cost": 0.011373000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator searches a room shooting at props while asking 'what is that noise?', but fails to find anyone before the clip ends.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of setup and searching with no payoff, funny surprise, or punchline."
+ }
+}

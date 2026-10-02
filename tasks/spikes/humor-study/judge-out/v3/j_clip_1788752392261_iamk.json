@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_iamk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7481,
+  "outputTokens": 885,
+  "thoughtTokens": 739
+ },
+ "cost": 0.017859,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator marvels at LOUD's full-Sheriff round strategy as they win the round, exclaiming, 'It's insane! We better pick up this strat, dude!'",
+  "play_quality": 5,
+  "reaction_size": 7,
+  "keep_score": 40,
+  "payoff_t": 73,
+  "reaction_end_t": 82,
+  "reason": "The creator gets hyped about LOUD's Sheriff buy, but the clip is mostly strategic narration rather than a standout individual highlight play or clutch."
+ }
+}

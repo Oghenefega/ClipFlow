@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_adc6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 664,
+  "thoughtTokens": 541
+ },
+ "cost": 0.010491,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-narrates over a round replay, pointing at the camera and shouting 'Get him out of my face!'",
+  "play_quality": 4,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 8,
+  "reaction_end_t": 16,
+  "reason": "This is mostly commentary and narration over replay clips rather than a live highlight or remarkable multi-kill play."
+ }
+}

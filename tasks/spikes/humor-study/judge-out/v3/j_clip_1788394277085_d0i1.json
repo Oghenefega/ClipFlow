@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_d0i1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4073,
+  "outputTokens": 504,
+  "thoughtTokens": 372
+ },
+ "cost": 0.0098895,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator paints brown pants onto his character in the menu and laughs at the result, saying, 'This is not what my pants look like okay.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 18.5,
+  "reaction_end_t": 22,
+  "reason": "This is casual menu setup and rambling with only a mild laugh at his character design, lacking a strong punchline or funny gameplay moment."
+ }
+}

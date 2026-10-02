@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088824_a405",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4193,
+  "outputTokens": 526,
+  "thoughtTokens": 418
+ },
+ "cost": 0.0102345,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator plays Rocket League and asks his teammate to 'share' after a routine goal is scored.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of routine Rocket League gameplay and mild commentary without any strong joke, surprise, or comedic payoff."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143968_qyns",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 653,
+  "thoughtTokens": 530
+ },
+ "cost": 0.0096795,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches LOUD tuyz hit insane Sheriff shots to secure the round, reacting with 'Jesus, that was insane'.",
+  "play_quality": 8,
+  "reaction_size": 6,
+  "keep_score": 70,
+  "payoff_t": 3,
+  "reaction_end_t": 14,
+  "reason": "An impressive Sheriff multi-kill highlight in a pro VCT match that earns genuine awe from the streamer."
+ }
+}

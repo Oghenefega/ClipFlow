@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695048_fl3j",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3992,
+  "outputTokens": 675,
+  "thoughtTokens": 535
+ },
+ "cost": 0.011050500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts out laughing after spotting a hilarious Spider-Man avatar and another player floating on the wall, cracking up with 'Oh my goodness Chilly I see you bro what the heck!'.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 70,
+  "payoff_t": 18,
+  "reaction_end_t": 24,
+  "reason": "The absurd Spider-Man custom paint job combined with the glitchy wall spot triggers a big, genuine laugh reaction from the streamer."
+ }
+}

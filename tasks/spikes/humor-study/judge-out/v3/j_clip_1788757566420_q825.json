@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_q825",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1973,
+  "outputTokens": 546,
+  "thoughtTokens": 448
+ },
+ "cost": 0.0070545,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator clarifies tournament details while watching a broadcast group draw segment.",
+  "play_quality": 0,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely static narration during a tournament group draw with no gameplay or plays happening."
+ }
+}

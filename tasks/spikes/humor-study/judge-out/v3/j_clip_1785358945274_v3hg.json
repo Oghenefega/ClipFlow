@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945274_v3hg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4112,
+  "outputTokens": 607,
+  "thoughtTokens": 479
+ },
+ "cost": 0.0107205,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains about his opponent, misses his shot, and immediately gets scored on, admitting 'I deserved that one.'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 82,
+  "payoff_t": 34,
+  "reaction_end_t": 38,
+  "reason": "Classic comedy structure where he complains about the opponent only to miss an opportunity and get scored on right after, ending with a self-aware laugh."
+ }
+}

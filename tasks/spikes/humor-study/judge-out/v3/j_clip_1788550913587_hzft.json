@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_hzft",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2783,
+  "outputTokens": 779,
+  "thoughtTokens": 629
+ },
+ "cost": 0.010016999999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves winning a round, standing up from his chair to taunt NRG with 'GET HIM OUT OF HERE! It's too easy! What do you need, a third timeout?!'",
+  "play_quality": 6,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 7.5,
+  "reaction_end_t": 18,
+  "reason": "An explosive reaction where he stands up and taunts the opposing team with iconic banter ('What do you need, a third timeout?!') as 100 Thieves secures a dominant round win."
+ }
+}

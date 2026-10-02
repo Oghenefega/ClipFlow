@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_ltpx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3350,
+  "outputTokens": 1056,
+  "thoughtTokens": 907
+ },
+ "cost": 0.012945,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator claims the opponent is 'not that good' and 'his luck is running out', right before LOUD tuyz hits an unbelievable no-scope headshot to close out the round.",
+  "play_quality": 9,
+  "reaction_size": 8,
+  "keep_score": 88,
+  "payoff_t": 19.5,
+  "reaction_end_t": 28,
+  "reason": "An incredible highlight play against 100 Thieves paired with perfect ironic timing right after he trash-talks the player, leaving him in hilarious, speechless shock."
+ }
+}

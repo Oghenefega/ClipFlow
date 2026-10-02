@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_oaii",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1682,
+  "outputTokens": 679,
+  "thoughtTokens": 541
+ },
+ "cost": 0.0076155,
+ "judged": {
+  "kind": "comedy",
+  "what": "The opponent scores a goal after an unexpected backflip, prompting the creator to laughingly ask, 'What was that backflip out of nowhere for no reason?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 50,
+  "payoff_t": 2,
+  "reaction_end_t": 9,
+  "reason": "The creator gives a genuinely amused reaction to an opponent's weird backflip goal, but without a setup or bigger payoff, it remains a mid-tier highlight."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_n737",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 656,
+  "thoughtTokens": 526
+ },
+ "cost": 0.0078075,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator explains how his opponents keep scoring on him in Rocket League, right before getting beat on the next kickoff with a quiet 'Oh my god'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 22,
+  "payoff_t": 11.5,
+  "reaction_end_t": 13,
+  "reason": "The moment consists mostly of flat narration and explanation, leading into a mild kickoff loss with almost no visible energy or big reaction."
+ }
+}

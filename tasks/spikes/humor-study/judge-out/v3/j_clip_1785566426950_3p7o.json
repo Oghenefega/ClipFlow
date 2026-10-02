@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_3p7o",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 481,
+  "thoughtTokens": 343
+ },
+ "cost": 0.0083175,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs as he reads off his post-match stats: zero goals, zero assists, zero saves, and asks how he 'somehow manufactured two shots.'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 45,
+  "payoff_t": 8.5,
+  "reaction_end_t": 12.5,
+  "reason": "It's a relatable self-own about a terrible Rocket League stat line, but the delivery is fairly mild and transitions quickly into queuing the next game."
+ }
+}

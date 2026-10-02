@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_hz2u",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 886,
+  "thoughtTokens": 752
+ },
+ "cost": 0.012327000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sees he ranked up to Champion 1 in Rocket League and celebrates excitedly, shouting \"WE FREAKING GOT CHAMP BABY! LET'S FREAKING GO!\".",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 65,
+  "payoff_t": 2.5,
+  "reaction_end_t": 24,
+  "reason": "A high-energy, genuine milestone celebration after reaching Champion rank that brings great hype and positivity to a stream highlight reel."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068340476_3oh1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 676,
+  "thoughtTokens": 550
+ },
+ "cost": 0.009537,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding a goal in Rocket League, the creator hilariously breaks down and begs 'Just take me to the gulag right now. Take me!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 1,
+  "reaction_end_t": 17,
+  "reason": "His dramatically exaggerated despair after getting scored on delivers a great comedic reaction that is easy for anyone to find funny."
+ }
+}

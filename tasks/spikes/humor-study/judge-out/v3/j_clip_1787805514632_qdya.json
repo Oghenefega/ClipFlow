@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_qdya",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5644,
+  "outputTokens": 561,
+  "thoughtTokens": 433
+ },
+ "cost": 0.012673499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs uncontrollably as a combat robot lands a impressive spin kick and immediately collapses dead, asking 'How do you land the kick and then die?'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 3,
+  "reaction_end_t": 25,
+  "reason": "Extremely funny absurd footage of a robot executing a perfect kick then collapsing, paired with an energetic laugh and commentary."
+ }
+}

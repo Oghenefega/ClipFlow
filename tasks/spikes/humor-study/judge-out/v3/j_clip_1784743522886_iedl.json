@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522886_iedl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 606,
+  "thoughtTokens": 474
+ },
+ "cost": 0.008039999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores/wins to go up 3-0, laughs saying 'Let's go, dude', and ponders whether to switch to 2s.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 1.5,
+  "reaction_end_t": 4.5,
+  "reason": "This is a routine win with casual laughter followed by casual stream commentary about game modes, lacking any comedic payoff or subverted expectation."
+ }
+}

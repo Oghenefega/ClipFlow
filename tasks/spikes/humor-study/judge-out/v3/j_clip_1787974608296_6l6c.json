@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_6l6c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4727,
+  "outputTokens": 642,
+  "thoughtTokens": 500
+ },
+ "cost": 0.0119055,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a difficult Valorant round unfold for 100 Thieves, remarking 'This ain't it lads' before a single kill lands at the end.",
+  "play_quality": 3,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 48,
+  "reaction_end_t": 49.5,
+  "reason": "This clip lacks a high-quality play or multi-kill, consisting mostly of round narration and mild disappointment with a single routine kill at the end."
+ }
+}

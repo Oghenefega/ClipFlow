@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_9kag",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3593,
+  "outputTokens": 879,
+  "thoughtTokens": 742
+ },
+ "cost": 0.011982,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves push onto site on map point, yelling 'LET'S GO!' after opening kills.",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 31,
+  "reaction_end_t": 35,
+  "reason": "Although the round carries high stakes at 12-11, the clip only shows early round trades and standard hype without a finished multi-kill or highlight clutch."
+ }
+}

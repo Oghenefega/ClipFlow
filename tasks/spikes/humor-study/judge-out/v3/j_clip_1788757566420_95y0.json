@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_95y0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 594,
+  "thoughtTokens": 481
+ },
+ "cost": 0.0083865,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches post-match interview footage of a player signing autographs and says 'Such an amazing kid, man'.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No gameplay or high-stakes moment is occurring, only casual commentary during post-match interview footage."
+ }
+}

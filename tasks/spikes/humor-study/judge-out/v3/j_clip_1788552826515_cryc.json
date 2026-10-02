@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826515_cryc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 530,
+  "thoughtTokens": 393
+ },
+ "cost": 0.0079065,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with high energy as Fnatic wins and qualifies for Valorant Champions, shouting 'THEY'RE GOING TO CHAMPIONS!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 2,
+  "reaction_end_t": 21,
+  "reason": "A major match-winning moment where Fnatic qualifies for Champions, paired with an energetic, genuine reaction from the creator holding his head in disbelief and excitement."
+ }
+}

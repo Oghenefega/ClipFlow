@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_rwm1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1892,
+  "outputTokens": 516,
+  "thoughtTokens": 404
+ },
+ "cost": 0.006708,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches post-match VCT interview footage and chuckles, asking 'Where's Asuna?'",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains only post-match interview footage without any gameplay or plays happening, making it filler."
+ }
+}

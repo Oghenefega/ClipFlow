@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_dt63",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 674,
+  "thoughtTokens": 565
+ },
+ "cost": 0.010930500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator casually analyzes player agent choices and rifle spray patterns while watching default round setups.",
+  "play_quality": 1,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely background narration and commentary during round setup, with no kills, clutches, or hype plays taking place."
+ }
+}

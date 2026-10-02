@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_c8l2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 791,
+  "thoughtTokens": 662
+ },
+ "cost": 0.011565,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks trash about the opponent before a routine trade occurs, exclaiming 'Get him out of here!'",
+  "play_quality": 3,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 22,
+  "reaction_end_t": 26,
+  "reason": "This features a basic kill trade and standard round commentary without a high-stakes play, multi-kill, or big clutch to warrant a highlight."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143966_7m3g",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7724,
+  "outputTokens": 797,
+  "thoughtTokens": 658
+ },
+ "cost": 0.0175635,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100T Cryo pops off with multi-kills as the creator jumps out of his chair screaming 'LET'S GO! GET 'EM OUT OF HERE!'",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 17.5,
+  "reaction_end_t": 24,
+  "reason": "Cryo secures a huge pistol round multi-kill, driving a high-energy standing reaction and classic catchphrases from the streamer."
+ }
+}

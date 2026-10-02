@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_h6xp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 761,
+  "thoughtTokens": 628
+ },
+ "cost": 0.0111465,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator makes an elaborate excuse for getting scored on before catching himself and asking, 'Is that me putting the blame on someone else?'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 14,
+  "reaction_end_t": 18,
+  "reason": "He self-roasts after making excuses for conceding a goal, but the realization is mild and the second half of the clip is just routine gameplay narration."
+ }
+}

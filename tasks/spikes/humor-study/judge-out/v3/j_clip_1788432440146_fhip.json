@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440146_fhip",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2453,
+  "outputTokens": 732,
+  "thoughtTokens": 590
+ },
+ "cost": 0.0091695,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wonders if players can hide on the wall, strikes a painting to discover a hider, and screams, 'OH! Did I get him?!' before bursting into uncontrollable laughter.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 5.5,
+  "reaction_end_t": 12,
+  "reason": "The creator speculates about wall hiding spots right before hitting a disguised picture frame, resulting in an immediate surprise payoff and a hilarious, high-energy reaction."
+ }
+}

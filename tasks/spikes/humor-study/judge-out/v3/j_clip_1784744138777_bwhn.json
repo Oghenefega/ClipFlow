@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_bwhn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4598,
+  "outputTokens": 1013,
+  "thoughtTokens": 878
+ },
+ "cost": 0.0144945,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega gets completely read and scored on in Rocket League, exclaiming 'Red me like a book, bro, what the flip?'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 30,
+  "payoff_t": 21,
+  "reaction_end_t": 25,
+  "reason": "Getting outplayed and admitting his opponent read him like a book is a decent self-own, but the clip quickly loses momentum as he shifts into answering chat questions."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_764l",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4727,
+  "outputTokens": 771,
+  "thoughtTokens": 608
+ },
+ "cost": 0.012872999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves closes out a round to get their first point on the board, leading the creator to yell 'Get him out of my face bro!' and stand up to celebrate.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 70,
+  "payoff_t": 33,
+  "reaction_end_t": 43,
+  "reason": "A solid round-winning moment that gets 100T on the board, paired with a energetic standing reaction from the creator. The kills themselves are fairly standard, but the high hype and milestone round win make it a keepable clip."
+ }
+}

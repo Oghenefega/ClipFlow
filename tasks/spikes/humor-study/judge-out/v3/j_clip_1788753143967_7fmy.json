@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_7fmy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 1077,
+  "thoughtTokens": 941
+ },
+ "cost": 0.01371,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator attempts to give a dramatic motivational speech during a 100 Thieves tactical timeout, stumbles over his words, and laughs at his failed attempt.",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip takes place entirely during a team timeout with no active gameplay happening. Waiting between rounds or monologuing during downtime without any play to react to is a standard reject."
+ }
+}

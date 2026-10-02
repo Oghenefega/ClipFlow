@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_o52f",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 782,
+  "thoughtTokens": 653
+ },
+ "cost": 0.00936,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at himself during a goal replay after missing a demolition attempt, saying 'I missed the demo!' before greeting chatters.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 2,
+  "reaction_end_t": 8,
+  "reason": "While his laugh at his own missed demo is genuine, the clip lacks a clear setup or punchline and quickly devolves into reading stream chat greetings."
+ }
+}

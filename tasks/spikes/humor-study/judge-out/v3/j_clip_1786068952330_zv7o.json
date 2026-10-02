@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786068952330_zv7o",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 707,
+  "thoughtTokens": 575
+ },
+ "cost": 0.0100125,
+ "judged": {
+  "kind": "comedy",
+  "what": "After saying he just needs to score one goal, the opponent scores off kickoff three seconds later, prompting him to yell 'Not him! Me!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 19.5,
+  "reaction_end_t": 26,
+  "reason": "Fits the classic comedy structure where he states his intention to score, only to get immediately scored on off kickoff, delivering a hilarious outrage reaction."
+ }
+}

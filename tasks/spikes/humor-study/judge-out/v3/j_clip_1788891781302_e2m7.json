@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788891781302_e2m7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1487,
+  "outputTokens": 506,
+  "thoughtTokens": 383
+ },
+ "cost": 0.0060255,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator says 'We're Thieves for a reason' during the early setup phase of a round, but no kills or combat take place.",
+  "play_quality": 1,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in game during this clip besides early round movement. Narrating or hype talk before any action occurs is a clear reject."
+ }
+}

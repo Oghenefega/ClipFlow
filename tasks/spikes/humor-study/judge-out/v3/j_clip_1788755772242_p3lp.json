@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_p3lp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2702,
+  "outputTokens": 676,
+  "thoughtTokens": 534
+ },
+ "cost": 0.009123,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator intensely watches 100 Thieves secure round 12 to reach map point, screaming 'LET'S GO!' and yelling 'Job's not done, boys!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 5.5,
+  "reaction_end_t": 19.5,
+  "reason": "A high-stakes round win for 100 Thieves to reach map point, accompanied by an extremely energetic celebration and classic hype commentary."
+ }
+}

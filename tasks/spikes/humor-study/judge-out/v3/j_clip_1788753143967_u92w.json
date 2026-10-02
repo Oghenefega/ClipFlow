@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_u92w",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4889,
+  "outputTokens": 775,
+  "thoughtTokens": 630
+ },
+ "cost": 0.013146,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator taunts the enemy Sage's clutch attempt before Cryo shuts it down to secure the round win, prompting him to cheer: 'Thank you Cryo!'",
+  "play_quality": 5,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 36,
+  "reaction_end_t": 45,
+  "reason": "The creator's commentary setup and relief are fun, but the gameplay itself is a routine round-ending shut down rather than an impressive multi-kill or clutch."
+ }
+}

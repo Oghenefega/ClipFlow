@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294769_570c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2816,
+  "outputTokens": 826,
+  "thoughtTokens": 682
+ },
+ "cost": 0.010419000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega sarcastically praises his opponent after getting scored on back-to-back, yelling 'I'm so proud of you! GAH!' before mocking their playstyle.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 70,
+  "payoff_t": 11.5,
+  "reaction_end_t": 23,
+  "reason": "Fega's fake positivity devolves into outrage when his opponent scores again instantly, leading into a funny mock-narration of the opponent's nervous movement."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_399a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2615,
+  "outputTokens": 656,
+  "thoughtTokens": 524
+ },
+ "cost": 0.0088425,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer says they need to lock in while shooting randomly at paintings, only for his team to instantly win the round, prompting a shocked scream and laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 72,
+  "payoff_t": 10,
+  "reaction_end_t": 20,
+  "reason": "An abrupt, unexpected round win catches him completely off guard right after talking about locking in, resulting in a loud and genuine laughing reaction."
+ }
+}

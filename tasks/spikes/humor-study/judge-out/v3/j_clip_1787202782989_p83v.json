@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_p83v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5375,
+  "outputTokens": 488,
+  "thoughtTokens": 368
+ },
+ "cost": 0.0117225,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator discusses how cool it is to have coaches sitting directly behind players on stage during VCT matches.",
+  "play_quality": 0,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay or hype play occurring in this clip, only background analysis and setup discussion. Commentary without gameplay action is explicitly rejected under hype reaction rules."
+ }
+}

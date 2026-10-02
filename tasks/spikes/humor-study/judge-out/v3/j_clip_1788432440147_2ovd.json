@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_2ovd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3344,
+  "outputTokens": 1097,
+  "thoughtTokens": 956
+ },
+ "cost": 0.013243500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to a weird character model before telling his team 'don't let me down,' then chuckling 'Me being the one who let them down last time!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 42,
+  "payoff_t": 26,
+  "reaction_end_t": 29,
+  "reason": "While his self-deprecating comment provides a light funny moment, the clip is mostly pre-round lobby waiting and casual banter with a mild payoff."
+ }
+}

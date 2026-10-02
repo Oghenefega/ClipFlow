@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_xzc4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3386,
+  "outputTokens": 617,
+  "thoughtTokens": 495
+ },
+ "cost": 0.0097065,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator fails a mail delivery in a driving game, asking 'How did I miss that?' before missing another target and resetting.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 7,
+  "reaction_end_t": 12,
+  "reason": "The clip features routine gameplay failure with a relatively mild reaction, lacking a strong comedic punchline or dramatic subversion."
+ }
+}

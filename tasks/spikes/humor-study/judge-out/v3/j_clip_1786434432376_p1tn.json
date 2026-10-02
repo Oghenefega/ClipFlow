@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_p1tn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 543,
+  "thoughtTokens": 422
+ },
+ "cost": 0.008175,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator puts on his headset and queues for a Rocket League match while bantering with his teammate, 'No pressure, surely we're not going to lose.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just pre-game queue talk and setup before entering a match, with no gameplay or comedy payoff."
+ }
+}

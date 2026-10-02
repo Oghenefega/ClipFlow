@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_i9qc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 700,
+  "thoughtTokens": 561
+ },
+ "cost": 0.009545999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hype-talks and taunts LOUD while watching Cryo hold A Main with an Operator, but no kills or firefights occur.",
+  "play_quality": 1,
+  "reaction_size": 6,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No actual kill or play happens in this clip as the enemy team falls back from the angle. Under hype_reaction rules, pre-round hype or holding angles without a play payoff must be rejected."
+ }
+}

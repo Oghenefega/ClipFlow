@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_j8t3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 565,
+  "thoughtTokens": 454
+ },
+ "cost": 0.00987,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through a tech pause while watching player cams during the VCT broadcast.",
+  "play_quality": 0,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay occurring during this tech pause, and the creator is merely making casual observations while waiting for the match to resume."
+ }
+}

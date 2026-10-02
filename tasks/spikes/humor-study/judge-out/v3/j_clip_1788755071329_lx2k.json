@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_lx2k",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3755,
+  "outputTokens": 604,
+  "thoughtTokens": 479
+ },
+ "cost": 0.010162500000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts to the halftime broadcast and mocks LOUD supporters, saying 'If we what? Who's we?' before hyping up 100 Thieves.",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This moment takes place during halftime with zero gameplay or action, making it a skip under the hype reaction rules."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_d2nm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5327,
+  "outputTokens": 680,
+  "thoughtTokens": 561
+ },
+ "cost": 0.013090500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically after a chaotic goal, exclaiming 'We're all playing like drunkards right now, man!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 5,
+  "reaction_end_t": 14,
+  "reason": "His genuine, uncontrollable laugh and funny summary of the messy gameplay make for a strong comedy moment."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_zagl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 1048,
+  "thoughtTokens": 925
+ },
+ "cost": 0.0122775,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches LOUD push onto site and softly says 'Oh my goodness' during the firefight.",
+  "play_quality": 4,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 21.5,
+  "reaction_end_t": 23.5,
+  "reason": "This is a routine round engage with no extraordinary multi-kill, and the creator's reaction is very quiet and understated."
+ }
+}

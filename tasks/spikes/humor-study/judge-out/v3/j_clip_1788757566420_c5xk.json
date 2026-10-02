@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_c5xk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3431,
+  "outputTokens": 484,
+  "thoughtTokens": 340
+ },
+ "cost": 0.0087765,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with pure joy and excitement as 100 Thieves lifts the trophy, exclaiming 'We waited for times like these!'",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 16,
+  "reaction_end_t": 33,
+  "reason": "This is a peak tournament-winning trophy lift moment with an authentic, highly energetic, and emotional reaction from the creator. It serves as an ideal climax for a VCT match reaction video."
+ }
+}

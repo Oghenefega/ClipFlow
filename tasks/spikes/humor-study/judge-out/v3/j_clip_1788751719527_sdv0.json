@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_sdv0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4160,
+  "outputTokens": 805,
+  "thoughtTokens": 678
+ },
+ "cost": 0.0122775,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer watches 100T secure opening kills and screams 'LET'S GOOO!' while jumping out of his chair.",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 65,
+  "payoff_t": 24,
+  "reaction_end_t": 28,
+  "reason": "100T finds two rapid kills to open the site, triggering a big physical hype reaction from the streamer."
+ }
+}

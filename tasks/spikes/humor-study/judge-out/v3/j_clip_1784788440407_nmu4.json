@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_nmu4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2087,
+  "outputTokens": 546,
+  "thoughtTokens": 431
+ },
+ "cost": 0.0072255,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator expresses annoyance about a previous play ('I am actually so pissed bro, after doing all that...') while continuing standard Rocket League gameplay.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no comedic payoff, sudden failure, or notable reaction during the clip, making it ordinary gameplay."
+ }
+}

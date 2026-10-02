@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772243_ceau",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5132,
+  "outputTokens": 740,
+  "thoughtTokens": 597
+ },
+ "cost": 0.013248,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with maximum intensity as 100 Thieves wins a tense round, jumping out of his chair and screaming 'GET HIM OUT OF THERE! LET'S GO!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 46,
+  "reaction_end_t": 53,
+  "reason": "A big round-winning moment for 100T matched with the creator's signature high-energy physical reaction and staple catchphrase."
+ }
+}

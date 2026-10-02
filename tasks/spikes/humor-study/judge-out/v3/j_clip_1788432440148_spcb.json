@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440148_spcb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1481,
+  "outputTokens": 737,
+  "thoughtTokens": 618
+ },
+ "cost": 0.007749000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator returns to the game menu after a round and laughs, saying 'That was actually phenomenal, guys. What the heck?'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip mostly consists of a loading screen and main menu, lacking the actual gameplay or payoff needed for the reaction to be funny."
+ }
+}

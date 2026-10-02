@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_7z0e",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4727,
+  "outputTokens": 897,
+  "thoughtTokens": 793
+ },
+ "cost": 0.013818,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks to his chat about wanting to play Valorant again and discusses his stream schedule.",
+  "play_quality": 0,
+  "reaction_size": 1,
+  "keep_score": 0,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay or hype reaction happening in this clip, only casual stream chatter."
+ }
+}

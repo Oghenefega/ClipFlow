@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_hulo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3869,
+  "outputTokens": 588,
+  "thoughtTokens": 472
+ },
+ "cost": 0.0102135,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator quietly plays a Rocket League match, casually asking 'How didn't that go in?' with minimal expression.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing funny or notable occurs during this routine gameplay clip. It lacks a strong setup, subverted expectation, or big comedic reaction."
+ }
+}

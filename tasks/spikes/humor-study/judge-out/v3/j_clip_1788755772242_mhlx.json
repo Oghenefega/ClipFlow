@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_mhlx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3269,
+  "outputTokens": 767,
+  "thoughtTokens": 616
+ },
+ "cost": 0.010655999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Bang secures a massive clutch kill to win the round for 100T, causing the creator to jump out of his chair screaming 'LET'S GO!' and 'WAKE HIM UP BABY!'.",
+  "play_quality": 9,
+  "reaction_size": 10,
+  "keep_score": 95,
+  "payoff_t": 16.5,
+  "reaction_end_t": 29,
+  "reason": "High-stakes clutch round win at 11-10 paired with an incredible peak reaction where the creator stands up and screams at full energy."
+ }
+}

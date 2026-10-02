@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_nbbj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3830,
+  "outputTokens": 664,
+  "thoughtTokens": 538
+ },
+ "cost": 0.010725,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator prays for divine guidance to find a hidden player, saying 'God please lead my fingers in the right direction', but shoots randomly and finds no one.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The creator setup a prayer to find someone, but nothing happens as he repeatedly misses empty spots, lacking a strong comedic payoff or funny reaction."
+ }
+}

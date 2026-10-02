@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_1u0y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2939,
+  "outputTokens": 643,
+  "thoughtTokens": 525
+ },
+ "cost": 0.009231,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer starts shooting early in the round and asks if he found someone, only to realize 'It hasn't started yet.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 22,
+  "reaction_end_t": 25,
+  "reason": "This is minor setup and early-round confusion with no funny payoff or notable reaction."
+ }
+}

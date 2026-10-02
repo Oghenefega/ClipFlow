@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358551594_8qqo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4517,
+  "outputTokens": 870,
+  "thoughtTokens": 748
+ },
+ "cost": 0.0133005,
+ "judged": {
+  "kind": "comedy",
+  "what": "After scoring a goal to tie the match, the streamer boasts, 'Even gods can bleed! Get him out of my face!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 31.5,
+  "reaction_end_t": 44,
+  "reason": "He scores a normal goal and talks trash, but there is no subversion, fail, or funny comedy setup to make it stand out to a stranger."
+ }
+}

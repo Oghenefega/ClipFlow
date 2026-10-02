@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788645608198_or5d",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 539,
+  "thoughtTokens": 407
+ },
+ "cost": 0.008824499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator boasts 'We're in their heads!' and points to his 100 Thieves shirt after NRG calls two timeouts in one half.",
+  "play_quality": 1,
+  "reaction_size": 6,
+  "keep_score": 20,
+  "payoff_t": 5,
+  "reaction_end_t": 26,
+  "reason": "This moment takes place during a match timeout with no gameplay happening on screen, which falls under the rejected category of waiting between rounds."
+ }
+}

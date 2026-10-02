@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_y72y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5213,
+  "outputTokens": 796,
+  "thoughtTokens": 638
+ },
+ "cost": 0.0137895,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator goes wild as 100 Thieves wins a high-stakes overtime round, screaming 'Get him out of my face bro!' and showing off his 100T jersey while shouting 'Job's not done!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 11,
+  "reaction_end_t": 54,
+  "reason": "High-stakes overtime round win with multi-kills paired with a massive, entertaining physical reaction including standing up, grabbing his head, and holding up the team jersey."
+ }
+}

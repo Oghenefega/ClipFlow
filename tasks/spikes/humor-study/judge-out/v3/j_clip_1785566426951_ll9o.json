@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426951_ll9o",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3383,
+  "outputTokens": 415,
+  "thoughtTokens": 300
+ },
+ "cost": 0.008187,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer sits in the menu explaining how he gave up in his last match before queuing into a 3v3 game.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is low-energy downtime in the game menus with no funny moment, setup-payoff, or gameplay action."
+ }
+}

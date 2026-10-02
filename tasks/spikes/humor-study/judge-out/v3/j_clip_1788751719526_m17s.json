@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719526_m17s",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4160,
+  "outputTokens": 897,
+  "thoughtTokens": 750
+ },
+ "cost": 0.0129675,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator despairs as 100 Thieves lose another round to fall behind 0-3 against LOUD, exclaiming 'we're getting dropped, man! What the heck?'",
+  "play_quality": 3,
+  "reaction_size": 6,
+  "keep_score": 30,
+  "payoff_t": 3,
+  "reaction_end_t": 8.5,
+  "reason": "The clip features a round loss followed mostly by post-round replay analysis and stat checking, lacking the high-stakes action or big play required for a keeper."
+ }
+}

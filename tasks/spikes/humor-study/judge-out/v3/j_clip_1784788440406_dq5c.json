@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440406_dq5c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 923,
+  "thoughtTokens": 801
+ },
+ "cost": 0.0101745,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hypes up his teammate's Rocket League goal, shouting 'Let's go baby, you're better!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 10,
+  "reason": "This is standard hype for a routine Rocket League goal with no comedic setup, fail, or funny subversion."
+ }
+}

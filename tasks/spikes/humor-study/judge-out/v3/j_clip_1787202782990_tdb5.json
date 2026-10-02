@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_tdb5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1973,
+  "outputTokens": 992,
+  "thoughtTokens": 857
+ },
+ "cost": 0.0103995,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves, laughing and saying 'Oh man, this year 100 Thieves about to win the VCT!'",
+  "play_quality": 3,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "No major play, clutch, or multi-kill occurs during this clip. Broad hype and commentary without a specific gameplay payoff does not make for a keepable highlight."
+ }
+}

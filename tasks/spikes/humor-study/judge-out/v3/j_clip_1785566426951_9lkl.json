@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426951_9lkl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 689,
+  "thoughtTokens": 569
+ },
+ "cost": 0.00927,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer looks at his Rocket League rank on the post-game screen and talks about needing a few more wins to reach Champion rank.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The streamer is simply sitting in the post-game menu talking through his rank progress and checking his phone. No funny moment or payoff occurs."
+ }
+}

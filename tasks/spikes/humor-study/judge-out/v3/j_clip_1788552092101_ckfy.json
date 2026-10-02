@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092101_ckfy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4160,
+  "outputTokens": 590,
+  "thoughtTokens": 457
+ },
+ "cost": 0.010665,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up 100 Thieves rolling through NRG for a flawless round, yelling 'They're all dropping like flies!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 2,
+  "reaction_end_t": 39,
+  "reason": "100 Thieves secures a dominant flawless round, eliciting a very loud and energetic hype reaction from the creator throughout the entire round end."
+ }
+}

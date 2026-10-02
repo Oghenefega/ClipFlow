@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_cni4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4031,
+  "outputTokens": 848,
+  "thoughtTokens": 709
+ },
+ "cost": 0.0124065,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega laughs at his opponent scoring before scoring a goal himself and declaring, 'I'm winning this thing, bro!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 32,
+  "reaction_end_t": 37,
+  "reason": "The clip features over twenty seconds of silent, non-eventful gameplay between the two commentary moments. Without a funny punchline or immediate reversal, it lacks the payoff needed for a standalone clip."
+ }
+}

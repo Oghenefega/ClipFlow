@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753143967_4ybr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 967,
+  "thoughtTokens": 822
+ },
+ "cost": 0.0117915,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Cryo hits a sharp opening Operator pick and the creator jumps up yelling 'LET'S GO! THAT'S WHAT I NEED CRYO!'",
+  "play_quality": 6,
+  "reaction_size": 8,
+  "keep_score": 50,
+  "payoff_t": 10,
+  "reaction_end_t": 18,
+  "reason": "Cryo gets a clean opening Operator kill that earns an energetic reaction from the creator, though as a single pick rather than a multi-kill or clutch it falls in the average keep range."
+ }
+}

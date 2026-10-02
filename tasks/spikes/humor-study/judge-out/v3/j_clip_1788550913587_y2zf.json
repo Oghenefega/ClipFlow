@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788550913587_y2zf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3512,
+  "outputTokens": 668,
+  "thoughtTokens": 537
+ },
+ "cost": 0.010277999999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer reacts to the map veto selection on screen, complaining 'Talk about the three worst maps bro, what the heck... This is boring bro!'",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is pre-match veto commentary with no gameplay action occurring. Under hype_reaction rules, setup talk and map pool narration without gameplay highlights are rejected."
+ }
+}

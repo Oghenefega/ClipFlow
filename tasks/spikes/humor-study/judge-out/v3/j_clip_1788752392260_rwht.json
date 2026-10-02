@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392260_rwht",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5132,
+  "outputTokens": 771,
+  "thoughtTokens": 638
+ },
+ "cost": 0.0134805,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves wins a crucial round against LOUD, causing the creator to jump out of his chair screaming 'GET HIM OUT OF HERE!'",
+  "play_quality": 6,
+  "reaction_size": 9,
+  "keep_score": 80,
+  "payoff_t": 40.5,
+  "reaction_end_t": 51.5,
+  "reason": "A round-winning moment for 100 Thieves that triggers a massive stand-up reaction and signature line from the creator."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_rpbp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3911,
+  "outputTokens": 565,
+  "thoughtTokens": 450
+ },
+ "cost": 0.010104,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator rambles through his painting process while trying to color match in-game, declaring he might be a natural.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is low-key narration and stream chatter while adjusting painting tools without a clear joke, funny mistake, or comedic payoff."
+ }
+}

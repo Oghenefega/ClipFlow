@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788753729569_mhwd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5132,
+  "outputTokens": 810,
+  "thoughtTokens": 685
+ },
+ "cost": 0.013773,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through a timeout, complaining about casters praising LOUD player Lukxo and saying 'These guys have barely said anything good about 100 Thieves.'",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is no gameplay or highlight play in this clip, only commentary and ranting during a match timeout."
+ }
+}

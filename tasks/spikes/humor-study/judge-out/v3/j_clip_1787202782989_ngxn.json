@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_ngxn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5942,
+  "outputTokens": 758,
+  "thoughtTokens": 620
+ },
+ "cost": 0.014598,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "100 Thieves secures the 13-11 match win against Nongshim RedForce, prompting the creator to cheer 'Let's freaking go dude!'.",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 53.5,
+  "reaction_end_t": 63,
+  "reason": "This is a series-winning climax for 100 Thieves with a great energetic reaction from the creator as the final kill lands."
+ }
+}

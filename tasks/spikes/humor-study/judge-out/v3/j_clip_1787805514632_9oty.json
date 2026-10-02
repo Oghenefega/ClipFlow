@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_9oty",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3214,
+  "outputTokens": 638,
+  "thoughtTokens": 499
+ },
+ "cost": 0.009606,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically watching a humanoid robot leap absurdly around a track, exclaiming, 'Can you imagine that jumping? That is literally the scariest thing to imagine.'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 10.5,
+  "reaction_end_t": 27,
+  "reason": "The visual absurdity of the robot's wildly bounding sprint paired with his genuine burst of laughter and amusing commentary makes this a strong comedy moment."
+ }
+}

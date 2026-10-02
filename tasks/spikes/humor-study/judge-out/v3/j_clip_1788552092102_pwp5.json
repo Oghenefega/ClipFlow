@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_pwp5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3431,
+  "outputTokens": 512,
+  "thoughtTokens": 402
+ },
+ "cost": 0.0089865,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator talks through a round transition and replay, joking about giving the opposing team 'a little bit of breathing room'.",
+  "play_quality": 1,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of commentary between rounds without any highlight gameplay or major reaction."
+ }
+}

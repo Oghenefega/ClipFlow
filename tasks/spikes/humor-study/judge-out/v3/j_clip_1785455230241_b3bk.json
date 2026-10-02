@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_b3bk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2495,
+  "outputTokens": 460,
+  "thoughtTokens": 347
+ },
+ "cost": 0.007192499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator navigates the game's level selection menu while explaining that he previously sucked at the game and needs to start with the Postal level.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of menu navigation and intro setup commentary with no gameplay action or humorous payoff."
+ }
+}

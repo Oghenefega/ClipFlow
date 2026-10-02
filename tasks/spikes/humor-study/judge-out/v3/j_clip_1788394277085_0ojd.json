@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_0ojd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 7880,
+  "outputTokens": 696,
+  "thoughtTokens": 570
+ },
+ "cost": 0.01704,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics while trying to camouflage into a painting before the search phase begins, yelling 'I'm cooked!' as he struggles with poses and brush settings.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip mostly consists of struggling with controls and figuring out game mechanics under a timer, lacking a sharp comedic punchline or clear payoff."
+ }
+}

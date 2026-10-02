@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099236931_t26y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5887,
+  "outputTokens": 759,
+  "thoughtTokens": 620
+ },
+ "cost": 0.014523000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs hysterically while watching a humanoid robot perform Ronaldo's 'Siu' celebration, joking 'And people say Ronaldo is not the GOAT!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 14,
+  "reaction_end_t": 20,
+  "reason": "The absurdity of a humanoid robot performing Ronaldo's signature celebration leads to a hilarious, high-energy joke from the creator that works well for a general audience."
+ }
+}

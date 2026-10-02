@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785455230241_1vcw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1685,
+  "outputTokens": 513,
+  "thoughtTokens": 373
+ },
+ "cost": 0.0063750000000000005,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator crashes his vehicle right before the finish line, screaming 'I ruined it! I ruined it!' before bursting into laughing hysterics at his 21-second finish time.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 2.5,
+  "reaction_end_t": 9,
+  "reason": "A classic self-own gameplay fail where he ruins his run at the final stretch, followed by high energy screaming, facepalming, and genuine laughter."
+ }
+}

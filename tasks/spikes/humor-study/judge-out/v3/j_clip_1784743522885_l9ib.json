@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_l9ib",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2573,
+  "outputTokens": 566,
+  "thoughtTokens": 450
+ },
+ "cost": 0.0081045,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer gets confused mid-game and asks 'Why am I facing backwards?'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 15,
+  "reaction_end_t": 17.5,
+  "reason": "The moment has flat delivery and low energy gameplay without a strong punchline or funny reaction to make it memorable for a stranger."
+ }
+}

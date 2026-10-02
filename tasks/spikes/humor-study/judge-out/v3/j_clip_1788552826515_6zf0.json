@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826515_6zf0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 769,
+  "thoughtTokens": 631
+ },
+ "cost": 0.010428,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator excitedly celebrates 100 Thieves securing their spot at Champions, throwing his hands up and asking, 'Ladies and gentlemen... Champs! Can you hear it, man?'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 18,
+  "reaction_end_t": 28,
+  "reason": "A high-stakes milestone moment for his team qualifying for Champions, paired with a big, expressive, and joyous reaction."
+ }
+}

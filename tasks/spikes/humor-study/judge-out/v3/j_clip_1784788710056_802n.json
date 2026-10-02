@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_802n",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 877,
+  "thoughtTokens": 740
+ },
+ "cost": 0.010194,
+ "judged": {
+  "kind": "comedy",
+  "what": "After losing 4-9, Fega sarcastically claims he lost on purpose to warm up his opponent, saying 'I'm a real community-focused individual.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 8,
+  "reaction_end_t": 18,
+  "reason": "This is a low-energy end-of-game story justification with a flat delivery, lacking a sharp comedic turn or big visual payoff."
+ }
+}

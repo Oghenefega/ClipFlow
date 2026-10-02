@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1789795588722_cj0v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4073,
+  "outputTokens": 749,
+  "thoughtTokens": 627
+ },
+ "cost": 0.011727000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to viewers criticizing his gameplay, laughing and asking 'all of a sudden now you're judging me?'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 26,
+  "reaction_end_t": 38,
+  "reason": "This is mostly light stream banter and arguing with chat spectators, lacking a strong standalone comedy punchline or subversion."
+ }
+}

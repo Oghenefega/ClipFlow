@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_bbxj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5375,
+  "outputTokens": 683,
+  "thoughtTokens": 536
+ },
+ "cost": 0.013185,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Bang wins a crucial 1v2 clutch with just 1 HP left for 100 Thieves, prompting the creator to jump out of his chair shouting 'Get him out of here! Let's go!'.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 23.5,
+  "reaction_end_t": 31,
+  "reason": "A sensational 1 HP clutch play in an important round produces a genuine, high-energy standing reaction from the creator."
+ }
+}

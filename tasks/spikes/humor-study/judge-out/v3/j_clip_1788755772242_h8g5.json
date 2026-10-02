@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_h8g5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5051,
+  "outputTokens": 661,
+  "thoughtTokens": 535
+ },
+ "cost": 0.012534,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up Asuna's Phoenix play during a Valorant match replay, screaming 'GET HIM OUT OF HERE!'",
+  "play_quality": 7,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 10,
+  "reaction_end_t": 20,
+  "reason": "Asuna pulls off a clutch multi-kill play on Phoenix, triggering a loud, high-energy reaction with signature hype lines."
+ }
+}

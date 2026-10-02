@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099949324_5ava",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1837,
+  "outputTokens": 463,
+  "thoughtTokens": 330
+ },
+ "cost": 0.006228,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs at a malfunctioning humanoid robot being held down by technicians, comparing it to 'the cockroach in my house trying to stand up' and joking 'not them having to subdue him.'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 80,
+  "payoff_t": 1.5,
+  "reaction_end_t": 11,
+  "reason": "Funny and relatable commentary comparing the struggling robot to a cockroach, with genuine laughter and good timing."
+ }
+}

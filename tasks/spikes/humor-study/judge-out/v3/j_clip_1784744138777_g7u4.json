@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_g7u4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 554,
+  "thoughtTokens": 459
+ },
+ "cost": 0.009351,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega narrates his Rocket League match while continuously encouraging his teammate.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay narration with no comedic payoff, irony, or punchline."
+ }
+}

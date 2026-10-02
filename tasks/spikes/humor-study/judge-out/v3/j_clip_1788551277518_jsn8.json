@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788551277518_jsn8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4322,
+  "outputTokens": 693,
+  "thoughtTokens": 540
+ },
+ "cost": 0.011680500000000002,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator leaps out of his chair shouting 'WE ARE THE BEST BABY!' as 100 Thieves closes out a dominant 13-3 victory on Map 1.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 10.5,
+  "reaction_end_t": 26,
+  "reason": "A map-winning moment for 100 Thieves that triggers an energetic, out-of-chair celebration with iconic hype quotes. The high energy and clean victory make it an easy highlight keep."
+ }
+}

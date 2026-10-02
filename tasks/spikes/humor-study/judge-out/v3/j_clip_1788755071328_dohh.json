@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071328_dohh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 715,
+  "thoughtTokens": 575
+ },
+ "cost": 0.0096585,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator hypes up Boostio who lands clean kills to win the round, causing him to scream 'GET HIM OUT OF HERE!' and stand up in disbelief.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 90,
+  "payoff_t": 10,
+  "reaction_end_t": 24,
+  "reason": "Boostio delivers a clutch high-impact play, triggering an explosive, iconic reaction with the creator jumping out of his chair and shouting his signature lines."
+ }
+}

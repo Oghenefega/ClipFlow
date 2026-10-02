@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_f7dn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 806,
+  "thoughtTokens": 673
+ },
+ "cost": 0.0119205,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches post-match fan autographs after 100 Thieves win and laughs while commenting 'I'm out of line, don't do that bro'.",
+  "play_quality": 0,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip shows post-match interview and fan interaction footage without any gameplay play or hype clutch moment, making it unsuitable for a hype reaction highlight."
+ }
+}

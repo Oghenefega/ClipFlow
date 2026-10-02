@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788432440147_85l1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2777,
+  "outputTokens": 539,
+  "thoughtTokens": 436
+ },
+ "cost": 0.008208,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator casually wanders through a hallway shooting at paintings while talking to himself before spotting a hidden player.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay search with flat narration and no clear comedic payoff or big reaction."
+ }
+}

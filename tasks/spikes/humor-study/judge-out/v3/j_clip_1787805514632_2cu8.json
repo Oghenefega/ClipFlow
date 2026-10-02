@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_2cu8",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3943,
+  "outputTokens": 532,
+  "thoughtTokens": 425
+ },
+ "cost": 0.0099045,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks to his chat about how advanced robots are probably already walking among us disguised as NPCs.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain commentary and speculative chat talk with no visual payoff, punchline, or funny moment happening."
+ }
+}

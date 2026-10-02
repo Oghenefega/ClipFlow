@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_16we",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3188,
+  "outputTokens": 642,
+  "thoughtTokens": 506
+ },
+ "cost": 0.009597,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100 Thieves celebrate on stage after winning a match before watching post-match interview footage, saying 'That is insane'.",
+  "play_quality": 2,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 0,
+  "reaction_end_t": 3,
+  "reason": "There is no gameplay or high-stakes play in this clip, only stage celebrations and interview commentary. The creator's reaction is quiet and mild throughout."
+ }
+}

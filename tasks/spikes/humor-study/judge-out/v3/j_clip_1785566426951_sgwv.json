@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426951_sgwv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3950,
+  "outputTokens": 530,
+  "thoughtTokens": 403
+ },
+ "cost": 0.0099,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads a toxic chat message telling him nobody is watching his stream and sarcastically responds, 'That's very compelling.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 21.5,
+  "reaction_end_t": 33,
+  "reason": "The moment relies entirely on reading chat banter and opponent text messages rather than an in-game comedic event or self-own."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_d3io",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2540,
+  "outputTokens": 546,
+  "thoughtTokens": 411
+ },
+ "cost": 0.007905,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves winning the trophy, showing off his jersey and yelling 'Look how silent the crowd is, oh my god!'",
+  "play_quality": 9,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 2,
+  "reaction_end_t": 19.5,
+  "reason": "This is a major match-winning trophy moment for 100 Thieves accompanied by a huge, hyped reaction with a classic jersey reveal."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788236213121_tu54",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4753,
+  "outputTokens": 625,
+  "thoughtTokens": 502
+ },
+ "cost": 0.011817000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into hysterical laughter watching a robot goalkeeper freeze and react late, exclaiming 'Yeah that dude stood no chance!'",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 11.5,
+  "reaction_end_t": 33,
+  "reason": "His genuine laughter and funny physical imitation of the frozen robot goalkeeper make this an easily understood and highly entertaining comedy moment."
+ }
+}

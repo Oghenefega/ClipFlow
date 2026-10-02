@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_k6g1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2777,
+  "outputTokens": 660,
+  "thoughtTokens": 548
+ },
+ "cost": 0.009115499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts that he is going to cook his opponents before shooting a teammate in the lobby and saying 'all love bro'.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is idle pre-round lobby talk and shooting a teammate with no comedic punchline or payoff."
+ }
+}

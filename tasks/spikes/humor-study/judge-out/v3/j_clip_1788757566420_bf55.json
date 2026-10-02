@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757566420_bf55",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3026,
+  "outputTokens": 652,
+  "thoughtTokens": 505
+ },
+ "cost": 0.009429,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100 Thieves' victory as the team greets fans, shouting '100 Thieves is taking it all this year, I told you guys!'",
+  "play_quality": 1,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 2,
+  "reaction_end_t": 6,
+  "reason": "This clip consists only of post-match stage celebrations and fan signings with no gameplay or clutch moments. Without an actual play to hype up, it lacks the required action for a highlight."
+ }
+}

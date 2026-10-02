@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_43kj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2087,
+  "outputTokens": 718,
+  "thoughtTokens": 575
+ },
+ "cost": 0.008515499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches a replay of his goal in Rocket League, laughing when he notices the opponent failed to demo him, saying, 'Ooh, he tried to blow me up there!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 9,
+  "reaction_end_t": 12.5,
+  "reason": "A routine replay observation with a mild chuckle, lacking the strong subversion, self-own, or punchy setup needed for a high-scoring comedy clip."
+ }
+}

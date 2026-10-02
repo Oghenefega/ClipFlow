@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_50ut",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2864,
+  "outputTokens": 903,
+  "thoughtTokens": 771
+ },
+ "cost": 0.0110685,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator celebrates 100T winning a round by shouting 'GET HIM OUT OF HERE!' during the round transition screen.",
+  "play_quality": 3,
+  "reaction_size": 7,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 14,
+  "reason": "The clip catches the round win screen and buy phase setup rather than the live play itself, relying on his routine signature tagline without showing a highlight play."
+ }
+}

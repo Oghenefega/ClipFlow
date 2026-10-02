@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432375_hud5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4760,
+  "outputTokens": 680,
+  "thoughtTokens": 566
+ },
+ "cost": 0.012240000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs off a chat accusation about taking credit for goals while celebrating a Division 2 rank up in Rocket League.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of post-match menu navigation and chat banter, lacking a clear gameplay punchline or comedy setup."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_hg3j",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 708,
+  "thoughtTokens": 564
+ },
+ "cost": 0.011914499999999998,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gets extremely hyped during a VCT timeout, showing off his 100 Thieves jersey and saying, 'I want to do some pushups man, some pull-ups!'",
+  "play_quality": 0,
+  "reaction_size": 7,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip takes place entirely during a broadcast timeout with no gameplay or play being made. According to the hype reaction rules, waiting between rounds or downtime without gameplay is a clear reject."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788433695048_or2y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3911,
+  "outputTokens": 619,
+  "thoughtTokens": 483
+ },
+ "cost": 0.010509000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically as he struggles to fit his avatar into a wall cutout before time runs out, yelling \"Oh my God!\" and \"Oh my butt!\"",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 9,
+  "reaction_end_t": 32,
+  "reason": "His absurd failure to match the wall hole leads to an infectious burst of genuine laughter and funny commentary as his character clips awkwardly through the wall."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1790099754738_ybxq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5320,
+  "outputTokens": 889,
+  "thoughtTokens": 754
+ },
+ "cost": 0.0146475,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to a humanoid robot knocking out another robot in a cage and immediately performing a victory dance, exclaiming 'And then they can dance!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 68,
+  "payoff_t": 18,
+  "reaction_end_t": 50,
+  "reason": "His serious hype comparing the robot to a UFC fighter hits a funny payoff when the robot lands a kick and immediately starts celebrating with a goofy victory dance."
+ }
+}

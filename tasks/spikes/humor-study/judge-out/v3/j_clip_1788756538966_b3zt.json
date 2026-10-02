@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_b3zt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2378,
+  "outputTokens": 715,
+  "thoughtTokens": 570
+ },
+ "cost": 0.0089295,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches 100T launch an ultimate onto C site, saying 'Oh my goodness... let's go, let's go' before watching the round unfold in silence.",
+  "play_quality": 4,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 2,
+  "reaction_end_t": 5,
+  "reason": "The round setup gets a mild initial reaction, but no major play or multi-kill happens and the creator sits mostly silent throughout the rest of the clip."
+ }
+}

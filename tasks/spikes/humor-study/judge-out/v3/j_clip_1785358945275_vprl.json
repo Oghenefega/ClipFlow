@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_vprl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 531,
+  "thoughtTokens": 408
+ },
+ "cost": 0.0072345,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs about a goal/missed play saying 'He's going to be pissed, man', before playing a routine kickoff.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 2,
+  "reaction_end_t": 5,
+  "reason": "The clip lacks a strong comedic setup or punchline, consisting mostly of routine gameplay after a brief chuckling remark."
+ }
+}

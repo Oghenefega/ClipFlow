@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_dr7h",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 547,
+  "thoughtTokens": 443
+ },
+ "cost": 0.007476,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator chuckles while commentating on his opponent's intensity, saying, 'He's bringing hellfire and brimstone.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is casual commentary during gameplay with no clear comedic subversion, big reaction, or hilarious payoff."
+ }
+}

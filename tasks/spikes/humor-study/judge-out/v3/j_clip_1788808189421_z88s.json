@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788808189421_z88s",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5780,
+  "outputTokens": 729,
+  "thoughtTokens": 581
+ },
+ "cost": 0.0141375,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "LOUD cauanzin clutches a 1v3 against 100 Thieves, prompting the creator to jump out of his seat screaming 'OH MY GOD! HE JUST SMOKED US!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 32,
+  "reaction_end_t": 41,
+  "reason": "A high-stakes 1v3 clutch against his team triggers an explosive, passionate reaction as he jumps up screaming in disbelief before trying to cope."
+ }
+}

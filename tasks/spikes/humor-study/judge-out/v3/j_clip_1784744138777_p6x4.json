@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_p6x4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 847,
+  "thoughtTokens": 725
+ },
+ "cost": 0.0117915,
+ "judged": {
+  "kind": "comedy",
+  "what": "After hyping up his own goal replay, the creator whiffs a shot and screams, \"Ain't no way! Oh my goodness!\"",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 26,
+  "reaction_end_t": 30,
+  "reason": "A classic whiff moment paired with a loud, animated reaction right after bragging about his skill."
+ }
+}

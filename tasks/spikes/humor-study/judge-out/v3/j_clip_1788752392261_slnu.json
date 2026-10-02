@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788752392261_slnu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 569,
+  "thoughtTokens": 437
+ },
+ "cost": 0.007591499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a replay of the opposing team taking the round and joke-accuses them of cheating, saying 'These guys have cheats, I promise.'",
+  "play_quality": 4,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 3.5,
+  "reaction_end_t": 15,
+  "reason": "The replay shows routine kills without a major highlight play, and his reaction is casual banter rather than high-stakes excitement."
+ }
+}

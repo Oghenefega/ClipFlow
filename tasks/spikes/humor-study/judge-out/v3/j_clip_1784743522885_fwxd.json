@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_fwxd",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 578,
+  "thoughtTokens": 451
+ },
+ "cost": 0.0069795,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator makes two consecutive saves in Rocket League while yelling 'Not on my watch, get him out of my face bro!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 3.5,
+  "reaction_end_t": 6,
+  "reason": "He makes routine saves with mild shouting, but there is no comedic subversion, fail, or funny payoff to make it a clip worth keeping."
+ }
+}

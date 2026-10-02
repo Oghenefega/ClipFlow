@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138778_ht1m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 662,
+  "thoughtTokens": 556
+ },
+ "cost": 0.008703,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator calmly notes that his teammate blocked his shot and keeps playing without much reaction.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip features calm narration of standard Rocket League gameplay without any comedic payoff, hilarious failure, or notable reaction."
+ }
+}

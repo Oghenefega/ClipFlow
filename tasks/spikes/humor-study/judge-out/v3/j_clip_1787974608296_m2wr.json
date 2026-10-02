@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974608296_m2wr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4403,
+  "outputTokens": 607,
+  "thoughtTokens": 460
+ },
+ "cost": 0.011157,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator jumps out of his chair screaming 'YOU CAN'T STOP HIM MAN!' as Asuna lands a jumping Classic right-click kill to win the round.",
+  "play_quality": 7,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 25,
+  "reaction_end_t": 37,
+  "reason": "Asuna seals the round with an incredible jumping Classic headshot, triggering a huge stand-up hype reaction from the creator. The energetic clip-worthy freakout makes this a keeper."
+ }
+}

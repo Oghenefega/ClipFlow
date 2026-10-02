@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788088823_16yp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3869,
+  "outputTokens": 664,
+  "thoughtTokens": 533
+ },
+ "cost": 0.0107835,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs hysterically at a Rocket League goal replay where his teammate flies across the frame, exclaiming 'You can just see Rob flying across the screen!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 55,
+  "payoff_t": 8,
+  "reaction_end_t": 13,
+  "reason": "His reaction to the goofy replay physics is funny, though it relies on light gameplay context rather than a sharp comedic punchline."
+ }
+}

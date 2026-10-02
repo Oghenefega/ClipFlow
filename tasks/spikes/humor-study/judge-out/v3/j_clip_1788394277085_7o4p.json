@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_7o4p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3587,
+  "outputTokens": 746,
+  "thoughtTokens": 614
+ },
+ "cost": 0.0109755,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator shouts in utter disbelief ('How is this guy not dead?!') as he spectates a seeker continually missing a hider in plain sight.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 78,
+  "payoff_t": 25.5,
+  "reaction_end_t": 32,
+  "reason": "The chaotic spectacle of a seeker repeatedly missing point-blank shots on a visible hider builds up to a great laugh and funny payoff line."
+ }
+}

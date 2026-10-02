@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_gcsy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 717,
+  "thoughtTokens": 592
+ },
+ "cost": 0.009966,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wonders why he is mindlessly hitting the ball until his teammate scores, reacting 'I was like somebody surely is going to do something, right?'.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 18,
+  "reaction_end_t": 24,
+  "reason": "This is casual gameplay narration with low comedic tension and a mild payoff when his teammate scores."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_q5sj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1925,
+  "outputTokens": 704,
+  "thoughtTokens": 597
+ },
+ "cost": 0.008167500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates a goal in Rocket League saying, 'Let's go... Easy stuff, easy stuff.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay filler with a very calm delivery and no subversion or comedic payoff."
+ }
+}

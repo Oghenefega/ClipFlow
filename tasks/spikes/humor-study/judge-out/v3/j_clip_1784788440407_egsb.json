@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788440407_egsb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 777,
+  "thoughtTokens": 653
+ },
+ "cost": 0.0107805,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator bursts into hysterical laughter and energetic clapping after scoring to tie the game, shouting 'Let's go! I like it like this!'.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 4,
+  "reaction_end_t": 11,
+  "reason": "His explosive laugh and enthusiastic clapping right after scoring make for a high-energy, entertaining gameplay moment."
+ }
+}

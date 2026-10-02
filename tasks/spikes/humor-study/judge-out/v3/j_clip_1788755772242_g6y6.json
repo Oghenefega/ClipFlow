@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755772242_g6y6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 832,
+  "thoughtTokens": 694
+ },
+ "cost": 0.011751000000000001,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator mocks Asuna's Neon movement after a round loss, shouting 'GET HIM OUT OF MY FACE BRO! GET HIM OUT OF HERE!'",
+  "play_quality": 3,
+  "reaction_size": 7,
+  "keep_score": 30,
+  "payoff_t": 26,
+  "reaction_end_t": 33,
+  "reason": "While his taunting reaction is loud and energetic, there is no high-level play or multi-kill happening in the clip to warrant a keep."
+ }
+}

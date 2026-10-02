@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788755071329_lhpa",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1487,
+  "outputTokens": 675,
+  "thoughtTokens": 537
+ },
+ "cost": 0.007293,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator screams 'THERE WE GOOO! No freaking way!' as Bang lands two quick opening headshots for 100 Thieves.",
+  "play_quality": 6,
+  "reaction_size": 7,
+  "keep_score": 62,
+  "payoff_t": 4,
+  "reaction_end_t": 8,
+  "reason": "Bang gets a fast opening double kill to kick off the round, triggering a loud hype reaction from the creator, though it stops short of a full multi-kill or clutch."
+ }
+}

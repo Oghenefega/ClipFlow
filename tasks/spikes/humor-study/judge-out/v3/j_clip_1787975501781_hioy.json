@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787975501781_hioy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1811,
+  "outputTokens": 475,
+  "thoughtTokens": 363
+ },
+ "cost": 0.006279,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly analyzes 100T's positions during a 4v3 post-plant setup on Lotus.",
+  "play_quality": 3,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine mid-round utility placement and quiet commentary without any kills or hype reactions."
+ }
+}

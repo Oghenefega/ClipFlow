@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_m2wz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 563,
+  "thoughtTokens": 432
+ },
+ "cost": 0.008811000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega gets bumped by an opponent in Rocket League and complains, 'This dude is always hitting me. Can you stop doing that, please, bro?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 11,
+  "reaction_end_t": 15,
+  "reason": "He mildly complains about getting bumped on the field, but his delivery is flat and there is no funny payoff or punchline."
+ }
+}

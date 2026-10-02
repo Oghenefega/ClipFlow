@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566928375_xuud",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3383,
+  "outputTokens": 435,
+  "thoughtTokens": 319
+ },
+ "cost": 0.008337,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega plays Rocket League while praising his teammate and saying, 'I don't want to talk about what the heck I'm doing right now.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay narration with a flat delivery and no clear comedic payoff or standout moment."
+ }
+}

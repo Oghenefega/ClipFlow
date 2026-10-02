@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787974788113_o6f4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 727,
+  "thoughtTokens": 595
+ },
+ "cost": 0.010113,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator gives a halftime pep talk to 100 Thieves while down 2-10, saying 'All you got to do is stop these guys from planting, that's all!'.",
+  "play_quality": 0,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists entirely of halftime commentary and pre-round setup speech with no actual gameplay action or kills."
+ }
+}

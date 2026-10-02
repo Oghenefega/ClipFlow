@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_md1k",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5644,
+  "outputTokens": 543,
+  "thoughtTokens": 422
+ },
+ "cost": 0.0125385,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches a humanoid robot struggle to play table tennis and comments on how clunky it is, saying 'I would school this thing at table tennis man'.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of commentary and rambling thoughts without a sharp fail or comedic payoff, making it a reject."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_3q3k",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2378,
+  "outputTokens": 1083,
+  "thoughtTokens": 938
+ },
+ "cost": 0.011689499999999999,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts with excitement to 100 Thieves winning their first international grand finals, shouting 'They're one-for-one baby, let's go!'",
+  "play_quality": 0,
+  "reaction_size": 7,
+  "keep_score": 20,
+  "payoff_t": 11.5,
+  "reaction_end_t": 17.5,
+  "reason": "This is a reaction to a vlog/documentary clip rather than live esports gameplay. Without an actual play or highlight on screen, pure narration commentary gets rejected."
+ }
+}

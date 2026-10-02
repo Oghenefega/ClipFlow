@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552826516_at16",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1811,
+  "outputTokens": 716,
+  "thoughtTokens": 565
+ },
+ "cost": 0.0080865,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "Timotino closes out a multi-kill round with a Ghost to reach 11-5, prompting the creator to jump out of his chair shouting 'GET HIM OUT OF HERE!'",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 88,
+  "payoff_t": 6.8,
+  "reaction_end_t": 12,
+  "reason": "A clean multi-kill round win by 100 Thieves that triggers the creator's signature high-energy 'GET HIM OUT OF HERE!' reaction as he stands up."
+ }
+}

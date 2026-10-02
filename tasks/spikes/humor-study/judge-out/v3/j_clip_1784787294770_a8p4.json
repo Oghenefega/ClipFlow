@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787294770_a8p4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 622,
+  "thoughtTokens": 505
+ },
+ "cost": 0.009861000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer shouts in celebration after scoring a goal in Rocket League before transitioning into quiet commentary.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 20,
+  "payoff_t": 1.5,
+  "reaction_end_t": 6,
+  "reason": "The clip begins mid-celebration for a goal and quickly devolves into routine, low-energy gameplay commentary with no comedic payoff."
+ }
+}

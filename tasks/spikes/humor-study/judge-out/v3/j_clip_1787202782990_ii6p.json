@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782990_ii6p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2945,
+  "outputTokens": 800,
+  "thoughtTokens": 687
+ },
+ "cost": 0.0104175,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator chats with his stream about surrounding yourself with like-minded individuals while paused on a 100 Thieves video.",
+  "play_quality": 0,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just chat banter and video setup while paused, with no actual gameplay or hyped reaction taking place."
+ }
+}

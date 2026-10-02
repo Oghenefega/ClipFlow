@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788757102761_ps40",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3674,
+  "outputTokens": 650,
+  "thoughtTokens": 511
+ },
+ "cost": 0.010386,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator pulls out a 100 Thieves sweatshirt and screams \"IT'S ABOUT TO HAPPEN!\" as 100 Thieves secures match point against LOUD.",
+  "play_quality": 8,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 24,
+  "reaction_end_t": 35,
+  "reason": "High-energy hype moment celebrating a major match-winning milestone for 100 Thieves with great physical props and vocal reaction."
+ }
+}

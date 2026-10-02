@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788552092102_tuc3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3107,
+  "outputTokens": 970,
+  "thoughtTokens": 811
+ },
+ "cost": 0.0119355,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The streamer mockingly laughs at the opponent's pre-game quote and gloats over 100 Thieves winning Map 1 13-3, shouting 'We're not on your level!'.",
+  "play_quality": 0,
+  "reaction_size": 7,
+  "keep_score": 25,
+  "payoff_t": 10,
+  "reaction_end_t": 25,
+  "reason": "This is transition and pre-map gloating with no actual gameplay play happening on screen. Without a clip of a play to support the hype, this is setup material that gets rejected."
+ }
+}

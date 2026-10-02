@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787202782989_k20x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4079,
+  "outputTokens": 885,
+  "thoughtTokens": 754
+ },
+ "cost": 0.012756,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator watches a VCT video segment and compliments player Ethan's appearance, saying 'Man has such luscious hair!'",
+  "play_quality": 0,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": 22.5,
+  "reaction_end_t": 38,
+  "reason": "There is no gameplay or esports play happening in this clip, only the creator commenting on a player's hair during pre-game video footage."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138778_rutc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 686,
+  "thoughtTokens": 575
+ },
+ "cost": 0.008397,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator checks the score and says 'Not on his watch, on my watch' while driving around in Rocket League.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip features routine gameplay narration with no setup-payoff structure, comical fail, or memorable reaction."
+ }
+}

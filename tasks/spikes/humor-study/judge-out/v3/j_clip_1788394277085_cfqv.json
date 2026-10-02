@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788394277085_cfqv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3101,
+  "outputTokens": 661,
+  "thoughtTokens": 544
+ },
+ "cost": 0.009609,
+ "judged": {
+  "kind": "comedy",
+  "what": "A teammate tells him 'If you fail, simply succeed next time,' making him burst out laughing.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 55,
+  "payoff_t": 6,
+  "reaction_end_t": 14,
+  "reason": "A teammate lands a funny deadpan motivational line over proximity chat, catching the creator off guard and prompting a genuine laugh."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785566426950_eapg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 751,
+  "thoughtTokens": 629
+ },
+ "cost": 0.011314500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs as the opponent scores off his error, exclaiming 'That is not limiting my own mistake!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 45,
+  "payoff_t": 5,
+  "reaction_end_t": 9,
+  "reason": "He has a funny self-own reaction right at the start, but the clip drags on afterwards with standard gameplay and quiet chat talk."
+ }
+}

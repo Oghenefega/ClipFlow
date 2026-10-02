@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1786434432376_by0l",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2654,
+  "outputTokens": 632,
+  "thoughtTokens": 494
+ },
+ "cost": 0.008721,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator repeatedly tries and fails to demolish an opponent in Rocket League, exclaiming 'I'm trying to blow this guy up and it's not working!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 45,
+  "payoff_t": 11.5,
+  "reaction_end_t": 16,
+  "reason": "He laughs at his own inability to bump an opponent after trying so hard, making for a pleasant self-own, though the impact is relatively mild."
+ }
+}

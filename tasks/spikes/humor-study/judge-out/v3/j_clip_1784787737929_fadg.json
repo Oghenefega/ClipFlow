@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784787737929_fadg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1844,
+  "outputTokens": 517,
+  "thoughtTokens": 377
+ },
+ "cost": 0.0066435,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to a teammate's goal replay in Rocket League, laughing and saying 'Great pass man... almost missed that then, bro, what a positioning.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 9,
+  "reason": "This is a low-key commentary on a routine Rocket League goal without a strong joke, dramatic failure, or big punchline to make it compelling to a general audience."
+ }
+}

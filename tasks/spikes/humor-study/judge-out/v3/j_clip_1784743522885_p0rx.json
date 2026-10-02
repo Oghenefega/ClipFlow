@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_p0rx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 584,
+  "thoughtTokens": 474
+ },
+ "cost": 0.0084825,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega praises his teammate's demo and goal in Rocket League, saying 'my teammate is actually cooking, bro!'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is basic match narration and replay commentary with no comedic subversion or stand-out payoff."
+ }
+}

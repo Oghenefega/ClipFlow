@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1787805514632_udn4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4267,
+  "outputTokens": 925,
+  "thoughtTokens": 796
+ },
+ "cost": 0.013338,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator commentary mocks a humanoid boxing robot as it clumsily falls over, exclaiming 'The dude in silver literally did not land one shot!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 65,
+  "payoff_t": 11.5,
+  "reaction_end_t": 19,
+  "reason": "Solid absurd commentary on a funny robot fight fail, though the clip loses momentum at the end when he switches to browse Twitter."
+ }
+}

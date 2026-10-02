@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785358945275_ywit",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 536,
+  "thoughtTokens": 423
+ },
+ "cost": 0.0076365,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega laughs while watching a replay goal scored against his team and says 'That's unfortunate, close one.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of mild reflection on a replay that already happened, lacking a distinct comedy setup or funny live moment."
+ }
+}
