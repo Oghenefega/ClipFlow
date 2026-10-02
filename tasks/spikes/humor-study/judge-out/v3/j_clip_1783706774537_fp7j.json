@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_fp7j",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1691,
+  "outputTokens": 1048,
+  "thoughtTokens": 914
+ },
+ "cost": 0.010396500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches a zero-second Rocket League goal and exclaims 'Oh my god! What a shot man, what a twist and turn!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 30,
+  "payoff_t": 4.5,
+  "reaction_end_t": 7,
+  "reason": "While it is a cool zero-second goal, the clip lacks a comedic setup, subversion, or big funny payoff to work as a standalone comedy highlight."
+ }
+}

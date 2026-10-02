@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785022519029_aerz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 589,
+  "thoughtTokens": 483
+ },
+ "cost": 0.0081555,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer talks about how well he slept despite body pain and how long he stayed on Twitter.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just idle stream chatter in the Rocket League menu with no gameplay, joke, or comedic payoff."
+ }
+}

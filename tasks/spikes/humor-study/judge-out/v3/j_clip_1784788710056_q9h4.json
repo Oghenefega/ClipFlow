@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_q9h4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4760,
+  "outputTokens": 1071,
+  "thoughtTokens": 954
+ },
+ "cost": 0.0151725,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega finishes up a Rocket League match while asking for stream likes and saying 'GG bro, well played'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of routine gameplay, casual stream chatter, and standard end-of-match sportsmanship with no funny setup or comedic payoff."
+ }
+}

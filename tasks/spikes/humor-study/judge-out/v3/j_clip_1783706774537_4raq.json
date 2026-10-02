@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_4raq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3693,
+  "outputTokens": 448,
+  "thoughtTokens": 338
+ },
+ "cost": 0.008899500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains about the slow pace of the match, shouting 'Somebody do something!' and claiming his teammates are drunk.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists of standard gameplay commentary complaining about slow gameplay without a clear punchline or comedic payoff."
+ }
+}

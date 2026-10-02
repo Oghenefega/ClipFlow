@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_l5lz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2944,
+  "outputTokens": 592,
+  "thoughtTokens": 452
+ },
+ "cost": 0.008856,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently chants 'I'm on a roll!' while rolling an egg, only for it to fall and crack open as he lets out a groan of pain.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 90,
+  "payoff_t": 16,
+  "reaction_end_t": 19.5,
+  "reason": "Fits the ideal comedy structure perfectly: he boasts confidence ('I'm on a roll!'), the game immediately punished him, and he reacts with hilarious distress."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060893_dkn6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3672,
+  "outputTokens": 632,
+  "thoughtTokens": 509
+ },
+ "cost": 0.010248,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega aggressively threatens the egg not to fall again, calling the section easy, only for it to immediately slip off the ledge and fall.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 85,
+  "payoff_t": 27.5,
+  "reaction_end_t": 30,
+  "reason": "Follows the ideal comedy pattern where he delivers a confident rant only for the game to instantly humble him."
+ }
+}

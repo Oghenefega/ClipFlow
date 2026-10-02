@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_niwi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 624,
+  "thoughtTokens": 490
+ },
+ "cost": 0.007932,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator accidentally whiffs and gives up an easy goal in Rocket League, saying 'Let's not talk about it... I just sold, bro.'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 55,
+  "payoff_t": 3,
+  "reaction_end_t": 15,
+  "reason": "A clean and funny self-own where he misses a play and immediately owns up to selling, ending with a self-deprecating line."
+ }
+}

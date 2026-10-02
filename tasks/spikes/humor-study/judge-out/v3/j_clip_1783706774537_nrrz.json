@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_nrrz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3420,
+  "outputTokens": 517,
+  "thoughtTokens": 403
+ },
+ "cost": 0.0090075,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts to a save saying 'What a save bro, that was going in', then continues standard gameplay before getting demolished.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is mostly quiet, routine Rocket League gameplay with no comedic subversion, big reaction, or punchline."
+ }
+}

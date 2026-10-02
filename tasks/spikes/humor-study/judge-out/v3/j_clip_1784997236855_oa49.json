@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_oa49",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4010,
+  "outputTokens": 692,
+  "thoughtTokens": 559
+ },
+ "cost": 0.011205,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer complains about playing with no checkpoints right before slipping and falling all the way back down to the grass, asking 'Are y'all seeing this nonsense?'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 68,
+  "payoff_t": 28,
+  "reaction_end_t": 35,
+  "reason": "His commentary about how awful playing without checkpoints would be immediately pays off with a massive fall all the way back down to the start."
+ }
+}

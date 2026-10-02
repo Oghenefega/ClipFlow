@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_ny50",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 870,
+  "thoughtTokens": 747
+ },
+ "cost": 0.010627500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores consecutive goals in Rocket League while shouting 'Get him out of here, bro!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 35,
+  "payoff_t": 18,
+  "reaction_end_t": 22,
+  "reason": "While high energy, the clip consists of routine goals paired with repeated catchphrases without any comedic twist, subversion, or self-own."
+ }
+}

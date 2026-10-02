@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060893_0x5a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4127,
+  "outputTokens": 680,
+  "thoughtTokens": 547
+ },
+ "cost": 0.0112905,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator claims he wants to treat the egg with positivity, but ominously warns it: 'Fall one more time... You'll see what the threat is, okay?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 72,
+  "payoff_t": 20,
+  "reaction_end_t": 35,
+  "reason": "The sudden contrast between his calm speech about positivity and his sinister threats toward the rolling egg creates a solid comedic beat."
+ }
+}

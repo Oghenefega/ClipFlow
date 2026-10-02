@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_rj72",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4091,
+  "outputTokens": 649,
+  "thoughtTokens": 504
+ },
+ "cost": 0.011004,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator carefully navigates his egg while telling himself to relax, but suddenly slips and falls all the way back down to the bottom, leaving him staring in silent disbelief before saying 'That's crazy.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 50,
+  "payoff_t": 30,
+  "reaction_end_t": 39,
+  "reason": "A classic rage game fall delivers a funny payoff after a tense setup, though his reaction drops into a quiet deadpan rather than a big outburst."
+ }
+}

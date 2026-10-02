@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_un1r",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 521,
+  "thoughtTokens": 387
+ },
+ "cost": 0.007280999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sees he got demoted to Platinum II after a match and laments 'Come on man, we're better than that' before queueing for another game.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 18,
+  "payoff_t": 0,
+  "reaction_end_t": 12,
+  "reason": "This clip consists entirely of menu navigation and mild disappointment over rank demotion, lacking any funny gameplay payoff or strong comedic punchline."
+ }
+}

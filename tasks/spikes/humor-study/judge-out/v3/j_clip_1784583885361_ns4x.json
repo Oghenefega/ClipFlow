@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_ns4x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2654,
+  "outputTokens": 820,
+  "thoughtTokens": 695
+ },
+ "cost": 0.010131000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega laughs off getting faked out, saying 'I fell for the fake! Go for the ball, not the fake', before playing out a routine goal.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 2,
+  "reaction_end_t": 6,
+  "reason": "The funny mistake occurs right as the clip begins without proper context or setup, followed by prolonged routine gameplay."
+ }
+}

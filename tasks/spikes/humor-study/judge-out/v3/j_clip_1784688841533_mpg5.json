@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_mpg5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4400,
+  "outputTokens": 746,
+  "thoughtTokens": 616
+ },
+ "cost": 0.012195000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator anxiously counts down to time a jump in Egging On, celebrating with 'Yeah let's go man!' when he lands it safely.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 21,
+  "reaction_end_t": 24.5,
+  "reason": "While there is tension in his delivery, he simply makes the jump successfully without any comedic subversion, fail, or punchline."
+ }
+}

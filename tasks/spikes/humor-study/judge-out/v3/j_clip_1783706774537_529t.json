@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_529t",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2055,
+  "outputTokens": 669,
+  "thoughtTokens": 545
+ },
+ "cost": 0.0081,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator begs his teammates to do something in a dramatic voice before exclaiming 'OMG' during an awkward attempt at a wall hit.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 8,
+  "reaction_end_t": 12,
+  "reason": "There is no clear comedic setup or strong payoff, as the gameplay action is uneventful and his reaction remains flat."
+ }
+}

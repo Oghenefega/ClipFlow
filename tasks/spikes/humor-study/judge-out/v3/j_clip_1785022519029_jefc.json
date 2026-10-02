@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785022519029_jefc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 745,
+  "thoughtTokens": 639
+ },
+ "cost": 0.010783500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator passionately celebrates Argentina's football loss and calls them frauds while sitting on the main menu.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain story talk and commentary on the main menu with no gameplay action or comedic payoff."
+ }
+}

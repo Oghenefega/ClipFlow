@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_3d52",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3763,
+  "outputTokens": 679,
+  "thoughtTokens": 566
+ },
+ "cost": 0.010737,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator rolls around in confusion after falling down, asking 'How do I fumble my best run ever?' while chatting with stream viewers.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is mostly low-energy narration and chat greeting with no funny comedic payoff or punchline."
+ }
+}

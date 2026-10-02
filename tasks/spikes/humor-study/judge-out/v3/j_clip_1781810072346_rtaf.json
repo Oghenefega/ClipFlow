@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_rtaf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3577,
+  "outputTokens": 500,
+  "thoughtTokens": 381
+ },
+ "cost": 0.009115499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loots loot containers and crouches in a bush, asking 'Why are there so many dead individuals, man?'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing interesting or funny happens in this clip, as the creator simply loots and hides in bushes with low energy and no comedic payoff."
+ }
+}

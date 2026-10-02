@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_ekns",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4876,
+  "outputTokens": 679,
+  "thoughtTokens": 546
+ },
+ "cost": 0.0124065,
+ "judged": {
+  "kind": "comedy",
+  "what": "After a tense Rocket League match ends, Fega grabs his head in relief and screams 'Get me out of here! That was not fun, not in the slightest!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 72,
+  "payoff_t": 28,
+  "reaction_end_t": 36,
+  "reason": "His dramatic and exasperated outburst after enduring a stressful match delivers a clean, funny payoff that works without needing prior context."
+ }
+}

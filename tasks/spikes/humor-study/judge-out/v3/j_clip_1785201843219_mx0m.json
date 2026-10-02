@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_mx0m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2087,
+  "outputTokens": 466,
+  "thoughtTokens": 346
+ },
+ "cost": 0.0066254999999999994,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator sarcastically praises his teammate's bad pass, saying 'That's a great pass to the opponents.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 5,
+  "reaction_end_t": 13,
+  "reason": "It is routine gameplay commentary with a calm, flat delivery and no distinct comedic punchline or big reaction."
+ }
+}

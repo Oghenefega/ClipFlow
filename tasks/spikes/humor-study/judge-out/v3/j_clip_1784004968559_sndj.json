@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_sndj",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2055,
+  "outputTokens": 911,
+  "thoughtTokens": 767
+ },
+ "cost": 0.009915,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega scores, stands up yelling 'That better freaking go in!', then sits back down and immediately scores a second goal while calling himself a 'second goal merchant'.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 1.5,
+  "reaction_end_t": 11.5,
+  "reason": "Fega has a big physical reaction getting up out of his chair after a goal, then follows it up by immediately scoring a second goal right as he brags about the dam opening."
+ }
+}

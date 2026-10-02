@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_wefc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 615,
+  "thoughtTokens": 505
+ },
+ "cost": 0.0083505,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator casually commentates his Rocket League match, remarking 'Damn, these guys... they've got our numbers.'",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is just standard gameplay narration with flat delivery and no punchline or funny payoff."
+ }
+}

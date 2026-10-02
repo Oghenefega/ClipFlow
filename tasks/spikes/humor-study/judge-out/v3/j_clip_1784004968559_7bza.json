@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_7bza",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2601,
+  "outputTokens": 615,
+  "thoughtTokens": 484
+ },
+ "cost": 0.008514,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates winning by forfeit in Rocket League and getting MVP, yelling 'Give me that match MVP bro!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 25,
+  "payoff_t": 13,
+  "reaction_end_t": 16,
+  "reason": "This is a standard post-match victory celebration after an opponent forfeit. Without a comedic subversion or punchline, it lacks the comedy hook needed for a standalone clip."
+ }
+}

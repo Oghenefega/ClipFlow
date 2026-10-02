@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_m4h9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1484,
+  "outputTokens": 450,
+  "thoughtTokens": 343
+ },
+ "cost": 0.005601,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loots a container while commenting on how the previous player was in a rush, finding four batteries inside.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine looting with mild commentary and no comedic setup, contrast, or funny payoff."
+ }
+}

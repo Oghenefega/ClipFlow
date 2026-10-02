@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060894_w8k9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 578,
+  "thoughtTokens": 470
+ },
+ "cost": 0.007658999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator complains about chat's advice regarding a cinder block while carefully rolling his egg across a wooden plank.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists purely of chat banter and commentary with no comedic twist, funny fail, or payoff."
+ }
+}

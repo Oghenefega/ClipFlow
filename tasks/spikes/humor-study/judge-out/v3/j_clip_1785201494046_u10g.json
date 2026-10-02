@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_u10g",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 832,
+  "thoughtTokens": 700
+ },
+ "cost": 0.009735,
+ "judged": {
+  "kind": "comedy",
+  "what": "After scoring and asking 'How does it feel, buddy?', he immediately concedes a kickoff goal and says 'I don't want to talk about that, bro'.",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 75,
+  "payoff_t": 12.5,
+  "reaction_end_t": 17,
+  "reason": "His smug taunt is instantly punished by conceding a kickoff goal, creating a solid comedy contrast with a deadpan reaction."
+ }
+}

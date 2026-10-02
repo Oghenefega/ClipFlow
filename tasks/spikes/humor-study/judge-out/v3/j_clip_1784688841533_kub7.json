@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_kub7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 6129,
+  "outputTokens": 786,
+  "thoughtTokens": 656
+ },
+ "cost": 0.015088500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega hesitates and immediately cracks his egg, then spends the rest of the clip playfully blaming his stream chat for not giving him enough support.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": 3.5,
+  "reaction_end_t": 6,
+  "reason": "The initial fail is minor and quickly over, leaving nearly fifty seconds of rambling stream chat banter that lacks a strong punchline for an outside viewer."
+ }
+}

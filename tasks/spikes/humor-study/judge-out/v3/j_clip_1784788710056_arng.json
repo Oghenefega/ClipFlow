@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_arng",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3545,
+  "outputTokens": 577,
+  "thoughtTokens": 459
+ },
+ "cost": 0.009645,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer explains his custom match rules while playing Rocket League, saying 'You think I'm afraid of you because I've got no boost?'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of casual narration and rule explanation with no comedic twist, joke, or funny moment."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_koyw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 1199,
+  "thoughtTokens": 1067
+ },
+ "cost": 0.011938500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates a Rocket League goal by jumping out of his chair and shouting, 'PUT IT IN! COME ON! ... THAT'S THE PASS!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 55,
+  "payoff_t": 1.5,
+  "reaction_end_t": 8.5,
+  "reason": "His physical reaction and screaming are very high energy, but without a comedic subversion or clear setup, it is just a simple goal celebration."
+ }
+}

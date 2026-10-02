@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522884_rhvz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3950,
+  "outputTokens": 562,
+  "thoughtTokens": 436
+ },
+ "cost": 0.01014,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets confused on defense and lets in a goal, shouting 'No freaking way!' before laughing and trying to make excuses.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 75,
+  "payoff_t": 11,
+  "reaction_end_t": 16,
+  "reason": "A relatable self-own where his visible confusion leads directly to an opponent goal, followed by genuine laughter and funny excuse-making."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785192759506_zawr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 468,
+  "thoughtTokens": 369
+ },
+ "cost": 0.006762,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about his headphones not working while clicking through Rocket League reward pop-ups.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine menu navigation and tech troubleshooting with no comedic punchline or payoff."
+ }
+}

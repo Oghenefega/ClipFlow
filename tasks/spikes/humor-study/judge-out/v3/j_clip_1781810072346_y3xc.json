@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_y3xc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4942,
+  "outputTokens": 572,
+  "thoughtTokens": 464
+ },
+ "cost": 0.011703000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega hopes the rain masks his noise while climbing a ladder, only to find nothing there.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "There is setup about the rain masking his movement, but no comedic payoff, enemy surprise, or punchline occurs."
+ }
+}

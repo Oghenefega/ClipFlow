@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_afea",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 865,
+  "thoughtTokens": 748
+ },
+ "cost": 0.0114405,
+ "judged": {
+  "kind": "comedy",
+  "what": "After admitting he deserved to get scored on for hesitating, the streamer immediately gets scored on again right after kickoff.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 23,
+  "reaction_end_t": 28,
+  "reason": "The streamer gives a measured breakdown of his mistake only to get scored on again immediately, but his reaction is too muted to make it a strong comedy clip."
+ }
+}

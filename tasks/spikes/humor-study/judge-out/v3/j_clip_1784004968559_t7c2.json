@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_t7c2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2965,
+  "outputTokens": 891,
+  "thoughtTokens": 748
+ },
+ "cost": 0.011130000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega sets up a pass in Rocket League and leaps out of his chair screaming 'PUT IT IN! COME ON! THAT'S THE PASS!' as his teammate scores.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 78,
+  "payoff_t": 5,
+  "reaction_end_t": 18,
+  "reason": "He sets up a goal for his teammate and pops off completely, standing up out of his chair and screaming with energy. It is a classic high-hype gaming reaction clip."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_6kfy",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 555,
+  "thoughtTokens": 449
+ },
+ "cost": 0.008994,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator practices training shots in Rocket League while talking about how his shot accuracy has improved.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of casual commentary during training drills with no comedic subversion, joke, or funny payoff."
+ }
+}

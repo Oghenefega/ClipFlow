@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005039_9d5b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2671,
+  "outputTokens": 513,
+  "thoughtTokens": 398
+ },
+ "cost": 0.007854,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator adjusts his in-game audio options and resumes rolling his egg, casually noting 'Oh I forgot I could jump.'",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing funny happens in this clip. It opens with menu navigation and features routine gameplay with no punchline or payoff."
+ }
+}

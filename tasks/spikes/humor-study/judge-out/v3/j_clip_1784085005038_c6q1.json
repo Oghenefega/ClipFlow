@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_c6q1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1761,
+  "outputTokens": 809,
+  "thoughtTokens": 677
+ },
+ "cost": 0.008709,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator insists 'Today's a happy day... Just joy and bliss' right as his egg fails to land on the platform and rolls into the grass.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 60,
+  "payoff_t": 7.5,
+  "reaction_end_t": 10,
+  "reason": "The ironic contrast between his calm declaration of 'joy and bliss' and his egg failing the jump creates a nice deadpan comedy moment."
+ }
+}

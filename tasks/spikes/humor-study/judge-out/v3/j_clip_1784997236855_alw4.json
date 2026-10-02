@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_alw4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4739,
+  "outputTokens": 491,
+  "thoughtTokens": 349
+ },
+ "cost": 0.010791,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer repeatedly attempts to count out a rhythm to time his jumps, only to mess up and fall off the ledge, exclaiming 'Goddammit, that was too freaking early!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 43.5,
+  "reaction_end_t": 47,
+  "reason": "The clip spends almost 45 seconds on tedious, repetitive counting without much action, resulting in a long build-up for a very minor payoff."
+ }
+}

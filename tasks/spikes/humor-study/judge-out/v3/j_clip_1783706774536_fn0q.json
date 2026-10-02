@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774536_fn0q",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3602,
+  "outputTokens": 701,
+  "thoughtTokens": 556
+ },
+ "cost": 0.0106605,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator screams 'Because I'm about to do...' as he pulls off a dramatic last-second play at 0:00 to force overtime, bursting into hysterical screams and laughter.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 21,
+  "reaction_end_t": 27,
+  "reason": "He delivers a confident line right at the final second before executing a high-stakes play to extend the game into overtime, followed by a massive, hilarious reaction."
+ }
+}

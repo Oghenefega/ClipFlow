@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_jlh5",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 610,
+  "thoughtTokens": 497
+ },
+ "cost": 0.009285,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reflects on his mistakes in Rocket League, saying 'Almost as important as scoring is not conceding' while driving around the field.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain narration and self-explanation with no punchline, funny mistake, or energetic reaction."
+ }
+}

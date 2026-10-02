@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841534_qqi1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3399,
+  "outputTokens": 684,
+  "thoughtTokens": 550
+ },
+ "cost": 0.010228500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer laughs uncontrollably while explaining how his bad logic made him fall: 'I was waiting for the thing to push me... and I just roll off!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 40,
+  "payoff_t": 22,
+  "reaction_end_t": 27,
+  "reason": "He laughs genuinely at his own mistake, but the moment is mostly post-hoc explanation rather than showing the mistake or surprise happen live."
+ }
+}

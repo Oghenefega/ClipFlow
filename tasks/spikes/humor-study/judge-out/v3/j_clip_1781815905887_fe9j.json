@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905887_fe9j",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2303,
+  "outputTokens": 457,
+  "thoughtTokens": 342
+ },
+ "cost": 0.006882,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads item descriptions in his inventory, noting 'Playing cards... huh. Never seen that one before', and then walks through a door.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in this clip beyond routine inventory checking and walking around, with no punchline or comedic payoff."
+ }
+}

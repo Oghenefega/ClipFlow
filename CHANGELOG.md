@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-01 (session 283): personal scorer test started, stopped on Gemini credit
+
+### Added
+- **Judge rules v3 and a personal scorer, test kit only (#483).** Fega's second round of answers (great plays against 100T count, lost clutches can count, live reaction over replay unless the replay condenses a multi-kill, over-the-top taunts yes and story talk no, a friend's joke with Fega laughing is a keep) went into the playbook and a v3 judge rubric (`judge.js --arm v3`). `scorer-set.py` lists all 770 reviewed clips with their saved sound and loudness signals; `scorer.py` trains a small model on Fega's own keep/reject decisions (judge score, clip-finder confidence, laughter/scream tags, pitch and loudness spikes, game sounds) and tests it one held-out recording at a time, plus a views model within each clip kind. The run stopped after 163 of 770 clips when the Gemini prepaid balance ran out; it resumes where it stopped once the balance is topped up.
+
 ## [Unreleased] 2026-10-01 (session 283): watch-and-listen judge tested
 
 ### Added

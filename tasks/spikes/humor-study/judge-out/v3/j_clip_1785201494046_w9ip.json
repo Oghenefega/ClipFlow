@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_w9ip",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2006,
+  "outputTokens": 484,
+  "thoughtTokens": 357
+ },
+ "cost": 0.006639,
+ "judged": {
+  "kind": "comedy",
+  "what": "After conceding a goal in Rocket League, the creator laughs mockingly and says, 'He tried to do that to me? What a sick joke.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 40,
+  "payoff_t": 1,
+  "reaction_end_t": 8.5,
+  "reason": " Conceding a goal leads to a mild sarcastic reaction, but it lacks a strong comedic subversion or memorable punchline."
+ }
+}

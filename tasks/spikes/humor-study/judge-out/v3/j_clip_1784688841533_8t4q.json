@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_8t4q",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5037,
+  "outputTokens": 467,
+  "thoughtTokens": 346
+ },
+ "cost": 0.011058,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator cautiously rolls his egg across narrow planks while repeatedly telling it to 'chill, chill, chill, chill bro' as it wobbles.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip is mostly routine gameplay narration without a sharp comedic payoff, sudden fail, or dramatic reversal to make it highlight-worthy."
+ }
+}

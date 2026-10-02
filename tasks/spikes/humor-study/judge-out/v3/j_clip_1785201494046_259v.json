@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_259v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3059,
+  "outputTokens": 691,
+  "thoughtTokens": 561
+ },
+ "cost": 0.009771,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores a goal and greets a viewer in chat, saying 'That's one on the board. I got what it takes.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 12,
+  "payoff_t": 10,
+  "reaction_end_t": 18,
+  "reason": "Standard gameplay where he scores a routine goal and talks to chat. It lacks any funny setup, comedic subversion, or big reaction."
+ }
+}

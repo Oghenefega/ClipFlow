@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_i0qk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 692,
+  "thoughtTokens": 559
+ },
+ "cost": 0.008928,
+ "judged": {
+  "kind": "comedy",
+  "what": "After his opponent scores, the creator expresses disbelief about their remaining boost and admits 'I am learning the hard way, bro.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 1,
+  "reaction_end_t": 4,
+  "reason": "The goal lands at the very start of the clip and the rest is routine post-goal commentary while waiting for kickoff. It lacks a strong comedic punchline or dramatic reaction."
+ }
+}

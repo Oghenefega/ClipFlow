@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_4vrz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2328,
+  "outputTokens": 841,
+  "thoughtTokens": 710
+ },
+ "cost": 0.0097995,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reacts enthusiastically and claps after his teammate scores a wall shot goal, shouting 'That deserved to go in!'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 35,
+  "payoff_t": 4.5,
+  "reaction_end_t": 11.5,
+  "reason": "It is a nice goal with positive hype from the creator, but lacks any funny twist, comedic failure, or memorable joke to make it a strong comedy clip."
+ }
+}

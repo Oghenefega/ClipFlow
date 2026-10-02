@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_kcic",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3302,
+  "outputTokens": 731,
+  "thoughtTokens": 577
+ },
+ "cost": 0.0104355,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega gets annoyed after getting demoed and scored on, declaring 'We're playing salty now?', only to immediately concede another goal right off the kickoff while yelling 'Ain't no way fam, ain't no way dude!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 85,
+  "payoff_t": 25,
+  "reaction_end_t": 29,
+  "reason": "A classic comedy setup: he talks tough after getting scored on, but immediately gets scored on again seconds later, resulting in a great genuine reaction of disbelief."
+ }
+}

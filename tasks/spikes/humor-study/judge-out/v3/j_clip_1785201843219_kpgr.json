@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_kpgr",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 705,
+  "thoughtTokens": 555
+ },
+ "cost": 0.0099975,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator scores a goal in Rocket League and boasts about his skill, shouting 'I play like an SSL? Someone screenshot that right now!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 45,
+  "payoff_t": 10.5,
+  "reaction_end_t": 25,
+  "reason": "He scores a goal and playfully over-inflates his ego by asking chat to screenshot his SSL-level gameplay. It's energetic and fun, but fairly standard gameplay hype rather than a classic comedy setup-and-payoff."
+ }
+}

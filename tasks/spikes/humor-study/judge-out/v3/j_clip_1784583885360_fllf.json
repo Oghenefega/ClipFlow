@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_fllf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 643,
+  "thoughtTokens": 515
+ },
+ "cost": 0.0105045,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator laughs while reviewing his Rocket League settings menu after realizing he's been playing with bad settings.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": 4.5,
+  "reaction_end_t": 9,
+  "reason": "This is primarily tech talk and menu navigation as he adjusts his game settings. Without an in-game funny moment or strong payoff, it does not make a compelling standalone clip."
+ }
+}

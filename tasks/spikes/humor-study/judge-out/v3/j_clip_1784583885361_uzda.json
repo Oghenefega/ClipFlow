@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_uzda",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1439,
+  "outputTokens": 618,
+  "thoughtTokens": 498
+ },
+ "cost": 0.006793499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator says 'I got this, I got this, I can get used to this' during a Rocket League kickoff countdown, but the clip ends before anything happens.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip features setup lines but cuts off right at kickoff before any play or comedic payoff actually occurs."
+ }
+}

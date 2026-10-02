@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005039_awfi",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 432,
+  "thoughtTokens": 330
+ },
+ "cost": 0.006564,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer talks to his egg and tries to time a jump onto a moving fan.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of setup and narration without any punchline, fail, or comedic payoff."
+ }
+}

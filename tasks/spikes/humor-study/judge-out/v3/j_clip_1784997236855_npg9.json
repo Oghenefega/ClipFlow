@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_npg9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4010,
+  "outputTokens": 587,
+  "thoughtTokens": 459
+ },
+ "cost": 0.0104175,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reaches his furthest point in Egging On and rambles in confusion about where to go next, saying 'I don't know where I'm going next!'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of narration and confusion with no comedic payoff, fall, or sudden turn of events to entertain a casual viewer."
+ }
+}

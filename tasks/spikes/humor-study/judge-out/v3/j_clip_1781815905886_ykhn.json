@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905886_ykhn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3213,
+  "outputTokens": 643,
+  "thoughtTokens": 528
+ },
+ "cost": 0.009642000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator cautiously hides behind containers while hearing a Leeper, saying 'My job here is to stay alive and get home safe.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of quiet narration and cautious gameplay with no punchline, funny mistake, or comedic payoff."
+ }
+}

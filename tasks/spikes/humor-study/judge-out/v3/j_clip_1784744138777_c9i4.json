@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784744138777_c9i4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2492,
+  "outputTokens": 580,
+  "thoughtTokens": 464
+ },
+ "cost": 0.008088,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator finishes a Rocket League match saying 'Never celebrate too early' before casually reviewing his post-game stats.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing funny or notable occurs in this clip; it is simply routine end-of-match commentary and stat reading with no comedy payoff."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_qc1c",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2510,
+  "outputTokens": 430,
+  "thoughtTokens": 300
+ },
+ "cost": 0.00699,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer repeatedly assures himself 'no worries' before conceding a goal and lamenting, 'How do I fumble in that type of situation?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 70,
+  "payoff_t": 5.5,
+  "reaction_end_t": 12.5,
+  "reason": "A funny self-own where his repeated reassurance is immediately ruined by conceding a goal, followed by a relatable head-in-hands reaction."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_eyi7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4330,
+  "outputTokens": 817,
+  "thoughtTokens": 696
+ },
+ "cost": 0.012622499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer claims his fumble was 'all part of the plan' before screaming as the play goes wrong.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 10,
+  "reaction_end_t": 12,
+  "reason": "He tries to rationalise a mistake with confident commentary, but the moment lacks a distinct punchline and drags on with passive gameplay."
+ }
+}

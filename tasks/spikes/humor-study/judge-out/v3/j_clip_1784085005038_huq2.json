@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_huq2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2307,
+  "outputTokens": 583,
+  "thoughtTokens": 472
+ },
+ "cost": 0.007833,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator successfully carries an egg using a drone while claiming, 'I actually, I mastered the game.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The creator boasts about mastering the game, but nothing goes wrong and there is no sudden punchline or comedic payoff."
+ }
+}

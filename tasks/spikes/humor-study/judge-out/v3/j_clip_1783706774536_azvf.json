@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774536_azvf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3147,
+  "outputTokens": 839,
+  "thoughtTokens": 707
+ },
+ "cost": 0.011013,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator passionately celebrates a Rocket League goal before realizing it wasn't his, exclaiming 'Wait, what? That wasn't my goal?!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 14,
+  "reaction_end_t": 22,
+  "reason": "Follows a classic comedy setup where he triumphantly celebrates a goal only to realize seconds later that he didn't even score it."
+ }
+}

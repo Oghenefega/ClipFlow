@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_n723",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3875,
+  "outputTokens": 495,
+  "thoughtTokens": 393
+ },
+ "cost": 0.009525,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator pretends a previous loss didn't happen while sitting on the post-match summary screen.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is stream menu banter between games with no gameplay action or funny comedy payoff."
+ }
+}

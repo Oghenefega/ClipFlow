@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_1a7p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2897,
+  "outputTokens": 715,
+  "thoughtTokens": 573
+ },
+ "cost": 0.009708,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator says 'The idea is to be unstoppable here, be a dominating force', then immediately flips awkwardly and mutters 'Oh Jesus, oh god.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 55,
+  "payoff_t": 18,
+  "reaction_end_t": 20,
+  "reason": "He sets up a confident declaration to be a dominating force right before messing up his car movement. However, his reaction is relatively low-key rather than a big punchy outburst."
+ }
+}

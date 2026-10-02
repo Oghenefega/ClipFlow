@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_cv82",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 712,
+  "thoughtTokens": 567
+ },
+ "cost": 0.010778999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "After brushing off a goal with 'we don't talk about that', the creator makes another mistake and gets scored on again, admitting 'I still make a lot of silly mistakes'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 26.5,
+  "reaction_end_t": 31,
+  "reason": "The clip consists of routine gameplay with flat, low-energy self-narration after getting scored on. It lacks a strong comedic visual payoff or punchy reaction."
+ }
+}

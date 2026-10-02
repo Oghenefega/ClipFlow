@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905887_w43e",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1484,
+  "outputTokens": 508,
+  "thoughtTokens": 393
+ },
+ "cost": 0.006036,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator states \"My job here is to stay alive and get him safe\" while walking between train cars with no further action occurring.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just basic setup commentary with no comedic outcome, surprise, or punchline before the clip cuts off."
+ }
+}

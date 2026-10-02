@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788751719527_40ee",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3917,
+  "outputTokens": 667,
+  "thoughtTokens": 530
+ },
+ "cost": 0.010878,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator reacts in shock to LOUD buying multiple Phantoms early on, shouting 'You've got to be a maniac to buy a Phantom!'",
+  "play_quality": 2,
+  "reaction_size": 5,
+  "keep_score": 15,
+  "payoff_t": 4,
+  "reaction_end_t": 10,
+  "reason": "There is no actual gameplay highlight or kill in this clip. It is just narration and reaction to the team's weapon purchases during the round setup."
+ }
+}

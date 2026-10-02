@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_92cp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 667,
+  "thoughtTokens": 532
+ },
+ "cost": 0.009105,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently claims, 'I was born to catch this, man,' right before the ball is immediately scored past him, leading to a loud scream and off-camera meltdown.",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 95,
+  "payoff_t": 8.5,
+  "reaction_end_t": 21,
+  "reason": "This features the ideal comedy shape: supreme confidence immediately punished by the game, followed by a huge, genuine scream and hilarious reaction."
+ }
+}

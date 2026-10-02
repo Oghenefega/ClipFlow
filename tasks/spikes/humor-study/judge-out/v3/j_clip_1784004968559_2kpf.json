@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_2kpf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 527,
+  "thoughtTokens": 394
+ },
+ "cost": 0.0068985,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator looks at the scoreboard at the end of a match and comments to his friend, 'JP, this is who you didn't want to play ranked with? Man, you're trolling, bro.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just end-of-game menu banter with no comedy payoff, subverted expectations, or highlight moment."
+ }
+}

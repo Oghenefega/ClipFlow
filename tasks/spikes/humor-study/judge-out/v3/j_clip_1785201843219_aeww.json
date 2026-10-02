@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_aeww",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2249,
+  "outputTokens": 700,
+  "thoughtTokens": 548
+ },
+ "cost": 0.008623500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads a viewer's 1v1 challenge listing high ranks and says, \"That is not what I want to hear. I want to hear I'm Bronze 4... with 2000 hours, then I invite you to 1v1.\"",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 6.5,
+  "reaction_end_t": 16,
+  "reason": "This is primarily reading chat messages and talking to the stream without a dynamic gameplay moment or big punchline."
+ }
+}

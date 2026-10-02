@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785908334594_4nhn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3399,
+  "outputTokens": 710,
+  "thoughtTokens": 577
+ },
+ "cost": 0.0104235,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator asks 'The question is, can I make it there in 4 seconds?' right before getting swept back by an obstacle and bursting into laughter.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 78,
+  "payoff_t": 14.5,
+  "reaction_end_t": 26,
+  "reason": "He poses a confident question about timing his move perfectly right before the game obstacle sweeps him away, leading to a great laugh and funny reaction."
+ }
+}

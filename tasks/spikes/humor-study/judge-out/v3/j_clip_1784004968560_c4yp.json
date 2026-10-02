@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968560_c4yp",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2510,
+  "outputTokens": 745,
+  "thoughtTokens": 611
+ },
+ "cost": 0.0093525,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer scores a goal in Rocket League to take a 3-0 lead and excitedly shouts, 'Come on, come on, come on!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 10,
+  "reaction_end_t": 15,
+  "reason": "This is a routine gameplay goal without a comedic setup, subverted expectation, or funny punchline, making it uninteresting to a general audience."
+ }
+}

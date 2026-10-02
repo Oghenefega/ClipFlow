@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_me21",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3213,
+  "outputTokens": 474,
+  "thoughtTokens": 368
+ },
+ "cost": 0.0083745,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega talks about forgetting his pickaxe keybind while wandering through a building and checking his map.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine navigation and menu checking with no funny subversion, action, or comedic payoff."
+ }
+}

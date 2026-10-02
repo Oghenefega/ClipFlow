@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_yncn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2216,
+  "outputTokens": 538,
+  "thoughtTokens": 438
+ },
+ "cost": 0.007358999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gives an energetic intro saying he is cracked at climbing games and promising it will be easy.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is purely intro talk and setup with no gameplay or comedic payoff."
+ }
+}

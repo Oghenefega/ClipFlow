@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_gtbo",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 656,
+  "thoughtTokens": 542
+ },
+ "cost": 0.010359,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer comments on how his car handles, answers a chat question about 1v1ing subs, and casually scores a goal.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay narration and mild chat interaction without any comedic payoff, subversion, or big reaction."
+ }
+}

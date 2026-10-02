@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_ptva",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2965,
+  "outputTokens": 774,
+  "thoughtTokens": 627
+ },
+ "cost": 0.0102525,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer completely freezes as a goal is scored against him, then deadpan admits, \"I saw it in slow motion, in fast motion, in normal speed, and I knew I was meant to do something... but I just didn't.\"",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 80,
+  "payoff_t": 9,
+  "reaction_end_t": 21,
+  "reason": "It is a great self-own with perfect deadpan delivery after failing to make a routine save in Rocket League."
+ }
+}

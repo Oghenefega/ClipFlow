@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_mykt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3147,
+  "outputTokens": 524,
+  "thoughtTokens": 413
+ },
+ "cost": 0.0086505,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator plays Rocket League while casually commentating to his team, saying 'All you back in defense', with no notable comedic payoff.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 12,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay narration without any comedic punchline, subversion, or big reaction."
+ }
+}

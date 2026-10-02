@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_29an",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4193,
+  "outputTokens": 729,
+  "thoughtTokens": 579
+ },
+ "cost": 0.011757,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega attempts to show how to do a ground pinch saying 'let me show you how it's done', fails the setup, and quips 'there will be no ground pinches, no GPs, no general practitioners, nothing happening'.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 40,
+  "payoff_t": 13,
+  "reaction_end_t": 19,
+  "reason": "Fega confidently offers a demonstration only to fail and make a mild wordplay joke about GPs, but the delivery is relatively subdued."
+ }
+}

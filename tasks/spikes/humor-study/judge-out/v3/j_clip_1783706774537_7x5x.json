@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_7x5x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4694,
+  "outputTokens": 757,
+  "thoughtTokens": 628
+ },
+ "cost": 0.0127185,
+ "judged": {
+  "kind": "comedy",
+  "what": "After the creator says 'if only they were good,' the opponent pulls off a crazy trick play, making him exclaim 'What the flip?!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 75,
+  "payoff_t": 17,
+  "reaction_end_t": 23,
+  "reason": "Perfect comedic timing where he insults the opponents' skill only for them to immediately prove him wrong with a clip-worthy play."
+ }
+}

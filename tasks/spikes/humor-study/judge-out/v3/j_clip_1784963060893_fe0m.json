@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060893_fe0m",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3854,
+  "outputTokens": 681,
+  "thoughtTokens": 559
+ },
+ "cost": 0.010888499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer carefully counts his timing and screams 'Let's go baby! Come on man!' as his egg lands a tough bounce onto a bench.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 7,
+  "reaction_end_t": 31,
+  "reason": "His intense, passionate celebration over a successful egg bounce is genuinely funny and entertaining for new viewers."
+ }
+}

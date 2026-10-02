@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_pskz",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3950,
+  "outputTokens": 682,
+  "thoughtTokens": 542
+ },
+ "cost": 0.011040000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator practices Rocket League training shots while critiquing his technique, saying 'Okay, I'm throwing... Oh my god' as he misses.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": 30,
+  "reaction_end_t": 35,
+  "reason": "This is low-key solo training gameplay with casual self-narration and mild laughter. Without a punchy setup or a big comedic reaction, it lacks the payoff needed for a highlight clip."
+ }
+}

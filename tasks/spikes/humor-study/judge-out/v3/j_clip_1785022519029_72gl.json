@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785022519029_72gl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1682,
+  "outputTokens": 385,
+  "thoughtTokens": 274
+ },
+ "cost": 0.0054105,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer sits in the Rocket League main menu chatting casually about eating food yesterday, saying 'What a beautiful day, boys!'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in the clip beyond casual chat on a menu screen with no comedic payoff or event."
+ }
+}

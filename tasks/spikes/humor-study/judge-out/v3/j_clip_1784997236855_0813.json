@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_0813",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3038,
+  "outputTokens": 627,
+  "thoughtTokens": 506
+ },
+ "cost": 0.0092595,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer successfully rolls his egg onto a difficult checkpoint pad and screams in triumph, shouting 'CHECK FREAKING POINT!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 82,
+  "payoff_t": 9,
+  "reaction_end_t": 16,
+  "reason": "His intense hype and joyous reaction to finally reaching the checkpoint after build-up delivers a very satisfying and funny moment."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_y6fv",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3945,
+  "outputTokens": 682,
+  "thoughtTokens": 546
+ },
+ "cost": 0.011032499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently claims he knows what to do and has total control, only to immediately mess up the mechanism and yell '25 freaking cracks because of that!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 80,
+  "payoff_t": 6.5,
+  "reaction_end_t": 21,
+  "reason": "Fits the classic comedy setup where he makes a confident statement right before the game immediately punishes him, followed by a solid facepalm and frustrated reaction."
+ }
+}

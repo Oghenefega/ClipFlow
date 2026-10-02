@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905887_c4s2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1666,
+  "outputTokens": 407,
+  "thoughtTokens": 301
+ },
+ "cost": 0.0055515,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer checks a room while looting, asks \"That's it?\", and quietly wanders through doors.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing interesting or funny happens in this clip, with no joke, surprise, or comedic payoff."
+ }
+}

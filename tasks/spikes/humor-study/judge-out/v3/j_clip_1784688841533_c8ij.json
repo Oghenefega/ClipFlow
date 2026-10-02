@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_c8ij",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5401,
+  "outputTokens": 594,
+  "thoughtTokens": 466
+ },
+ "cost": 0.012556500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator panics while rolling his egg, saying 'I'm so lost and scared,' before narrowly landing on a helipad to call a recovery.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 30,
+  "payoff_t": 28,
+  "reaction_end_t": 45,
+  "reason": "The clip features mostly drawn-out gameplay narration with mild tension, lacking a sharp comedic punchline or dramatic failure."
+ }
+}

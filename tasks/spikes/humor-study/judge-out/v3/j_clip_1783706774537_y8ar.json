@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_y8ar",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2965,
+  "outputTokens": 868,
+  "thoughtTokens": 734
+ },
+ "cost": 0.010957499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer confidently boasts 'All part of the plan baby, y'all don't get it', then whiffs his aerial attempt and screams 'NOOO! Oh my goodness!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 16,
+  "reaction_end_t": 21.5,
+  "reason": "Perfect execution of the confident boast into an immediate fail and screaming outrage, which fits the core comedy clip formula."
+ }
+}

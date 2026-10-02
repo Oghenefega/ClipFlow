@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_2xnb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4218,
+  "outputTokens": 353,
+  "thoughtTokens": 237
+ },
+ "cost": 0.008974500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer rolls around as an egg getting confused and lost, asking 'Where the heck am I going? I am so lost.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just ongoing narration and confusion while wandering around with no funny punchline, dramatic fail, or unexpected payoff."
+ }
+}

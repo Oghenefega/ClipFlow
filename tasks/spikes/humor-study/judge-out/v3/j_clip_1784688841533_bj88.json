@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_bj88",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4400,
+  "outputTokens": 620,
+  "thoughtTokens": 488
+ },
+ "cost": 0.01125,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator successfully navigates a tricky tire jump and rolls down a ramp to reach a checkpoint, screaming 'Let's freaking go! Nothing's gonna stop me, man!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 24,
+  "reaction_end_t": 36,
+  "reason": "High-energy celebration and loud hype after successfully completing a difficult parkour section and hitting a new checkpoint."
+ }
+}

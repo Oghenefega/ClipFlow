@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_v2xg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1763,
+  "outputTokens": 819,
+  "thoughtTokens": 683
+ },
+ "cost": 0.008787,
+ "judged": {
+  "kind": "comedy",
+  "what": "After getting scored on to go down 0-4 in Rocket League, he holds his head and laughs, saying, 'I am getting absolutely destroyed right now, guys.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 40,
+  "payoff_t": 1,
+  "reaction_end_t": 5,
+  "reason": "It is a relatable self-own while taking a bad loss, but the delivery is mild and lacks a strong comedic setup or punchline."
+ }
+}

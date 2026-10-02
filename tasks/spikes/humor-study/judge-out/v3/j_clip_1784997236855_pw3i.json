@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_pw3i",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1823,
+  "outputTokens": 743,
+  "thoughtTokens": 631
+ },
+ "cost": 0.008306999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator watches a game skip in Egging On and comments that he would have been so frustrated without it.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This moment is just mild commentary and narration about a game shortcut with no comedic subversion, funny event, or payoff."
+ }
+}

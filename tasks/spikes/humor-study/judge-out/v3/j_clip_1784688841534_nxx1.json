@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841534_nxx1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3035,
+  "outputTokens": 656,
+  "thoughtTokens": 518
+ },
+ "cost": 0.0094725,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega warns his egg to behave as he carefully rolls it onto a helicopter platform, threatening to switch games if he hits 70 cracks.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The creator talks through his crack count limit and tells the egg to behave, but the egg lands safely without any fail or subversion. Without a comedic punchline or sudden defeat, it is just routine gameplay narration."
+ }
+}

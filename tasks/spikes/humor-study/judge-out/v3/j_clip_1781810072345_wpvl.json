@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072345_wpvl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3031,
+  "outputTokens": 679,
+  "thoughtTokens": 563
+ },
+ "cost": 0.009639,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator celebrates surviving an extraction and reviews his loot inventory, saying 'It was worth it, we made it!'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine post-raid inventory checking with mild satisfaction, but lacks any funny setup, subverted expectation, or comedic payoff."
+ }
+}

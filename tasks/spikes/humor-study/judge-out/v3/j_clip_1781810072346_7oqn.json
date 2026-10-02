@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_7oqn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3577,
+  "outputTokens": 463,
+  "thoughtTokens": 364
+ },
+ "cost": 0.008837999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator quietly loots various containers while making mild comments about his inventory space.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing interesting happens during this routine looting sequence, and there is no joke or comedic payoff."
+ }
+}

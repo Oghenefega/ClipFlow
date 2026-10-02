@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072345_mmv7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5124,
+  "outputTokens": 772,
+  "thoughtTokens": 648
+ },
+ "cost": 0.013476,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator loots items in Arc Raiders, gets excited over finding a cracked bio scanner, and declares 'This has been a phenomenal raid.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 15,
+  "payoff_t": 15,
+  "reaction_end_t": 18,
+  "reason": "This is routine inventory management and looting gameplay with no comedic twist, fail, or setup-payoff structure for outside viewers."
+ }
+}

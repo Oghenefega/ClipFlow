@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_4czg",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4218,
+  "outputTokens": 706,
+  "thoughtTokens": 575
+ },
+ "cost": 0.011622,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega brags 'I make it look so easy, man!' right before his egg falls and cracks, making him scream 'No bro, what the heck!'",
+  "play_quality": null,
+  "reaction_size": 8.5,
+  "keep_score": 88,
+  "payoff_t": 30.5,
+  "reaction_end_t": 36,
+  "reason": "Follows the classic comedy structure of high confidence followed immediately by unexpected failure and a loud, dramatic reaction."
+ }
+}

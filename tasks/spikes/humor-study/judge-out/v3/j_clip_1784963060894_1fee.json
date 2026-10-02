@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060894_1fee",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4400,
+  "outputTokens": 677,
+  "thoughtTokens": 555
+ },
+ "cost": 0.0116775,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tries to motivate himself by saying 'You have five fingers... no I have ten, sorry' and bursts into laughter at his own mistake.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 65,
+  "payoff_t": 16,
+  "reaction_end_t": 21,
+  "reason": "A humorous self-own where he confuses basic counting mid-thought and laughs at himself."
+ }
+}

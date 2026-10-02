@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060893_fe2b",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3672,
+  "outputTokens": 673,
+  "thoughtTokens": 560
+ },
+ "cost": 0.010555499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator wonders what he is doing wrong before laughingly reacting to a chat comment telling him to stop talking and lock in.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 25,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip consists mostly of mild chat banter and self-talk without a clear comedic game payoff or surprising fail."
+ }
+}

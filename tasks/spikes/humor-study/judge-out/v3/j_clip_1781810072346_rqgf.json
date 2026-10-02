@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_rqgf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4214,
+  "outputTokens": 688,
+  "thoughtTokens": 584
+ },
+ "cost": 0.011481000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator rambles about forgetting which key binds to his pickaxe while running through a building in Arc Raiders.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine gameplay filler with mild narration and no comedic payoff or big reaction."
+ }
+}

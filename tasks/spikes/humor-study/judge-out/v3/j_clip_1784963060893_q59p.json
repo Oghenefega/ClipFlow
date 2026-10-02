@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784963060893_q59p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5492,
+  "outputTokens": 664,
+  "thoughtTokens": 528
+ },
+ "cost": 0.013218,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gives a dramatic build-up dedicating a tricky jump to his viewers (\"This one is for you guys\"), only to immediately lose control and fall all the way back to the start.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 88,
+  "payoff_t": 29,
+  "reaction_end_t": 40,
+  "reason": "Classic comedy structure where a long dramatic build-up and dedication to his stream chat leads to an instant catastrophic fail."
+ }
+}

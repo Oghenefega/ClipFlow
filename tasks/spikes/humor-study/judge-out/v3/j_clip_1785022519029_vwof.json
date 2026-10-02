@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785022519029_vwof",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3383,
+  "outputTokens": 559,
+  "thoughtTokens": 445
+ },
+ "cost": 0.009267000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about how much he enjoyed being 'the villain' to Messi fanboys at his World Cup watch party.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain storytelling and chatting with stream about a real-life watch party, with no gameplay or comedic punchline."
+ }
+}

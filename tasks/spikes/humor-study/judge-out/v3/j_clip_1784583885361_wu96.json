@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885361_wu96",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 582,
+  "thoughtTokens": 473
+ },
+ "cost": 0.009804,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks through his poor mechanics while waiting for a Rocket League match to load and starting the kickoff.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine narration during menu waiting and match setup with a flat delivery and no funny payoff or notable reaction."
+ }
+}

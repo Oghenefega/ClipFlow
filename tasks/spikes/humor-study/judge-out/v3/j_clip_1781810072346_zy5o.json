@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_zy5o",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3850,
+  "outputTokens": 636,
+  "thoughtTokens": 526
+ },
+ "cost": 0.010545,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator asks another player if they are friendly over proximity chat before quietly looting lockers.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing funny or noteworthy happens in this clip, which consists only of a brief proximity chat exchange followed by silent inventory looting with no payoff."
+ }
+}

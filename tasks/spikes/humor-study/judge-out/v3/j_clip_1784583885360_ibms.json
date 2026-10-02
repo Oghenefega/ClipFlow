@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_ibms",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 834,
+  "thoughtTokens": 711
+ },
+ "cost": 0.010722,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets scored on in Rocket League and laments, 'He's so good at these shots man, I'm getting punished fam.'",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 1.5,
+  "reaction_end_t": 7.5,
+  "reason": "Getting scored on and briefly complimenting the opponent is routine gameplay without a strong comedic setup or punchline."
+ }
+}

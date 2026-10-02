@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_tc70",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4031,
+  "outputTokens": 876,
+  "thoughtTokens": 742
+ },
+ "cost": 0.0126165,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator furiously blames his teammate for letting in a goal, only to check the replay and realize, 'Oh, was that me?'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 88,
+  "payoff_t": 37,
+  "reaction_end_t": 39.5,
+  "reason": "A classic self-own comedy moment where he confidently roasts his teammate's positioning, only for the replay to reveal he was complaining about his own play."
+ }
+}

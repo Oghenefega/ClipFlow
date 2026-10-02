@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968560_xenk",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3147,
+  "outputTokens": 490,
+  "thoughtTokens": 390
+ },
+ "cost": 0.0083955,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer plays Rocket League mostly in silence without any comedic payoff or notable moment.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing interesting or funny happens in the gameplay, and the streamer provides almost no commentary or reaction."
+ }
+}

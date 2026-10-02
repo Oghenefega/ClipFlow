@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905887_4wvh",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2303,
+  "outputTokens": 544,
+  "thoughtTokens": 434
+ },
+ "cost": 0.0075345,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator casually wanders through a building saying 'I just want to go home' and asking if anyone is around.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in the clip; there is no comedic setup, payoff, or reaction, just routine movement."
+ }
+}

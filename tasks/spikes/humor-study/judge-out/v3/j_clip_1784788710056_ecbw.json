@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_ecbw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3221,
+  "outputTokens": 671,
+  "thoughtTokens": 557
+ },
+ "cost": 0.009864000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator exits Rocket League after losing a match and casually chats with his stream about who he just played.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just routine post-match wrap-up talk and exiting the game with no comedic payoff, subversion, or standout reaction."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005039_qixw",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2034,
+  "outputTokens": 571,
+  "thoughtTokens": 454
+ },
+ "cost": 0.0073335,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets confused while rolling as an egg and says, 'I am so lost... Yeah, that's not even possible, bro.'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just routine gameplay navigation and mild narration with no funny fail, sudden surprise, or comedic payoff."
+ }
+}

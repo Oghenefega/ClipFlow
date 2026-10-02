@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072345_mt9p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3486,
+  "outputTokens": 617,
+  "thoughtTokens": 512
+ },
+ "cost": 0.0098565,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer checks his inventory and map to find an exfil location while narrating his options to the viewers.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine navigation and planning narration with no joke, surprise, or comedic payoff."
+ }
+}

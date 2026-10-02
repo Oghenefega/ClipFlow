@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072346_hvso",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4396,
+  "outputTokens": 605,
+  "thoughtTokens": 483
+ },
+ "cost": 0.011131499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator rides a zipline down to loot a hidden container while commenting 'Stuff was trying to act like it wasn't there... Like I know you bro'.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 33,
+  "reaction_end_t": 37,
+  "reason": "This is routine looting commentary with no funny subversion, punchline, or notable reaction."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_0mw4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3490,
+  "outputTokens": 598,
+  "thoughtTokens": 469
+ },
+ "cost": 0.00972,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer praises his egg for being a \"really good egg\" right before it suddenly tumbles off the edge, causing him to yell in agony.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 88,
+  "payoff_t": 25,
+  "reaction_end_t": 28,
+  "reason": "Classic comedy setup where he showers the egg with confident encouragement, only for immediate disaster to strike and trigger a dramatic scream reaction."
+ }
+}

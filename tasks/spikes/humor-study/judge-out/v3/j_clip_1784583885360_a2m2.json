@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_a2m2",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3869,
+  "outputTokens": 683,
+  "thoughtTokens": 547
+ },
+ "cost": 0.010926,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega gets scored on again in Rocket League to fall behind 2-7 and resignedly says, \"I was out here hoping that wasn't going in.\"",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 34,
+  "reaction_end_t": 37,
+  "reason": "This is standard gameplay of him getting beaten in Rocket League with a flat, resigned commentary rather than a strong comedic setup and punchline."
+ }
+}

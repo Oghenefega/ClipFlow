@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_pzgx",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2978,
+  "outputTokens": 619,
+  "thoughtTokens": 478
+ },
+ "cost": 0.0091095,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets scored on back-to-back off kickoffs in Rocket League and asks 'How is he winning these kickoffs man? What?'",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 25,
+  "payoff_t": 19,
+  "reaction_end_t": 25,
+  "reason": "A mild moment of frustration where the creator gets beat twice in a row on kickoffs. The delivery is too subdued and lacks a strong punchline to stand out as a highlight."
+ }
+}

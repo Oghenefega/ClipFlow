@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841534_k4d6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5128,
+  "outputTokens": 809,
+  "thoughtTokens": 663
+ },
+ "cost": 0.0137595,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer boasts 'In fact, I'm gonna close my eye and do this jump', only to immediately mess up and watch the egg wobble down the ramp while asking 'Are you okay?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 65,
+  "payoff_t": 26,
+  "reaction_end_t": 46,
+  "reason": "He makes an overly confident boast about completing a jump with his eyes closed, immediately fails, and gives amused commentary as the egg wobbles all the way down."
+ }
+}

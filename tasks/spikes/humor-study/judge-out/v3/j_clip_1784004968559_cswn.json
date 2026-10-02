@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_cswn",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1964,
+  "outputTokens": 699,
+  "thoughtTokens": 569
+ },
+ "cost": 0.0081885,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tells himself to 'lock in' right before getting demolished, reacting with 'Look at this dude, he didn't even touch me!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 80,
+  "payoff_t": 3.5,
+  "reaction_end_t": 6,
+  "reason": "He tells himself to lock in right before getting unexpectedly blown up, delivering a classic confident setup followed by immediate failure and a funny reaction."
+ }
+}

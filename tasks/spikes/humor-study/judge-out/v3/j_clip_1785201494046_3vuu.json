@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201494046_3vuu",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3707,
+  "outputTokens": 652,
+  "thoughtTokens": 523
+ },
+ "cost": 0.0104505,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator gets immediately scored on off kickoff and screams 'HOWWWWW! I look away for a second and this guy is already back in!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 24,
+  "reaction_end_t": 34,
+  "reason": "An instant goal off kickoff right as the round starts creates a funny surprise moment, paired with his loud scream and genuine laugh."
+ }
+}

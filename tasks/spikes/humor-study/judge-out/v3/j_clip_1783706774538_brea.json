@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774538_brea",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2692,
+  "outputTokens": 629,
+  "thoughtTokens": 510
+ },
+ "cost": 0.0087555,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator plays Rocket League, demolishing an opponent while telling them to get off his tail, but the clip lacks a clear comedic payoff.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Standard gameplay with low-key narration and no clear joke, self-own, or funny reaction to entertain a general viewer."
+ }
+}

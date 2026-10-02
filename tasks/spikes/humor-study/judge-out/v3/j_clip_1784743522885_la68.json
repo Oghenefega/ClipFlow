@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_la68",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4031,
+  "outputTokens": 1005,
+  "thoughtTokens": 866
+ },
+ "cost": 0.013583999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "A quick kickoff goal goes in and he exclaims 'WOAAAH, WE'RE BETTER! Haha! Get him out of here!' before reading stream chat.",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 20,
+  "reaction_end_t": 25,
+  "reason": "A routine kickoff goal leads to standard hype shouting before he immediately transitions into reading stream chat. There is no comedy setup, subverted expectation, or strong payoff."
+ }
+}

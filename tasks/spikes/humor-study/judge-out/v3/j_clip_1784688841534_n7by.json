@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841534_n7by",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4218,
+  "outputTokens": 762,
+  "thoughtTokens": 626
+ },
+ "cost": 0.012042,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator abruptly interrupts his tedious egg-counting rhythm to excitedly yell 'Big brain man, that's what I was thinking bro!' before instantly switching back to deadpan counting.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 78,
+  "payoff_t": 18,
+  "reaction_end_t": 29,
+  "reason": "The sudden mood swing from monotone counting to an energetic, passionate outburst and then back to deadpan counting delivers a funny comedic beat."
+ }
+}

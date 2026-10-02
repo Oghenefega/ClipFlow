@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905887_4d6v",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1848,
+  "outputTokens": 511,
+  "thoughtTokens": 402
+ },
+ "cost": 0.006604499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator runs across the map while questioning whether anyone is extracting early, with no real gameplay event or payoff.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine narration while traversing the map, with no humorous twist, funny fail, or comedic payoff."
+ }
+}

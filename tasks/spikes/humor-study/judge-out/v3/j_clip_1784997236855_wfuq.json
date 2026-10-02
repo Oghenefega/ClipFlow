@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_wfuq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3524,
+  "outputTokens": 712,
+  "thoughtTokens": 585
+ },
+ "cost": 0.010626,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega confidently navigates a tricky egg jump and shouts 'OH BABY! LET'S GO! IT'S TOO EASY!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 75,
+  "payoff_t": 14.5,
+  "reaction_end_t": 24,
+  "reason": "He hypes up a risky parkour maneuver with the egg, pulls it off cleanly, and screams in high-energy celebration."
+ }
+}

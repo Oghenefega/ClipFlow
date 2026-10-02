@@ -155,3 +155,29 @@ reactions; hubris alone in 68% of EO).
    clip.** So the negative lean of sounds/cuts against views in MC and EO is NOT explained by
    weak clips. Treat it as unexplained (small samples, 22-23 clips per game); do not teach
    auto-edit to avoid sounds on the strength of it.
+
+## Fega's answers, round 2 (2026-10-01)
+
+Goal: Corva should learn BOTH what Fega keeps and what gets views. 100T views are inflated by the
+team's own fanbase (people watch for 100 Thieves and the other teams), so views must be normalized by
+content kind before they teach anything.
+
+**Hype reaction (100T)**
+- A great play AGAINST 100T counts. His most-viewed recent clip was an opponent's play on 100T.
+- Painful moments can be keeps, especially a lost clutch.
+- Live vs replay: whichever has his bigger reaction; he favors the live play. A replay wins when it
+  condenses a multi-kill that took the whole round live (e.g. Cryo's sniper ace).
+- "live-only" reject = no longer funny out of the moment (you had to be in chat), sometimes too long a
+  build-up; mainly the live context will not make sense later.
+- Over-the-top taunts work. Plain story talk does not age well: it made sense when the stakes were high.
+
+**Comedy**
+- A friend's genuinely funny joke with Fega laughing is a keep.
+- A clip with no words from Fega is rare; it can work with a funny caption hook.
+
+**Data**
+- The 362 clips in `Downloaded Clips\Opus Clips` were all posted. "#1" in a filename is only Opus's
+  order inside its project, not a rank.
+- Pre-Corva shorts are all on his YouTube channel (and scattered across drives).
+- Arc Raiders keeps/rejects date from the start of Corva when he was still learning; he has moved on
+  from the game. Low weight for AR data.

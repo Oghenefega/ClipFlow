@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072345_dbpt",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3577,
+  "outputTokens": 453,
+  "thoughtTokens": 350
+ },
+ "cost": 0.008763,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks on a loading screen about his faith in humanity being crushed and outlines his game objectives.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely loading screen commentary and strategy talk with no comedic punchline or entertaining event."
+ }
+}

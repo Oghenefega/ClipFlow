@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710057_mtq1",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4112,
+  "outputTokens": 772,
+  "thoughtTokens": 636
+ },
+ "cost": 0.011958,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tells his opponent he can tell they are a good player, only to immediately get scored on and shout 'Miss me with the preamble, bro!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 75,
+  "payoff_t": 20,
+  "reaction_end_t": 26,
+  "reason": "A solid comedy clip where his confident commentary is instantly met with getting scored on, leading to a loud laugh and classic rant about pre-game excuses."
+ }
+}

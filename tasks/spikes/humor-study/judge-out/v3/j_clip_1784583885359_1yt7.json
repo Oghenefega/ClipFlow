@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885359_1yt7",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 5165,
+  "outputTokens": 975,
+  "thoughtTokens": 854
+ },
+ "cost": 0.01506,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator accidentally assists his opponent's goal and yells 'I set it up for him!', then interrupts the match to greet chat members.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 20,
+  "payoff_t": 10,
+  "reaction_end_t": 14,
+  "reason": "The clip lacks a tight comedic structure or standout funny moment, featuring standard gameplay and mild reactions split by chat greetings."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_0zm3",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3056,
+  "outputTokens": 863,
+  "thoughtTokens": 743
+ },
+ "cost": 0.0110565,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator hypes himself up for jumping straight into competitive without any training, but immediately loads into free play to adjust his audio settings.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip is almost entirely menu setup, loading screens, and audio setting adjustments before the match starts, lacking any comedic payoff or gameplay."
+ }
+}

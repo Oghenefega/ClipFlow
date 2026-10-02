@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785022519030_w8zm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2820,
+  "outputTokens": 441,
+  "thoughtTokens": 338
+ },
+ "cost": 0.0075375,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator monologues to his stream about why it was satisfying to hate-watch Argentina.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain commentary and story talk with no gameplay action, comedic payoff, or subversion."
+ }
+}

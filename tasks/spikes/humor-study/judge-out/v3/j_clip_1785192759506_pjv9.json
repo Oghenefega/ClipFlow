@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785192759506_pjv9",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2168,
+  "outputTokens": 520,
+  "thoughtTokens": 414
+ },
+ "cost": 0.0071519999999999995,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator navigates Rocket League menus while explaining that his headphones won't turn on today.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just setup and tech talk while loading into a training pack, with no gameplay or comedy payoff."
+ }
+}

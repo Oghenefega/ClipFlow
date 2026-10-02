@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_mtzl",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2411,
+  "outputTokens": 426,
+  "thoughtTokens": 298
+ },
+ "cost": 0.0068115,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator stumbles while trying to find synonyms for 'waiting' while sitting in the Rocket League menu and concludes, 'Damn I gotta read more man Jesus.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 10,
+  "payoff_t": 17.5,
+  "reaction_end_t": 19,
+  "reason": "This is purely intro setup and rambling before gameplay begins, which lacks a strong comedic payoff or game action."
+ }
+}

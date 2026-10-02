@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781815905887_ffe4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1666,
+  "outputTokens": 454,
+  "thoughtTokens": 342
+ },
+ "cost": 0.0059039999999999995,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator runs through a water treatment area in Arc Raiders while remarking that he doesn't like the location because it is very open.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists entirely of casual map commentary with no comedic payoff, surprise, or action."
+ }
+}

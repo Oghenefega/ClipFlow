@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785908335093_ifei",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2897,
+  "outputTokens": 657,
+  "thoughtTokens": 528
+ },
+ "cost": 0.009273,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer confidently declares 'I fear no man' right before his opponent instantly scores on him, sending him into a fit of laughter.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 92,
+  "payoff_t": 7.5,
+  "reaction_end_t": 21,
+  "reason": "This is a textbook comedy moment where the creator makes a bold statement right before getting immediately humbled by the game, followed by a great genuine reaction."
+ }
+}

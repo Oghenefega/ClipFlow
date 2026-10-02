@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_unun",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2330,
+  "outputTokens": 628,
+  "thoughtTokens": 502
+ },
+ "cost": 0.008205,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator roasts his own clumsy mechanic mix-up, asking, 'Somebody explain to me what the flip am I doing.'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 2,
+  "reaction_end_t": 7,
+  "reason": "While he briefly self-roasts after a mechanical mistake, the reaction is mild and the clip trails off into quiet, routine gameplay."
+ }
+}

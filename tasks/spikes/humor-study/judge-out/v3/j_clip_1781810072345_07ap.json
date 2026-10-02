@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1781810072345_07ap",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3850,
+  "outputTokens": 462,
+  "thoughtTokens": 349
+ },
+ "cost": 0.009240000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator looks through his loadout attachments in the menu and remarks that his gun mods are 'actually so horrible'.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is purely inventory setup and menu talk with no comedic punchline, action, or entertaining payoff for a general viewer."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_fo6t",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4091,
+  "outputTokens": 591,
+  "thoughtTokens": 462
+ },
+ "cost": 0.010569,
+ "judged": {
+  "kind": "comedy",
+  "what": "While carefully counting his moves, the creator's egg unexpectedly cracks and falls, leading to a loud scream of 'NOOOOO! Oh my goodness!' as he throws off his hat.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 14,
+  "reaction_end_t": 21,
+  "reason": "A classic comedy gaming moment where meticulous setup leads to instant failure and a huge physical reaction."
+ }
+}

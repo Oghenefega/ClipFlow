@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_4um4",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4400,
+  "outputTokens": 570,
+  "thoughtTokens": 446
+ },
+ "cost": 0.010875,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tries to carefully balance the egg before falling through a gap and tumbling all the way down, screaming 'YOU'RE KIDDING ME!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 19,
+  "reaction_end_t": 36,
+  "reason": "A classic rage fail where a cautious setup leads to a massive fall and a loud, hilarious breakdown."
+ }
+}

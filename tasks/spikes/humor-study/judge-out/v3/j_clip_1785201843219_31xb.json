@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785201843219_31xb",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3140,
+  "outputTokens": 478,
+  "thoughtTokens": 376
+ },
+ "cost": 0.008295,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about his friend's birthday and checks his Rocket League rank in the game menu.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is entirely menu navigation and casual chatter between games with no comedic payoff or gameplay."
+ }
+}

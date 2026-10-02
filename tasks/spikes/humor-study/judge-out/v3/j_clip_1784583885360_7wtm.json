@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_7wtm",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3626,
+  "outputTokens": 560,
+  "thoughtTokens": 432
+ },
+ "cost": 0.009638999999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer tests new camera settings in Rocket League training and realizes he zoomed too far out, asking \"Why am I so far from my freaking car all of a sudden?\".",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "The clip consists mostly of setup and tech tinkering with camera settings, delivering low-energy narration without a funny payoff or strong reaction."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785022519030_mas0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3788,
+  "outputTokens": 478,
+  "thoughtTokens": 364
+ },
+ "cost": 0.009267000000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks to his stream about hosting a World Cup watch party and enjoying being the villain against Messi fanboys.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is plain storytelling and chatting about his personal life with an idle Rocket League menu screen, lacking any comedic setup or payoff."
+ }
+}

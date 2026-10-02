@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784583885360_wq5x",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4679,
+  "outputTokens": 376,
+  "thoughtTokens": 256
+ },
+ "cost": 0.0098385,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator attempts a Rocket League training pack, commenting on the ball speed ('Woah! This thing is out here going a thousand miles per hour') and missing shots quietly.",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 12,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is routine training pack practice with low-energy narration and no comedic payoff or memorable joke."
+ }
+}

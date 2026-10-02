@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_ox6k",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3602,
+  "outputTokens": 649,
+  "thoughtTokens": 527
+ },
+ "cost": 0.010270499999999998,
+ "judged": {
+  "kind": "comedy",
+  "what": "After winning a match, the creator celebrates but then complains when his teammate gets MVP, saying 'They stole my MVP!'",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 25,
+  "payoff_t": 5,
+  "reaction_end_t": 19,
+  "reason": "It is mild end-of-match menu complaining about not getting MVP, without a strong comedic setup or standout moment."
+ }
+}

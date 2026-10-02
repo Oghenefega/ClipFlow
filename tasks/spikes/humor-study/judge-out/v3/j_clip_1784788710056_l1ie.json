@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784788710056_l1ie",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3545,
+  "outputTokens": 722,
+  "thoughtTokens": 584
+ },
+ "cost": 0.010732499999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator casually chats with his stream about subscriber duration while getting scored on in Rocket League, noting 'Three point lead. Yup, and right now we're on two, bro.'",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": 19,
+  "reaction_end_t": 32,
+  "reason": "This clip consists mostly of casual stream chat while gameplay happens in the background, with a very flat delivery and no strong comedic payoff."
+ }
+}

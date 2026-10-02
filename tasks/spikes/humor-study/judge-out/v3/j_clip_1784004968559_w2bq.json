@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784004968559_w2bq",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2601,
+  "outputTokens": 659,
+  "thoughtTokens": 548
+ },
+ "cost": 0.008844,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator reads out his end-game stats in Rocket League and says 'I should be champ at least'.",
+  "play_quality": null,
+  "reaction_size": 3,
+  "keep_score": 10,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just end-game menu screen talk with no gameplay action, comedic subversion, or standalone payoff."
+ }
+}

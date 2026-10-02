@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841533_8iy0",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3945,
+  "outputTokens": 787,
+  "thoughtTokens": 650
+ },
+ "cost": 0.01182,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega celebrates a successful jump early by standing up and shouting 'LET'S FREAKING GO BABY!', only to sit right back down in a panic as his egg tumbles back down.",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 12,
+  "reaction_end_t": 33,
+  "reason": "Premature celebration followed immediately by chaos and loss of progress is a classic, hilarious clip structure that works for any viewer."
+ }
+}

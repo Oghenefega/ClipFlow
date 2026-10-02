@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_lr06",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2390,
+  "outputTokens": 824,
+  "thoughtTokens": 689
+ },
+ "cost": 0.009765,
+ "judged": {
+  "kind": "comedy",
+  "what": "Fega counts out a rhythm while maneuvering the egg across a gap and yells 'LET'S FREAKING GO!' after landing it.",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 55,
+  "payoff_t": 9,
+  "reaction_end_t": 16,
+  "reason": "He lands a tricky egg jump using his strange rhythmic countdown and explodes into hype celebration. While it is a success rather than a funny fail, his sudden outburst is engaging."
+ }
+}

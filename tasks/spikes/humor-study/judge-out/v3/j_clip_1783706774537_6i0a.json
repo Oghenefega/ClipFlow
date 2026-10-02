@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1783706774537_6i0a",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4057,
+  "outputTokens": 803,
+  "thoughtTokens": 683
+ },
+ "cost": 0.012108,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator talks about an opponent not belonging at this rank, only to dramatically whiff an aerial goal attempt and scream 'OH MY GOD!'",
+  "play_quality": null,
+  "reaction_size": 7,
+  "keep_score": 72,
+  "payoff_t": 33,
+  "reaction_end_t": 35,
+  "reason": "Confident commentary immediately followed by a whiff and a loud scream fits the classic comedy format well."
+ }
+}

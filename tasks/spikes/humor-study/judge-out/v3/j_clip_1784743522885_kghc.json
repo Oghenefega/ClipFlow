@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784743522885_kghc",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2735,
+  "outputTokens": 548,
+  "thoughtTokens": 432
+ },
+ "cost": 0.008212500000000001,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator checks his Rocket League rank on the post-game menu and explains to chat that he will 1v1 after reaching Champ rank.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just menu navigation, rank calculation, and stream chat talk with no joke, action, or payoff."
+ }
+}

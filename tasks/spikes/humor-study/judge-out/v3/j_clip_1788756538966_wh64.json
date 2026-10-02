@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1788756538966_wh64",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 2621,
+  "outputTokens": 613,
+  "thoughtTokens": 494
+ },
+ "cost": 0.008529,
+ "judged": {
+  "kind": "hype_reaction",
+  "what": "The creator calmly analyzes enemy team positioning during a Valorant match replay, saying 'There's always like a third guy'.",
+  "play_quality": 3,
+  "reaction_size": 2,
+  "keep_score": 15,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This clip contains calm commentary and analysis over replay footage rather than a high-stakes play or a big, hype reaction."
+ }
+}

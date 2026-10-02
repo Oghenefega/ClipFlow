@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841534_fuyf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3581,
+  "outputTokens": 676,
+  "thoughtTokens": 552
+ },
+ "cost": 0.0104415,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer defends his counting skills to stream chat before absentmindedly letting his egg roll off the platform, deadpanning \"One.\"",
+  "play_quality": null,
+  "reaction_size": 5,
+  "keep_score": 35,
+  "payoff_t": 28,
+  "reaction_end_t": 29.5,
+  "reason": "The clip is mostly chat banter and extended rambling with a weak, delayed punchline when the egg finally falls."
+ }
+}

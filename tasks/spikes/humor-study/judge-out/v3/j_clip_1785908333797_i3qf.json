@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785908333797_i3qf",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4218,
+  "outputTokens": 628,
+  "thoughtTokens": 483
+ },
+ "cost": 0.011037000000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator tells his egg to chill and says 'surely I'm not gonna be climbing that' right as the egg slips and rolls down, prompting him to shout 'Hey! No! No! Wait wait wait!'",
+  "play_quality": null,
+  "reaction_size": 8,
+  "keep_score": 85,
+  "payoff_t": 23.5,
+  "reaction_end_t": 30,
+  "reason": "Perfect comedic timing where the egg begins rolling off the ledge right as he gets distracted talking, leading to a hilarious panic reaction."
+ }
+}

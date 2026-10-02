@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784688841534_foii",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4491,
+  "outputTokens": 623,
+  "thoughtTokens": 496
+ },
+ "cost": 0.011408999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator confidently counts down to time a jump with his egg, immediately misses, and yells 'No, damn it! Did I miss it?'",
+  "play_quality": null,
+  "reaction_size": 6,
+  "keep_score": 65,
+  "payoff_t": 9,
+  "reaction_end_t": 14,
+  "reason": "The creator confidently sets up a timed jump with a countdown, immediately misses the timing, and reacts with sudden panicked annoyance."
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236855_gi88",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4901,
+  "outputTokens": 614,
+  "thoughtTokens": 480
+ },
+ "cost": 0.0119565,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator proposes a $100 bet on himself not failing or cracking once, then immediately backtracks and cancels the bet before starting the game.",
+  "play_quality": null,
+  "reaction_size": 4,
+  "keep_score": 35,
+  "payoff_t": 35,
+  "reaction_end_t": 47,
+  "reason": "He briefly self-owns by walking back an overconfident bet, but the moment takes place entirely on a main menu screen with minimal excitement or payoff."
+ }
+}

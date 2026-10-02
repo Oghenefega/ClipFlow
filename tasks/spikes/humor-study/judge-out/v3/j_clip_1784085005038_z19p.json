@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784085005038_z19p",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 1761,
+  "outputTokens": 453,
+  "thoughtTokens": 330
+ },
+ "cost": 0.006038999999999999,
+ "judged": {
+  "kind": "comedy",
+  "what": "The streamer wakes up on the ground as an egg and calmly realizes, \"Why am I on the ground? Oh, I probably fell last time.\"",
+  "play_quality": null,
+  "reaction_size": 2,
+  "keep_score": 20,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "This is just low-key narration and setup as he figures out where he is after falling, lacking any comical payoff or punchline."
+ }
+}

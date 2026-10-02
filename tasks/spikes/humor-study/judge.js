@@ -37,7 +37,8 @@ const HYPE = new Set(["100T", "VCT", "RL-R", "VAL-R"]);
 const argv = process.argv.slice(2);
 const arg = (name, def) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : def);
 const ARM = arg("--arm", "judge");
-if (!["judge", "judge-noex"].includes(ARM)) { console.error("--arm judge|judge-noex"); process.exit(1); }
+if (!["judge", "judge-noex", "v3"].includes(ARM)) { console.error("--arm judge|judge-noex|v3"); process.exit(1); }
+const MANIFEST = arg("--manifest", "judge-manifest.json");
 const limit = Number(arg("--limit", "0")) || Infinity;
 const keys = arg("--keys", null);
 const concurrency = Number(arg("--concurrency", "6"));
@@ -52,6 +53,35 @@ KIND "hype_reaction": the creator reacts to pro esports footage (for example 100
 It does NOT need to be funny. Rejects: breakdowns and analysis without a big play, calm narration, talk about the team or his feelings with nothing happening on screen, waiting between rounds, a big play with a flat reaction, or something only a viewer of the whole stream would get.
 
 KIND "comedy": the creator plays a game himself, or reacts to non-esports footage (for example humanoid robot videos). Here it must be funny to a stranger. The strongest shape: he says something confident (a boast, a promise, a calm claim), the game immediately does the opposite (a whiff, a fall, a death), he reacts (scream, mock outrage, laughing, or a deadpan beat). Also keeps: self-owns, absurd commentary on absurd footage, a clear surprise with a big reaction. Rejects: nothing happens, narrating or explaining, no payoff, chat banter, setup or tech talk, flat delivery, or it needs too much context.`;
+
+// v3 (#483 cell 3): cell-1 rubric + Fega's play-quality rule (cell 2) + his round-2 answers
+// (tasks/specs/humor-playbook.md). No examples: cell 1 showed they add nothing.
+const RUBRICS_V3 = `There are two kinds of clip. Decide which kind this moment is, then judge it by THAT kind's rules only.
+
+KIND "hype_reaction": the creator watches pro esports (for example 100 Thieves Valorant matches, caster audio underneath) and reacts. The audience comes for the play and his reaction, not for jokes.
+- The QUALITY of the play decides. A multi-kill (triple or more), a clutch, a clean outplay, an impossible shot, a round- or match-winning moment: highlight. A routine single kill or a messy trade is not, even when he shouts the same thing; his signature lines ("GET HIM OUT OF HERE!", "Oh my goodness!") fire on many kills, so the line alone means little.
+- Great plays AGAINST the team he roots for count too, and so can painful moments (a lost clutch) when his reaction is big.
+- Live beats replay: prefer the live moment when his reaction is bigger. A replay is better when it condenses a multi-kill that took a whole round live.
+- Over-the-top taunts at the opponents work. Plain story talk does not: it only made sense in the moment when the stakes were high.
+- Rejects: routine kills with his usual hype, analysis or narration with nothing happening, waiting between rounds, chatting with his stream chat, moments that were only funny if you were in chat, long build-ups, anything a stranger could not follow later.
+
+KIND "comedy": the creator plays a game himself, or reacts to non-esports footage (for example humanoid robot videos). It must be funny to a stranger.
+- The strongest shape: he says something confident, the game immediately does the opposite, he reacts (scream, mock outrage, laughing, or a deadpan beat).
+- Also keeps: self-owns, absurd commentary on absurd footage, a clear surprise with a big reaction, a friend or teammate landing a genuinely funny joke while he laughs.
+- A moment with no words from him rarely works.
+- Rejects: nothing happens, narrating or explaining, no payoff, chat banter, setup or tech talk, flat delivery, too much context needed.`;
+
+const OUTPUT_V3 = `Return ONLY one JSON object:
+{
+ "kind": "hype_reaction" | "comedy",
+ "what": "<one sentence: what happens, including his key line verbatim if there is one>",
+ "play_quality": <0-10 for hype_reaction (how good the play is), null for comedy>,
+ "reaction_size": <0-10: how big and quotable his reaction is>,
+ "keep_score": <0-100: how likely the creator keeps this clip, judged by the kind's rules>,
+ "payoff_t": <seconds from clip start when the main moment lands, or null>,
+ "reaction_end_t": <seconds from clip start when his reaction to it is over, or null>,
+ "reason": "<one or two sentences, in the kind's terms>"
+}`;
 
 const OUTPUT = `Return ONLY one JSON object:
 {
@@ -126,7 +156,7 @@ async function judgeOne(row, pool) {
   const proxy = path.join(TMP_DIR, `${ARM}_${row.key}.mp4`);
   try {
     await makeProxy(row, proxy);
-    const system = `You judge candidate moments for a gaming streamer ("the creator"), who reviews every clip a detector proposes and keeps about one in three. You will watch ONE candidate with its sound. Listen closely to his voice, his timing and any other audio.\n\n${RUBRICS}${ARM === "judge" ? examplesFor(row, pool) : ""}\n\n${OUTPUT}`;
+    const system = `You judge candidate moments for a gaming streamer ("the creator"), who reviews every clip a detector proposes and keeps about one in three. You will watch ONE candidate with its sound. Listen closely to his voice, his timing and any other audio.\n\n${ARM === "v3" ? RUBRICS_V3 : RUBRICS}${ARM === "judge" ? examplesFor(row, pool) : ""}\n\n${ARM === "v3" ? OUTPUT_V3 : OUTPUT}`;
     const context = `This stream: ${row.game_name}.${row.game_context ? ` In the creator's words: ${row.game_context.slice(0, 600)}` : ""}`;
     const { text, usage } = await gemini.chat({
       model: MODEL,
@@ -154,7 +184,7 @@ async function judgeOne(row, pool) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
   const pool = loadExamplePool();
 
-  let rows = JSON.parse(fs.readFileSync(path.join(__dirname, "judge-manifest.json"), "utf-8"));
+  let rows = JSON.parse(fs.readFileSync(path.join(__dirname, MANIFEST), "utf-8"));
   if (keys) { const want = new Set(keys.split(",")); rows = rows.filter((r) => want.has(r.key)); }
   rows = rows.filter((r) => !fs.existsSync(path.join(OUT_DIR, `${r.key}.json`))).slice(0, limit);
   console.log(`${ARM}: ${rows.length} to judge, example pool ${pool.length}`);

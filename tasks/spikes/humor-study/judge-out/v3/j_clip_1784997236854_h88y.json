@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1784997236854_h88y",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 4010,
+  "outputTokens": 793,
+  "thoughtTokens": 670
+ },
+ "cost": 0.0119625,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator lands an unbelievable skip in Egging On and reacts in shock, shouting 'I did not just do that!'",
+  "play_quality": null,
+  "reaction_size": 9,
+  "keep_score": 85,
+  "payoff_t": 2,
+  "reaction_end_t": 35,
+  "reason": "A big surprise moment where an unexpected trick skip succeeds, leading to a huge energetic reaction with him jumping out of his chair."
+ }
+}

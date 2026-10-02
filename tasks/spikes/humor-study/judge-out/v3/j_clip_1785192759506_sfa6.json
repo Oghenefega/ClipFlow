@@ -1,0 +1,21 @@
+{
+ "key": "j_clip_1785192759506_sfa6",
+ "arm": "v3",
+ "model": "gemini-3.6-flash",
+ "usage": {
+  "inputTokens": 3464,
+  "outputTokens": 523,
+  "thoughtTokens": 417
+ },
+ "cost": 0.009118500000000002,
+ "judged": {
+  "kind": "comedy",
+  "what": "The creator quietly plays through a Rocket League custom training pack with minimal commentary.",
+  "play_quality": null,
+  "reaction_size": 1,
+  "keep_score": 5,
+  "payoff_t": null,
+  "reaction_end_t": null,
+  "reason": "Nothing happens in this clip. The creator is silently practicing training pack shots with very flat delivery and no punchline or funny payoff."
+ }
+}
