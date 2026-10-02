@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-02 (session 284): Rename and Projects layout revamp, designed and approved
+
+### Added
+- **Approved layout mockup for the Rename and Projects tabs (#485), `tasks/mocks/ui-revamp-v2.html`.** Both tabs are capped at an 860px column today (`App.js:1251`, `App.js:1436`), which left most of a wide window empty. On Rename, file tiles sit side by side like the Recordings pills, tinted in their game colour, with a right panel holding an original-aspect preview, instant scrubbing and recent renames with undo. A filmstrip appears only when Split is pressed, and you click it to mark where the game changes. On Projects, the list and the project view are one page: clicking a project shows its clips, hovering a clip plays it muted, and clicking a clip shrinks the list into a poster rail and opens the player. Clicking a poster or pressing Esc brings the list back. Selected items light up in their own game colour instead of purple. Fega approved it for the build ("much better, now build it in the app"). It uses real data: the 4 waiting recordings, 40 projects, and the judge's scores. Clip videos are local only (`ui-revamp/v/`, gitignored).
+- **Brief for Wick to generate colourful tab icons in ChatGPT, `tasks/specs/nav-icons-brief.md`**, plus an entry in his inbox. It covers the 8 tabs, the style (one family of rounded tiles with a bold glyph, readable at 28px), a starting prompt and 3 variations. Final PNGs go to `tasks/mocks/ui-revamp/icons/`.
+
+### Changed
+- **v1 mockup (`tasks/mocks/ui-revamp.html`) kept for reference only.** Fega rejected its sidebar (the bottom bar stays), the triage-board table ("boring spreadsheet work") and its neutral styling. Two lessons from that review went into `clipflow-ui-debug`.
+
 ## [Unreleased] 2026-10-02 (session 283): 0.5.0-alpha.19 on the feed
 
 ### Changed
