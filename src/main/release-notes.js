@@ -12,10 +12,10 @@
 // Omit any empty section.
 module.exports = [
   {
-    version: "unreleased",
-    date: "",
+    version: "0.5.0-alpha.19",
+    date: "2026-10-02",
     added: [
-      "New in Settings → Pipeline: \"Rank new clips by watching them\". When it's on, Corva watches and listens to every clip it finds in a new recording and puts the ones you're most likely to keep at the top of the list, with a one-line reason on each clip. Nothing is hidden or rejected for you. It costs about 1 cent per clip and is off until you turn it on.",
+      "New in Settings → Pipeline: \"Rank new clips by watching them\". When it's on, Corva watches and listens to every clip it finds in a new recording and puts the ones you're most likely to keep at the top of the list, with a one-line reason on each clip. Nothing is hidden or rejected for you. On a ranked recording the clip panel shows that score instead of the old confidence figure. It costs about 1 cent per clip and is off until you turn it on.",
     ],
   },
   {

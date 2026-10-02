@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-02 (session 283): 0.5.0-alpha.19 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.19 and the installer published to the update feed.** This build ships the clip judge (#483: Settings → Pipeline → "Rank new clips by watching them", off by default, the review list sorted by its score with a reason line, the clip-finder's confidence hidden on ranked recordings, and migration 16 recording the judge's score on each decision). Everything else since alpha.18 was test-kit work under `tasks/spikes/humor-study/`. Fega asked for this cut explicitly so the laptop check can run.
+
 ## [Unreleased] 2026-10-02 (session 283): Corva ranks new clips by watching them
 
 ### Added
