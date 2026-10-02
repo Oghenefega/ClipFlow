@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corva UI Revamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ── Midnight tokens (src/renderer/styles/themes.css) ───────────────────── */
+:root{
+  --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+  --border:rgba(255,255,255,.06); --borderHover:rgba(255,255,255,.12);
+  --text:#edeef2; --text2:rgba(255,255,255,.55); --text3:rgba(255,255,255,.35); --muted:rgba(255,255,255,.22); --label:rgba(255,255,255,.68);
+  --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,.12); --accentBorder:rgba(139,92,246,.25);
+  --green:#34d399; --greenDim:rgba(52,211,153,.10); --yellow:#fbbf24; --red:#f87171; --orange:#f97316; --cyan:#22d3ee;
+  --panel:rgba(255,255,255,.022); --panelHi:inset 0 1px 0 rgba(255,255,255,.04);
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#050609;color:var(--text);font-family:"DM Sans",system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── Review harness (not part of the app) ──────────────────────────────── */
+.harness{height:46px;display:flex;align-items:center;gap:18px;padding:0 16px;background:#0d0e13;border-bottom:1px solid rgba(255,255,255,.08);font-size:12.5px}
+.harness b{font-weight:600;color:var(--text)}
+.hgroup{display:flex;align-items:center;gap:6px;color:var(--text3)}
+.hseg{display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:2px}
+.hseg button{padding:5px 11px;border-radius:7px;color:var(--text2);font-weight:500}
+.hseg button.on{background:rgba(255,255,255,.09);color:var(--text)}
+.hnote{margin-left:auto;padding:6px 12px;border-radius:8px;background:var(--accentDim);color:var(--accentLight);border:1px solid var(--accentBorder);font-weight:600}
+.stage{height:calc(100% - 46px);overflow:auto;background:#050609}
+.notes{position:fixed;right:16px;top:58px;width:340px;background:#14151c;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:50;display:none;line-height:1.5}
+.notes.on{display:block}
+.notes h4{font-size:13px;margin-bottom:8px}
+.notes ul{padding-left:16px;color:var(--text2);font-size:12.5px;display:grid;gap:6px}
+.notes .q{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);color:var(--yellow);font-size:12px}
+
+/* ── App frame ─────────────────────────────────────────────────────────── */
+.app{width:100%;height:100%;background:var(--bg);display:grid;grid-template-rows:32px 1fr;position:relative;overflow:hidden;container-type:inline-size;container-name:app}
+.app.small{width:1280px;height:860px;margin:20px auto;border:1px solid rgba(255,255,255,.1);border-radius:8px}
+.app::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(900px 520px at 8% -12%,rgba(139,92,246,.11),transparent 62%),
+             radial-gradient(700px 420px at 70% -18%,rgba(160,170,255,.045),transparent 60%)}
+.titlebar{display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px;color:var(--text2);position:relative;z-index:1}
+.titlebar .win{margin-left:auto;display:flex;gap:18px;color:var(--text3)}
+.logo{width:16px;height:16px;border-radius:50%;background:conic-gradient(from 200deg,#3b82f6,#60a5fa,#3b82f6);mask:radial-gradient(circle at 62% 50%,transparent 4px,#000 4.5px)}
+.body{display:grid;grid-template-columns:228px 1fr;min-height:0;position:relative;z-index:1}
+.app.navbottom .body{grid-template-columns:1fr;grid-template-rows:1fr 62px}
+
+/* sidebar */
+.side{display:flex;flex-direction:column;padding:10px 12px 14px;border-right:1px solid var(--border);background:rgba(255,255,255,.012);min-height:0}
+.app.navbottom .side{display:none}
+.brand{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand .logo{width:20px;height:20px}
+.brand .collapse{margin-left:auto;color:var(--text3);padding:4px;border-radius:6px}
+.brand .collapse:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.nav{display:grid;gap:2px}
+.nav a{position:relative;display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:var(--text2);font-weight:500;font-size:13.5px;cursor:pointer;border:1px solid transparent;text-decoration:none}
+.nav a svg.i{width:17px;height:17px}
+.nav a:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav a.on{color:var(--text);border-color:rgba(255,255,255,.07);
+  background:radial-gradient(120px 40px at 100% 50%,rgba(139,92,246,.20),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.03));
+  box-shadow:var(--panelHi),0 6px 18px rgba(0,0,0,.35)}
+.nav a.on::after{content:"";position:absolute;right:-1px;top:10px;bottom:10px;width:3px;border-radius:3px;background:var(--accentLight);box-shadow:0 0 10px 1px rgba(167,139,250,.8)}
+.nav .badge{margin-left:auto;font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;background:rgba(255,255,255,.06);color:var(--text2)}
+.nav a.on .badge{background:var(--accentDim);color:var(--accentLight)}
+.nav .lbl{white-space:nowrap}
+.sideFoot{margin-top:auto;display:grid;gap:10px}
+.status{border:1px solid var(--border);border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.02);display:grid;gap:9px;font-size:12px}
+.status .row{display:flex;align-items:center;gap:8px;min-width:0}
+.dotlive{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(52,211,153,.15);flex:none}
+.status .path{color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status .sep{height:1px;background:var(--border)}
+.bar{height:4px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accentLight));border-radius:4px}
+@container app (max-width:1400px){
+  .body{grid-template-columns:64px 1fr}
+  .side{padding:10px 8px 14px}
+  .brand span,.brand .collapse,.nav .lbl,.nav .badge,.status{display:none}
+  .brand{justify-content:center;padding:6px 0 16px}
+  .nav a{justify-content:center;padding:0}
+  .nav a .mini{display:block}
+}
+.nav a .mini{display:none;position:absolute;top:5px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--accentLight)}
+
+/* bottom nav option */
+.bnav{display:none;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--border);background:rgba(255,255,255,.012)}
+.app.navbottom .bnav{display:flex}
+.bnav a{display:grid;justify-items:center;gap:3px;padding:7px 14px;border-radius:10px;color:var(--text3);font-size:11px;font-weight:500;position:relative;cursor:pointer}
+.bnav a svg.i{width:18px;height:18px}
+.bnav a.on{color:var(--text);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));box-shadow:var(--panelHi)}
+.bnav a.on::before{content:"";position:absolute;top:-1px;left:18px;right:18px;height:2px;border-radius:2px;background:var(--accentLight);box-shadow:0 0 10px rgba(167,139,250,.8)}
+.headStatus{display:none}
+.app.navbottom .headStatus{display:flex}
+
+/* ── Page scaffolding ──────────────────────────────────────────────────── */
+.main{min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.screen{display:none;flex:1;min-height:0;flex-direction:column;padding:22px 28px 0}
+.screen.on{display:flex}
+.phead{display:flex;align-items:flex-end;gap:16px;padding-bottom:18px;position:relative}
+.phead::before{content:"";position:absolute;left:-28px;right:-28px;top:-22px;bottom:-10px;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.2px);background-size:16px 16px;
+  mask:linear-gradient(180deg,rgba(0,0,0,.9),transparent 90%);-webkit-mask:linear-gradient(180deg,rgba(0,0,0,.9),transparent 90%)}
+.phead h1{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.phead .sub{color:var(--text2);margin-top:5px;font-size:13px}
+.phead .sub b{color:var(--text);font-weight:600}
+.phead .acts{margin-left:auto;display:flex;align-items:center;gap:8px;position:relative}
+.seg{display:flex;padding:3px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid var(--border)}
+.seg button{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:7px;color:var(--text2);font-weight:500;white-space:nowrap}
+.seg button .c{font-size:11px;color:var(--text3)}
+.seg button.on{background:rgba(255,255,255,.08);color:var(--text);box-shadow:var(--panelHi)}
+.seg button.on .c{color:var(--accentLight)}
+.btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:9px;font-weight:600;font-size:12.5px;white-space:nowrap;border:1px solid var(--border);background:rgba(255,255,255,.035);color:var(--label)}
+.btn:hover{border-color:var(--borderHover);color:var(--text)}
+.btn.icon{width:34px;padding:0;justify-content:center}
+.btn.primary{background:linear-gradient(180deg,#9a6dfa,#7c4ef0);border-color:rgba(255,255,255,.12);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 6px 20px rgba(139,92,246,.28)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{height:28px;padding:0 10px;font-size:12px;border-radius:8px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--panelHi)}
+.scroll{overflow:auto;min-height:0}
+.scroll::-webkit-scrollbar{width:10px;height:10px}
+.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+.label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.01em}
+.chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--label);font-weight:500;white-space:nowrap;cursor:pointer}
+.chip:hover{border-color:var(--borderHover)}
+.chip .c{color:var(--text3);font-size:11px}
+.chip.on{background:var(--accentDim);border-color:var(--accentBorder);color:var(--text)}
+.chip .gd{width:7px;height:7px;border-radius:50%}
+.stepper{display:inline-flex;align-items:center;height:30px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.03);overflow:hidden}
+.stepper span{padding:0 4px 0 10px;color:var(--text3);font-size:12px}
+.stepper button{width:26px;height:100%;color:var(--text3);font-size:15px}
+.stepper button:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.stepper b{min-width:18px;text-align:center;font-weight:700}
+.select{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 10px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.03);font-weight:500;color:var(--label);white-space:nowrap;cursor:pointer}
+.select:hover{border-color:var(--borderHover)}
+.select svg.i{width:13px;height:13px;color:var(--text3)}
+.mode{display:inline-flex;height:30px;padding:2px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+.mode button{display:flex;align-items:center;gap:6px;padding:0 9px;border-radius:7px;color:var(--text3);font-weight:500;font-size:12px}
+.mode button svg.i{width:14px;height:14px}
+.mode button.on{background:var(--accentDim);color:var(--accentLight)}
+
+/* ── Rename A: list + inspector ───────────────────────────────────────── */
+.rnA{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:20px;flex:1;min-height:0}
+@container app (max-width:1400px){.rnA{grid-template-columns:minmax(0,1fr) 316px}}
+.rnList{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;padding-bottom:28px}
+.sess .sh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:8px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.dateTile{width:42px;height:44px;border-radius:10px;background:rgba(255,255,255,.045);border:1px solid var(--border);display:grid;place-content:center;text-align:center;line-height:1}
+.dateTile small{font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--red)}
+.dateTile b{font-size:17px;font-weight:700;margin-top:3px}
+.sdate{min-width:150px}
+.sdate b{display:block;font-size:14px;font-weight:600}
+.sdate span{font-size:12px;color:var(--text3)}
+.sh .tot{margin-left:auto;color:var(--text3);display:flex;align-items:center;gap:10px}
+.frow{display:grid;grid-template-columns:22px 50px minmax(0,1fr) 108px 150px 92px;align-items:center;gap:14px;padding:9px 14px;margin:4px 6px;border-radius:10px;border:1px solid transparent;cursor:pointer}
+.frow:hover{background:rgba(255,255,255,.025)}
+.frow.sel{background:rgba(139,92,246,.07);border-color:var(--accentBorder)}
+.cb{width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(255,255,255,.2);opacity:0}
+.frow:hover .cb,.sh:hover .cb{opacity:1}
+.thumb{width:50px;height:56px;border-radius:7px;object-fit:cover;display:block;background:#1a1b22;border:1px solid var(--border)}
+.nm{min-width:0}
+.nm .new{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px dashed transparent;display:inline}
+.nm .new:hover{border-bottom-color:var(--text3)}
+.nm .ext{color:var(--text3);font-weight:500}
+.nm .old{font-size:12px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.len{display:grid;gap:5px}
+.len .t{display:flex;justify-content:space-between;font-size:12px;color:var(--text2)}
+.len .t span:last-child{color:var(--text3)}
+.len .bar{height:3px}
+.len .bar i{background:rgba(255,255,255,.25)}
+.racts{display:flex;justify-content:flex-end;gap:2px;opacity:0;transition:opacity .15s}
+.frow:hover .racts,.frow.sel .racts{opacity:1}
+.racts button{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--text3)}
+.racts button:hover{background:rgba(255,255,255,.06);color:var(--text)}
+@container app (max-width:1400px){.frow{grid-template-columns:22px 44px minmax(0,1fr) 100px 92px}.frow .len{display:none}.thumb{width:44px;height:50px}}
+.drop{display:flex;align-items:center;gap:10px;justify-content:center;padding:14px;border:1px dashed rgba(255,255,255,.1);border-radius:12px;color:var(--text3);font-size:12.5px}
+.insp{display:flex;flex-direction:column;min-height:0;margin-bottom:22px}
+.insp .scroll{padding:14px;display:grid;gap:16px;align-content:start}
+.ihead{display:flex;align-items:center;gap:8px}
+.ihead .label{margin-right:auto}
+.prev{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);aspect-ratio:8/9;height:min(320px,34vh);margin:0 auto;background:#111;cursor:ew-resize}
+.prev img{width:100%;height:100%;object-fit:cover;display:block}
+.prev .ts{position:absolute;left:10px;bottom:10px;padding:3px 8px;border-radius:6px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);font-size:11.5px;font-weight:600}
+.prev .hint{position:absolute;right:10px;bottom:10px;padding:3px 8px;border-radius:6px;background:rgba(0,0,0,.55);font-size:11px;color:var(--text2)}
+.strip{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;position:relative;border-radius:8px;overflow:hidden;cursor:ew-resize}
+.strip img{width:100%;height:40px;object-fit:cover;display:block;opacity:.55}
+.strip .ph{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8);left:12%}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:12.5px}
+.facts dt{color:var(--text3)}
+.facts dd{color:var(--text);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saveas{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--border);font-size:12.5px;line-height:1.45}
+.saveas .p{color:var(--text3)}
+.iacts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.iacts .btn{justify-content:center;padding:0 6px;font-size:12px;height:32px}
+.hist{display:grid;gap:2px}
+.hrow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;font-size:12.5px}
+.hrow:hover{background:rgba(255,255,255,.03)}
+.hrow .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow .w{color:var(--text3);font-size:11.5px}
+.hrow .u{color:var(--accentLight);font-size:12px;font-weight:600;opacity:0}
+.hrow:hover .u{opacity:1}
+.link{color:var(--accentLight);font-weight:600;font-size:12px;cursor:pointer}
+
+/* ── Rename B: session timeline ───────────────────────────────────────── */
+.rnB{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;flex:1;min-height:0}
+@container app (max-width:1400px){.rnB{grid-template-columns:minmax(0,1fr)}.rnB .hrail{display:none}}
+.tl{padding:14px 16px 16px}
+.tlTop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.tlTop h3{font-size:16px;font-weight:650;letter-spacing:-.01em;margin-right:4px}
+.tlTop .when{color:var(--text3);margin-right:6px}
+.tlTop .tot{margin-left:auto;color:var(--text3)}
+.lane{display:flex;gap:6px}
+.part{position:relative;min-width:0;cursor:pointer}
+.film{height:132px;border-radius:10px;overflow:hidden;display:flex;border:1px solid rgba(255,255,255,.08);position:relative}
+.film img{height:100%;flex:1 1 0;width:0;min-width:0;object-fit:cover;opacity:.75;transition:opacity .15s}
+.part:hover .film img{opacity:.95}
+.film::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.75))}
+.film .pl{position:absolute;left:12px;bottom:10px;z-index:1;display:flex;align-items:baseline;gap:8px}
+.film .pl b{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.film .pl span{font-size:12px;color:rgba(255,255,255,.75);font-weight:600}
+.film .scrub{position:absolute;top:0;bottom:0;width:2px;background:#fff;z-index:2;display:none;box-shadow:0 0 10px rgba(255,255,255,.9)}
+.film .scrub em{position:absolute;top:8px;left:6px;font-style:normal;font-size:11px;font-weight:600;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.65);white-space:nowrap}
+.film .split{position:absolute;top:8px;right:8px;z-index:2;display:none;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;background:rgba(0,0,0,.65);font-size:11px;font-weight:600}
+.part:hover .film .scrub,.part:hover .film .split{display:flex}
+.part:hover .film .scrub{display:block}
+.pmeta{display:flex;align-items:center;gap:10px;margin-top:9px;min-width:0}
+.pmeta .nm{flex:1}
+.pmeta .new{font-size:13.5px}
+.ruler{position:relative;height:18px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.ruler span{position:absolute;top:0;font-size:10.5px;color:var(--text3);transform:translateX(-50%);white-space:nowrap}
+.ruler span::before{content:"";position:absolute;left:50%;top:15px;height:4px;width:1px;background:rgba(255,255,255,.2)}
+.hrail{display:flex;flex-direction:column;min-height:0;margin-bottom:22px}
+.hrail .hh{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px}
+.hday{padding:10px 14px 4px;font-size:11.5px;color:var(--text3);font-weight:600}
+
+/* ── Projects shared ──────────────────────────────────────────────────── */
+.filters{display:flex;align-items:center;gap:8px;padding-bottom:16px;flex-wrap:wrap}
+.filters .div{width:1px;height:20px;background:var(--border);margin:0 4px}
+.search{display:flex;align-items:center;gap:8px;height:34px;padding:0 11px;width:220px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text3)}
+.search input{background:none;border:0;outline:0;width:100%;color:var(--text)}
+.poster{width:40px;height:52px;border-radius:8px;object-fit:cover;flex:none;border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;letter-spacing:.02em}
+.dots{display:flex;flex-wrap:wrap;gap:3px}
+.dots i{width:8px;height:8px;border-radius:50%;display:block}
+.d-P{background:radial-gradient(circle at 35% 30%,#a5f3fc,#22d3ee 55%,#0e7490);box-shadow:0 0 6px rgba(34,211,238,.55)}
+.d-S{background:radial-gradient(circle at 35% 30%,#fef3c7,#fbbf24 55%,#b45309)}
+.d-Q{background:radial-gradient(circle at 35% 30%,#fed7aa,#f97316 55%,#9a3412)}
+.d-A{background:radial-gradient(circle at 35% 30%,#bbf7d0,#34d399 55%,#047857);box-shadow:0 0 6px rgba(52,211,153,.5)}
+.d-R{background:radial-gradient(circle at 35% 30%,#fecaca,#f87171 55%,#991b1b);opacity:.5}
+.d-U{background:rgba(255,255,255,.16)}
+.done .d-R{opacity:.22}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:7px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.review{background:var(--accentDim);color:var(--accentLight);border:1px solid var(--accentBorder)}
+.pill.sched{background:rgba(251,191,36,.10);color:var(--yellow);border:1px solid rgba(251,191,36,.22)}
+.pill.done{color:var(--text3);border:1px solid var(--border)}
+.ranked{display:inline-flex;align-items:center;gap:4px;color:var(--text3);font-size:11.5px}
+.ranked svg.i{width:13px;height:13px}
+
+/* ── Projects A: list + preview ───────────────────────────────────────── */
+.prA{display:grid;grid-template-columns:minmax(420px,.85fr) 1.15fr;gap:20px;flex:1;min-height:0}
+@container app (max-width:1400px){.prA{grid-template-columns:400px 1fr}}
+.plist{display:flex;flex-direction:column;min-height:0;margin-bottom:22px}
+.plist .scroll{padding:6px}
+.grp{padding:12px 10px 6px;display:flex;justify-content:space-between}
+.prow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer}
+.prow:hover{background:rgba(255,255,255,.03)}
+.prow.sel{background:rgba(139,92,246,.07);border-color:var(--accentBorder)}
+.prow .t{display:flex;align-items:baseline;gap:8px;min-width:0}
+.prow .t b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .t span{color:var(--text3);font-size:12px;white-space:nowrap}
+.prow .dots{margin-top:7px}
+.prow .r{display:grid;justify-items:end;gap:6px}
+.pv{display:flex;flex-direction:column;min-height:0;margin-bottom:22px;overflow:hidden}
+.pv .scroll{padding:20px 22px 22px;display:grid;gap:20px;align-content:start}
+.pvTop{display:flex;gap:16px;align-items:flex-start}
+.pvTop .poster{width:56px;height:74px;border-radius:10px;font-size:13px}
+.pvTop h2{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.pvMeta{display:flex;align-items:center;gap:10px;margin-top:7px;color:var(--text2);flex-wrap:wrap}
+.pvMeta .tag{height:22px}
+.pvTop .acts{margin-left:auto;display:flex;gap:8px;flex:none}
+.stack{display:flex;height:8px;border-radius:8px;overflow:hidden;gap:2px;background:rgba(255,255,255,.04)}
+.stack i{display:block;height:100%}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text2)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:8px;height:8px;border-radius:3px;display:block}
+.legend b{color:var(--text);font-weight:600}
+.secH{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.secH h3{font-size:14px;font-weight:650}
+.secH span{color:var(--text3);font-size:12px}
+.secH .link{margin-left:auto}
+.picks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:820px}
+.picks.many{grid-template-columns:repeat(6,minmax(0,1fr))}
+.pick{cursor:pointer}
+.pick .ph{position:relative;aspect-ratio:8/9;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.pick img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s cubic-bezier(.22,1,.36,1)}
+.pick:hover img{transform:scale(1.03)}
+.score{position:absolute;left:8px;top:8px;padding:3px 7px;border-radius:7px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);font-size:12px;font-weight:700}
+.score.hi{color:#6ee7b7}.score.mid{color:#fcd34d}.score.lo{color:#fca5a5}
+.dur{position:absolute;right:8px;bottom:8px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.6);font-size:11px;font-weight:600}
+.pick p{margin-top:8px;font-size:12px;line-height:1.45;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rest{display:flex;gap:6px;flex-wrap:wrap}
+.rest div{position:relative;width:54px;height:61px;border-radius:7px;overflow:hidden;border:1px solid var(--border);opacity:.7}
+.rest img{width:100%;height:100%;object-fit:cover}
+.rest b{position:absolute;left:4px;top:4px;font-size:10px;font-weight:700;padding:1px 4px;border-radius:4px;background:rgba(0,0,0,.65)}
+.empty{padding:26px;border:1px dashed rgba(255,255,255,.08);border-radius:12px;color:var(--text3);text-align:center;line-height:1.5}
+
+/* ── Projects B: triage board ─────────────────────────────────────────── */
+.prB{flex:1;min-height:0;padding-bottom:22px;display:grid;gap:26px;align-content:start}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{overflow:hidden;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:var(--borderHover)}
+.mosaic{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:118px;gap:2px;height:118px;position:relative;overflow:hidden}
+.mosaic img{width:100%;height:100%;min-height:0;object-fit:cover;display:block}
+.mosaic.art img{grid-column:1/-1;filter:saturate(.9) brightness(.7)}
+.mosaic .tile{grid-column:1/-1;display:grid;place-items:center;font-size:22px;font-weight:800;color:rgba(255,255,255,.9)}
+.mosaic .score{top:auto;bottom:8px}
+.card .cb2{padding:12px 14px 14px;display:grid;gap:10px}
+.card .t{display:flex;align-items:center;gap:8px}
+.card .t b{font-size:14.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .t .pill{margin-left:auto}
+.card .m{color:var(--text3);font-size:12px;display:flex;gap:10px;align-items:center}
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+.table td{padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.035);white-space:nowrap}
+.table tr:hover td{background:rgba(255,255,255,.02)}
+.table tr:last-child td{border-bottom:0}
+.table .pn{display:flex;align-items:center;gap:11px}
+.table .pn .poster{width:30px;height:38px;border-radius:6px;font-size:8.5px}
+.table .pn b{font-weight:600;font-size:13.5px}
+.table td.r,.table th.r{text-align:right}
+.table .stack{width:200px;height:6px}
+.kr{font-weight:600}
+@container app (max-width:1400px){.table .hideS{display:none}.table .stack{width:140px}}
+</style>
+</head>
+<body>
+
+<!-- Review harness (not part of the design) -->
+<div class="harness">
+  <b>Corva · layout mockups</b>
+  <div class="hgroup">Screen
+    <div class="hseg" id="scrSeg">
+      <button data-s="rnA" class="on">Rename A · List + preview</button>
+      <button data-s="rnB">Rename B · Session timeline</button>
+      <button data-s="prA">Projects A · List + preview</button>
+      <button data-s="prB">Projects B · Triage board</button>
+    </div>
+  </div>
+  <div class="hgroup">Nav
+    <div class="hseg" id="navSeg"><button data-n="side" class="on">Sidebar</button><button data-n="bottom">Bottom bar</button></div>
+  </div>
+  <div class="hgroup">Window
+    <div class="hseg" id="winSeg"><button data-w="full" class="on">Full</button><button data-w="small">1280 × 860</button></div>
+  </div>
+  <button class="hnote" id="notesBtn">What changed</button>
+</div>
+<div class="notes" id="notes"></div>
+
+<div class="stage">
+<div class="app" id="app">
+  <div class="titlebar"><div class="logo"></div>Corva<div class="win"><span>&#8211;</span><span>&#9633;</span><span>&#10005;</span></div></div>
+  <div class="body">
+    <aside class="side">
+      <div class="brand"><div class="logo"></div><span>Corva</span><button class="collapse" title="Collapse sidebar"><svg class="i"><use href="#i-panel"/></svg></button></div>
+      <nav class="nav" id="nav">
+        <a data-go="rn"><svg class="i"><use href="#i-pencil"/></svg><span class="lbl">Rename</span><span class="badge">4</span><span class="mini"></span></a>
+        <a><svg class="i"><use href="#i-film"/></svg><span class="lbl">Recordings</span></a>
+        <a data-go="pr"><svg class="i"><use href="#i-folder"/></svg><span class="lbl">Projects</span><span class="badge">7</span><span class="mini"></span></a>
+        <a><svg class="i"><use href="#i-clapper"/></svg><span class="lbl">Editor</span></a>
+        <a><svg class="i"><use href="#i-list"/></svg><span class="lbl">Queue</span><span class="badge">3</span></a>
+        <a><svg class="i"><use href="#i-cal"/></svg><span class="lbl">Tracker</span></a>
+        <a><svg class="i"><use href="#i-chart"/></svg><span class="lbl">Analytics</span></a>
+      </nav>
+      <div class="sideFoot">
+        <div class="status">
+          <div class="row"><span class="dotlive"></span><span style="font-weight:600">Watching</span></div>
+          <div class="path" title="W:\YouTube Gaming Recordings Onward\Recordings">W:\…\Recordings</div>
+          <div class="sep"></div>
+          <div class="row" style="justify-content:space-between"><span style="font-weight:600">Clipping 100T Day5 Pt1</span><span class="num" style="color:var(--text3)">98%</span></div>
+          <div class="bar"><i style="width:98%"></i></div>
+          <div style="color:var(--text3)">Taking one last look</div>
+        </div>
+        <nav class="nav"><a><svg class="i"><use href="#i-sliders"/></svg><span class="lbl">Settings</span></a></nav>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <!-- ═══ RENAME A ═══ -->
+      <section class="screen on" id="rnA">
+        <div class="phead">
+          <div>
+            <h1>Rename</h1>
+            <div class="sub"><b>4 recordings</b> waiting from 2 sessions · 1h 46m of footage</div>
+          </div>
+          <div class="acts">
+            <div class="headStatus chip"><span class="dotlive"></span>Watching W:\…\Recordings</div>
+            <div class="seg"><button class="on">Pending <span class="c">4</span></button><button>History <span class="c">150</span></button><button>Manage</button></div>
+            <button class="btn icon" title="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+            <button class="btn"><svg class="i"><use href="#i-plus"/></svg>Add game</button>
+            <button class="btn primary">Rename 4 files<svg class="i"><use href="#i-arrow"/></svg></button>
+          </div>
+        </div>
+        <div class="rnA">
+          <div class="scroll"><div class="rnList" id="rnAList"></div></div>
+          <aside class="panel insp">
+            <div class="scroll" id="insp"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ═══ RENAME B ═══ -->
+      <section class="screen" id="rnB">
+        <div class="phead">
+          <div>
+            <h1>Rename</h1>
+            <div class="sub"><b>4 recordings</b> waiting from 2 sessions · 1h 46m of footage</div>
+          </div>
+          <div class="acts">
+            <div class="headStatus chip"><span class="dotlive"></span>Watching W:\…\Recordings</div>
+            <div class="seg"><button class="on">Pending <span class="c">4</span></button><button>Manage</button></div>
+            <button class="btn icon" title="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+            <button class="btn"><svg class="i"><use href="#i-plus"/></svg>Add game</button>
+            <button class="btn primary">Rename 4 files<svg class="i"><use href="#i-arrow"/></svg></button>
+          </div>
+        </div>
+        <div class="rnB">
+          <div class="scroll"><div class="rnList" id="rnBList"></div></div>
+          <aside class="panel hrail">
+            <div class="hh"><span class="label">History</span><span class="link">Search</span></div>
+            <div class="scroll" id="hrail"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ═══ PROJECTS A ═══ -->
+      <section class="screen" id="prA">
+        <div class="phead">
+          <div>
+            <h1>Projects</h1>
+            <div class="sub"><b>59 projects</b> · 7 to review · 1 to schedule · 51 done</div>
+          </div>
+          <div class="acts">
+            <div class="search"><svg class="i"><use href="#i-search"/></svg><input placeholder="Search projects"></div>
+            <div class="select">Most recent<svg class="i"><use href="#i-down"/></svg></div>
+            <button class="btn">Rates</button>
+          </div>
+        </div>
+        <div class="filters" id="prAFilters"></div>
+        <div class="prA">
+          <div class="panel plist"><div class="scroll" id="plist"></div></div>
+          <div class="panel pv"><div class="scroll" id="pv"></div></div>
+        </div>
+      </section>
+
+      <!-- ═══ PROJECTS B ═══ -->
+      <section class="screen" id="prB">
+        <div class="phead">
+          <div>
+            <h1>Projects</h1>
+            <div class="sub"><b>59 projects</b> · 7 to review · 1 to schedule · 51 done</div>
+          </div>
+          <div class="acts">
+            <div class="search"><svg class="i"><use href="#i-search"/></svg><input placeholder="Search projects"></div>
+            <div class="select">Most recent<svg class="i"><use href="#i-down"/></svg></div>
+            <button class="btn">Rates</button>
+          </div>
+        </div>
+        <div class="filters" id="prBFilters"></div>
+        <div class="scroll"><div class="prB" id="prBBody"></div></div>
+      </section>
+
+    </main>
+
+    <nav class="bnav" id="bnav">
+      <a><svg class="i"><use href="#i-pencil"/></svg>Rename</a>
+      <a><svg class="i"><use href="#i-film"/></svg>Recordings</a>
+      <a><svg class="i"><use href="#i-folder"/></svg>Projects</a>
+      <a><svg class="i"><use href="#i-clapper"/></svg>Editor</a>
+      <a><svg class="i"><use href="#i-list"/></svg>Queue</a>
+      <a><svg class="i"><use href="#i-cal"/></svg>Tracker</a>
+      <a><svg class="i"><use href="#i-chart"/></svg>Analytics</a>
+      <a><svg class="i"><use href="#i-sliders"/></svg>Settings</a>
+    </nav>
+  </div>
+</div>
+</div>
+
+<!-- icons (Lucide paths) -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-clapper" viewBox="0 0 24 24"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9M12.4 3.4l3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h.01M3 12h.01M3 19h.01M8 5h13M8 12h13M8 19h13"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-pad" viewBox="0 0 24 24"><path d="M6 12h4M8 10v4M15 13h.01M18 11h.01"/><rect width="20" height="12" x="2" y="6" rx="2"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+</svg>
+
+<script>
+const A = "ui-revamp/";
+const GAMES = {Val:["Valorant","#ff4655"],MC:["Meccha Chameleon","#00ff88"],"100T":["100T Valorant Reacts","#ea3323"],"GTA6-R":["GTA6 Reacts","#f042a0"],ROBOT:["Robot Olympics Reacts","#8a9bb8"],RL:["Rocket League","#00b4d8"],DD:["Deadline Delivery","#fca311"],EO:["Egging On","#ffd23f"],AR:["Arc Raiders","#ff6b35"]};
+const ART = {MC:"meccha-chameleon.jpg",RL:"rocket-league.jpg",AR:"arc-raiders.jpg",EO:"egging-on.jpg",DD:"deadline-delivery.jpg"};
+const svg = id => `<svg class="i"><use href="#i-${id}"/></svg>`;
+const hexA = (h,a) => { const n=parseInt(h.slice(1),16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${a})`; };
+const tagEl = t => `<span class="tag" style="background:${hexA(GAMES[t][1],.14)};color:${GAMES[t][1]};border:1px solid ${hexA(GAMES[t][1],.3)}">${t}</span>`;
+const poster = (t,cls="poster") => ART[t] ? `<img class="${cls}" src="${A+ART[t]}">` : `<div class="${cls}" style="background:linear-gradient(160deg,${GAMES[t][1]},${hexA(GAMES[t][1],.35)})">${t}</div>`;
+const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+
+/* ── Rename data (the 4 files really waiting in the watch folder) ─────── */
+const SESS = [
+  {mon:"SEP",d:21,dow:"Monday",date:"2026-09-21",tag:"Val",day:8,startMin:13*60+24+52/60,
+   files:[{orig:"2026-09-21 13-24-52.mp4",pt:1,secs:1804,size:"1.30 GB",img:"rn1"},{orig:"2026-09-21 13-54-56.mp4",pt:2,secs:957,size:"683 MB",img:"rn2"}]},
+  {mon:"OCT",d:1,dow:"Thursday",date:"2026-10-01",tag:"Val",day:9,startMin:13*60+2+7/60,
+   files:[{orig:"2026-10-01 13-02-07.mp4",pt:1,secs:1804,size:"1.24 GB",img:"rn3"},{orig:"2026-10-01 13-32-12.mp4",pt:2,secs:1800,size:"596 MB",img:"rn4"}]}
+];
+const clock = m => { let h=Math.floor(m/60), mm=Math.round(m%60); if(mm===60){h++;mm=0} const ap=h>=12?"PM":"AM"; return `${((h+11)%12)+1}:${String(mm).padStart(2,"0")} ${ap}`; };
+const newName = (s,f) => `${s.date} <span style="color:${GAMES[s.tag][1]}">${s.tag}</span> Day${s.day} Pt${f.pt}<span class="ext">.mp4</span>`;
+const sessTotal = s => s.files.reduce((a,f)=>a+f.secs,0);
+const hm = secs => { const m=Math.round(secs/60); return m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m}m`; };
+const sessControls = (s,i) => `
+  <div class="select">${tagEl(s.tag)}${GAMES[s.tag][0]}${svg("down")}</div>
+  <div class="mode"><button class="on">${svg("pad")}Playing</button><button>${svg("mic")}Reacting</button></div>
+  <div class="stepper"><span>Day</span><button data-day="${i}" data-dd="-1">−</button><b>${s.day}</b><button data-day="${i}" data-dd="1">+</button></div>
+  <div class="select">Date · Tag · Day · Part${svg("down")}</div>`;
+
+let selFile = [0,0];
+function renderRnA(){
+  const maxS = Math.max(...SESS.flatMap(s=>s.files.map(f=>f.secs)));
+  document.getElementById("rnAList").innerHTML = SESS.map((s,i)=>`
+    <div class="panel sess">
+      <div class="sh">
+        <span class="cb"></span>
+        <div class="dateTile"><small>${s.mon}</small><b>${s.d}</b></div>
+        <div class="sdate"><b>${s.dow}</b><span class="num">${clock(s.startMin)} to ${clock(s.startMin+sessTotal(s)/60)} · ${hm(sessTotal(s))}</span></div>
+        ${sessControls(s,i)}
+        
+      </div>
+      <div style="padding:4px 0 6px">
+      ${s.files.map((f,j)=>`
+        <div class="frow ${selFile[0]===i&&selFile[1]===j?"sel":""}" data-f="${i},${j}">
+          <span class="cb"></span>
+          <img class="thumb" src="${A}${f.img}-3.jpg">
+          <div class="nm"><div class="new">${newName(s,f)}</div><div class="old">from ${f.orig}</div></div>
+          <div class="stepper"><span>Pt</span><button>−</button><b>${f.pt}</b><button>+</button></div>
+          <div class="len"><div class="t num"><span>${fmt(f.secs)}</span><span>${f.size}</span></div><div class="bar"><i style="width:${f.secs/maxS*100}%"></i></div></div>
+          <div class="racts"><button title="Mark where the game changes">${svg("scissors")}</button><button title="Show in Explorer">${svg("folder")}</button><button title="Hide from pending">${svg("eyeoff")}</button></div>
+        </div>`).join("")}
+      </div>
+    </div>`).join("") + `<div class="drop">${svg("plus")}Drop an .mp4 or .mkv anywhere on this page to add it</div>`;
+  renderInsp();
+}
+function renderInsp(){
+  const s = SESS[selFile[0]], f = s.files[selFile[1]];
+  const hist = [["100T","2026-09-30 100T Day6 Pt4","2 days ago"],["100T","2026-09-30 100T Day6 Pt3","2 days ago"],["100T","2026-09-30 100T Day6 Pt2","2 days ago"],["100T","2026-09-30 100T Day6 Pt1","2 days ago"],["100T","2026-09-29 100T Day5 Pt4","3 days ago"]];
+  document.getElementById("insp").innerHTML = `
+    <div class="ihead"><span class="label">Pt${f.pt} · ${s.dow.slice(0,3)} ${s.mon[0]+s.mon.slice(1).toLowerCase()} ${s.d}</span></div>
+    <div class="prev" id="prev"><img id="prevImg" src="${A}${f.img}-1.jpg"><span class="ts num" id="prevTs">${fmt(f.secs/16)} / ${fmt(f.secs)}</span><span class="hint">Move to scrub</span></div>
+    <div class="strip" id="strip">${[1,2,3,4,5,6,7,8].map(k=>`<img src="${A}${f.img}-${k}.jpg">`).join("")}<span class="ph" id="ph"></span></div>
+    <dl class="facts num">
+      <dt>Recorded</dt><dd>${s.dow.slice(0,3)}, ${s.mon[0]+s.mon.slice(1).toLowerCase()} ${s.d} · ${clock(s.startMin + s.files.slice(0,selFile[1]).reduce((a,x)=>a+x.secs,0)/60)}</dd>
+      <dt>Length</dt><dd>${fmt(f.secs)}</dd>
+      <dt>Size</dt><dd>${f.size}</dd>
+      <dt>Video</dt><dd>2560 × 2880 · 60 fps · HEVC</dd>
+      <dt>Audio</dt><dd>5 tracks</dd>
+    </dl>
+    <div class="saveas"><span class="p">Saves as</span><br>Recordings\\${s.date.slice(0,7)}\\<b>${s.date} ${s.tag} Day${s.day} Pt${f.pt}.mp4</b></div>
+    <div class="iacts"><button class="btn">${svg("scissors")}Split</button><button class="btn">${svg("folder")}Explorer</button><button class="btn">${svg("eyeoff")}Hide</button></div>
+    <div>
+      <div class="ihead" style="margin-bottom:6px"><span class="label">Recently renamed</span><span class="link">All history</span></div>
+      <div class="hist">${hist.map(h=>`<div class="hrow">${tagEl(h[0])}<span class="n">${h[1]}</span><span class="w">${h[2]}</span></div>`).join("")}</div>
+    </div>`;
+  const scrub = (el) => el.addEventListener("mousemove", e => {
+    const r = el.getBoundingClientRect(), x = Math.min(.999,Math.max(0,(e.clientX-r.left)/r.width));
+    const k = Math.floor(x*8)+1;
+    document.getElementById("prevImg").src = `${A}${f.img}-${k}.jpg`;
+    document.getElementById("prevTs").textContent = `${fmt(f.secs*x)} / ${fmt(f.secs)}`;
+    document.getElementById("ph").style.left = (x*100)+"%";
+  });
+  scrub(document.getElementById("prev")); scrub(document.getElementById("strip"));
+}
+document.getElementById("rnAList").addEventListener("click", e => {
+  const d = e.target.closest("[data-day]");
+  if (d) { SESS[+d.dataset.day].day += +d.dataset.dd; renderRnA(); renderRnB(); return; }
+  const r = e.target.closest(".frow"); if (!r) return;
+  selFile = r.dataset.f.split(",").map(Number); renderRnA();
+});
+
+function renderRnB(){
+  document.getElementById("rnBList").innerHTML = SESS.map((s,i)=>{
+    const tot = sessTotal(s);
+    const ticks = []; const first = Math.ceil(s.startMin/10)*10;
+    for (let m=first; m<s.startMin+tot/60; m+=10) ticks.push(`<span style="left:${(m-s.startMin)/(tot/60)*100}%">${clock(m)}</span>`);
+    return `
+    <div class="panel tl">
+      <div class="tlTop">
+        <h3>${s.dow}, ${s.mon[0]+s.mon.slice(1).toLowerCase()} ${s.d}</h3><span class="when num">${clock(s.startMin)} to ${clock(s.startMin+tot/60)}</span>
+        ${sessControls(s,i)}
+        <span class="tot num">${s.files.length} parts · ${hm(tot)}</span><button class="btn icon sm" title="Show session in Explorer">${svg("folder")}</button>
+      </div>
+      <div class="ruler num">${ticks.join("")}</div>
+      <div class="lane">
+        ${s.files.map(f=>`
+          <div class="part" style="flex:${f.secs}">
+            <div class="film" data-secs="${f.secs}">
+              ${[1,2,3,4,5,6,7,8].slice(0, f.secs>1200?8:4).map(k=>`<img src="${A}${f.img}-${f.secs>1200?k:k*2}.jpg">`).join("")}
+              <div class="pl"><b>Pt${f.pt}</b><span class="num">${fmt(f.secs)} · ${f.size}</span></div>
+              <div class="scrub"><em class="num">0:00</em></div>
+              <div class="split">${svg("scissors")}Game changes here</div>
+            </div>
+            <div class="pmeta"><div class="nm"><div class="new">${newName(s,f)}</div><div class="old">from ${f.orig}</div></div>
+              <div class="stepper"><span>Pt</span><button>−</button><b>${f.pt}</b><button>+</button></div></div>
+          </div>`).join("")}
+      </div>
+    </div>`;}).join("") + `<div class="drop">${svg("plus")}Drop an .mp4 or .mkv anywhere on this page to add it</div>`;
+  document.querySelectorAll("#rnBList .film").forEach(film => film.addEventListener("mousemove", e => {
+    const r = film.getBoundingClientRect(), x = (e.clientX-r.left)/r.width, sc = film.querySelector(".scrub");
+    sc.style.left = (x*100)+"%"; sc.querySelector("em").textContent = fmt(+film.dataset.secs*x);
+  }));
+}
+document.getElementById("rnBList").addEventListener("click", e => {
+  const d = e.target.closest("[data-day]");
+  if (d) { SESS[+d.dataset.day].day += +d.dataset.dd; renderRnA(); renderRnB(); }
+});
+function renderHistRail(){
+  const days = [["Sep 30 · 100T Valorant Reacts",["2026-09-30 100T Day6 Pt4","2026-09-30 100T Day6 Pt3","2026-09-30 100T Day6 Pt2","2026-09-30 100T Day6 Pt1"]],
+                ["Sep 29 · 100T Valorant Reacts",["2026-09-29 100T Day5 Pt4","2026-09-29 100T Day5 Pt3","2026-09-29 100T Day5 Pt2","2026-09-29 100T Day5 Pt1"]],
+                ["Sep 18 · Meccha Chameleon",["2026-09-18 MC Day3 Pt3","2026-09-18 MC Day3 Pt2","2026-09-18 MC Day3 Pt1"]]];
+  document.getElementById("hrail").innerHTML = days.map(([d,ns])=>`<div class="hday">${d}</div><div class="hist" style="padding:0 6px">${ns.map(n=>`<div class="hrow">${tagEl(n.split(" ")[1])}<span class="n">${n.split(" ").slice(2).join(" ")}</span><span class="u">Undo</span></div>`).join("")}</div>`).join("");
+}
+
+/* ── Projects data (newest 40 of your 59 projects; dots from project.json) */
+const PROJ = [["2026-09-29 100T Day5 Pt1","100T","UUUUUUUUUUUUUUUUUUUUUUUU",1],["2026-09-18 MC Day3 Pt3","MC","UUUUUUUUUUUUUUUUUUUU",0],["2026-09-18 MC Day3 Pt2","MC","PUUUUUUUUUUUUUUUUU",0],["2026-09-18 MC Day3 Pt1","MC","PPPRRRRPRRRRAPRRRR",0],["2026-09-06 100T Day4 Pt9","100T","PRRRRRRRRRRRRRR",0],["2026-09-06 100T Day4 Pt6","100T","RRRRRPRRRPPRPPRRRPRRR",0],["2026-09-06 100T Day4 Pt5","100T","PRRPRPRRRRRPPRPRRPRR",0],["2026-09-06 100T Day4 Pt4","100T","PRRRPPRRRRRRRRRRPPR",0],["2026-09-06 100T Day4 Pt3","100T","PPRRPPPRPPPRRPPPRR",0],["2026-09-06 100T Day4 Pt2","100T","RRPRPPRRRRRRPRRRRR",0],["2026-09-06 100T Day4 Pt11","100T","RRRRPRRRPRRRPRR",0],["2026-09-06 100T Day4 Pt10","100T","RPRPRRRRRRPRRRRRRPRPR",0],["2026-09-06 100T Day4 Pt1","100T","PRPRPPPPRRPRRRRRRRR",0],["2026-09-04 100T Day3 Pt4","100T","RRPRRRRPPRRRRRRRRRRRRR",0],["2026-09-04 100T Day3 Pt3","100T","RRPRRRRPRRRRRRRRRRRRPRP",0],["2026-09-04 100T Day3 Pt2","100T","PPRRRRRRRR",0],["2026-09-04 100T Day3 Pt1","100T","RPRPPPPPPPRRRPPRRRRRRPRP",0],["2026-08-31 MC Day2 Pt3","MC","PPPRRRRRRRRRRRRRPRRPR",0],["2026-08-31 MC Day2 Pt2","MC","PRRPRRRRRRRRRR",0],["2026-08-31 MC Day2 Pt1","MC","PPPPPPPPPPRRPRRRRRRRR",0],["2026-08-28 100T Day2 Pt5","100T","PPRPPRRRRPRRRPR",0],["2026-08-28 100T Day2 Pt4","100T","PPPPRRRRRRRRPPRRPRR",0],["2026-08-28 100T Day2 Pt2","100T","PRRRRRRPRR",0],["2026-08-28 100T Day2 Pt1","100T","PPPPPRRRRPPRRRRRRR",0],["2026-08-27 GTA6-R Day1 Pt1","GTA6-R","RPPPPPPPPRRRPRPRRR",0],["2026-08-26 ROBOT Day1 Pt1","ROBOT","PPPPPPPPPPPPPPPPPPPPRRRPPRPPRRR",0],["2026-08-19 100T Day1 Pt2","100T","PRRPRRRRPR",0],["2026-08-19 100T Day1 Pt1","100T","PPPPPRPRPRRRRRPRRR",0],["2026-08-06 RL Day14 Pt4","RL","UUUUUUUUUUUUUUUUUUUU",0],["2026-08-06 RL Day14 Pt3","RL","UUUUUUUUUUUUUUUUUUUU",0],["2026-08-06 RL Day14 Pt2","RL","PPPUUPUUUUUUUUUUUUUUU",0],["2026-08-06 RL Day14 Pt1","RL","PPRRPPRRRRRPPRPRRPRRRRR",0],["2026-07-30 DD Day2 Pt1","DD","PRPRRRPRRRRPRRR",0],["2026-07-29 MC Day1 Pt1","MC","RRRRRRRRRR",0],["2026-07-22 RL Day10 Pt3","RL","RRRRPRRRRRRRRRRRRRRR",0],["2026-07-22 RL Day10 Pt2","RL","RPRRPPRPPPRRRRRR",0],["2026-07-22 RL Day10 Pt1","RL","RRRRRRRRRRRPRRR",0],["2026-07-21 EO Day4 Pt1","EO","PRRPRRPPRRRRRRRPPR",0],["2026-07-20 RL Day9 Pt6","RL","PPRRRRRRRRRRRRR",0],["2026-07-20 RL Day9 Pt5","RL","PRRRRRRRRRPRRRR",0]];
+/* 100T Day5 Pt1: the clip judge's real scores and reasons, best first */
+const JUDGED = [[9,90,35,"An incredible clutch shot with a huge, expressive reaction to both the play and the player's cold composure."],[1,85,50,"A big, energetic reaction to a flawless round win with a 3k from Bang."],[8,62,46,"Bang's 3k round-winning multi-kill delivers a solid play with a fun, matching reaction from the creator."],[2,40,47,"It was a great 4K by the opposing player, but plays against 100 Thieves only keep when they are an ace or a clutch win."],[4,35,60,"The play ends in a save without a clutch or round win, making it a routine lost round rather than a highlight."],[16,30,33,"He missed the play live while talking and had to rewind just to see a routine double kill."],[3,25,30],[5,20,33],[21,20,30],[6,15,36],[7,15,43],[11,15,19],[12,15,68],[14,15,14],[17,15,30],[20,15,29],[22,15,20],[24,15,12],[10,10,11],[13,10,27],[18,10,24],[19,10,20],[15,5,43],[23,5,26]];
+const cnt = (d,c) => [...d].filter(x=>x===c).length;
+const state = d => d.includes("U") ? "review" : d.includes("A")||d.includes("Q") ? "sched" : "done";
+const statusPill = d => { const st=state(d), u=cnt(d,"U"); return st==="review" ? `<span class="pill review">${u} to review</span>` : st==="sched" ? `<span class="pill sched">${cnt(d,"A")+cnt(d,"Q")} to schedule</span>` : `<span class="pill done num">${d.length}/${d.length} done</span>`; };
+const short = n => n.slice(11);
+const mdy = n => new Date(n.slice(0,10)+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+const dotsEl = d => `<div class="dots ${state(d)==="done"?"done":""}">${[...d].map(c=>`<i class="d-${c}"></i>`).join("")}</div>`;
+const SEGC = {P:"#22d3ee",S:"#fbbf24",Q:"#f97316",A:"#34d399",R:"rgba(248,113,113,.45)",U:"rgba(255,255,255,.14)"};
+const stackEl = d => `<div class="stack">${["P","S","Q","A","R","U"].map(c=>cnt(d,c)?`<i style="flex:${cnt(d,c)};background:${SEGC[c]}"></i>`:"").join("")}</div>`;
+
+function filtersHtml(){
+  const g = {}; PROJ.forEach(p=>g[p[1]]=(g[p[1]]||0)+1);
+  const games = [["MC",7],["100T",19],["Val",1],["GTA6-R",1],["ROBOT",1],["RL",23],["DD",1],["EO",4],["AR",2]];
+  return `<div class="seg"><button class="on">All <span class="c">59</span></button><button>To review <span class="c">7</span></button><button>To schedule <span class="c">1</span></button><button>Done <span class="c">51</span></button></div>
+    <span class="div"></span>
+    <span class="chip on">All games</span>${games.map(([t,n])=>`<span class="chip"><i class="gd" style="background:${GAMES[t][1]}"></i>${t}<span class="c">${n}</span></span>`).join("")}`;
+}
+
+let selProj = 0;
+function renderPrA(){
+  let lastMonth = "";
+  document.getElementById("plist").innerHTML = PROJ.map((p,i)=>{
+    const m = new Date(p[0].slice(0,10)+"T12:00").toLocaleDateString("en-US",{month:"long"});
+    const head = m!==lastMonth ? `<div class="grp"><span class="label">${m}</span></div>` : ""; lastMonth = m;
+    return head + `<div class="prow ${i===selProj?"sel":""}" data-p="${i}">
+      ${poster(p[1])}
+      <div style="min-width:0"><div class="t"><b>${short(p[0])}</b><span>${mdy(p[0])} · ${p[2].length} clips</span></div>${dotsEl(p[2])}</div>
+      <div class="r">${statusPill(p[2])}${p[3]?`<span class="ranked">${svg("eye")}Ranked</span>`:""}</div>
+    </div>`;}).join("");
+  renderPv();
+}
+function renderPv(){
+  const p = PROJ[selProj], d = p[2], st = state(d);
+  const legend = [["P","Published"],["S","Scheduled"],["Q","In queue"],["A","Kept"],["R","Rejected"],["U","To review"]].filter(([c])=>cnt(d,c)).map(([c,l])=>`<span><i style="background:${SEGC[c]}"></i>${l} <b class="num">${cnt(d,c)}</b></span>`).join("");
+  const cta = st==="review" ? `<button class="btn primary">Review ${cnt(d,"U")} clips${svg("arrow")}</button>` : st==="sched" ? `<button class="btn primary">Schedule ${cnt(d,"A")} clip${svg("arrow")}</button>` : `<button class="btn">Open project</button>`;
+  let body = "";
+  if (p[0].includes("100T Day5 Pt1")) {
+    const top = JUDGED.slice(0,4), rest = JUDGED.slice(4);
+    const sc = s => s>=60?"hi":s>=35?"mid":"lo";
+    body = `<div><div class="secH"><h3>Corva's top picks</h3><span>Watched all 24 clips, best first</span><span class="link">Review in this order</span></div>
+      <div class="picks">${top.map(([n,s,dur,why])=>`<div class="pick"><div class="ph"><img src="${A}100T-${String(n).padStart(2,"0")}.jpg"><span class="score ${sc(s)} num">${s}</span><span class="dur num">0:${String(dur).padStart(2,"0")}</span></div><p>${why}</p></div>`).join("")}</div></div>
+      <div><div class="secH"><h3>Everything else</h3><span>20 clips Corva rated lower. Hover one for its reason</span></div>
+      <div class="rest">${rest.map(([n,s])=>`<div><img src="${A}100T-${String(n).padStart(2,"0")}.jpg"><b class="num">${s}</b></div>`).join("")}</div></div>`;
+  } else if (p[0].includes("MC Day3 Pt3")) {
+    body = `<div><div class="secH"><h3>Clips</h3><span>Not ranked: recorded before "Rank new clips by watching them" was on</span></div>
+      <div class="picks many">${Array.from({length:12},(_,k)=>`<div class="pick"><div class="ph"><img src="${A}MC-${String(k+1).padStart(2,"0")}.jpg"><span class="dur num">0:${30+((k*7)%28)}</span></div></div>`).join("")}</div></div>`;
+  } else {
+    body = `<div class="empty">In the real app this shows the project's clips here: published ones first, then kept, then rejected.<br>The mockup only has stills for <b>100T Day5 Pt1</b> and <b>MC Day3 Pt3</b>.</div>`;
+  }
+  document.getElementById("pv").innerHTML = `
+    <div class="pvTop">${poster(p[1])}
+      <div style="min-width:0"><h2>${p[0]}</h2>
+        <div class="pvMeta">${tagEl(p[1])}<span>${GAMES[p[1]][0]}</span><span>·</span><span class="num">${d.length} clips</span><span>·</span><span>Recorded ${mdy(p[0])}</span>${p[3]?`<span class="ranked">${svg("eye")}Ranked by Corva</span>`:""}</div></div>
+      <div class="acts">${cta}<button class="btn icon" title="Delete project">${svg("trash")}</button></div>
+    </div>
+    <div>${stackEl(d)}<div class="legend">${legend}</div></div>
+    ${body}`;
+}
+document.getElementById("plist").addEventListener("click", e => { const r=e.target.closest(".prow"); if(!r) return; selProj=+r.dataset.p; renderPrA(); });
+
+function renderPrB(){
+  const need = PROJ.map((p,i)=>[p,i]).filter(([p])=>state(p[2])!=="done");
+  const done = PROJ.filter(p=>state(p[2])==="done");
+  const mosaic = p => {
+    if (p[0].includes("100T Day5 Pt1")) return `<div class="mosaic">${JUDGED.slice(0,4).map(([n])=>`<img src="${A}100T-${String(n).padStart(2,"0")}.jpg">`).join("")}<span class="score hi num">Top pick 90</span></div>`;
+    if (p[0].includes("MC Day3 Pt3")) return `<div class="mosaic">${[1,4,7,10].map(n=>`<img src="${A}MC-${String(n).padStart(2,"0")}.jpg">`).join("")}</div>`;
+    if (ART[p[1]]) return `<div class="mosaic art"><img src="${A+ART[p[1]]}" style="object-position:center 30%"></div>`;
+    return `<div class="mosaic"><div class="tile" style="background:linear-gradient(135deg,${hexA(GAMES[p[1]][1],.5)},${hexA(GAMES[p[1]][1],.12)})">${p[1]}</div></div>`;
+  };
+  document.getElementById("prBBody").innerHTML = `
+    <div><div class="secH"><h3>Needs you</h3><span>${need.length} projects with clips to review or schedule</span></div>
+      <div class="cards">${need.map(([p])=>`<div class="panel card">${mosaic(p)}
+        <div class="cb2"><div class="t">${tagEl(p[1])}<b>${short(p[0]).replace(p[1]+" ","")}</b>${statusPill(p[2])}</div>
+        <div class="m"><span>${mdy(p[0])} · ${p[2].length} clips</span>${p[3]?`<span class="ranked">${svg("eye")}Ranked</span>`:""}</div>${dotsEl(p[2])}</div></div>`).join("")}</div></div>
+    <div><div class="secH"><h3>Done</h3><span>${done.length} shown of 51</span></div>
+      <div class="panel" style="overflow:hidden"><table class="table">
+        <thead><tr><th>Project</th><th class="hideS">Game</th><th>Recorded</th><th class="r">Clips</th><th>Outcome</th><th class="r">Published</th><th class="r hideS">Kept rate</th></tr></thead>
+        <tbody>${done.map(p=>{ const pub=cnt(p[2],"P"), kept=pub+cnt(p[2],"S")+cnt(p[2],"Q")+cnt(p[2],"A"), kr=Math.round(kept/p[2].length*100);
+          return `<tr><td><div class="pn">${poster(p[1])}<b>${short(p[0])}</b></div></td><td class="hideS" style="color:var(--text2)">${GAMES[p[1]][0]}</td><td style="color:var(--text2)">${mdy(p[0])}</td><td class="r num">${p[2].length}</td><td>${stackEl(p[2])}</td><td class="r num" style="color:var(--cyan);font-weight:600">${pub}</td><td class="r hideS num kr" style="color:${kr>=35?"var(--green)":kr>=15?"var(--text2)":"var(--text3)"}">${kr}%</td></tr>`;}).join("")}</tbody></table></div></div>`;
+}
+
+/* ── Notes per screen (plain language) ─────────────────────────────────── */
+const NOTES = {
+  rnA:["Rename A: list + preview",["The tab bar moves to a left sidebar. The watch folder and the clipping progress live at its foot, so the floating 'Clipping…' toast goes away.","Files run the full width. The new name is the headline; the original name sits under it.","Right panel: a big preview you can scrub by moving the mouse, the file's facts, where it will be saved, and undo for your last renames.","The Rename button sits in the header, always in the same spot, instead of floating over the list."],"Removed the TOTAL / GAMES counters from the header (they rarely change what you do). Keep them?"],
+  rnB:["Rename B: session timeline",["Each session is drawn as one timeline. A part's width matches its length, so a 15-minute Pt2 looks half as long as a 30-minute Pt1.","Hover a part to scrub it. That's also where 'game changes here' splits would be marked.","Clock times under each session show when you actually streamed.","History becomes a right-hand column instead of its own tab."],"Timeline needs more vertical room per session. With 6+ sessions waiting, A scales better."],
+  prA:["Projects A: list + preview",["Compact list on the left (about 3× more projects on screen than today), grouped by month.","Click a project and the right side shows what's inside without opening it: Corva's top picks with scores and the reason, then everything else.","The coloured bar plus legend replaces hovering the dots to find out what they mean.","The main button changes with the project: Review 24 clips, Schedule 1 clip, or Open."],"Status filters became one segmented control; game filters stay as chips."],
+  prB:["Projects B: triage board",["Projects that need you sit on top as big cards with stills from the clips.","Finished projects collapse into a table: date, clip count, outcome bar, published count and kept rate.","Kept rate is new: the share of clips you kept, per project. It shows at a glance which recordings were worth it."],"B shows more history at once, A gets you into clips faster. Mixing them works too (A's preview with B's 'Needs you' cards)."]
+};
+function renderNotes(id){ const [h,items,q]=NOTES[id]; document.getElementById("notes").innerHTML=`<h4>${h}</h4><ul>${items.map(x=>`<li>${x}</li>`).join("")}</ul><div class="q">${q}</div>`; }
+
+/* ── Harness wiring ───────────────────────────────────────────────────── */
+const app = document.getElementById("app");
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));
+  document.querySelectorAll("#scrSeg button").forEach(b=>b.classList.toggle("on",b.dataset.s===id));
+  const tab = id.startsWith("rn") ? 0 : 2;
+  document.querySelectorAll("#nav a").forEach((a,i)=>a.classList.toggle("on",i===tab));
+  document.querySelectorAll("#bnav a").forEach((a,i)=>a.classList.toggle("on",i===tab));
+  renderNotes(id);
+}
+document.getElementById("scrSeg").onclick = e => { const b=e.target.closest("button"); if(b) show(b.dataset.s); };
+document.getElementById("navSeg").onclick = e => { const b=e.target.closest("button"); if(!b) return; app.classList.toggle("navbottom",b.dataset.n==="bottom"); [...e.currentTarget.children].forEach(x=>x.classList.toggle("on",x===b)); };
+document.getElementById("winSeg").onclick = e => { const b=e.target.closest("button"); if(!b) return; app.classList.toggle("small",b.dataset.w==="small"); [...e.currentTarget.children].forEach(x=>x.classList.toggle("on",x===b)); };
+document.getElementById("notesBtn").onclick = () => document.getElementById("notes").classList.toggle("on");
+document.getElementById("nav").onclick = e => { const a=e.target.closest("a[data-go]"); if(a) show(a.dataset.go==="rn"?"rnA":"prA"); };
+
+document.getElementById("prAFilters").innerHTML = filtersHtml();
+document.getElementById("prBFilters").innerHTML = filtersHtml();
+renderRnA(); renderRnB(); renderHistRail(); renderPrA(); renderPrB(); show("rnA");
+</script>
+</body>
+</html>
