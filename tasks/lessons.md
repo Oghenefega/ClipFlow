@@ -6,6 +6,11 @@
 > <!-- NEXT-UNDISTILLED-BELOW -->
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 
+## I built Fega's rough paint sketch literally, and used purple for "selected" (2026-10-02, session 284, Fega's review of #485 v2)
+**What happened:** Fega drew a quick paint example of the project list shrinking to the left. I implemented it word for word: the column narrowed and hard-clipped the cards. He called it "lazy and boring… the way the clips overlap the project pills is very sharp/cut". The rail also couldn't be clicked to bring the list back. Separately, selected project cards and Rename tiles got the app's purple accent border and shadow. His view: "no point to it being purple", a selected item should light up in its own colour.
+**Why it happened:** I treated his sketch as the spec instead of as intent ("blend the two pages, minimize smoothly"). I also reached for the global accent as the selection colour without asking what the colour communicates.
+**Rule:** a sketch or screenshot from Fega shows intent, not the design. Design the state properly: real transitions, no hard clipping, and every minimized element still clickable. Selection lights the item up in its own colour (brighter fill, stronger border, glow in that colour); purple is for actions, not for selection.
+
 ## The layout mockups stripped Corva's colour, and one turned the Projects tab into a spreadsheet (2026-10-02, session 284, Fega's review of #485)
 **What happened:** the #485 mockups rebuilt Rename and Projects for the full window, using the impeccable skill's "restrained" product rules (neutral panels, one accent). Fega: Projects A "doesn't beat the original… the nice highlights and gradients were stripped away". The Projects B triage board with its Done table was "a total downgrade… boring spreadsheet work". He also wants colourful custom icons, not monochrome line icons. Separately, Rename A filled the width by stretching each row, which moved the dead space into the middle of the row instead of using it.
 **Why it happened:** I applied a generic product-UI rulebook (restrained colour, tables for density) over the look Corva already has and Fega likes: game-colour gradient cards, glossy clip orbs, posters. I also counted "fills the width" as done without checking that the new width held content.

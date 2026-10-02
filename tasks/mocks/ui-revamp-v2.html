@@ -135,7 +135,8 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
   background:radial-gradient(90% 160% at 100% 0%,var(--gc1) 0%,transparent 55%),linear-gradient(100deg,var(--gc2) 0%,var(--gc3) 40%,rgba(255,255,255,.02) 65%);
   border:1px solid var(--gcb);transition:transform .18s var(--ease),box-shadow .18s,border-color .18s}
 .ft:hover{transform:translateY(-2px);box-shadow:var(--tileLift)}
-.ft.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 10px 30px -10px rgba(139,92,246,.55)}
+.ft.sel{background:radial-gradient(90% 160% at 100% 0%,var(--gs1) 0%,transparent 60%),linear-gradient(100deg,var(--gs2) 0%,var(--gs3) 55%,rgba(255,255,255,.03) 85%);border-color:var(--gsb);box-shadow:0 0 0 1px var(--gsb),0 14px 40px -14px var(--gsg),inset 0 1px 0 rgba(255,255,255,.08)}
+.ft.sel .new{color:#fff}
 .ft .th{width:64px;height:72px;border-radius:9px;object-fit:cover;display:block;border:1px solid rgba(255,255,255,.08)}
 .ft .nm{min-width:0;display:flex;flex-direction:column}
 .ft .new{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -212,29 +213,49 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .filters{display:flex;align-items:center;gap:8px;padding-bottom:16px;flex-wrap:wrap}
 .filters .div{width:1px;height:20px;background:var(--border);margin:0 4px}
 .filters .sa{margin-left:auto;color:var(--accentLight);font-weight:600;cursor:pointer}
-.pw{display:grid;grid-template-columns:500px minmax(0,1fr) 0px;gap:0;flex:1;min-height:0;transition:grid-template-columns .38s var(--ease)}
-.pw.open{grid-template-columns:92px minmax(0,1fr) 660px}
-@container app (max-width:1400px){.pw{grid-template-columns:400px minmax(0,1fr) 0px}.pw.open{grid-template-columns:92px minmax(0,1fr) 560px}}
-.plcol{min-height:0;display:flex;flex-direction:column;overflow:hidden;padding-right:18px;transition:padding .38s var(--ease)}
-.pw.open .plcol{padding-right:12px}
+.pw{display:grid;grid-template-columns:500px minmax(0,1fr) 0px;gap:0;flex:1;min-height:0;transition:grid-template-columns .44s var(--ease)}
+.pw.open{grid-template-columns:106px minmax(0,1fr) 660px}
+@container app (max-width:1400px){.pw{grid-template-columns:400px minmax(0,1fr) 0px}.pw.open{grid-template-columns:106px minmax(0,1fr) 560px}}
+.plcol{min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:0 18px 0 0;border-radius:20px;border:1px solid transparent;background:transparent;
+  transition:padding .44s var(--ease),margin .44s var(--ease),background-color .3s,border-color .3s,box-shadow .3s}
+.pw.open .plcol{padding:10px 10px 0;margin-bottom:22px;background-color:rgba(255,255,255,.028);border-color:var(--border);box-shadow:var(--hi),0 24px 50px -24px rgba(0,0,0,.7)}
 .plcol>.scroll{overflow-x:hidden}
+.pw.open .plcol>.scroll{scrollbar-width:none}
+.pw.open .plcol>.scroll::-webkit-scrollbar{width:0}
 .railTop{height:0;overflow:hidden;transition:height .3s var(--ease)}
-.pw.open .railTop{height:40px}
-.railTop button{width:66px;height:30px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.035);color:var(--text2);display:grid;place-items:center}
+.pw.open .railTop{height:38px}
+.railTop button{width:100%;height:30px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text2);display:grid;place-items:center}
 .railTop button:hover{color:var(--text);border-color:var(--borderHover)}
 .plist{display:grid;gap:10px;padding:2px 2px 24px}
-.pc{position:relative;display:flex;align-items:center;gap:14px;padding:13px;border-radius:14px;overflow:hidden;cursor:pointer;min-width:440px;
+.pc{position:relative;display:flex;align-items:center;gap:14px;padding:13px;border-radius:14px;overflow:hidden;cursor:pointer;
   background:radial-gradient(90% 160% at 100% 0%,var(--c1f) 0%,transparent 55%),linear-gradient(100deg,var(--c1a) 0%,var(--c06) 40%,rgba(255,255,255,.02) 65%);
-  border:1px solid var(--c3d);transition:transform .18s var(--ease),box-shadow .18s}
+  border:1px solid var(--c3d);transition:padding .44s var(--ease),transform .18s var(--ease),box-shadow .25s,border-color .25s}
 .pc:hover{transform:translateY(-1px);box-shadow:var(--tileShadow)}
-.pc.sel{border-color:var(--accentBorder);box-shadow:0 0 0 1px var(--accentBorder),0 10px 30px -14px rgba(139,92,246,.6);background:radial-gradient(90% 160% at 100% 0%,var(--c1f) 0%,transparent 55%),linear-gradient(100deg,rgba(139,92,246,.16) 0%,var(--c06) 45%,rgba(255,255,255,.02) 70%)}
-.post{position:relative;flex:none;width:60px;height:80px;border-radius:10px;overflow:hidden;display:grid;place-items:center;transition:box-shadow .2s}
+.pc.sel{background:radial-gradient(90% 160% at 100% 0%,var(--s1) 0%,transparent 60%),linear-gradient(100deg,var(--s2) 0%,var(--s3) 55%,rgba(255,255,255,.03) 85%);border-color:var(--sb);box-shadow:0 0 0 1px var(--sb),0 14px 40px -14px var(--sg),inset 0 1px 0 rgba(255,255,255,.08)}
+.pc.sel .nm{color:#fff}
+.pw.open .pc{padding:7px}
+.pw.open .plist{gap:8px}
+.pw.open .pc:not(.sel) .post{filter:saturate(.7) brightness(.75)}
+.pw.open .pc:not(.sel):hover .post{filter:none}
+.post{position:relative;flex:none;width:60px;height:80px;border-radius:10px;overflow:hidden;display:grid;place-items:center;transition:width .44s var(--ease),height .44s var(--ease),box-shadow .25s,filter .25s}
+.pw.open .post{width:70px;height:88px}
+.plab{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:14px 5px 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.8) 55%);text-align:center;opacity:0;transition:opacity .2s}
+.pw.open .plab{opacity:1;transition-delay:.28s}
+.plab b{display:block;font-size:10.5px;font-weight:800;color:#fff;white-space:nowrap;margin-bottom:5px;letter-spacing:.01em}
+.plab .mb{display:flex;height:3px;gap:1px}
+.plab .mb i{display:block;height:100%}
 .post img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .post::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 20%,transparent 40%,rgba(0,0,0,.5))}
 .post span{position:relative;z-index:1;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
-.pw.open .pc.sel .post{box-shadow:0 0 0 2px var(--accentLight),0 0 16px rgba(167,139,250,.6)}
-.pcb{flex:1;min-width:0;transition:opacity .2s}
-.pw.open .pcb{opacity:0}
+.pw.open .pc.sel .post{box-shadow:0 0 0 2px var(--sb),0 0 22px var(--sg)}
+.pcb{flex:1;min-width:0;transition:opacity .14s}
+.pw.fading .pcb{opacity:0}
+.pw.open .pcb{display:none}
+.ccol{transition:padding .44s var(--ease)}
+.pw.open .ccol{padding-left:16px}
+#rtip{position:fixed;z-index:60;pointer-events:none;padding:8px 11px;border-radius:10px;background:#16171f;border:1px solid var(--borderHover);box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:12.5px;font-weight:700;white-space:nowrap;opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s var(--ease)}
+#rtip.on{opacity:1;transform:none}
+#rtip span{display:block;font-size:11.5px;color:var(--text2);font-weight:500;margin-top:2px}
 .pc .nm{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc .meta{margin-top:4px;font-size:12px;color:var(--text2)}
 .pc .row{margin-top:10px;display:flex;align-items:center;gap:12px}
@@ -245,7 +266,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .pc .cnt b{color:var(--text)}
 .pc .rk{position:absolute;right:12px;top:12px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
 .pc .rk svg.i{width:13px;height:13px}
-.rbadge{position:absolute;right:4px;top:4px;z-index:3;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:none;place-items:center;box-shadow:0 0 0 2px var(--bg)}
+.rbadge{position:absolute;right:3px;top:3px;z-index:3;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:none;place-items:center;box-shadow:0 0 0 2px var(--bg)}
 .pw.open .rbadge{display:grid}
 /* clips column */
 .ccol{min-width:0;min-height:0;display:flex;flex-direction:column;padding:0 2px}
@@ -262,7 +283,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .tile{min-width:0;padding:6px 6px 8px;border-radius:14px;cursor:pointer;background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0)),var(--surface);border:1px solid var(--border);box-shadow:var(--tileShadow);transition:border-color .15s,box-shadow .15s,transform .15s}
 .tile:hover{transform:translateY(-2px);border-color:var(--borderHover);box-shadow:var(--tileLift)}
 .tile.ok{border-color:var(--greenBorder)}
-.tile.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--tileShadow)}
+.tile.sel{border-color:var(--tg);background:linear-gradient(180deg,var(--tgb),rgba(255,255,255,0) 70%),var(--surface);box-shadow:0 0 0 1px var(--tg),0 16px 40px -14px var(--tgg)}
 .tile .st{position:relative;aspect-ratio:8/9;border-radius:10px;overflow:hidden;background:#15161d}
 .tile .st img,.tile .st video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .tile.rej .st{opacity:.4}
@@ -441,7 +462,7 @@ const FRAMES = {}; [1,2,3,4].forEach(k => FRAMES[k] = Array.from({length:NF},(_,
 let sel = [0,0], splitOpen = null;
 const sessTotal = s => s.files.reduce((a,f)=>a+f.secs,0);
 const newName = (s,f,suffix="") => `${s.date} <span style="color:${GAMES[s.tag][1]}">${s.tag}</span> Day${s.day} Pt${f.pt}${suffix}<span class="ext">.mp4</span>`;
-const gameVars = t => { const c=GAMES[t][1]; return `--gc1:${hexA(c,.12)};--gc2:${hexA(c,.10)};--gc3:${hexA(c,.025)};--gcb:${hexA(c,.24)}`; };
+const gameVars = t => { const c=GAMES[t][1]; return `--gc1:${hexA(c,.12)};--gc2:${hexA(c,.10)};--gc3:${hexA(c,.025)};--gcb:${hexA(c,.24)};--gs1:${hexA(c,.30)};--gs2:${hexA(c,.26)};--gs3:${hexA(c,.07)};--gsb:${hexA(c,.8)};--gsg:${hexA(c,.55)}`; };
 
 function renderRename(){
   document.getElementById("rnList").innerHTML = SESS.map((s,i)=>`
@@ -563,8 +584,8 @@ function renderList(){
   document.getElementById("plist").innerHTML = PROJ.map((p,i)=>{
     const [name,tag,d,ranked]=p, c=GAMES[tag][1], st=pState(d), u=cnt(d,"U"), done=d.length-u;
     const cntTxt = st==="review" ? `<b>${done}</b>/${d.length} done` : st==="sched" ? `<b style="color:var(--accentLight)">${cnt(d,"A")+cnt(d,"Q")} to schedule</b>` : `<b>${d.length}</b>/${d.length} done`;
-    return `<div class="pc ${i===selP?"sel":""}" data-p="${i}" style="--c1f:${hexA(c,.12)};--c1a:${hexA(c,.10)};--c06:${hexA(c,.024)};--c3d:${hexA(c,.24)}" title="${name}">
-      <div class="post" style="background:${hexA(c,.1)}">${ART[tag]?`<img src="${A+ART[tag]}">`:`<div style="position:absolute;inset:0;background:linear-gradient(150deg,${c},${hexA(c,.33)} 65%,${hexA(c,.13)})"></div><span>${tag}</span>`}</div>
+    return `<div class="pc ${i===selP?"sel":""}" data-p="${i}" style="--c1f:${hexA(c,.12)};--c1a:${hexA(c,.10)};--c06:${hexA(c,.024)};--c3d:${hexA(c,.24)};--s1:${hexA(c,.30)};--s2:${hexA(c,.26)};--s3:${hexA(c,.07)};--sb:${hexA(c,.8)};--sg:${hexA(c,.55)}" data-tip="${name}|${cntTxt.replace(/<[^>]+>/g,'')}">
+      <div class="post" style="background:${hexA(c,.1)}">${ART[tag]?`<img src="${A+ART[tag]}">`:`<div style="position:absolute;inset:0;background:linear-gradient(150deg,${c},${hexA(c,.33)} 65%,${hexA(c,.13)})"></div><span>${tag}</span>`}<div class="plab"><b>${name.slice(11).replace(tag+' ','')}</b><div class="mb">${['P','S','Q','A','R','U'].map(x=>cnt(d,x)?`<i style="flex:${cnt(d,x)};background:${x==='U'?'rgba(255,255,255,.25)':x==='R'?'rgba(255,69,96,.55)':DOT[x][1]}"></i>`:'').join('')}</div></div></div>
       ${u?`<span class="rbadge num">${u}</span>`:""}
       <div class="pcb">
         <div class="nm">${name}</div>
@@ -598,7 +619,7 @@ function renderClips(){
     <div class="chead"><div style="min-width:0"><h2>${name}</h2><div class="s">${tagEl(tag)}${parts}${ranked?`<span class="rankchip">${svg("eye")}Ranked by Corva, best first</span>`:""}</div></div>
       <div class="r">${cnt(d,"A")?`<button class="btn render">Render all (${cnt(d,"A")})</button>`:""}</div></div>
     <div class="ctabs"><span class="chip on">All <span class="c">${d.length}</span></span><span class="chip">Pending <span class="c">${toReview}</span></span><span class="chip">Approved <span class="c">${d.length-toReview-cnt(d,"R")}</span></span></div>
-    <div class="scroll" style="flex:1"><div class="grid" id="grid">${clips.map(c=>{
+    <div class="scroll" style="flex:1"><div class="grid" id="grid" style="--tg:${hexA(GAMES[tag][1],.85)};--tgg:${hexA(GAMES[tag][1],.5)};--tgb:${hexA(GAMES[tag][1],.14)}">${clips.map(c=>{
       const ok=["A","Q","S","P"].includes(c.st), rej=c.st==="R";
       const pb = c.st==="P"?`<span class="pb P">Published</span>`:c.st==="S"?`<span class="pb S">Scheduled</span>`:c.st==="Q"?`<span class="pb Q">In queue</span>`:"";
       const why = rej ? `<div class="why">${c.rr&&c.rr.length?`Why: <span>${c.rr.map(k=>REASONS[k]||k).join(", ")}</span>`:"Why? →"}</div>` : "";
@@ -638,13 +659,19 @@ function renderPanel(){
     pl.onclick=()=>{ if(v.paused){ v.play(); pl.classList.add("playing"); } else { v.pause(); pl.classList.remove("playing"); } };
     v.addEventListener("ended",()=>pl.classList.remove("playing")); }
 }
-function openPanel(ci){ selC=ci; const was=open; open=true; document.getElementById("pw").classList.add("open"); setCols();
+function openPanel(ci){ selC=ci; const pw=document.getElementById("pw"); if(!open){ open=true; pw.classList.add("fading"); setCols(); setTimeout(()=>{ if(open) pw.classList.add("open"); },130); }
   document.querySelectorAll(".tile").forEach(t=>t.classList.toggle("sel",+t.dataset.c===ci)); renderPanel();
   const v=document.getElementById("pv"); if(v && was===false){} }
-function closePanel(){ open=false; selC=null; document.getElementById("pw").classList.remove("open"); setCols();
+function closePanel(){ open=false; selC=null; const pw=document.getElementById("pw"); pw.classList.remove("open"); setCols(); hideTip(); setTimeout(()=>{ if(!open) pw.classList.remove("fading"); },380);
   document.querySelectorAll(".tile.sel").forEach(t=>t.classList.remove("sel")); setTimeout(renderPanel,380); }
 document.getElementById("plist").addEventListener("click", e => { const c=e.target.closest(".pc"); if(!c) return; selP=+c.dataset.p; renderList(); renderClips();
-  if(open){ const first=clipsOf(selP)[0]; openPanel(first.ci); } });
+  if(open) closePanel(); });
+// rail hover: full name + status beside the poster
+const tip=document.createElement("div"); tip.id="rtip"; document.body.appendChild(tip);
+function hideTip(){ tip.classList.remove("on"); }
+document.getElementById("plist").addEventListener("mouseover", e => { const c=e.target.closest(".pc"); if(!c||!open) return; const [n,st]=c.dataset.tip.split("|"), r=c.getBoundingClientRect();
+  tip.innerHTML=n+"<span>"+st+" · click to show all projects</span>"; tip.style.left=(r.right+12)+"px"; tip.style.top=(r.top+r.height/2-22)+"px"; tip.classList.add("on"); });
+document.getElementById("plist").addEventListener("mouseleave", hideTip);
 document.getElementById("expand").onclick = closePanel;
 document.getElementById("ccol").addEventListener("click", e => { if(e.target.closest(".ar")) return; const t=e.target.closest(".tile"); if(t) openPanel(+t.dataset.c); });
 // hover-to-play: one muted video at a time, unloaded the moment the pointer leaves
@@ -663,7 +690,7 @@ window.addEventListener("resize", setCols);
 /* ── notes + harness ───────────────────────────────────────────────────── */
 const NOTES = {
   rn:["Rename v2",["Files sit side by side as tiles, like the Recordings tab. On a wide screen a session's parts fit on one row.","Each tile carries the game's colour, like the project cards.","Split (scissors on the tile, or in the right panel) opens a long filmstrip under that session. Click where a new game starts to drop a marker, × to remove it. Each piece gets its own game and name. Hovering the strip also scrubs the big preview.","Preview scrubbing swaps 40 pre-made frames, so it's instant. The real app would make about 100 per recording when it lands, without opening the video file (which is what blocked renames before).","TOTAL / GAMES counters dropped. Undo shows when you hover a recent rename."]],
-  pr:["Projects v2",["Your current project cards are back: game-colour gradients, posters, glossy orbs.","Click a project: its clips show on the right straight away, same tiles as today (score, ✓ ✕, Why line on rejected clips). Published, scheduled and queued clips get a small badge on the picture.","Hover a clip to play it muted. In this mockup the first 8 of 100T Day5 Pt1 and the kept MC Day3 Pt1 clips play.","Click a clip: the project list slides into a poster rail, and the player plus details open on the right. Click it to play with sound. ← → steps clips, Esc slides the list back.","In the rail, click another poster to jump projects without going back. The number on a poster is how many clips are left to review.","Ranked projects (100T Day5 Pt1) are sorted best first, with Corva's reason in the panel."]]
+  pr:["Projects v2",["Your current project cards are back: game-colour gradients, posters, glossy orbs.","Click a project: its clips show on the right straight away, same tiles as today (score, ✓ ✕, Why line on rejected clips). Published, scheduled and queued clips get a small badge on the picture.","Hover a clip to play it muted. In this mockup the first 8 of 100T Day5 Pt1 and the kept MC Day3 Pt1 clips play.","Selected items light up in their own colour (no purple): project cards, Rename tiles and clip tiles.","Click a clip: the card text fades, then each card shrinks around its poster into a rail. Every poster keeps its name, a progress bar and the number left to review. The player and details slide in on the right; click the player for sound. ← → steps clips.","Click any poster in the rail (or press Esc) and the full list slides back out with that project selected. Hover a poster for its full name.","Ranked projects (100T Day5 Pt1) are sorted best first, with Corva's reason in the panel."]]
 };
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));
