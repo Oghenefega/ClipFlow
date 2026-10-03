@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-03 (session 288): 0.5.0-alpha.21 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.21 and the installer published to the update feed.** This build ships the #486 Numbers font and the presets drawn in their real style, plus session 287's detection prompt audit (structured outputs, the overlap rule). Fega asked for this cut to test #486 in the installed app.
+
 ## [Unreleased] 2026-10-03 (session 288): Numbers font and presets drawn in their real style (#486)
 
 ### Added
