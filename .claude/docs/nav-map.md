@@ -8,7 +8,7 @@ whole.** It lists names only: `grep -n <name> <file>` to land on one.
 Sections come from the file's own `// ==== TITLE ====` banners where it has them; inner
 handlers of a giant component aren't listed (grep the component, then read from there).
 
-### src/main/ai-pipeline.js (1229 lines)
+### src/main/ai-pipeline.js (1230 lines)
 - **(top)**: updateFileStatus, applyPendingRenames, ensureProcessingDirs, sliceSubtitlesFromSource, round3, runEnergyScorer, buildSilentFallbackClips, writeSrt, formatSrtTime, extractTopFrames, extractFrame, callLLMForHighlights, resolveDefaultReframeLayout, runAIPipeline
 
 ### src/main/main.js (6590 lines)
@@ -125,13 +125,13 @@ Line count and the first line of its header comment.
 - `src/components/ui/tooltip.tsx` (29)
 - `src/index.js` (89)
 - `src/lib/utils.ts` (7)
-- `src/main/ai-pipeline.js` (1229)
-- `src/main/ai-prompt.js` (692)
+- `src/main/ai-pipeline.js` (1230)
+- `src/main/ai-prompt.js` (720)
 - `src/main/ai/ai-call-log.js` (79): ai_calls — one row per title/caption model call (#424), and per game
 - `src/main/ai/cost-tracker.js` (88): Provider-aware cost tracking for LLM API calls.
 - `src/main/ai/detection-model.js` (19): #480: the model clip detection runs on, when the active provider is Anthropic.
 - `src/main/ai/llm-provider.js` (125): LLM Provider Interface & Registry
-- `src/main/ai/providers/anthropic.js` (247): Anthropic Native LLM Provider
+- `src/main/ai/providers/anthropic.js` (254): Anthropic Native LLM Provider
 - `src/main/ai/providers/gemini.js` (359): Google Gemini Native LLM Provider (#193)
 - `src/main/ai/providers/openai-compat.js` (240): OpenAI-Compatible LLM Provider
 - `src/main/ai/title-caption-prompt.js` (623): Title & caption prompt builder (#85, rewritten in #183, rules realigned in #419).
