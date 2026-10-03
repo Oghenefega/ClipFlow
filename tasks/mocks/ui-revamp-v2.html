@@ -69,9 +69,6 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .screen{display:none;flex:1;min-height:0;flex-direction:column;padding:22px 28px 0}
 .screen.on{display:flex}
 .phead{display:flex;align-items:flex-end;gap:16px;padding-bottom:18px;position:relative}
-.phead::before{content:"";position:absolute;left:-28px;right:-28px;top:-22px;bottom:-10px;pointer-events:none;
-  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.2px);background-size:16px 16px;
-  mask:linear-gradient(180deg,rgba(0,0,0,.9),transparent 90%);-webkit-mask:linear-gradient(180deg,rgba(0,0,0,.9),transparent 90%)}
 .phead h1{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
 .phead .sub{color:var(--text2);margin-top:5px}
 .phead .sub b{color:var(--text);font-weight:600}
@@ -229,11 +226,11 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .plist{display:grid;gap:12px;padding:2px 2px 24px}
 .pc{position:relative;display:flex;align-items:center;gap:16px;padding:14px;border-radius:14px;overflow:hidden;cursor:pointer;
   background:radial-gradient(90% 160% at 100% 0%,var(--c1f) 0%,transparent 55%),linear-gradient(100deg,var(--c1a) 0%,var(--c06) 40%,rgba(255,255,255,.02) 65%);
-  border:1px solid var(--c3d);transition:padding .44s var(--ease),transform .18s var(--ease),box-shadow .25s,border-color .25s}
+  border:1px solid var(--c3d);transition:padding .44s var(--ease),gap .44s var(--ease),transform .18s var(--ease),box-shadow .25s,border-color .25s}
 .pc:hover{transform:translateY(-1px);box-shadow:var(--tileShadow)}
 .pc.sel{background:radial-gradient(90% 160% at 100% 0%,var(--s1) 0%,transparent 60%),linear-gradient(100deg,var(--s2) 0%,var(--s3) 55%,rgba(255,255,255,.03) 85%);border-color:var(--sb);box-shadow:inset 0 1px 0 rgba(255,255,255,.09)}
 .pc.sel .nm{color:#fff}
-.pw.open .pc{padding:6px}
+.pw.open .pc{padding:6px;gap:0}
 .pw.open .plist{gap:10px}
 .pw.open .pc:not(.sel) .post{filter:saturate(.7) brightness(.75)}
 .pw.open .pc:not(.sel):hover .post{filter:none}
@@ -247,9 +244,10 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .post img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .post::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 20%,transparent 40%,rgba(0,0,0,.5))}
 .post span{position:relative;z-index:1;font-size:14px;font-weight:800;color:#fff;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
-.pcb{flex:1;min-width:0;transition:opacity .14s}
-.pw.fading .pcb{opacity:0}
-.pw.open .pcb{display:none}
+.pcb{flex:1;min-width:0;overflow:hidden;transition:opacity .22s ease .2s,flex-basis .44s var(--ease)}
+.pw.open .pcb{opacity:0;flex:0 0 0;pointer-events:none;transition:opacity .1s ease,flex-basis .44s var(--ease)}
+/* text keeps its expanded width while the card narrows, so it clips instead of re-wrapping (no height jumps) */
+.pcb>*{width:var(--pcw,auto)}
 .ccol{transition:padding .44s var(--ease)}
 .pw.open .ccol{padding-left:16px}
 #rtip{position:fixed;z-index:60;pointer-events:none;padding:8px 11px;border-radius:10px;background:#16171f;border:1px solid var(--borderHover);box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:12.5px;font-weight:700;white-space:nowrap;opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s var(--ease)}
@@ -593,7 +591,11 @@ function renderList(){
       </div>
       ${ranked?`<span class="rk pcb">${svg("eye")}Ranked</span>`:""}
     </div>`;}).join("");
+  measurePcb();
 }
+// pin the card text to its expanded width (measured while the list is open)
+function measurePcb(){ if(open) return; const pl=document.getElementById("plist"); const prev=pl.style.getPropertyValue("--pcw"); pl.style.removeProperty("--pcw"); const b=pl.querySelector(".pcb:not(.rk)"); pl.style.setProperty("--pcw", b && b.clientWidth ? b.clientWidth+"px" : prev); }
+window.addEventListener("resize", measurePcb);
 function clipsOf(i){
   const [name,tag,d,ranked]=PROJ[i], det=DATA[name];
   let clips = [...d].map((st,ci)=>{ const c=det?.clips[ci]||{}; return {ci, st:c.st||st, img:c.img?A+c.img:null, t:c.t||`Clip ${ci+1}`, dur:c.dur||30,
@@ -658,9 +660,9 @@ function renderPanel(){
     pl.onclick=()=>{ if(v.paused){ v.play(); pl.classList.add("playing"); } else { v.pause(); pl.classList.remove("playing"); } };
     v.addEventListener("ended",()=>pl.classList.remove("playing")); }
 }
-function openPanel(ci){ selC=ci; const pw=document.getElementById("pw"); if(!open){ open=true; pw.classList.add("fading"); setCols(); setTimeout(()=>{ if(open) pw.classList.add("open"); },130); }
+function openPanel(ci){ selC=ci; const pw=document.getElementById("pw"); if(!open){ open=true; pw.classList.add("open"); setCols(); }
   document.querySelectorAll(".tile").forEach(t=>t.classList.toggle("sel",+t.dataset.c===ci)); renderPanel(); }
-function closePanel(){ open=false; selC=null; const pw=document.getElementById("pw"); pw.classList.remove("open"); setCols(); hideTip(); setTimeout(()=>{ if(!open) pw.classList.remove("fading"); },380);
+function closePanel(){ open=false; selC=null; const pw=document.getElementById("pw"); pw.classList.remove("open"); setCols(); hideTip();
   document.querySelectorAll(".tile.sel").forEach(t=>t.classList.remove("sel")); setTimeout(renderPanel,380); }
 document.getElementById("plist").addEventListener("click", e => { const c=e.target.closest(".pc"); if(!c) return; selP=+c.dataset.p; renderList(); renderClips();
   if(open) closePanel(); });
@@ -692,13 +694,14 @@ const NOTES = {
 };
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));
+  measurePcb();
   document.querySelectorAll("#scrSeg button").forEach(b=>b.classList.toggle("on",b.dataset.s===id));
   document.querySelectorAll("#bnav a").forEach(a=>a.classList.toggle("on",a.dataset.t===(id==="rn"?"Rename":"Projects")));
   const [h,items]=NOTES[id]; document.getElementById("notes").innerHTML=`<h4>${h}</h4><ul>${items.map(x=>`<li>${x}</li>`).join("")}</ul>`;
   setCols();
 }
 document.getElementById("scrSeg").onclick = e => { const b=e.target.closest("button"); if(b) show(b.dataset.s); };
-document.getElementById("winSeg").onclick = e => { const b=e.target.closest("button"); if(!b) return; document.getElementById("app").classList.toggle("small",b.dataset.w==="small"); [...e.currentTarget.children].forEach(x=>x.classList.toggle("on",x===b)); setCols(); };
+document.getElementById("winSeg").onclick = e => { const b=e.target.closest("button"); if(!b) return; document.getElementById("app").classList.toggle("small",b.dataset.w==="small"); [...e.currentTarget.children].forEach(x=>x.classList.toggle("on",x===b)); setCols(); measurePcb(); };
 document.getElementById("notesBtn").onclick = () => document.getElementById("notes").classList.toggle("on");
 document.getElementById("bnav").onclick = e => { const a=e.target.closest("a"); if(a&&(a.dataset.t==="Rename"||a.dataset.t==="Projects")) show(a.dataset.t==="Rename"?"rn":"pr"); };
 document.getElementById("filters").innerHTML = filtersHtml();
