@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-02 (session 285): 0.5.0-alpha.20 on the feed
+
+### Changed
+- **Version bumped to 0.5.0-alpha.20 and the installer published to the update feed.** This build ships the #485 layout revamp: the full-width Rename tab (file tiles, scrub-preview panel, filmstrip split) and the one-page Projects tab (list, clips and player, the poster rail, hover-play), plus the fixes that came with them. Fega asked for this cut explicitly so he can try it in the installed app.
+
 ## [Unreleased] 2026-10-02 (session 285): Rename and Projects use the full window
 
 ### Changed

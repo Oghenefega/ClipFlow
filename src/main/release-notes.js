@@ -12,6 +12,18 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "0.5.0-alpha.20",
+    date: "2026-10-02",
+    changed: [
+      "The Rename tab now uses your whole window. Recordings from one session sit side by side, and a panel on the right shows the one you picked: move your mouse across the picture to scrub through the recording instantly, see its length, size and where it will be saved, and undo a recent rename from the same panel.",
+      "Splitting a recording where the game changes now opens a long filmstrip under the session. Click where a new game starts to drop a marker, and pick the game for each part. Your markers stay put until you rename.",
+      "The Projects tab is one page. Pick a project on the left and its clips show right away. Rest your mouse on a clip to watch it without sound, and click one to open it: the project list tucks into a strip of posters and the player slides in. Click a poster or press Esc to bring the list back.",
+    ],
+    fixed: [
+      "A clip preview could stop the moment you pressed play. It now plays from the start of the clip every time.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.19",
     date: "2026-10-02",
     added: [
