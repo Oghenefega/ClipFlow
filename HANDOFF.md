@@ -1,54 +1,38 @@
-# HANDOFF — Session 287 (2026-10-03)
+# HANDOFF — Session 288 (2026-10-03)
 
 ## Current State
 
-This session audited the app's Claude prompts and the repo's agent instructions (`/claude-api prompt-audit`). Fega applied the whole proposed diff, 75 edits across 39 files, in one commit (`6636640`).
+#486 shipped in **0.5.0-alpha.21**, which is on the update feed. It adds the Numbers font for captions and subtitles, bundled Montserrat, and presets plus Brand Kit templates drawn as styled samples. Fega installed it and confirmed it works, and #486 is closed.
 
-- Clip detection on Claude now returns its answer through a JSON schema (`{clips}`).
-- The overlap rule now follows Fega's answers to tick-box questions.
-- CLAUDE.md, the rules, the commands and all 12 skills match the code again.
-
-A replay on the six reference recordings scored the same as before, so it is safe to ship with the next cut.
-
-0.5.0-alpha.20 (the #485 revamp) is still waiting on Fega's verdict.
+alpha.21 also carries s287's detection prompt audit (structured outputs, the new overlap rule). That change is now live on his machine.
 
 ## Key Decisions
 
-- **Overlap rule (Fega's answers):**
-  - Clips may share footage when each builds to its own payoff, or at the edges, with no fixed limit.
-  - Only picks covering nearly the same stretch count as duplicates.
-  - Every clip counts toward the target count.
-  - A short cut plus a long cut of the same peak is still out, because they end on the same payoff.
-- **Structured outputs only on the detection route.** The title/caption Claude fallback runs Sonnet 4.6, which isn't on the structured-outputs model list, so its "only JSON" prompt text stays. `extractJSON` stays for the Gemini paths.
-- **Model choices unchanged.** Detection stays on Sonnet 5.5 @high. Every other Claude call keeps Sonnet 4.6, and research keeps Opus 4.6, because only detection was tested on 5.5.
+- **Subtitles get the Numbers font too** (Fega's call; the issue scoped it to captions). Subtitle digit words change font only, so the karaoke colour, sweep and pop are untouched. The per-word override path would have switched karaoke off for those words.
+- **A hand-picked font on a word or a line beats the Numbers font** (Fega's call).
+- **Montserrat ships as the two Google Fonts variable files** (upright and italic, about 0.75 MB each) plus `Montserrat-OFL.txt`, instead of static weights. Weight 900 draws Black, matching Fega's hand-set words.
+- **Applying a template saved before #486 turns the Numbers font off**, so a value can't carry over from the previously applied template. Clips saved before #486 pick it up from whatever template is applied when they open, the same way every new style key has worked.
 
 ## Next Steps
 
-1. **Ask Fega how alpha.20 feels.** Suggested wording: "Did the new Rename and Projects tabs work for you? Scrubbing the big preview, Split, hovering clips, and the list shrinking into posters. Anything that felt slow or looked off?" Close #485 on his yes, and remove `status: untested`.
-2. **Ask Fega whether Corva should *invite* more than one clip on a long funny stretch.**
-   - Suggested wording: "The new rule lets two clips share a long funny moment, but in the test Corva barely used it: clips only shared a few seconds at the edges. Want me to nudge it to look for a second punchline in long stretches? You'd see a few more clips from your best moments, and maybe a few more to reject."
-   - I recommend waiting until he has reviewed a couple of real recordings on the next cut.
-3. **Ask Fega to decide the audit items left without an edit (flags in the s287 report):**
-   - `/build` still launches with `npm start`. I recommend pointing it at the `scripts/dev` harness.
-   - `/session-start` has no backlog step.
-   - autoresearch `:security` both bans auto-fixing and offers `--fix`.
-   - autoresearch `:ship` opens PRs, which CLAUDE.md forbids. I recommend deleting `:ship`'s code-PR path.
-   - None of these is user-visible. They are about how sessions run.
-4. **Carried from s286:** clip badges question, the per-batch review chip (`f0aa166`, `deea5e2`), Wick's icons, the clip-judge feel check + laptop check for #483, and #489 dead project-folder code.
-5. **Out-of-scope findings worth issues:** `editor/utils/waveformUtils.js` and `highlights.js` / `analyzeLoudness` are dead code.
+1. **Ask Fega to turn on the Numbers font in his default template, if he hasn't.** Suggested wording: "Did you set Numbers font to Montserrat on 'Karoake Glowy Corva Default' and click Update? Until you do, new clips still need the manual fix." It's two clicks on his side; I can't do it while Corva runs.
+2. **Ask Fega how alpha.20/21 feels overall** (carried from s287): the new Rename and Projects tabs. Close #485 on his yes and remove `status: untested`.
+3. **Next issues from Wick's set:** #487 (caption build), then #488 (cold-open cut).
+4. **Carried from s287:**
+   - The "invite a second clip on long funny stretches" question. I recommend waiting until he has reviewed a couple of recordings on alpha.21.
+   - The audit items left without an edit: `/build`, `/session-start` backlog, autoresearch `:security` / `:ship`.
+   - The s286 carry list (clip badges, per-batch review chip, Wick's icons, clip-judge feel check, #489).
+   - Dead code: `waveformUtils.js`, `highlights.js` / `analyzeLoudness`.
 
 ## Watch Out For
 
-- **Detection replies are `{ "clips": [...] }` now, not a bare array.** Anything that parses detection output must read `.clips`. That covers `callLLMForHighlights` and the replay harness, which are both updated, plus any new script.
-- **Replay baseline for detection is now `p55-audit`:**
-  - Recall 83/90, 46% of picks on rejected moments.
-  - 18.8 picks per recording, 77% coverage, $0.079 per run.
-  - Compare future prompt changes against it with `node tasks/spikes/replay-score/_summ480.js p55-audit <new-label>`.
-- **The skills were rewritten in many places this session.** If one now reads wrong against the code, it was this commit; fix the skill rather than working around it.
+- **Bundled fonts beat installed ones.** The editor CSS and the render overlay register Montserrat themselves, so the copy installed on the machine is never used. Words already hand-set to Montserrat moved by a sub-pixel outline, because the bundled copy is a newer release. Any before/after render comparison must use a clip without Montserrat words, or it will show a false diff.
+- **The Numbers font key is `numbersFontFamily`** on saved styles, templates and the render payload. In the stores it is `captionNumbersFontFamily` / `subNumbersFontFamily`. A new style surface that builds its own config object (like `captionStyleConfig` in `PreviewPanelNew`) must pass it along, or that surface silently ignores the setting.
+- **The tnuy clip ("Bang almost clutched the IMPOSSIBLE") failed to render** in the s288 harness, trimmed to its first 2 s, on the original code as well ("ffmpeg render failed"). It's not caused by #486 and is unverified in the real app. Check with `scripts/dev/render-e2e-probe.js` before trusting tnuy as a fixture.
 - `tasks/spikes/humor-study/_report.txt` is still an untracked leftover.
 
 ## Logs/Debugging
 
-- **Replay log:** `tasks/spikes/replay-score/_logs/p55-audit.log` (git-ignored). Results JSONs are committed under `results/*__p55-audit__*`.
-- **Gateway accepts the schema.** Structured outputs went through the Cloudflare AI Gateway (BYOK) without changes: all 18 runs returned HTTP 200 and `end_turn`.
-- **Audit report and diff** are in the s287 session scratchpad (not in the repo); the commit message and CHANGELOG summarize them.
+- **Render evidence for #486** is committed in `docs/issue-evidence/486/`, linked from the issue comment.
+- **The s288 render harness** (`r486.js`) lives in the session scratchpad. It renders the first 2 s of a saved clip with overrides and pulls a PNG, and two runs come out byte-identical, which makes it good for exact before/after diffs. `scripts/dev/render-e2e-probe.js` is the committed equivalent.
+- **Fixture project used:** `proj_1790939003293_0rjewg` (2026-09-29 100T Day5 Pt1, zero approved). The dev profile was restored with `dev-fixture.js restore`.

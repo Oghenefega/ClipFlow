@@ -62,19 +62,19 @@ handlers of a giant component aren't listed (grep the component, then read from 
 ### src/renderer/editor/components/EditorLayout.js (1334 lines)
 - **(top)**: formatLastSaved, fmtDuration, RetranscribeMenu, ClipNavigator, Topbar, MiniPlayerBar, EditorLayout
 
-### src/renderer/editor/components/PreviewPanelNew.js (2897 lines)
+### src/renderer/editor/components/PreviewPanelNew.js (2899 lines)
 - **(top)**: scaleOf, clampv, CaptureMenu, ZoomMenu, FontDropdown, InlineColorPicker, InlineToolbar, DraggableOverlay, CalibrationBoxes, MediaOverlay, PreviewPanelNew
 
-### src/renderer/editor/components/RightPanelNew.js (3058 lines)
-- **(top)**: SectionLabel, AISectionHeader, ChipLabel, renderTitleWithHashtag, CardActions, RepeatButton, ToggleSwitch, hsvToRgb, rgbToHsv, rgbToHex, hexToRgb, ColorPickerPopover, CapsToggle, FontToolbar, EffectSection, EffectSlider, WordStyleCard, MatchTextRow, useUserPresets, EffectPresetsGrid, DropZone, AIToolsPanel, BrandKitPanel, useHighlightSwatches, SubtitlesPanel, TextPanel, RectRow, useElementSize, SavedLayoutsList, LayoutPanel, RightPanelNew
+### src/renderer/editor/components/RightPanelNew.js (3147 lines)
+- **(top)**: SectionLabel, AISectionHeader, ChipLabel, renderTitleWithHashtag, CardActions, RepeatButton, ToggleSwitch, hsvToRgb, rgbToHsv, rgbToHex, hexToRgb, ColorPickerPopover, CapsToggle, NumbersFontRow, FontToolbar, EffectSection, EffectSlider, WordStyleCard, MatchTextRow, StyleSample, useUserPresets, EffectPresetsGrid, DropZone, AIToolsPanel, BrandKitPanel, useHighlightSwatches, SubtitlesPanel, TextPanel, RectRow, useElementSize, SavedLayoutsList, LayoutPanel, RightPanelNew
 
 ### src/renderer/editor/components/TimelinePanelNew.js (2416 lines)
 - **(top)**: LaneToggle, DormantLaneNote, TimelinePanelNew
 
-### src/renderer/editor/stores/useEditorStore.js (2262 lines)
+### src/renderer/editor/stores/useEditorStore.js (2264 lines)
 - **(top)**: projectWithClipReframe, layoutValue, withLayoutValue, draftLook, draftHistoryPatch, describeSaveFailure, describePlaybackGap
 
-### src/renderer/editor/stores/useSubtitleStore.js (1482 lines)
+### src/renderer/editor/stores/useSubtitleStore.js (1485 lines)
 - **(top)**: _linkGlow, _newSegId, _displayFmt, _lineFromGroup, _wordsFromText, _mapSegmentsToTimeline, _snapshotNle, _restoreNle, _snapshotLayouts, _restoreLayouts, _snapshotStyling, _restoreStyling, subtitleStyleDefaults
 
 ### src/renderer/views/ProjectsView.js (2848 lines)
@@ -182,7 +182,7 @@ Line count and the first line of its header comment.
 - `src/main/reconcile.js` (317): reconcile.js — Recordings ↔ disk reconciliation (session 113).
 - `src/main/reframe-detect-preload.js` (28): Reframe Detection Preload — isolated bridge for the hidden detection window (#164 Phase B).
 - `src/main/reframe-detect.js` (100): Reframe layout detection — hidden-window runner (#164 Phase B, B1).
-- `src/main/release-notes.js` (598): #330: user-facing What's New entries, NEWEST FIRST.
+- `src/main/release-notes.js` (609): #330: user-facing What's New entries, NEWEST FIRST.
 - `src/main/render-collision-repair.js` (127): #181 one-time repair: legacy render/thumbnail records that point into the old
 - `src/main/render.js` (1521)
 - `src/main/repost-log.js` (154): reposts — one row per repost (#461).
@@ -190,7 +190,7 @@ Line count and the first line of its header comment.
 - `src/main/setup-runtime.js` (732): AI engine runtime setup (#146).
 - `src/main/signals.js` (989)
 - `src/main/store-factory.js` (55): electron-store v11 is ESM-only.
-- `src/main/subtitle-overlay-preload.js` (58): Subtitle Overlay Preload — isolated bridge for the offscreen frame-capture window.
+- `src/main/subtitle-overlay-preload.js` (60): Subtitle Overlay Preload — isolated bridge for the offscreen frame-capture window.
 - `src/main/subtitle-overlay-renderer.js` (445): Subtitle Overlay Renderer — Offscreen BrowserWindow Frame Capture
 - `src/main/subtitle-pollution-migration.js` (113): subtitle-pollution-migration.js — One-time repair of #84 subtitle pollution.
 - `src/main/title-caption-log.js` (410): Title & caption training data (#183).
@@ -221,9 +221,9 @@ Line count and the first line of its header comment.
 - `src/renderer/editor/EditorView.js` (57)
 - `src/renderer/editor/components/EditorLayout.js` (1334)
 - `src/renderer/editor/components/LeftPanelNew.js` (796)
-- `src/renderer/editor/components/PreviewOverlays.js` (406): PreviewOverlays — Shared subtitle + caption overlay rendering
-- `src/renderer/editor/components/PreviewPanelNew.js` (2897)
-- `src/renderer/editor/components/RightPanelNew.js` (3058)
+- `src/renderer/editor/components/PreviewOverlays.js` (412): PreviewOverlays — Shared subtitle + caption overlay rendering
+- `src/renderer/editor/components/PreviewPanelNew.js` (2899)
+- `src/renderer/editor/components/RightPanelNew.js` (3147)
 - `src/renderer/editor/components/ShortcutsDialog.js` (179)
 - `src/renderer/editor/components/TimelinePanelNew.js` (2416)
 - `src/renderer/editor/components/audio/AudioPanel.js` (656)
@@ -257,11 +257,11 @@ Line count and the first line of its header comment.
 - `src/renderer/editor/shortcuts/useEditorShortcuts.js` (109)
 - `src/renderer/editor/shortcuts/useShortcutBindings.js` (58)
 - `src/renderer/editor/stores/useAIStore.js` (376)
-- `src/renderer/editor/stores/useCaptionStore.js` (493)
-- `src/renderer/editor/stores/useEditorStore.js` (2262)
+- `src/renderer/editor/stores/useCaptionStore.js` (496)
+- `src/renderer/editor/stores/useEditorStore.js` (2264)
 - `src/renderer/editor/stores/useLayoutStore.js` (87)
 - `src/renderer/editor/stores/usePlaybackStore.js` (290)
-- `src/renderer/editor/stores/useSubtitleStore.js` (1482)
+- `src/renderer/editor/stores/useSubtitleStore.js` (1485)
 - `src/renderer/editor/utils/buildPreviewSubtitles.js` (154): Build preview-ready subtitle segments from raw clip data + template.
 - `src/renderer/editor/utils/casing.js` (212): ALL CAPS (#433) — casing is TEXT, never a drawn effect.
 - `src/renderer/editor/utils/cleanWordTimestamps.js` (227): Word Timestamp Post-Processing — Pure Function
@@ -272,14 +272,14 @@ Line count and the first line of its header comment.
 - `src/renderer/editor/utils/recentColors.js` (60): Recent Colours + shared editor palette (#283)
 - `src/renderer/editor/utils/reframeCompositor.js` (196): Reframe compositor — paints the vertical composition (#164) onto a canvas: webcam
 - `src/renderer/editor/utils/reframeStyle.js` (225): Reframe Style — Pure Style Resolution (#164 Phase B)
-- `src/renderer/editor/utils/renderPayload.js` (137): Render-ready IPC payload builder — reads CURRENT store state (unsaved edits
+- `src/renderer/editor/utils/renderPayload.js` (139): Render-ready IPC payload builder — reads CURRENT store state (unsaved edits
 - `src/renderer/editor/utils/replaceWordsInRange.js` (120): #459: put freshly transcribed words into one stretch of the recording and
 - `src/renderer/editor/utils/resolveSubtitles.js` (379): Shared subtitle resolver — the single source of truth behind BOTH the editor
 - `src/renderer/editor/utils/segmentWords.js` (596): Subtitle Segmentation — Pure Function
 - `src/renderer/editor/utils/stemPlayer.js` (162): StemPlayer — plays a recording's individual audio tracks ("stems") through
 - `src/renderer/editor/utils/subtitleCasing.js` (86): Subtitle casing repair (#368).
-- `src/renderer/editor/utils/subtitleStyleEngine.js` (304): Subtitle Style Engine — Pure Rendering Functions
-- `src/renderer/editor/utils/templateUtils.js` (338)
+- `src/renderer/editor/utils/subtitleStyleEngine.js` (320): Subtitle Style Engine — Pure Rendering Functions
+- `src/renderer/editor/utils/templateUtils.js` (344)
 - `src/renderer/editor/utils/timeUtils.js` (39): Format seconds to "MM:SS.d" display string
 - `src/renderer/editor/utils/waveformUtils.js` (63): Extract waveform peaks from a video/audio file using Web Audio API.
 - `src/renderer/editor/utils/wordRepair.js` (77): Word-level repair helpers shared by the subtitle resolver.
