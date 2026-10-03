@@ -13,7 +13,7 @@ stays on whatever version it last updated to — so it goes stale. "Update the l
 prod app / installed app" means: **cut a fresh versioned installer and publish it to the update
 feed, so every installed copy catches up by itself.**
 
-Since session 171 (alpha.54+) the **real auto-updater is live**: `electron-updater` against a
+The **auto-updater is live**: `electron-updater` against a
 generic feed on the ClipFlow R2 bucket, `https://engine.flowve.app/updates/` (channel manifest
 `alpha.yml` while versions are prereleases). Installed apps check on launch and offer a one-click
 banner install. Code signing is still deferred (#51) — that's fine for Fega's machines and is the
@@ -47,7 +47,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
 
 1. **Bump the `version` field in `package.json`** — the only file to touch for the version.
 2. **Add a CHANGELOG.md entry** at the top (above the newest existing entry). Match the existing
-   `## [Unreleased] — YYYY-MM-DD (session N) — <summary>` format. One `### Changed` bullet noting
+   `## [Unreleased] YYYY-MM-DD (session N): <summary>` format. One `### Changed` bullet noting
    the version bump and what the build promotes. To summarize what's shipping, look at
    `git log --oneline <last-version-bump-commit>..HEAD` — that range IS the answer. Do **not**
    take the list from a prior HANDOFF or from open `status: untested` issues: that label tracks
@@ -108,9 +108,6 @@ percentage (`update:install` → `electron-updater.downloadUpdate()`), then sile
 relaunches — no NSIS wizard. Works identically on the desktop and the laptop; no shared disk, no
 manual copying.
 
-- Any installed build ≥ alpha.54 has the network updater. (alpha.53 and earlier had a local-dist
-  scanner that only worked on the desktop — #259; if a machine is somehow still that old, its first
-  hop must be a manual installer run.)
 - First update on a machine is always a **full-size** download; differential (blockmap) downloads
   start from the second, once the updater has a cached installer to diff against.
 - Banner is suppressed on the dev profile and on unpackaged runs (`app.isPackaged` guard).

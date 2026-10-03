@@ -2277,3 +2277,7 @@ Addendum: the memory note on the rename already said, in so many words, that `pu
 ## Session 285 (2026-10-02) — opening a never-opened clip in the editor writes project.json
 **What happened:** the editor round trip, with no edits made, wrote Clip 15's editor state (subtitle segments, styles, caption) into the real project file. A snapshot taken beforehand let me restore it byte for byte with the app closed.
 **Rule:** an editor open counts as a write. Snapshot `project.json` before any dev-profile editor open, not just before edits.
+
+## Session 287 (2026-10-03) — a prompt audit resolved two disagreeing rules by "newer wins"
+**What happened:** the detection prompt says both "clips may overlap up to 50%" and "clip time ranges must not overlap". The audit proposed keeping the newer no-overlap rule (#200) because git blame and a test said so. Fega wants the opposite: an extended moment can honestly yield more than one clip, so some overlap is wanted, just not duplicates.
+**Rule:** when two product rules disagree, blame order tells you which text is newer, not which behavior the creator wants. Ask before resolving a conflict that changes what the product does; only resolve by recency when the rules are about tooling, not product behavior.

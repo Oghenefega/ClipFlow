@@ -188,9 +188,11 @@ const provider = {
    * @param {string} [params.effort] - #480: "low" | "medium" | "high", sent as output_config.effort.
    *   On Sonnet 5.5 thinking is always on and effort is its only control; thinking counts
    *   toward maxTokens, so size it for both.
+   * @param {object} [params.outputSchema] - JSON schema the reply must match, sent as
+   *   output_config.format (structured outputs; Sonnet 5.5 yes, Sonnet 4.6 no).
    * @returns {Promise<{ text: string, toolCalls: Array|null, stopReason: string|null, usage: { inputTokens: number, outputTokens: number } }>}
    */
-  async chat({ model, system, messages, maxTokens, tools, timeout, effort }) {
+  async chat({ model, system, messages, maxTokens, tools, timeout, effort, outputSchema }) {
     const store = getStore();
     const apiKey = store ? store.get("anthropicApiKey") : null;
 
@@ -218,7 +220,12 @@ const provider = {
     if (tools && tools.length > 0) {
       body.tools = tools;
     }
-    if (effort) body.output_config = { effort };
+    if (effort || outputSchema) {
+      body.output_config = {
+        ...(effort ? { effort } : {}),
+        ...(outputSchema ? { format: { type: "json_schema", schema: outputSchema } } : {}),
+      };
+    }
 
     const result = await anthropicRequest(apiKey, body, { timeout: timeout || DEFAULT_TIMEOUT, gateway });
 

@@ -434,6 +434,20 @@ share of picks lands on rejected clips but the absolute count of rejected picks 
 (157 vs 147), and ~3 more picks per recording land on unreviewed footage. Boundary overlap is 3
 points looser. 20% cheaper per recording.
 
+**Prompt-audit check (label `p55-audit`, session 287, 2026-10-03):** the shipped prompt after the
+audit: structured outputs (`{clips}` schema), the "14-15 out of habit" line dropped, and the overlap
+rule rewritten with Fega (clips may share footage for different payoffs or at the edges; only
+near-identical ranges are duplicates). Same six recordings, 3 runs each, @high, 10 frames.
+
+| | Recall | Rejected-hit | Coverage | Picks/run | Unreviewed | $/run | s/run |
+|---|---|---|---|---|---|---|---|
+| `p55-counthigh` (before) | 84/90 | 157/338 = 46% | 80% | 18.8 | 95 | $0.080 | 12.4 |
+| `p55-audit` (after) | 83/90 | 154/338 = 46% | 77% | 18.8 | 90 | $0.079 | 10.3 |
+
+All 18 runs ended `end_turn` and parsed through the schema. The single recall loss is EO Day4
+(17/21 vs 18/21), inside run-to-run noise. Overlapping pick pairs went 1 → 6 (avg 5 s shared),
+zero near-identical pairs: the model used edge sharing, not several clips on one long stretch.
+
 ## Decisions locked (do not re-litigate without flagging Fega)
 
 - Engine variants are judged by replay scores against Fega's history, not vibes.

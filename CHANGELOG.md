@@ -4,6 +4,13 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-03 (session 287): prompt audit of the app's Claude prompts and the agent instructions
+
+### Changed
+- **Clip detection on Claude now returns its answer through a JSON schema (structured outputs).** The Anthropic provider takes an `outputSchema` and sends it as `output_config.format`. Detection asks for `{ "clips": [...] }`, so every reply parses. The "return ONLY JSON, no code fences" prompt text that only coaxed a parseable reply is gone. The replay harness sends the same schema.
+- **The detection prompt's overlap rule now says what Fega wants.** It used to allow overlap up to 50% in one place and ban any overlap in another. Now two clips may share footage when each builds to its own payoff (a long funny stretch can hold more than one clip) or when they share setup or reaction at their edges. Only picks covering nearly the same stretch count as duplicates, and re-slicing one payoff into several clips is still banned. The "don't settle at 14-15 out of habit" line is gone too: since #480 it only reached short recordings it didn't describe. A replay on the six reference recordings (`p55-audit`) scored the same as before: 83/90 recall vs 84/90, 46% rejected-hit rate both times, same pick count and cost.
+- **Agent instructions brought back in line with the code.** CLAUDE.md, the rule files, the commands and all twelve skills dropped claims the code had outgrown. Examples: the removed `cutClip` step, a Transcript tab that reads `originalSegments`, `npm start` as the way to verify, `react-scripts` builds, renamed components, and a wrong subtitle forward-look gap. They also dropped "Non-negotiable" / "NEVER STOP" shouting and history notes standing in for rules. Two unsafe git steps in the autoresearch fix loop are fixed: the "harder cases" rollback that kept the bad change, and `git add -A`. The autoresearch loop now requires a clean tree and a branch before it starts resetting.
+
 ## [Unreleased] 2026-10-02 (session 286): navigability retro over sessions 256-285
 
 ### Added

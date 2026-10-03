@@ -14,9 +14,8 @@ function replaceOnce(text, anchor, replacement, name) {
   return text.replace(anchor, replacement);
 }
 
-// The whole rate sentence plus the "don't settle at 14-15" sentence after it: a stated
-// number of 14 for a 21-minute recording would contradict that line.
-const COUNT_ANCHOR = "aim for roughly one clip per 90 seconds of recording, minimum 10, maximum 25. A dense 20-30 minute session honestly holds 15-25 clips — do not settle at 14-15 out of habit; keep going until the recording's genuine moments are exhausted.";
+// The whole rate rule, replaced by a stated number.
+const COUNT_ANCHOR = "aim for roughly one clip per 90 seconds of recording, minimum 10, maximum 25. Keep going until the recording's genuine moments are exhausted.";
 // One per 80 s matches what Sonnet 4.6 actually returns on the six recordings (21 min -> 16,
 // 27 -> 18, 30 -> 20), where Sonnet 5.5 settled near 14 reading "one per 90 seconds"
 // literally. Same budget, so the comparison is taste, not pick count.

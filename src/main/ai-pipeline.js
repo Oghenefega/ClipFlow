@@ -442,7 +442,7 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
     messages: [{ role: "user", content: userContent }],
     maxTokens: tuned ? tuned.maxTokens : 8192,
     timeout: tuned ? tuned.timeout : 120000,
-    ...(tuned ? { effort: tuned.effort } : {}),
+    ...(tuned ? { effort: tuned.effort, outputSchema: aiPrompt.DETECTION_OUTPUT_SCHEMA } : {}),
   });
 
   // Log usage
@@ -460,17 +460,18 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
 
   if (!text) throw new Error("Empty response from LLM provider");
 
-  // Robust JSON extraction — handles markdown fences, preamble text, etc.
+  // The Anthropic route is schema-bound; extractJSON stays for the other
+  // providers, whose JSON mode doesn't take a schema.
   let clips;
   try {
-    clips = aiPrompt.extractJSON(text, "array");
+    clips = aiPrompt.extractJSON(text, "object").clips;
   } catch (e) {
     logger.logOutput("RAW_RESPONSE", text);
     throw new Error(`LLM returned invalid JSON: ${e.message}`);
   }
 
   if (!Array.isArray(clips)) {
-    throw new Error("LLM response is not a JSON array");
+    throw new Error("LLM response has no clips array");
   }
 
   return { clips, usage };

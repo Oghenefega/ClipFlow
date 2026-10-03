@@ -195,8 +195,8 @@ After resolving all actionable items:
 rg -n "TODO|FIXME|HACK|XXX|STUB|PLACEHOLDER|MOCK|DUMMY|FAKE" \
   --type js -g '!node_modules/' -g '!build/' src/
 
-# Build and launch
-npm run build:renderer && npm start
+# Build, then launch and check with the scripts/dev harness (scripts/dev/README.md)
+npm run build:renderer
 
 # Confirm: zero new console errors, all features work
 ```

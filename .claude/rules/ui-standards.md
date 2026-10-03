@@ -27,7 +27,7 @@ literal game colour from gamesDb is still fine.
 | Long dropdowns | Split into columns/groups when 10+ items |
 | Badge/tag placement | At list-item level, never buried in detail views |
 | Status tag wording | Name what the user or viewer actually gets now ("Auto thumbnail", "720p"), never the internal step that failed ("No thumbnail"). Which step failed, and why, goes in the hover (session 270) |
-| Font consistency | Match typography scale from `theme.js` |
+| Font consistency | `T.font` (DM Sans) everywhere; `theme.js` has no size scale, so match the font sizes the surrounding view already uses |
 | Toggle states | Green = on, gray/red = off. Never green for both |
 | Visual feedback | Every action needs confirmation: animation, color change, or toast |
 | Small indicators | Must have glow/shadow to be visible on dark bg |

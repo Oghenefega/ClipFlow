@@ -1,11 +1,11 @@
-# /autoresearch
+# /autoresearch-karpathy
 
 Launch an autonomous improvement loop on a target file or skill.
 
 ## Usage
 
 ```
-/autoresearch
+/autoresearch-karpathy
 ```
 
 The agent will ask you:
@@ -19,7 +19,7 @@ Then it creates a branch, establishes a baseline, and enters the loop.
 
 **Improve a skill:**
 ```
-/autoresearch
+/autoresearch-karpathy
 Target: clipflow-ui-debug skill
 Checklist:
 - Does the response analyze the screenshot before proposing a fix?
@@ -29,20 +29,20 @@ Checklist:
 
 **Reduce bundle size:**
 ```
-/autoresearch
+/autoresearch-karpathy
 Target: build output size
 Scope: src/**/*.js
 Metric: bundle size KB (lower is better)
-Verify: npx react-scripts build 2>&1 | grep "main.*js" | awk '{print $1}'
+Verify: npm run build:renderer 2>&1 | grep "assets/index-.*\.js"
 ```
 
 **Fix all build warnings:**
 ```
-/autoresearch
+/autoresearch-karpathy
 Target: zero build warnings
 Scope: src/**/*.js, src/**/*.tsx
 Metric: warning count (lower is better)
-Verify: npx react-scripts build 2>&1 | grep -c "WARNING" || echo 0
+Verify: npm run build:renderer 2>&1 | grep -ci "warn"
 ```
 
 ## How It Works

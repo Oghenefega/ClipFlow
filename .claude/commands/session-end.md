@@ -14,7 +14,7 @@ Identify which commits belong to THIS session (usually everything since the prev
 
 `tasks/lessons.md` is a raw capture log — it never changes behavior on its own because it is not read mid-work. This step drains new lessons into places that actually fire.
 
-1. Read `tasks/lessons.md`. Find every lesson added BELOW the `<!-- DISTILLED-THROUGH: ... -->` marker (i.e. since the last distillation).
+1. Read `tasks/lessons.md`. Lessons are appended at the bottom; the new ones are those dated after the `<!-- DISTILLED-THROUGH: <date> ... -->` marker near the top (i.e. since the last distillation).
 2. For each new lesson, route it to the home where it will trigger at the right moment:
    - **Code-pattern lesson** (FFmpeg flag, whisper parsing, segment op, IPC unwrap, CSS rule) → append a concise checklist line to the matching domain skill: `clipflow-ffmpeg-media`, `clipflow-editor-patterns`, `clipflow-electron-ipc`, or `clipflow-ui-debug`.
    - **Process/behavior lesson about writing or finishing code** (verify before done, no fake fallbacks, rename safety) → add to the `clipflow-code-review` checklist.

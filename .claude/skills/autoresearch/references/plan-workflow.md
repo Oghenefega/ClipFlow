@@ -7,7 +7,6 @@ Convert a textual goal into a validated, ready-to-execute autoresearch configura
 ## Trigger
 
 - User invokes `/autoresearch:plan`
-- User says "help me set up autoresearch", "plan an autoresearch run", "what should my metric be"
 
 ## Workflow
 

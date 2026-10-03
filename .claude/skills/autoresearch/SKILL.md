@@ -40,7 +40,7 @@ Load: `references/security-workflow.md` for full protocol.
 **Key behaviors:**
 - Follows red-team adversarial mindset (Security Adversary, Supply Chain, Insider Threat, Infra Attacker)
 - Every finding requires **code evidence** (file:line + attack scenario) — no theoretical fluff
-- Tracks OWASP Top 10 + STRIDE coverage, prints coverage summary every 5 iterations
+- Tracks OWASP Top 10 + STRIDE coverage, prints a coverage summary when reporting progress
 - Composite metric: `(owasp_tested/10)*50 + (stride_tested/6)*30 + min(findings, 20)` — higher is better
 - Creates `security/{YYMMDD}-{HHMM}-{audit-slug}/` folder with structured reports:
   `overview.md`, `threat-model.md`, `attack-surface-map.md`, `findings.md`, `owasp-coverage.md`, `dependency-audit.md`, `recommendations.md`, `security-audit-results.tsv`
@@ -211,19 +211,10 @@ After the wizard completes, the user gets a ready-to-paste `/autoresearch` invoc
 
 ## When to Activate
 
-- User invokes `/autoresearch` or `/ug:autoresearch` → run the loop
-- User invokes `/autoresearch:plan` → run the planning wizard
-- User invokes `/autoresearch:security` → run the security audit
-- User says "help me set up autoresearch", "plan an autoresearch run" → run the planning wizard
-- User says "security audit", "threat model", "OWASP", "STRIDE", "find vulnerabilities", "red-team" → run the security audit
-- User invokes `/autoresearch:ship` → run the ship workflow
-- User says "ship it", "deploy this", "publish this", "launch this", "get this out the door" → run the ship workflow
-- User invokes `/autoresearch:debug` → run the debug loop
-- User says "find all bugs", "hunt bugs", "debug this", "why is this failing", "investigate" → run the debug loop
-- User invokes `/autoresearch:fix` → run the fix loop
-- User says "fix all errors", "make tests pass", "fix the build", "clean up errors" → run the fix loop
-- User says "work autonomously", "iterate until done", "keep improving", "run overnight" → run the loop
-- Any task requiring repeated iteration cycles with measurable outcomes → run the loop
+- `/autoresearch` → run the loop; `/autoresearch:plan|security|ship|debug|fix` → run that workflow.
+- The user explicitly asks for an autonomous iterate-until-done run on a measurable metric → run the loop (or `:plan` if no metric yet).
+
+Bug reports, build fixes and releases in this repo go through `/fix-issue` and clipflow-update-launcher, not these loops.
 
 ## Bounded Iterations
 
@@ -285,9 +276,11 @@ Use a SINGLE `AskUserQuestion` call with these 4 questions:
 
 **After Batch 2:** Dry-run the verify command. If it fails, ask user to fix or choose a different command. If it passes, proceed with launch choice.
 
-**IMPORTANT:** Always batch questions — never ask one at a time. Users should see all config choices together for full context.
+Ask each batch in one call so the user sees all config choices together.
 
 ### Setup Steps (after config is complete)
+
+Before step 1: confirm the working tree is clean and switch to a new `autoresearch/<tag>` branch. Discards run `git reset --hard HEAD~1`, which also wipes uncommitted work, and this repo otherwise commits straight to master.
 
 1. **Read all in-scope files** for full context before any modification
 2. **Define the goal** — extracted from user input or inline config
@@ -319,7 +312,7 @@ LOOP (FOREVER or N times):
      - CRASHED → Try to fix (max 3 attempts), else log "crash" and move on
   8. Log: Record result in results log
   9. Repeat: Go to step 1.
-     - If unbounded: NEVER STOP. NEVER ASK "should I continue?"
+     - If unbounded: keep looping without asking whether to continue; the user may be away and ends the run by interrupting.
      - If bounded (N): Stop after N iterations, print final summary
 ```
 
@@ -332,7 +325,7 @@ LOOP (FOREVER or N times):
 5. **Automatic rollback** — Failed changes revert instantly. No debates
 6. **Simplicity wins** — Equal results + less code = KEEP. Tiny improvement + ugly complexity = DISCARD
 7. **Git is memory** — Every kept change committed. Agent reads history to learn patterns
-8. **When stuck, think harder** — Re-read files, re-read goal, combine near-misses, try radical changes. Don't ask for help unless truly blocked by missing access/permissions
+8. **When stuck, change approach** — Re-read the files and goal, combine near-misses, try radical changes. Ask for help only when blocked by missing access or permissions
 
 ## Principles Reference
 

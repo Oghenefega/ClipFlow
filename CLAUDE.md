@@ -1,6 +1,6 @@
 # ClipFlow (now **Corva**) — Commercial Desktop App for Gaming Content Creators
 
-**Product renamed ClipFlow → Corva (2026-08-19, #268).** User-facing name, `productName`, installer, and window titles are Corva. Deliberately KEPT under the old name: `appId` `com.clipflow.app` (upgrade identity — never change), `window.clipflow` bridge, `.clipflow` project dotfolder, store filenames (`clipflow-settings/-tokens/-publish-log`, `clipflow.db`), `CLIPFLOW_PROFILE` env var, "ClipFlow Imports" folder, `clipflow_*` PostHog events, persisted `source: "clipflow"` tracker value, Cloudflare internals. The GitHub repo and the Google developer app names still say ClipFlow — their rename is gated behind the trademark opinion (brief Step 4), which is still pending. Fega renamed the Meta and TikTok developer apps to Corva himself on 2026-09-10 without waiting for the opinion (one-offs, not a lifting of the gate). The TikTok rename rides in the `video.list` revision (#388), which is under TikTok review; the live version keeps publishing meanwhile. Check the TikTok portal for the revision's current state before any TikTok dev-app work. `%APPDATA%\clipflow` migrates to `%APPDATA%\Corva` on first boot via `src/main/user-data-migration.js`.
+**Product is named Corva (formerly ClipFlow, #268).** User-facing name, `productName`, installer, and window titles are Corva. Deliberately KEPT under the old name: `appId` `com.clipflow.app` (upgrade identity — never change), `window.clipflow` bridge, `.clipflow` project dotfolder, store filenames (`clipflow-settings/-tokens/-publish-log`, `clipflow.db`), `CLIPFLOW_PROFILE` env var, "ClipFlow Imports" folder, `clipflow_*` PostHog events, persisted `source: "clipflow"` tracker value, Cloudflare internals. The GitHub repo and the Google developer app still say ClipFlow; renaming them waits on a pending trademark opinion. The Meta and TikTok developer apps are named Corva (exceptions, not a lifting of that gate); the TikTok name ships with the `video.list` revision (#388) while the live version keeps publishing, so check the TikTok portal for that revision's state before any TikTok dev-app work. `%APPDATA%\clipflow` migrates to `%APPDATA%\Corva` on first boot via `src/main/user-data-migration.js`.
 
 Electron + React desktop app for gaming/streaming content creators. Automates the full content pipeline: OBS recording → file rename → local clip generation (FFmpeg + Whisper) → editor (subtitles, captions, AI titles) → render → schedule & publish to multiple social platforms.
 
@@ -40,9 +40,9 @@ When the user responds with "yes", "do it", "go", "proceed", or similar single-w
 
 Commit and push directly to master. No PRs, no feature branches.
 
-## Changelog (Non-Negotiable)
+## Changelog
 
-Update `CHANGELOG.md` at the end of **every session** before the final commit. Categorize entries under the current date using Added/Changed/Fixed/Removed. Each entry should be descriptive enough that someone reading the changelog understands the change without digging into code — 1-2 sentences per item. Not too terse, not a journal.
+Every session's changes get `CHANGELOG.md` entries before the session's final commit, normally in the same commit as the work. Categorize entries under the current date using Added/Changed/Fixed/Removed. Each entry should be descriptive enough that someone reading the changelog understands the change without digging into code — 1-2 sentences per item. Not too terse, not a journal.
 
 ## Tech Stack
 
@@ -53,7 +53,7 @@ That file is the source of truth. Never hardcode versions here.
 
 ## Build & Run
 
-Renderer is Vite (migrated from CRA). Commands:
+Renderer is Vite. Commands:
 
 ```bash
 npm install                  # Install deps
@@ -66,11 +66,11 @@ npm run dev:seed             # Copy prod data → dev profile (--force to overwr
 
 `isDev` in `src/main/main.js` is a hard-coded `false`, so Electron always loads the renderer from `build/` — including under `npm run dev`, which starts Vite on http://localhost:3000 but still shows the last `build:renderer` output in the Electron window.
 
-**After ANY code change:** build + launch to visually verify. Non-negotiable. Launch the dev app with the committed harness in `scripts/dev/` (its `README.md` is the recipe: sandbox → launch → probe/screenshot → kill → restore). `npm start` exits 0 at once while the installed Corva is running (same profile, single-instance lock).
+**After a code change:** build and launch the app and see the change working before calling it done; a clean build alone doesn't show that. Launch the dev app with the committed harness in `scripts/dev/` (its `README.md` is the recipe: sandbox → launch → probe/screenshot → kill → restore). `npm start` exits 0 at once while the installed Corva is running (same profile, single-instance lock).
 
 **Only the installed app auto-publishes (#376).** The publish scheduler refuses to start on any
 source run — `npm start` included — and on the dev profile. So the verification step above cannot
-fire a scheduled clip at your accounts, which it could between #329 and s244. The tradeoff is
+fire a scheduled clip at your accounts. The tradeoff is
 deliberate: running prod from source will **not** post scheduled clips. Overrides exist for a
 deliberate test (`CLIPFLOW_ALLOW_SOURCE_PUBLISH=1`, `CLIPFLOW_ALLOW_DEV_PUBLISH=1`); neither can
 trigger by accident. A manual "Post now" in the UI is unaffected on every profile.
@@ -86,11 +86,11 @@ Two profiles via `CLIPFLOW_PROFILE` env var. Only userData (settings, tokens, DB
 
 The daily-driver is the **installed exe** (`C:\Program Files\Corva\Corva.exe`) from `npm run build` + `dist/Corva Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path — and since #376 it does not auto-publish, so it is a viewing/verification backup, not a substitute for the installed app on a day with scheduled clips.
 
-**Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json`, `CHANGELOG.md` and `src/main/release-notes.js` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\Corva\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
+**Promotion loop (live auto-updater):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json`, `CHANGELOG.md` and `src/main/release-notes.js` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\Corva\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
 
 **Sentry** caches `userData` at `require()` time (getsentry/sentry-electron#796) — `app.setPath('userData')` MUST happen at the top of `main.js` BEFORE `require('@sentry/electron/main')`. Don't reorder.
 
-**Cross-tree requires:** main-process files require from `src/renderer/editor/` — `render.js` from `editor/models/` (timeMapping, segmentModel) and `editor/utils/` (resolveSubtitles → cleanWordTimestamps, wordRepair); `subtitle-overlay-preload.js` from `editor/utils/` (subtitleStyleEngine, findActiveWord). Both `editor/models/**` and `editor/utils/**` are bundled via `package.json` `build.files` — adding a new cross-tree import into any OTHER renderer folder requires adding that folder to `build.files` or the packaged exe crashes at startup. The shared util files (`resolveSubtitles`, `cleanWordTimestamps`, `wordRepair`, `subtitleStyleEngine`, `findActiveWord`) use CJS `module.exports` so the main process can `require()` them; renderer code imports them as named ESM bindings (Vite handles the interop). Verify what actually shipped with `npx asar list dist/win-unpacked/resources/app.asar`, not `build.files` globs.
+**Cross-tree requires:** main-process files (`render.js`, `ai-pipeline.js`, `subtitle-overlay-preload.js` and others) require shared files from `src/renderer/editor/models/` and `src/renderer/editor/utils/`. Both folders are bundled via `package.json` `build.files` — adding a cross-tree import into any OTHER renderer folder requires adding that folder to `build.files` or the packaged exe crashes at startup. Shared files that main requires use CJS `module.exports`; renderer code imports them as named ESM bindings (Vite handles the interop). Verify what actually shipped with `npx asar list dist/win-unpacked/resources/app.asar`, not `build.files` globs.
 
 ## Where things live
 
@@ -150,7 +150,7 @@ The daily-driver is the **installed exe** (`C:\Program Files\Corva\Corva.exe`) f
 - Branch: master (private)
 - Token: `C:\Users\IAmAbsolute\.claude\github_token.txt` — read this file to authenticate `gh` / GitHub API calls
 
-## Autonomous Issue Filing (Non-Negotiable)
+## Autonomous Issue Filing
 
 Issues are filed and closed autonomously via `gh` — never ask permission, never output PowerShell for the user to run. Always include `--repo Oghenefega/ClipFlow`.
 

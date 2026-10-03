@@ -4,7 +4,7 @@ Track every iteration in a structured log. Enables pattern recognition and preve
 
 ## Log Format (TSV)
 
-Create `autoresearch-results.tsv` in the working directory (gitignored):
+Create `autoresearch-results.tsv` in the working directory and make sure `.gitignore` lists it:
 
 ```tsv
 iteration	commit	metric	delta	guard	status	description
@@ -47,7 +47,7 @@ iteration	commit	metric	delta	guard	status	description
 
 ## Summary Reporting
 
-Every 10 iterations (or at loop completion in bounded mode), print a brief summary:
+Use this block when reporting progress (or at loop completion in bounded mode):
 
 ```
 === Autoresearch Progress (iteration 20) ===

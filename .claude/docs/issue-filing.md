@@ -16,7 +16,7 @@ During work, something surfaces that's not fixable inline in ≤60 seconds. File
 **Don't file for:**
 - Inline fixes handled in the same commit
 - Pure in-conversation exploration not yet actionable
-- Obvious duplicates (run `gh issue list --search "keywords"` first when cost is low)
+- Obvious duplicates (run `gh issue list --repo Oghenefega/ClipFlow --search "keywords"` first when cost is low)
 
 ## Issue body must include
 
@@ -53,7 +53,7 @@ If the match is ambiguous, ask once which issue to close. Don't close on vague a
 
 ## "Start session" trigger (natural language)
 
-Whenever the user says "start session", "let's pick up", "resume", "begin", or any similar phrase meaning "kick off a new session" — run the full session-start ritual without being asked: read HANDOFF.md, `git log --oneline -10`, `tasks/todo.md`. Then **also** list the open **code backlog** — launch/infra/business-setup work is parked under `track: launch-ops` and excluded so it doesn't clutter every session:
+Whenever the user says "start session", "let's pick up", "resume", "begin", or any similar phrase meaning "kick off a new session" — run the full session-start ritual without being asked: read HANDOFF.md and `git log --oneline -10`. Then **also** list the open **code backlog** — launch/infra/business-setup work is parked under `track: launch-ops` and excluded so it doesn't clutter every session:
 
 ```
 gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50

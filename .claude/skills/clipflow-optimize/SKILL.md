@@ -83,7 +83,7 @@ console.log(`IPC ${channel}: ${(performance.now() - start).toFixed(1)}ms`);
 
 ## ClipFlow Hotspot Checklist
 
-Profile these areas IN ORDER when investigating performance. Each has specific detection and fix patterns.
+Candidate areas with ClipFlow detection/fix patterns; start from whichever the profile points at.
 
 ### 1. React Re-renders (Renderer)
 
@@ -150,9 +150,9 @@ Profile these areas IN ORDER when investigating performance. Each has specific d
 | Pattern | Problem | Fix |
 |---------|---------|-----|
 | Sync file reads at startup | Blocks app.ready | Move to async, read after window shows |
-| Loading all project data | Slow with many projects | Load project list only, lazy-load details |
+| Loading all project data | Slow with many projects | Load a summary list, but it must carry every field its consumers read (Queue and the scheduler read the startup list) |
 | electron-store reads | Sync by default | Acceptable for small config, defer large data |
-| Module requires | Large modules loaded upfront | Dynamic import() for features used later |
+| Main-process requires | Large modules loaded before the window shows | Require inside the handler that needs them (the renderer must not lazy-load) |
 
 ### 5. FFmpeg Pipeline (Main Process)
 
@@ -165,9 +165,8 @@ Profile these areas IN ORDER when investigating performance. Each has specific d
 | Pattern | Problem | Fix |
 |---------|---------|-----|
 | Multiple passes when one suffices | Re-encoding intermediates | Single-pass with complex filtergraph |
-| Missing -threads flag | Single-threaded encode | Add `-threads 0` (auto) |
 | Unnecessary -vcodec copy | Can't apply when filter needed | Only copy when no transforms |
-| No hardware accel | CPU-only encode | `-c:v h264_nvenc` / `-c:v h264_qsv` with fallback |
+| Encoder choice | — | User-selected via `resolveEncoder` (Settings → Pipeline Quality auto/gpu/cpu); `gpu` fails loudly, never silently falls back (#75) |
 | Large temp files | Intermediates on disk | Pipe between FFmpeg stages where possible |
 | Re-extracting audio | Extract audio every time it's needed | Cache extracted audio alongside video |
 
@@ -197,32 +196,6 @@ Profile these areas IN ORDER when investigating performance. Each has specific d
 | Sync fs calls | Blocks main process | Use fs.promises or fs callback API |
 | Watching too many files | Memory + CPU from watchers | Narrow chokidar watched paths |
 | Reading entire files to check existence | Wasteful | Use fs.access or fs.stat |
-
----
-
-## TypeScript/JavaScript Trouble Spots
-
-Quick grep commands to find common perf issues in ClipFlow:
-
-```bash
-# Sequential async in loops
-rg 'for.*await|while.*await' --type js src/
-
-# JSON parse/stringify in hot paths
-rg 'JSON\.(parse|stringify)' --type js src/renderer/
-
-# Array.includes on potentially large arrays
-rg '\.includes\(' --type js src/renderer/ -c | sort -t: -k2 -rn
-
-# Chained array operations
-rg '\.(map|filter|reduce)\(.*\)\.(map|filter|reduce)' --type js src/
-
-# Regex created inside loops
-rg 'new RegExp' --type js src/
-
-# Object spread in loops (potential perf issue)
-rg 'for.*\{' -A5 --type js src/ | rg '\.\.\.'
-```
 
 ---
 
@@ -269,7 +242,7 @@ After each optimization:
 ## Iteration Rounds
 
 - **Round 1:** Low-hanging fruit — unnecessary re-renders, IPC batching, memory leaks, missing cleanup
-- **Round 2:** Algorithmic — subtitle search optimization, caching strategies, lazy loading
-- **Round 3:** Infrastructure — hardware-accelerated encoding, worker threads, streaming
+- **Round 2:** Algorithmic — subtitle search optimization, caching strategies
+- **Round 3:** Infrastructure — worker threads, streaming
 
 Each round: fresh profile → new hotspots → new matrix. Never skip profiling between rounds.

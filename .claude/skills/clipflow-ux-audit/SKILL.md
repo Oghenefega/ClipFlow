@@ -103,7 +103,7 @@ description: >-
 - [ ] Placeholder text is readable (not too faint)
 - [ ] Focus states have sufficient contrast
 
-**ClipFlow-specific (dark theme):**
+**ClipFlow-specific (check a dark AND a light theme):**
 - [ ] Muted/secondary text readable on dark backgrounds
 - [ ] Active vs inactive tab distinction doesn't rely solely on subtle shade
 - [ ] Selected subtitle in list is clearly distinguishable

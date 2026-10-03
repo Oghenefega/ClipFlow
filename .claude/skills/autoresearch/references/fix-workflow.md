@@ -7,7 +7,6 @@ Autonomous fix loop that takes a broken state and iteratively repairs it until e
 ## Trigger
 
 - User invokes `/autoresearch:fix`
-- User says "fix all errors", "make tests pass", "fix the build", "clean up all warnings"
 - User has output from `/autoresearch:debug` and wants to fix the findings
 
 ## Loop Support
@@ -43,9 +42,6 @@ Use ONE `AskUserQuestion` call with all 4 questions:
 | 2 | `Guard` | "What command must ALWAYS pass? (prevents fixes from breaking other things)" | "npm test", "tsc --noEmit", "npm run build", "Skip — no guard" |
 | 3 | `Scope` | "Which files can I modify?" | Suggested globs from error locations + "All project files" |
 | 4 | `Launch` | "Ready to fix?" | "Fix until zero errors", "Fix with iteration limit", "Edit config", "Cancel" |
-
-**IMPORTANT:** Always ask all 4 questions in a single call — never one at a time. Users need the full picture (what's broken, what's the guard, what's the scope) to make informed decisions together.
-
 If the user provides `--target`, `--guard`, `--scope`, or `--from-debug` flags, skip the interactive setup and proceed directly to Phase 1.
 
 ## Architecture
@@ -162,14 +158,12 @@ Pick the highest-priority unfixed item and make ONE focused change.
 - ONE fix per iteration. Not two. Not "while I'm here."
 - Fix the IMPLEMENTATION, not the test (unless the test is genuinely wrong)
 - Never add `@ts-ignore`, `eslint-disable`, `# type: ignore` to suppress errors
-- Never use any|any escape hatch never solves type errors — use proper narrowed types or generics
-- Never delete test|delete test coverage never improves code — fix the implementation to satisfy tests
 - Prefer minimal changes — smallest diff that fixes the issue
 
 ## Phase 4: Commit — Before Verification
 
 ```bash
-git add -A
+git add <changed-files>
 git commit -m "fix: [what was fixed] — [file:line]"
 ```
 
@@ -226,7 +220,7 @@ guard_result = run(guard_command)  # e.g., "npm test"
 | No effect | == 0 | - | DISCARD | discard |
 | Made it worse | < 0 | - | DISCARD immediately | discard |
 | Crash/exception | any | fail | RECOVER (simpler) | recover |
-| 3rd attempt fails | any | any | SKIP to blocked | blocked |
+| Attempt limit reached | any | any | SKIP to blocked | blocked |
 
 ## Phase 8: Log & Repeat
 
@@ -241,7 +235,7 @@ iteration	category	target	delta	guard	status	description
 5	test	auth.test.ts	-1	pass	fixed	missing await on async handler
 ```
 
-**Every 5 iterations, print progress:**
+**Use this block when reporting progress:**
 ```
 === Fix Progress (iteration 15) ===
 Baseline: 62 errors → Current: 23 errors (-39, -63%)
@@ -302,12 +296,11 @@ DECIDING:
   → delta > 0 AND guard fails → REWORK (max 2) → FIXING
   → delta == 0 → DISCARD → revert → PRIORITIZING (next item)
   → delta < 0 → DISCARD → revert immediately → PRIORITIZING
-  → 3 failed attempts on same item → SKIP → blocked list → PRIORITIZING
+  → attempt limit reached (2 guard-failure reworks, or 3 failed fixes) → SKIP → blocked list → PRIORITIZING
   → All items fixed or skipped → DONE
 
 DONE:
   → Generate summary.md
-  → Print fix_score
   → Suggest /autoresearch:debug for blocked items
 ```
 
@@ -341,38 +334,6 @@ Verification depth scales with blast radius:
 | Config / env var | CI pipeline run | Full deployment to staging |
 | Dependency upgrade | `npm test` | Full regression suite + e2e |
 | Auth / security code | Unit + integration | Security audit + penetration test |
-
-## Composite Metric
-
-For bounded loops, a nuanced fix_score accounting for quality of fixes:
-
-```
-fix_score = reduction_score + quality_score + bonus_score
-
-reduction_score = ((baseline_errors - current_errors) / baseline_errors) * 60
-  # Weight: 60% — primary goal is reducing errors
-
-quality_score = 0
-  # Deduct for low-quality fixes (anti-patterns used):
-  quality_score -= (suppression_count * 5)   # @ts-ignore, eslint-disable used
-  quality_score -= (skipped_test_count * 10)  # tests deleted/commented out
-  quality_score -= (any_type_count * 3)       # `any` type introduced
-  quality_score = max(quality_score, -20)     # floor: never below -20
-
-guard_score = (guard_always_passed ? 25 : 0)
-  # Weight: 25% — no regressions is critical
-
-bonus_score = 0
-  bonus_score += (zero_errors ? 10 : 0)              # all clear bonus
-  bonus_score += (no_discards ? 5 : 0)               # every fix worked first try
-  bonus_score += (compound_detected_and_fixed ? 5 : 0) # found hidden bugs too
-```
-
-**Interpretation:**
-- **100+** = perfect: all errors fixed, no regressions, no anti-patterns
-- **80-99** = good: significant progress, guards held, minimal anti-patterns
-- **60-79** = acceptable: meaningful reduction, but some regressions or anti-patterns
-- **<60** = needs work: too many discards, guard failures, or anti-patterns used
 
 ## Fix Impact Assessment
 
@@ -438,9 +399,8 @@ STEP 1: Identify the bad commit
 
 STEP 2: Revert the specific commit
   git revert HEAD --no-edit
-  # OR for harder cases:
-  git reset --soft HEAD~1  # unstage the commit
-  git checkout -- .        # discard working changes
+  # OR, if the commit is unpushed and holds only this fix:
+  git reset --hard HEAD~1  # drop the commit and its changes
 
 STEP 3: Verify rollback succeeded
   Run original failing command — should return to pre-fix error count
@@ -611,7 +571,7 @@ Iterations: 20
 Creates `fix/{YYMMDD}-{HHMM}-{fix-slug}/` with:
 - `fix-results.tsv` — iteration log
 - `summary.md` — what was fixed, what remains, stats
-- `blocked.md` — errors that needed 3+ attempts and were escalated
+- `blocked.md` — errors skipped after hitting their attempt limit
 - `impact-assessment.md` — blast radius analysis for each fix applied
 
 ## Extended Chaining Patterns
@@ -656,13 +616,6 @@ npm upgrade && /autoresearch:fix --category type --category test
 - Baseline: 47 errors (31 test, 12 type, 4 lint)
 - Final: 3 errors (2 test, 1 type, 0 lint)
 - Reduction: 93.6% (-44 errors)
-
-## Fix Score
-fix_score: 97/100
-- Reduction: 58/60 (93.6%)
-- Guard: 25/25 (no regressions)
-- Bonus: +10 (zero lint errors)
-- Anti-patterns used: 0
 
 ## Fixed
 - auth.ts:42 — add return type annotation (type)

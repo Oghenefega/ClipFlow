@@ -10,10 +10,6 @@ description: Quick project status — git state, todo progress, recent changes
 
 ! git log --oneline -8
 
-## Task Progress
-
-! cat tasks/todo.md 2>/dev/null | head -30 || echo "No todo.md"
-
 ## Lessons (recent)
 
 ! tail -20 tasks/lessons.md 2>/dev/null || echo "No lessons.md"

@@ -7,9 +7,9 @@ description: Use when working with Electron main process, IPC handlers, preload 
 
 ClipFlow is an Electron app (version: `package.json`). Main process in `src/main/`, renderer in `src/renderer/`.
 
-## IPC Response Unwrapping — CRITICAL
+## IPC Response Unwrapping
 
-Every `ipcRenderer.invoke()` returns a wrapper: `{ success: true, project: {...} }` or `{ success: false, error: "..." }`.
+Most data IPCs return `{ success: true, <payload> }`, or `{ error }` on failure. Simple getters such as `store:get` return the raw value. Read the handler's `return` first.
 
 **ALWAYS unwrap before storing in React state:**
 ```javascript
@@ -87,7 +87,7 @@ const toggle = (key) => {
 
 ## Preload Bridge (window.clipflow)
 
-- 31+ methods exposed via contextBridge
+- Each `window.clipflow` method → IPC channel → handler is listed in `.claude/docs/nav-map.md`
 - All methods are async (return Promises)
 - File paths use Windows backslashes internally
 - Platform detection: `window.clipflow.platform` returns `'win32'`
@@ -106,42 +106,23 @@ const toggle = (key) => {
 - `isDev = false` in main.js — loads from `build/` folder
 - For hot reload: set `isDev = true` and run React dev server on port 3000
 
-## Variable Renaming Safety
+## Renames and hook order
 
-After renaming ANY variable:
-1. Grep the ENTIRE file for all references to the old name
-2. Check JSX props, callback arguments, destructuring, imports
-3. Use find-and-replace, don't rely on visual scanning
-4. A missed reference = blank screen crash (ReferenceError)
-
-## Hook Declaration Order (TDZ Prevention)
-
-```javascript
-// WRONG — useEffect references clipDuration before it's declared
-useEffect(() => { doSomething(clipDuration) }, [clipDuration]);
-// ... 700 lines later ...
-const clipDuration = clip?.endTime - clip?.startTime;
-
-// CORRECT — declare ABOVE the hook
-const clipDuration = clip?.endTime - clip?.startTime;
-useEffect(() => { doSomething(clipDuration) }, [clipDuration]);
-```
-
-`const` is NOT hoisted like `var`. Temporal Dead Zone = ReferenceError = blank screen.
+A missed rename or a hook reading a `const` declared lower in the component is a ReferenceError and a blank screen; done-time checks are in clipflow-code-review §3.
 
 ## Distilled Lessons (gaps)
 
 - **Windows file locking (EBUSY).** Before any IPC that replaces/deletes a clip file on disk, unload the `<video>` first (`removeAttribute('src')` + `.load()`), then wait ~100ms for the OS to release the handle. Replacing a file Chromium has open throws `EBUSY: resource busy or locked`.
-- **A preview is a reader, and on Windows a reader blocks a writer (s269, #450).** A `<video>` that has been SCRUBBED keeps its local file open (a loaded, never-seeked one did not), so `renameAssetTo` (the #188 title→file rename, which swallows the error) and render deletes fail with `EBUSY` while it stays loaded. Any preview of a file the app may rename, overwrite or delete must let go when idle: in-DOM `<video>` over a `<canvas>`, copy each frame in `requestVideoFrameCallback`, unload once settled (pattern: `YoutubeThumbnailPicker` in QueueView.js). Never `drawImage` at `seeked` — the frame is often not drawable yet and the canvas silently keeps the old picture. Memory `project_video_preview_file_lock`.
+- **A preview is a reader, and on Windows a reader blocks a writer (s269, #450).** A `<video>` that has been SCRUBBED keeps its local file open (a loaded, never-seeked one did not), so `renameAssetTo` (the #188 title→file rename, which swallows the error) and render deletes fail with `EBUSY` while it stays loaded. Any preview of a file the app may rename, overwrite or delete must let go when idle: in-DOM `<video>` over a `<canvas>`, copy each frame in `requestVideoFrameCallback`, unload once settled (pattern: `ThumbnailPicker` in QueueView.js). Never `drawImage` at `seeked` — the frame is often not drawable yet and the canvas silently keeps the old picture. Memory `project_video_preview_file_lock`.
 - **The preload script is a single point of failure — never add a bare `require()`.** Any uncaught error in `preload.js` crashes the script, so `contextBridge.exposeInMainWorld('clipflow', …)` never runs and `window.clipflow` is `undefined` → the app loads as an empty shell with zero data. Wrap every third-party require in try/catch. After ANY preload change, open DevTools and check for red errors (terminal shows "no errors" even when preload died).
 - **Native Node modules fail in Electron on Windows** (`better-sqlite3` → `node-gyp`/`electron-rebuild` failures). Use a WASM alternative — `sql.js` (async init, zero native compilation, cross-platform).
 - **No Node `path` module in the renderer.** Use `str.split(/[/\\]/).pop()` for basename etc. `path` is main-process only.
 - **Pass explicit data fields to AI prompts — never let the model infer them.** e.g. inject the game's exact `gameHashtag` into the IPC handler + system prompt; don't rely on the model deriving `#eggingon` from the name "Egging On".
-- **Don't invent API model IDs** — grep `main.js` for the proven IDs already in the `anthropic:*` handlers. (See `clipflow-trace-verify`.)
+- **Don't invent API model IDs** — grep `src/main` for the proven IDs (`ai/detection-model.js`, `ai/providers/anthropic.js`, `main.js`). (See `clipflow-trace-verify`.)
 - **asar packaging bugs come in FAMILIES — sweep every `__dirname`-relative main-process path before shipping the fix.** In the packaged app `__dirname` is inside the read-only `app.asar`, so a path that's (a) WRITTEN to (scratch/output/logs) or (b) read by an EXTERNAL process (python/ffmpeg scripts, models, binaries) breaks there identically. Find one → grep `src/main` for ALL of them and triage: (a) → `app.getPath("userData")`; (b) → ship via electron-builder `extraResources` (or `asarUnpack`) AND resolve from `process.resourcesPath` when `app.isPackaged` (repo-relative from source) AND make sure the dir is actually packaged (`build.files`/extraResources) or it won't ship at all; (c) Electron-read paths (`loadFile`, preload) are fine inside the asar. Fix the whole class in ONE installer, not one-per-reinstall. Source runs hide all of this (`__dirname` is the writable repo). (#142 processingDir → userData; #143 `tools/transcribe.py` + `tools/signals/*` → extraResources.)
-- **Reading inside an asar: `npx asar list` and grep. NEVER `asar extract-file`.** Run with the repo as CWD it overwrites `package.json` with the stripped packaged copy — scripts, devDependencies and the whole `build` block gone (memory `project_package_json_strip`). Recovery: `git checkout -- package.json`, re-apply any uncommitted change, then byte-probe — the checkout restores through autocrlf, so an all-LF file comes back CRLF while `git diff --stat` still reads "1 insertion". Note `asar list` prints BACKSLASH paths, so a `grep "^/src"` finds nothing and reads as "it did not ship" — grep a bare substring like `src.shared` instead. (This rule lived only in the code-review skill's done-time checklist and was violated anyway in s137 and s218; it belongs here, where packaging work is already in context.)
+- **Reading inside an asar: `npx asar list` and grep. NEVER `asar extract-file`.** Run with the repo as CWD it overwrites `package.json` with the stripped packaged copy — scripts, devDependencies and the whole `build` block gone (memory `project_package_json_strip`). Recovery: `git checkout -- package.json`, re-apply any uncommitted change, then byte-probe — the checkout restores through autocrlf, so an all-LF file comes back CRLF while `git diff --stat` still reads "1 insertion". Note `asar list` prints BACKSLASH paths, so a `grep "^/src"` finds nothing and reads as "it did not ship" — grep a bare substring like `src.shared` instead.
 - **The asar "family" is WIDER than `__dirname` script paths — the session-84 sweep missed three more members (proven by the session-85 audit).** When sweeping, ALSO check: (1) every cross-tree `require()` (main → renderer) — the file MUST be globbed in `build.files` or it's absent from the asar and the `require` throws (e.g. `editor/models/**` was added but `editor/utils/**` was not → the overlay preload's `require("subtitleStyleEngine.js")` throws → packaged exports silently burn in BLANK subtitles); (2) every static asset loaded by `file://` in an offscreen/overlay window (fonts in `src/fonts`, images) — not in `build.files`/`extraResources` → 404/fallback, AND `file://` into the asar is unreliable anyway, so ship via `extraResources` + `process.resourcesPath`; (3) every BARE external-binary spawn (`spawn("ffmpeg"/"ffprobe"/"python")`) — relies on the user's PATH and is bundled NOWHERE → total pipeline failure on any clean machine. **Verify against the real artifact, not the globs: `npx asar list dist/win-unpacked/resources/app.asar`** shows what actually shipped — a `build.files` glob you THINK matches may not.
-- **Profile isolation (`CLIPFLOW_PROFILE`) covers ONLY userData (settings store + DB) — not everything.** Anything keyed off the `watchFolder` setting lives OUTSIDE userData and is SHARED by every profile pointing at it: the recordings corpus itself and the whole projects tree (`<watchFolder>\.clipflow\projects`). Before promising any profile/sandbox is "empty/isolated", enumerate every class of state (store, DB, on-disk trees derived from settings, caches) against the isolation boundary. A sealed sandbox needs its own watch folder preseeded into `clipflow-settings.json` BEFORE first boot — written with the Write tool / a JSON library and validated by a read-back, NEVER via bash printf/echo escapes (Windows paths mangle silently and the parse failure falls back to the real folder). (Session 111 fresh-test; session 112 applied this correctly.)
+- **Profile isolation (`CLIPFLOW_PROFILE`) covers ONLY userData (settings store + DB) — not everything.** Anything keyed off a folder setting (`projectsRoot`, `watchFolder`, …) lives OUTSIDE userData and is SHARED by every profile pointing at it: the recordings corpus itself and the whole projects tree (`<projectsRoot>\.clipflow\projects`, via `libraryRoot()`). Before promising any profile/sandbox is "empty/isolated", enumerate every class of state (store, DB, on-disk trees derived from settings, caches) against the isolation boundary. Use `node scripts/dev/dev-fixture.js setup` for a sealed sandbox. (Session 111 fresh-test; session 112 applied this correctly.)
 - **Persistence writers that WHITELIST fields silently drop new ones.** Several IPC-backed save paths rebuild the stored object from an explicit field list (e.g. `projects.updateReframe` re-creates `{layoutId, camRect, gameRect, …}`) — adding a field to a data shape means extending EVERY whitelisting writer on its persist path, or the renderer's value evaporates on save with no error. Before assuming a new field persists, grep the save path for object-literal rebuilds of that shape and trace one round-trip (set → save → reload). (Session 104: `reframe.style` was the first casualty.)
 - **Renderer-owned store state has TWO writers — a main-process write alone gets clobbered.** App.js loads keys like `gamesDb` into React state once at boot and persists the WHOLE array back on every state change (`useEffect → persist("gamesDb", …)`). Any main-side `store.set()` to such a key (migration, repair, reconcile) is silently reverted the next time the renderer touches its stale copy. Rule: after a main-side write to renderer-owned state, broadcast the fresh value (`mainWindow.webContents.send("<key>:changed", value)`) and have App.js subscribe + setState. Grep App.js's persist effects to know which keys are renderer-owned. (Session 113: day-counter repair + `gamesDb:changed`.)
 - **A "done" flag in electron-store cannot guard per-DATABASE state — the two stores have DIFFERENT sharing boundaries.** `clipflow-settings` lives in userData, which prod-from-source and the packaged exe **share**; the SQLite DB does not (`DB_DIR` in `database.js` splits `<repo>/data` for source-prod vs `userData/data` when packaged). So a one-time seed/repair guarded by `store.get("xDone")` runs once from whichever context launches first and is then permanently skipped in the other — whose table never got seeded. Rule: guard DB-side one-time work by querying the DB itself, or make the operation idempotent (insert only what's missing) and run it every startup. Same trap for any throttle stamp that gates DB writes. (Session 127: `title_caption_rounds` backfill — caught pre-ship; it now runs every boot and inserts only unseen clip ids.)

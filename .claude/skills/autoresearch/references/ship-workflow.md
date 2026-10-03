@@ -7,8 +7,6 @@ Universal shipping workflow that applies autoresearch loop principles to the las
 ## Trigger
 
 - User invokes `/autoresearch:ship`
-- User says "ship it", "deploy this", "publish this", "launch this", "release this"
-- User says "get this out the door", "push to prod", "send this out", "go live"
 
 ## Loop Support
 
@@ -41,8 +39,6 @@ Use ONE `AskUserQuestion` call with all 3 questions:
 | 1 | `What` | "What are you shipping?" | "Code PR", "Release / version tag", "Deployment to production", "Blog post / documentation" |
 | 2 | `Mode` | "How should I ship it?" | "Full workflow (checklist → dry-run → ship → verify)", "Dry-run only (validate without shipping)", "Checklist only (just check readiness)", "Auto-approve (ship if checklist passes)" |
 | 3 | `Monitor` | "Post-ship monitoring?" | "No monitoring", "5 minutes", "10 minutes", "30 minutes" |
-
-**IMPORTANT:** Always ask all questions in a single call — never one at a time.
 
 If `--type`, `--dry-run`, `--auto`, or `--checklist-only` flags are provided, skip interactive setup and proceed directly.
 

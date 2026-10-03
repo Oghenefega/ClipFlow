@@ -14,10 +14,6 @@ If HANDOFF.md contains a `> Pending session title` line: the previous wrap could
 
 ! git log --oneline -10
 
-## 3. Check for in-progress tasks
-
-! cat tasks/todo.md 2>/dev/null | head -40 || echo "No todo.md found."
-
 Now:
 - Summarize what was last worked on (from HANDOFF.md and git log)
 - Ask the user:

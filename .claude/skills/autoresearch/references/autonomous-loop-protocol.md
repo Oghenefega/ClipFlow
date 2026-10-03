@@ -137,20 +137,13 @@ ELIF crashed:
 
 ## Phase 7: Log Results
 
-Append to results log (TSV format):
-
-```
-iteration  commit   metric   status   description
-42         a1b2c3d  0.9821   keep     increase attention heads from 8 to 12
-43         -        0.9845   discard  switch optimizer to SGD
-44         -        0.0000   crash    double batch size (OOM)
-```
+Append one row to the results log in the format defined in results-logging.md (iteration, commit, metric, delta, guard, status, description).
 
 ## Phase 8: Repeat
 
 ### Unbounded Mode (default)
 
-Go to Phase 1. **NEVER STOP. NEVER ASK IF YOU SHOULD CONTINUE.**
+Go to Phase 1. Don't ask whether to continue: the user may be away, and interrupting is how the run ends.
 
 ### Bounded Mode (with Iterations: N)
 
@@ -194,8 +187,4 @@ Applies to both modes:
 
 ## Communication
 
-- **DO NOT** ask "should I keep going?" — in unbounded mode, YES. ALWAYS. In bounded mode, continue until N is reached.
-- **DO NOT** summarize after each iteration — just log and continue
-- **DO** print a brief one-line status every ~5 iterations (e.g., "Iteration 25: metric at 0.95, 8 keeps / 17 discards")
-- **DO** alert if you discover something surprising or game-changing
-- **DO** print a final summary when bounded loop completes
+Log every iteration to the results log. Write to the user when something would change what they do: a new best metric, a surprising result, a stall (5+ consecutive discards), or a blocker you can't resolve. Print the final summary when a bounded loop completes.

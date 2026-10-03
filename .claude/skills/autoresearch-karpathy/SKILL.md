@@ -1,6 +1,6 @@
 ---
-name: autoresearch
-description: Autonomous self-improvement loop for any ClipFlow skill or code. Based on Karpathy's autoresearch method. Use when asked to "autoresearch", "auto-improve", "optimize a skill", or "run the loop" on any skill or measurable metric.
+name: autoresearch-karpathy
+description: Autonomous self-improvement loop for any ClipFlow skill or code. Based on Karpathy's autoresearch method. Use when asked to auto-improve or optimize a ClipFlow skill, or to run the Karpathy keep/discard loop on one measurable metric.
 ---
 
 # Autoresearch — Autonomous Improvement Loop
@@ -51,7 +51,7 @@ d4e5f6g	0.0	0.0	crash	syntax error in skill file
 
 ## Critical Rules
 
-1. **NEVER STOP**: Once the loop begins, do NOT pause to ask the human. They may be away. Run indefinitely until manually interrupted. If out of ideas, think harder — re-read the target, try combining near-misses, try radical changes.
+1. **Run until interrupted**: once the loop begins, don't pause to ask whether to continue; the human may be away. If out of ideas, re-read the target, combine near-misses, or try a radical change.
 
 2. **One change per iteration**: Atomic changes only. If it breaks, you know exactly why.
 
@@ -103,10 +103,10 @@ This loop works on anything with a measurable metric:
 | Target | Metric | Verify Command |
 |--------|--------|----------------|
 | Skill SKILL.md | Checklist pass rate % | Custom eval script |
-| React component | Build success + no warnings | `npx react-scripts build 2>&1 | grep -c "warning"` |
+| React component | Build warnings | `npm run build:renderer 2>&1 | grep -ci "warn"` |
 | FFmpeg pipeline | Processing time (seconds) | `time ffmpeg ... 2>&1 | grep real` |
 | Test coverage | Coverage % | `npm test -- --coverage | grep "All files"` |
-| Bundle size | KB after gzip | `npx react-scripts build 2>&1 | grep "main.*js"` |
+| Bundle size | KB of main chunk | `npm run build:renderer 2>&1 | grep "assets/index-.*\.js"` |
 
 ## Crash Recovery
 

@@ -7,8 +7,6 @@ Autonomous bug-hunting loop that applies the scientific method iteratively. Does
 ## Trigger
 
 - User invokes `/autoresearch:debug`
-- User says "find all bugs", "debug this", "why is this failing", "hunt bugs", "investigate"
-- User reports a specific error and wants root cause analysis
 
 ## Loop Support
 
@@ -40,9 +38,6 @@ Use ONE `AskUserQuestion` call with all 4 questions:
 | 2 | `Scope` | "Which files should I investigate?" | Suggested globs from project structure + "Entire codebase" |
 | 3 | `Depth` | "How deep should I investigate?" | "Quick scan (5 iterations)", "Standard (15 iterations)", "Deep investigation (30+)", "Unlimited" |
 | 4 | `After` | "When bugs are found, should I also fix them?" | "Find bugs only (report)", "Find and fix (chain to /autoresearch:fix)", "Ask me after each finding" |
-
-**IMPORTANT:** Always ask all 4 questions in a single call — never one at a time. Users need full context to make informed decisions.
-
 If `--scope`, `--symptom`, or `--fix` flags are provided, skip the interactive setup and proceed directly to Phase 1.
 
 ## Architecture
@@ -189,7 +184,7 @@ iteration	type	hypothesis	result	severity	location	description
 4	hypothesis	DB insert missing await	confirmed	HIGH	db.ts:88	Silent failure on write errors
 ```
 
-**Every 5 iterations, print progress:**
+**Use this block when reporting progress:**
 ```
 === Debug Progress (iteration 10) ===
 Bugs found: 3 (1 Critical, 1 High, 1 Medium)
@@ -223,19 +218,6 @@ Techniques used: direct inspection, trace, binary search
 | `--symptom "<text>"` | Pre-fill symptom instead of asking |
 | `--severity <level>` | Only report findings at or above this severity |
 | `--technique <name>` | Force a specific investigation technique |
-
-## Composite Metric
-
-For bounded loops, the debug thoroughness metric:
-
-```
-debug_score = bugs_found * 15
-            + hypotheses_tested * 3
-            + (files_investigated / files_in_scope) * 40
-            + (techniques_used / 7) * 10
-```
-
-Higher = more thorough. Incentivizes breadth (cover more files) AND depth (test more hypotheses).
 
 ## Investigation Techniques Reference
 
@@ -286,9 +268,6 @@ Quick reference for language-specific bugs to scan for during reconnaissance.
 | **All** | Race condition on shared state | Global/singleton mutated from concurrent threads | Missing synchronization |
 | **All** | Integer overflow in calculations | Arithmetic on large numbers without bounds check | Silent wrap-around on overflow |
 | **All** | Injection vulnerability | User input concatenated into command/query/template | Missing sanitization/escaping |
-
-**Reconnaissance shortcut:** When entering Phase 2, grep for these patterns first — they're statistically the most common issues.
-
 ## Domain-Specific Debugging
 
 Different domains have predictable failure modes. Apply domain-specific reconnaissance before forming hypotheses.
@@ -431,7 +410,7 @@ Symptom: API returns 500 on POST /users
 Why 1: database insert throws ConstraintViolationError
 Why 2: email field is empty string, violates NOT NULL constraint
 Why 3: validation layer allows empty strings as valid email
-Why 4: validation uses truthy check (empty string is falsy — wait, it isn't)
+Why 4: the email check is a regex test, not a presence check
 Why 5: regex validator has a bug — accepts empty string as valid email format
 Root Fix: fix the email regex to require at least one character before @
 ```

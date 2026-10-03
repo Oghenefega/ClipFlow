@@ -634,18 +634,22 @@ test("short recording states its length; floor fills with distinct clips, never 
   });
   expect(prompt).toContain("This recording is ~1 minute long.");
   expect(prompt).toContain("one clip per 90 seconds of recording, minimum 10, maximum 25");
-  expect(prompt).toContain("as many non-overlapping clips as it can physically hold");
+  expect(prompt).toContain("return as many as it genuinely holds");
   expect(prompt).notToContain("10-20 clip recommendations");
   expect(prompt).notToContain("Do not return fewer than 10");
 });
 
-test("long recording rounds to minutes and keeps the overlap ban (#200)", () => {
+test("long recording rounds to minutes; overlap only for a different payoff, duplicates banned (#200)", () => {
   const prompt = buildSystemPrompt({
     gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
     approvedClips: [], creatorProfile: null, sourceDuration: 1800,
   });
   expect(prompt).toContain("This recording is ~30 minutes long.");
-  expect(prompt).toContain("must not overlap");
+  expect(prompt).toContain("Clips may share footage when each builds to its own payoff");
+  expect(prompt).toContain("every clip lands a payoff no other clip ends on");
+  expect(prompt).toContain("covering nearly the same stretch");
+  expect(prompt).notToContain("must not overlap");
+  expect(prompt).notToContain("overlap by more than 50%");
 });
 
 test("a recording long enough for 10+ clips gets its count as a number, one per 80 s (#480)", () => {
@@ -656,7 +660,7 @@ test("a recording long enough for 10+ clips gets its count as a number, one per 
   expect(p30).toContain("return at least 23 clips for this ~30-minute recording, and more (up to 25)");
   expect(p30).notToContain("one clip per 90 seconds");
   expect(p30).notToContain("14-15 out of habit");
-  expect(p30).toContain("as many non-overlapping clips as it can physically hold");
+  expect(p30).toContain("return as many as it genuinely holds");
   const p21 = buildSystemPrompt({
     gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
     approvedClips: [], creatorProfile: null, sourceDuration: 21 * 60,

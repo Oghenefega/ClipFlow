@@ -7,8 +7,6 @@ Autonomous security auditing that uses the autoresearch loop to iteratively disc
 ## Trigger
 
 - User invokes `/autoresearch:security`
-- User says "security audit", "run a security sweep", "threat model this codebase", "find vulnerabilities"
-- User says "red-team this app", "OWASP audit", "STRIDE analysis"
 
 ## Loop Support
 
@@ -41,8 +39,6 @@ Use ONE `AskUserQuestion` call with all 3 questions:
 | 1 | `Scope` | "What should I audit?" | "Entire codebase (comprehensive)", "API routes + middleware only", "Authentication + authorization", "External-facing code only" |
 | 2 | `Depth` | "How thorough?" | "Quick scan (5 iterations)", "Standard audit (15 iterations)", "Deep audit (30+ iterations)", "Unlimited" |
 | 3 | `Action` | "What should I do with confirmed vulnerabilities?" | "Report only (read-only)", "Report + auto-fix Critical/High", "Report + CI gate (fail on critical)" |
-
-**IMPORTANT:** Always ask all questions in a single call — never one at a time.
 
 If flags are provided inline, skip interactive setup and proceed directly.
 
@@ -263,9 +259,9 @@ iteration	vector	severity	owasp	stride	confidence	location	description
 
 #### Phase 6: Repeat
 
-- **Unbounded:** Keep finding vulnerabilities. Never stop. Never ask.
+- **Unbounded:** Keep testing vectors until the user interrupts; don't ask whether to continue.
 - **Bounded (Iterations: N):** After N iterations, generate final report and stop.
-- **Coverage tracking:** Every 5 iterations, print coverage summary.
+- **Coverage tracking:** Use the coverage summary below when reporting progress.
 
 ### Coverage Summary Format
 
@@ -812,7 +808,7 @@ Each finding gets a `History` tag:
 
 ## Report Output — Structured Folder
 
-Every `/autoresearch:security` run creates a dedicated folder inside a `security/` directory at the project root (similar to how `/plan --hard` creates plan directories).
+Every `/autoresearch:security` run creates a dedicated folder inside a `security/` directory at the project root.
 
 ### Folder Structure
 

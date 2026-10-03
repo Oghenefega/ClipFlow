@@ -5,7 +5,7 @@ description: Use when working on ClipFlow's video editor — Zustand stores, sub
 
 # ClipFlow Editor Patterns
 
-The editor is a modular video editor with 14 components + 6 Zustand stores. Follow these patterns exactly.
+Components live under `src/renderer/editor/components/`; state lives in 6 Zustand stores under `editor/stores/`.
 
 ## Zustand Store Rules
 
@@ -53,13 +53,10 @@ The editor is a modular video editor with 14 components + 6 Zustand stores. Foll
 }
 ```
 
-## Transcript vs Edit Subtitles — INDEPENDENT
+## Transcript vs Edit Subtitles
 
-- **Transcript tab** reads from `originalSegments` — sentence-level, never changes with segment mode
-- **Edit Subtitles tab** reads from `editSegments` — changes when segment mode switches (3-word, 1-word)
-- Text edits update BOTH (via `updateWordInSegment`)
-- Segment mode switching rebuilds `editSegments` from `originalSegments` words
-- The transcript always shows well-formatted paragraphs with `segBreakAfter` paragraph breaks
+- Both tabs read the live `editSegments` through `getTimelineMappedSegments()`. Transcript flows them as one wrapping paragraph (fallback `getTimelineMappedOriginalSegments()` only while `_chunkPending`). Edit Subtitles shows one row per segment.
+- Segment mode switching rebuilds `editSegments` from `originalSegments` words.
 - **`editSegments`/`originalSegments` are SOURCE-WIDE, not clip-scoped.** `resolveClipSubtitles({includeExtras:true})` merges the whole `project.transcription` into them so outward extends already have words loaded. NEVER read raw `editSegments` as "this clip's content." Any consumer that needs the clip's ACTUAL transcript/words (AI title/caption input, export text, a transcript join) MUST clip to the cut window via `getTimelineMappedSegments()` (or `visibleSubtitleSegments` directly) — the same clipping the Transcript panel, preview, and render path use. Skipping it leaks the ENTIRE recording (session 87: `_collectClipParams` joined raw `editSegments` → AI titles referenced other clips' moments; the #144 fix exposed it by newly populating `editSegments` on fresh clips).
 
 ## Word Token Merging
@@ -73,10 +70,10 @@ NEVER use timing-gap heuristics for merging — whisper gaps are too inconsisten
 
 ## Playback Integration
 
-- `duration` comes from the HTML5 video element's `loadedmetadata` event — NEVER from clip metadata
+- The `<video>` plays the whole source, so its duration is `clipFileDuration`. Playback `duration` is the timeline's (synced to the last audio segment's `endSec`); the element's duration is used only for a legacy clip without `nleSegments`.
 - `currentTime` comes from the video element's `timeupdate` event
 - `syncOffset` adjusts subtitle timing: `adjustedTime = currentTime - syncOffset`
-- Both PreviewPanel and LeftPanel must use `adjustedTime` for subtitle matching
+- PreviewPanelNew, PreviewOverlays and LeftPanelNew use `adjustedTime` for subtitle matching
 
 ## Timeline Rules
 
@@ -99,7 +96,7 @@ NEVER use timing-gap heuristics for merging — whisper gaps are too inconsisten
 
 ## NEVER Do These
 
-- Never load video/audio files in the renderer process (OOM crash) — use main process + FFmpeg
+- Never read or decode a whole source recording in the renderer (OOM). Main extracts a bounded range (`extractStems`, `extractWaveformPeaks`) and the renderer decodes only that; `<video>` streaming the source is fine.
 - Never generate fake/placeholder waveforms — show loading state or empty track
 - Never use even-distribution as a fallback for broken timestamps — show nothing instead
 - Never fall back to degraded output — fail visibly so the root cause gets fixed
@@ -110,9 +107,9 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 - **Never cross a sentence boundary** — split at `.` `!` `?`. Never group the tail of one sentence with the start of the next ("for sure. I").
 - **Never group words across a pause** — split when the gap to the next word is >0.7s (and a >2s gap definitely starts a new segment). No "guy baby" when a 2s gap sits between them.
 - **A comma/semicolon-bearing word ENDS its segment, never starts one** — after pushing a word ending in `,` or `;`, flush the chunk immediately (soft break).
-- **3-word chunking is smart, not blind.** Hierarchy: (1) sentence-end split → (2) pause >0.7s split → (3) forward-look: if adding word N makes 3 but word N+1 is >1s away, flush so N starts the next group → (4) max 3 words; allow 1- or 2-word segments when rules require.
+- **3-word chunking is smart, not blind.** Hierarchy: (1) sentence-end split → (2) pause >0.7s split → (3) forward-look: once the chunk has 2+ words, a gap of `FORWARD_LOOK_GAP` (0.4 s) before the next word ends the group → (4) max 3 words / `MAX_CHARS` 20. The constants and rule order are at the top of `editor/utils/segmentWords.js`.
 - **Multi-word text typed into a 1-word-mode segment auto-splits** into N segments dividing the original time range. In 3-word mode it's valid as-is — check `segmentMode` first.
-- (Future) Keep common phrases atomic ("as always", "of course") — not yet implemented.
+- Common phrases stay atomic (`ATOMIC_PHRASES` / `ATOMIC_TRIPLES` in `segmentWords.js`).
 
 ## Split Operations
 

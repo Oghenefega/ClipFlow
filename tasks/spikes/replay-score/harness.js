@@ -342,10 +342,12 @@ function score(picks, truth) {
       maxTokens: thinks ? 16000 : 8192,
       timeout: thinks ? 240000 : 120000,
       ...(variant.effort ? { effort: variant.effort } : {}),
+      // Same schema as shipped detection; Sonnet 4.6 has no structured outputs.
+      ...(thinks ? { outputSchema: aiPrompt.DETECTION_OUTPUT_SCHEMA } : {}),
     });
     const seconds = (Date.now() - t0) / 1000;
     if (stopReason !== "end_turn") throw new Error(`run ${run} stopped with ${stopReason} after ${usage.outputTokens} output tokens`);
-    const picks = aiPrompt.extractJSON(text, "array");
+    const picks = aiPrompt.extractJSON(text, "object").clips;
     const s = score(picks, truth);
     const cost = usage.inputTokens * rate.in + usage.outputTokens * rate.out;
 
