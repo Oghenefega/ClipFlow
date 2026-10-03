@@ -45,8 +45,10 @@ contextBridge.exposeInMainWorld("overlayAPI", {
       styleEngine.buildSubtitleWordOverrideCss(style, override, scale),
     buildCaptionWordOverrideCss: (style, override, scale) =>
       styleEngine.buildCaptionWordOverrideCss(style, override, scale),
-    buildCaptionTokens: (text, wordStyles, lineStyles) =>
-      styleEngine.buildCaptionTokens(text, wordStyles, lineStyles), // #366
+    buildCaptionTokens: (text, wordStyles, lineStyles, numbersFontFamily) =>
+      styleEngine.buildCaptionTokens(text, wordStyles, lineStyles, numbersFontFamily), // #366, #486
+    numbersFontFor: (text, ownFontFamily, numbersFontFamily) =>
+      styleEngine.numbersFontFor(text, ownFontFamily, numbersFontFamily), // #486
   },
   wordFinder: {
     findActiveWord: (segments, index, time) =>

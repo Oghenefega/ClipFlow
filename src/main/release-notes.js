@@ -12,6 +12,16 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "2026-10-03",
+    added: [
+      "New \"Numbers font\" setting for captions and subtitles, under the font picker in the Text and Subtitles panels. Any word with a number in it (100T, 3K, #1) is drawn in the font you pick, so a display font with weak numbers no longer needs fixing word by word. A font you set on a word by hand still wins. It saves with your Brand Kit templates and is off unless you turn it on. Montserrat now comes with Corva, so it looks the same on every computer.",
+    ],
+    changed: [
+      "Caption and subtitle presets, and your Brand Kit templates, now show a sample drawn in their real font, colours, outline, glow and shadow, so you can see what you'll get before you click.",
+    ],
+  },
+  {
     version: "0.5.0-alpha.20",
     date: "2026-10-02",
     changed: [

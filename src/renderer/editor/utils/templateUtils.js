@@ -88,6 +88,9 @@ export function applyTemplate(tpl) {
 
   // Caption base
   _safeSet(cs, "setCaptionFontFamily", c.fontFamily);
+  // #486: a template saved before the Numbers font existed turns it off, so a
+  // value can't carry over from the template applied before this one.
+  _safeSet(cs, "setCaptionNumbersFontFamily", c.numbersFontFamily || "");
   _safeSet(cs, "setCaptionFontWeight", c.fontWeight);
   _safeSet(cs, "setCaptionFontSize", c.fontSize);
   _safeSet(cs, "setCaptionColor", c.color);
@@ -130,6 +133,7 @@ export function applyTemplate(tpl) {
 
   // Subtitle base
   _safeSet(ss, "setSubFontFamily", s.fontFamily);
+  _safeSet(ss, "setSubNumbersFontFamily", s.numbersFontFamily || ""); // #486
   _safeSet(ss, "setSubFontWeight", s.fontWeight);
   _safeSet(ss, "setFontSize", s.fontSize);
   _safeSet(ss, "setSubItalic", s.italic);
@@ -295,6 +299,7 @@ export function snapshotTemplate(name) {
     id: `tpl-${Date.now()}`, name, builtIn: false, createdAt: new Date().toISOString(),
     caption: {
       fontFamily: cap.captionFontFamily, fontWeight: cap.captionFontWeight, fontSize: cap.captionFontSize,
+      numbersFontFamily: cap.captionNumbersFontFamily,
       color: cap.captionColor, bold: cap.captionBold, italic: cap.captionItalic, underline: cap.captionUnderline,
       lineSpacing: cap.captionLineSpacing,
       strokeOn: cap.captionStrokeOn, strokeColor: cap.captionStrokeColor, strokeWidth: cap.captionStrokeWidth,
@@ -312,6 +317,7 @@ export function snapshotTemplate(name) {
     },
     subtitle: {
       fontFamily: sub.subFontFamily, fontWeight: sub.subFontWeight, fontSize: sub.fontSize,
+      numbersFontFamily: sub.subNumbersFontFamily,
       italic: sub.subItalic, bold: sub.subBold, underline: sub.subUnderline, subColor: sub.subColor,
       strokeOn: sub.strokeOn, strokeWidth: sub.strokeWidth, strokeColor: sub.strokeColor,
       strokeOpacity: sub.strokeOpacity, strokeBlur: sub.strokeBlur,

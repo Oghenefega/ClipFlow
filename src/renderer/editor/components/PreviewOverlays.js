@@ -17,6 +17,7 @@ import {
   buildSubtitleWordOverrideCss,
   buildCaptionWordOverrideCss,
   buildCaptionTokens,
+  numbersFontFor,
 } from "../utils/subtitleStyleEngine";
 import {
   findActiveWord,
@@ -239,6 +240,10 @@ export function SubtitleOverlay({
               wordStyle.transition = undefined;
             }
 
+            // #486: font only — the word keeps its karaoke colour and pop.
+            const numFont = numbersFontFor(wordText, w.style?.fontFamily, s.numbersFontFamily);
+            if (numFont) wordStyle.fontFamily = `'${numFont}', sans-serif`;
+
             if (ovCss) Object.assign(wordStyle, ovCss);
 
             if (animateOn) {
@@ -332,11 +337,12 @@ export function CaptionText({ segment, captionStyle, scaleFactor }) {
   const text = segment?.text || "";
   const wordStyles = segment?.wordStyles;
   const lineStyles = segment?.lineStyles;
+  const numbersFont = captionStyle?.numbersFontFamily; // #486
   const children = useMemo(() => {
     const hasWords = wordStyles && Object.keys(wordStyles).length > 0;
     const hasLines = lineStyles && Object.keys(lineStyles).length > 0;
-    if (!hasWords && !hasLines) return text;
-    return buildCaptionTokens(text, wordStyles, lineStyles).map((t, i) => {
+    if (!hasWords && !hasLines && !numbersFont) return text;
+    return buildCaptionTokens(text, wordStyles, lineStyles, numbersFont).map((t, i) => {
       if (!t.ov) return t.text;
       let css = null;
       try {
@@ -347,7 +353,7 @@ export function CaptionText({ segment, captionStyle, scaleFactor }) {
       if (!css) return t.text;
       return <span key={i} style={css}>{t.text}</span>;
     });
-  }, [text, wordStyles, lineStyles, captionStyle, scaleFactor]);
+  }, [text, wordStyles, lineStyles, numbersFont, captionStyle, scaleFactor]);
   return children;
 }
 

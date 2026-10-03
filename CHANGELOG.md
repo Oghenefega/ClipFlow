@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-03 (session 288): Numbers font and presets drawn in their real style (#486)
+
+### Added
+- **A per-style "Numbers font" for captions and subtitles.** `numbersFontFamily` (empty = off) lives on the caption store, the subtitle store, the clip's saved `captionStyle`/`subtitleStyle`, the render payload and both blocks of a Brand Kit template. When set, any word containing a digit draws in that font unless a font was picked by hand for the word or its line. Captions get it in the shared token walk (`buildCaptionTokens`), so the editor preview, the Projects preview and the render overlay read one rule. Subtitles set the font only, so the word keeps its karaoke colour, sweep and pop. A dropdown sits under the font row in both the Text and Subtitles panels. Applying a template saved before this turns the setting off.
+- **Montserrat is bundled** (Google Fonts variable files, upright + italic, SIL OFL with `Montserrat-OFL.txt`) and registered in `src/globals.css` and the overlay renderer's `loadFonts()`. A Numbers font of Montserrat renders the same on a machine without it installed; before, a missing Montserrat fell back to a thinner, synthetically bolded face. A word already hand-set to Montserrat now draws from the bundled copy, a newer release than the one on Fega's machine; the outline differs by less than a pixel.
+
+### Changed
+- **Effect presets and Brand Kit templates are drawn as styled samples** ("INSANE 3K") using the same style builders and caption token walk as the preview. Effect presets carry no font, so they draw in the clip's current font with the preset's effects on top. Template cards show a caption sample and a subtitle sample (the last word in the highlight colour for karaoke templates) in place of the font/size text line and the Stroke/Glow/Shadow/BG tags. The 9:16 position thumbnail stays.
+
 ## [Unreleased] 2026-10-03 (session 287): prompt audit of the app's Claude prompts and the agent instructions
 
 ### Changed

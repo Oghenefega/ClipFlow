@@ -55,6 +55,23 @@
   font-style: italic;
 }
 
+/* ── Montserrat (#486, SIL OFL — see fonts/Montserrat-OFL.txt) ──
+   Bundled so a Numbers font of Montserrat draws the same with or without it
+   installed. Variable files: one per style covers every weight. Registered the
+   same way in public/subtitle-overlay/overlay-renderer.js for the render. */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('./fonts/Montserrat-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Montserrat';
+  src: url('./fonts/Montserrat-Italic-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+}
+
 /* #328: the shadcn token sets that used to sit in `:root` (light, dead code)
    and `.dark` (the only one ever applied) now live in themes.css alongside the
    T-object tokens, keyed on [data-theme] at the root. One palette feeds both

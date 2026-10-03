@@ -1129,6 +1129,7 @@ export default function PreviewPanelNew() {
   const subColor = useSubtitleStore((s) => s.subColor);
   const setSubColor = useSubtitleStore((s) => s.setSubColor);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
+  const subNumbersFontFamily = useSubtitleStore((s) => s.subNumbersFontFamily);
   const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
   const subItalic = useSubtitleStore((s) => s.subItalic);
   const subBold = useSubtitleStore((s) => s.subBold);
@@ -1179,6 +1180,7 @@ export default function PreviewPanelNew() {
   // Caption
   const captionSegments = useCaptionStore((s) => s.captionSegments);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
+  const captionNumbersFontFamily = useCaptionStore((s) => s.captionNumbersFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
   const captionFontSize = useCaptionStore((s) => s.captionFontSize);
   const captionColor = useCaptionStore((s) => s.captionColor);
@@ -1233,7 +1235,7 @@ export default function PreviewPanelNew() {
   // ── Construct style config objects for shared overlays ──
   // Same shape as clip.subtitleStyle / clip.captionStyle (what handleSave persists)
   const subtitleStyleConfig = useMemo(() => ({
-    fontFamily: subFontFamily, fontWeight: subFontWeight,
+    fontFamily: subFontFamily, fontWeight: subFontWeight, numbersFontFamily: subNumbersFontFamily,
     fontSize, bold: subBold, italic: subItalic, underline: subUnderline,
     subColor,
     strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
@@ -1243,7 +1245,7 @@ export default function PreviewPanelNew() {
     effectOrder, highlightColor,
     animateOn, animateScale, animateGrowFrom, animateSpeed,
     segmentMode, punctuationRemove,
-  }), [subFontFamily, subFontWeight, fontSize, subBold, subItalic, subUnderline, subColor,
+  }), [subFontFamily, subNumbersFontFamily, subFontWeight, fontSize, subBold, subItalic, subUnderline, subColor,
     strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
     shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
     glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
@@ -1252,7 +1254,7 @@ export default function PreviewPanelNew() {
     segmentMode, punctuationRemove]);
 
   const captionStyleConfig = useMemo(() => ({
-    fontFamily: captionFontFamily, fontWeight: captionFontWeight,
+    fontFamily: captionFontFamily, fontWeight: captionFontWeight, numbersFontFamily: captionNumbersFontFamily,
     fontSize: captionFontSize, bold: captionBold, italic: captionItalic,
     underline: captionUnderline, color: captionColor, lineSpacing: captionLineSpacing,
     strokeOn: captionStrokeOn, strokeColor: captionStrokeColor, strokeWidth: captionStrokeWidth,
@@ -1266,7 +1268,7 @@ export default function PreviewPanelNew() {
     bgOn: captionBgOn, bgColor: captionBgColor, bgOpacity: captionBgOpacity,
     bgPaddingX: captionBgPaddingX, bgPaddingY: captionBgPaddingY, bgRadius: captionBgRadius,
     effectOrder: captionEffectOrder,
-  }), [captionFontFamily, captionFontWeight, captionFontSize, captionBold, captionItalic,
+  }), [captionFontFamily, captionNumbersFontFamily, captionFontWeight, captionFontSize, captionBold, captionItalic,
     captionUnderline, captionColor, captionLineSpacing,
     captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, captionStrokeBlur,
     captionStrokeOffsetX, captionStrokeOffsetY,

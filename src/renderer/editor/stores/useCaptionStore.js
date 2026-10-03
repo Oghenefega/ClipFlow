@@ -83,6 +83,7 @@ function _patchStyleMap(map, idx, patch) {
 // shared const) so array values are fresh references per reset.
 const captionStyleDefaults = () => ({
   captionFontFamily: "Latina Essential",
+  captionNumbersFontFamily: "", // #486: digit words in this font; empty = off
   captionFontWeight: 900,
   captionFontSize: 30,
   captionColor: "#ffffff",
@@ -373,6 +374,7 @@ const useCaptionStore = create((set, get) => ({
 
   // ── Actions (all styling setters push cross-store undo) ──
   setCaptionFontFamily: (f) => { _pushCrossUndo(); set({ captionFontFamily: f }); },
+  setCaptionNumbersFontFamily: (f) => { _pushCrossUndo(); set({ captionNumbersFontFamily: f || "" }); },
   setCaptionFontWeight: (w) => { _pushCrossUndo(); set({ captionFontWeight: w }); },
   setCaptionFontSize: (s) => { _pushCrossUndo(); set({ captionFontSize: s }); },
   // #402: with "Match text color" on, the glow takes the same colour in the same undo step.
@@ -419,6 +421,7 @@ const useCaptionStore = create((set, get) => ({
     if (!saved || typeof saved !== "object") return;
     const mapping = {
       fontFamily: "captionFontFamily", fontWeight: "captionFontWeight",
+      numbersFontFamily: "captionNumbersFontFamily",
       fontSize: "captionFontSize", bold: "captionBold", italic: "captionItalic",
       underline: "captionUnderline", color: "captionColor",
       lineSpacing: "captionLineSpacing",

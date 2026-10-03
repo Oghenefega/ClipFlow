@@ -35,6 +35,8 @@ import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../util
 import { bgSourceWindow, presetFullyZoomed, presetFitToScreen, resolveClipReframe, resolveSegmentReframe, sameReframeLook, scaleRectAboutCenter } from "../utils/reframeStyle";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 import { isAllCaps } from "../utils/casing";
+import { buildCaptionStyle, buildSubtitleStyle, buildSubtitleShadows, numbersFontFor } from "../utils/subtitleStyleEngine";
+import { CaptionText } from "./PreviewOverlays";
 
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Section Label
@@ -392,6 +394,25 @@ function CapsToggle({ on, onToggle, what, small = false }) {
   );
 }
 
+// #486: words containing a digit draw in this font (for display fonts with weak
+// numerals). A font picked by hand for a word or line still wins. "" = off.
+function NumbersFontRow({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-foreground font-medium w-20 shrink-0" title="Words with a number in them (100T, 3K, #1) use this font">Numbers font</span>
+      <div className="relative flex-1">
+        <select value={value || ""} onChange={(e) => onChange(e.target.value)}
+          className="w-full h-8 px-2 pr-6 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer focus:border-primary/40"
+        >
+          <option value="">Off (same as text)</option>
+          {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+      </div>
+    </div>
+  );
+}
+
 function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, caps, setCaps, capsWhat, color, setColor, lineMode, setLineMode }) {
   // #106: scroll-to-change font size needs a non-passive wheel listener — React's
   // onWheel binds passively, so preventDefault() there warns and is silently ignored.
@@ -633,6 +654,54 @@ function MatchTextRow({ value, onChange }) {
   );
 }
 
+// #486: a preset drawn in its real look. Same style builders and caption token
+// walk as the preview and the render, only scaled down, so a card can't
+// disagree with what the preset produces. Letters and digits, so the Numbers
+// font shows. The backdrop stands in for a video frame (painted-over-video
+// colour, not chrome).
+const SAMPLE_TEXT = "INSANE 3K";
+const SAMPLE_PX = 20;
+function StyleSample({ kind, style, highlight = false }) {
+  const content = useMemo(() => {
+    const fit = { width: "auto", display: "inline-block" };
+    if (kind === "caption") {
+      const scale = SAMPLE_PX / ((style.fontSize || 30) * 2.4);
+      return (
+        <div style={{ ...buildCaptionStyle(style, scale), ...fit }}>
+          <CaptionText segment={{ text: SAMPLE_TEXT }} captionStyle={style} scaleFactor={scale} />
+        </div>
+      );
+    }
+    const scale = SAMPLE_PX / (style.fontSize || 52);
+    const shadows = buildSubtitleShadows(style, scale);
+    const words = SAMPLE_TEXT.split(" ");
+    return (
+      <div style={{ ...buildSubtitleStyle(style, scale), ...fit }}>
+        {words.map((w, i) => {
+          const active = highlight && i === words.length - 1;
+          const numFont = numbersFontFor(w, null, style.numbersFontFamily);
+          return (
+            <React.Fragment key={i}>
+              <span style={{
+                color: active ? (style.highlightColor || "#4cce8a") : (style.subColor || "#ffffff"),
+                textShadow: active ? shadows.active : shadows.normal,
+                ...(numFont ? { fontFamily: `'${numFont}', sans-serif` } : {}),
+              }}>{w}</span>
+              {i < words.length - 1 ? " " : ""}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  }, [kind, style, highlight]);
+  return (
+    <div className="rounded overflow-hidden flex items-center justify-center px-2 py-1.5 min-h-[38px]"
+      style={{ background: "linear-gradient(135deg, #3a3f4b 0%, #1c1e24 100%)" }}>
+      {content}
+    </div>
+  );
+}
+
 function useUserPresets() {
   const [userPresets, setUserPresets] = useState([]);
   useEffect(() => {
@@ -665,6 +734,22 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const newRef = useRef(null);
 
   const dotColor = PRESET_DOT_COLORS[target] || PRESET_DOT_COLORS.both;
+
+  // #486: effect presets carry no font, so each sample is drawn in the clip's
+  // current font with the preset's effects on top.
+  const capFont = useCaptionStore((s) => s.captionFontFamily);
+  const capWeight = useCaptionStore((s) => s.captionFontWeight);
+  const capItalic = useCaptionStore((s) => s.captionItalic);
+  const capNumbers = useCaptionStore((s) => s.captionNumbersFontFamily);
+  const subFont = useSubtitleStore((s) => s.subFontFamily);
+  const subWeight = useSubtitleStore((s) => s.subFontWeight);
+  const subItalic = useSubtitleStore((s) => s.subItalic);
+  const subNumbers = useSubtitleStore((s) => s.subNumbersFontFamily);
+  const sampleKind = target === "subtitle" ? "subtitle" : "caption";
+  const sampleFont = useMemo(() => (sampleKind === "subtitle"
+    ? { fontFamily: subFont, fontWeight: subWeight, italic: subItalic, numbersFontFamily: subNumbers }
+    : { fontFamily: capFont, fontWeight: capWeight, italic: capItalic, numbersFontFamily: capNumbers }
+  ), [sampleKind, capFont, capWeight, capItalic, capNumbers, subFont, subWeight, subItalic, subNumbers]);
 
   // Persist active preset ID so it survives page navigation
   const storeKey = `activePresetId_${target}`;
@@ -751,16 +836,19 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
                     onBlur={() => handleRename(preset.id)}
                     className="flex-1 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none" />
                 ) : (
-                  <button className="flex-1 text-left px-2 py-1.5 text-xs truncate flex items-center gap-1.5 text-foreground" onClick={() => { applyEffectPreset(preset, target); setAndPersistActive(preset.id); }}>
-                    {/* Active indicator: color-coded dot (blue=caption, lime=subtitle) */}
-                    {activePresetId === preset.id && (
-                      <span className="shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: dotColor.bg, boxShadow: dotColor.shadow }} />
-                    )}
-                    <span className="truncate">{preset.name}</span>
-                    {/* Overwrite flash */}
-                    {flashId === preset.id && (
-                      <span className="text-[9px] text-green-400 animate-pulse ml-auto shrink-0">Updated</span>
-                    )}
+                  <button className="flex-1 min-w-0 text-left p-1.5 text-xs text-foreground" onClick={() => { applyEffectPreset(preset, target); setAndPersistActive(preset.id); }}>
+                    <StyleSample kind={sampleKind} style={{ ...sampleFont, ...(preset[sampleKind] || {}) }} />
+                    <span className="flex items-center gap-1.5 mt-1 px-0.5">
+                      {/* Active indicator: color-coded dot (blue=caption, lime=subtitle) */}
+                      {activePresetId === preset.id && (
+                        <span className="shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: dotColor.bg, boxShadow: dotColor.shadow }} />
+                      )}
+                      <span className="truncate text-[12px] text-muted-foreground">{preset.name}</span>
+                      {/* Overwrite flash */}
+                      {flashId === preset.id && (
+                        <span className="text-[9px] text-green-400 animate-pulse ml-auto shrink-0">Updated</span>
+                      )}
+                    </span>
                   </button>
                 )}
                 <TooltipProvider delayDuration={200}>
@@ -966,7 +1054,6 @@ function AIToolsPanel({ gamesDb }) {
 // ════════════════════════════════════════════════════════════════
 // ── Template utilities (imported from shared module to avoid circular deps) ──
 import { BUILTIN_TEMPLATE, DEFAULT_TEMPLATE_KEY, applyTemplate, snapshotTemplate } from "../utils/templateUtils";
-const WEIGHT_LABELS = { 300: "Light", 400: "Regular", 500: "Medium", 700: "Bold", 900: "Heavy" };
 
 function BrandKitPanel() {
   const [templates, setTemplates] = useState([]);
@@ -1119,14 +1206,10 @@ function BrandKitPanel() {
                     {isDefault && <span className="text-[12px] font-bold text-yellow-400 bg-yellow-400/15 px-1.5 py-0.5 rounded shrink-0">★ DEFAULT</span>}
                     {isActive && <span className="text-[12px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
                   </div>
-                  <span className="text-xs text-muted-foreground block mt-0.5">
-                    {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {s.strokeOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.strokeColor || "#000", borderLeftWidth: 2 }}>Stroke</span>}
-                    {s.glowOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.glowColor || "#fff", borderLeftWidth: 2 }}>Glow</span>}
-                    {s.shadowOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.shadowColor || "#000", borderLeftWidth: 2 }}>Shadow</span>}
-                    {s.bgOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.bgColor || "#000", borderLeftWidth: 2 }}>BG</span>}
+                  {/* #486: the template drawn in its real look — caption, then subtitle */}
+                  <div className="space-y-1 mt-1.5">
+                    <StyleSample kind="caption" style={c} />
+                    <StyleSample kind="subtitle" style={s} highlight={(s.subMode || "karaoke") === "karaoke"} />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 shrink-0">
@@ -1211,6 +1294,8 @@ function SubtitlesPanel() {
 
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
+  const subNumbersFontFamily = useSubtitleStore((s) => s.subNumbersFontFamily);
+  const setSubNumbersFontFamily = useSubtitleStore((s) => s.setSubNumbersFontFamily);
   const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
   const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const fontSize = useSubtitleStore((s) => s.fontSize);
@@ -1388,6 +1473,7 @@ function SubtitlesPanel() {
               color={subColor} setColor={setSubColor}
               lineMode={lineMode} setLineMode={setLineMode}
             />
+            <NumbersFontRow value={subNumbersFontFamily} onChange={setSubNumbersFontFamily} />
 
             <Separator />
 
@@ -1581,6 +1667,8 @@ function TextPanel() {
   const clearCaptionLineStyle = useCaptionStore((s) => s.clearCaptionLineStyle);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
+  const captionNumbersFontFamily = useCaptionStore((s) => s.captionNumbersFontFamily);
+  const setCaptionNumbersFontFamily = useCaptionStore((s) => s.setCaptionNumbersFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
   const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
   const captionFontSize = useCaptionStore((s) => s.captionFontSize);
@@ -1796,6 +1884,7 @@ function TextPanel() {
               caps={isAllCaps(captionText)} setCaps={(v) => { if (targetCapSeg) { setCaptionCaps(targetCapSeg.id, v); markDirty(); } }} capsWhat="the whole caption"
               color={captionColor} setColor={(c) => { setCaptionColor(c); markDirty(); }}
             />
+            <NumbersFontRow value={captionNumbersFontFamily} onChange={(f) => { setCaptionNumbersFontFamily(f); markDirty(); }} />
 
             {/* Line Spacing */}
             <div className="border-t border-border/40 pt-3">

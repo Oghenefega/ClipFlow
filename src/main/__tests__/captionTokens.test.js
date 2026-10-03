@@ -43,3 +43,40 @@ describe("buildCaptionTokens (#366)", () => {
     expect(css.fontSize).toBe(`${20 * 2.4}px`);
   });
 });
+
+// #486: the Numbers font. Digit words without a font of their own get it;
+// a font picked by hand (word or line) wins; empty = today's tokens exactly.
+describe("Numbers font (#486)", () => {
+  const { numbersFontFor } = require("../../renderer/editor/utils/subtitleStyleEngine");
+
+  test("digit words get the numbers font, letter words stay plain", () => {
+    const toks = words(buildCaptionTokens("100T CRYO INSANE 3K", null, null, "Montserrat"));
+    expect(toks.map((t) => t.ov)).toEqual([
+      { fontFamily: "Montserrat" }, null, null, { fontFamily: "Montserrat" },
+    ]);
+  });
+
+  test("a hand-picked word font wins and the word keeps its other overrides", () => {
+    const toks = words(buildCaptionTokens("100T 3K", { 0: { fontFamily: "Impact" }, 1: { color: "#ffff00" } }, null, "Montserrat"));
+    expect(toks[0].ov).toEqual({ fontFamily: "Impact" });
+    expect(toks[1].ov).toEqual({ color: "#ffff00", fontFamily: "Montserrat" });
+  });
+
+  test("a line font wins too", () => {
+    const toks = words(buildCaptionTokens("GTA6 now\n#1", null, { 0: { fontFamily: "Oswald" } }, "Montserrat"));
+    expect(toks[0].ov).toEqual({ fontFamily: "Oswald" });
+    expect(toks[2].ov).toEqual({ fontFamily: "Montserrat" });
+  });
+
+  test("empty numbers font gives exactly the tokens it gave before", () => {
+    const ws = { 0: { fontFamily: "Montserrat" }, 2: { color: "#ffff00" } };
+    expect(buildCaptionTokens("100T Cryo\nINSANE 3K", ws, null, "")).toEqual(buildCaptionTokens("100T Cryo\nINSANE 3K", ws, null));
+  });
+
+  test("numbersFontFor (the subtitle path's rule)", () => {
+    expect(numbersFontFor("tm8", undefined, "Montserrat")).toBe("Montserrat");
+    expect(numbersFontFor("CRYO", undefined, "Montserrat")).toBeNull();
+    expect(numbersFontFor("2v1", "Impact", "Montserrat")).toBeNull();
+    expect(numbersFontFor("2v1", undefined, "")).toBeNull();
+  });
+});

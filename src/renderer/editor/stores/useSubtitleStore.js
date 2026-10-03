@@ -107,7 +107,7 @@ const SUB_STYLE_KEYS = [
   "glowOn", "glowColor", "glowOpacity", "glowIntensity", "glowBlur", "glowBlend", "glowOffsetX", "glowOffsetY",
   "bgOn", "bgOpacity", "bgColor", "bgPaddingX", "bgPaddingY", "bgRadius",
   "highlightColor", "subColor", "subPos", "punctOn", "showSubs", "emojiOn",
-  "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
+  "subFontFamily", "subNumbersFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
   "lineMode", "syncOffset", "punctuationRemove", "effectOrder",
   "animateOn", "animateScale", "animateGrowFrom", "animateSpeed",
 ];
@@ -154,7 +154,7 @@ function _snapshotStyling(subState) {
     const cs = useCaptionStore.getState();
     const CAP_KEYS = [
       "captionText", "captionSegments",
-      "captionFontFamily", "captionFontWeight", "captionFontSize",
+      "captionFontFamily", "captionNumbersFontFamily", "captionFontWeight", "captionFontSize",
       "captionColor", "captionBold", "captionItalic", "captionUnderline",
       "captionLineSpacing",
       "captionShadowOn", "captionShadowColor", "captionShadowBlur", "captionShadowOpacity",
@@ -299,6 +299,7 @@ const subtitleStyleDefaults = () => ({
   showSubs: true,
   emojiOn: false,
   subFontFamily: "Latina Essential",
+  subNumbersFontFamily: "", // #486: digit words in this font; empty = off
   subFontWeight: 900,
   subItalic: true,
   subBold: true,
@@ -351,6 +352,7 @@ const useSubtitleStore = create((set, get) => ({
     // Map saved subtitleStyle keys → store property names
     const mapping = {
       fontFamily: "subFontFamily", fontWeight: "subFontWeight",
+      numbersFontFamily: "subNumbersFontFamily",
       fontSize: "fontSize", bold: "subBold", italic: "subItalic",
       underline: "subUnderline", subColor: "subColor",
       strokeOn: "strokeOn", strokeWidth: "strokeWidth",
@@ -1325,6 +1327,7 @@ const useSubtitleStore = create((set, get) => ({
   toggleShowSubs: () => { get()._pushStyleUndo(); set((s) => ({ showSubs: !s.showSubs })); },
   setEmojiOn: (v) => { get()._pushStyleUndo(); set({ emojiOn: v }); },
   setSubFontFamily: (f) => { get()._pushStyleUndo(); set({ subFontFamily: f }); },
+  setSubNumbersFontFamily: (f) => { get()._pushStyleUndo(); set({ subNumbersFontFamily: f || "" }); },
   setSubFontWeight: (w) => { get()._pushStyleUndo(); set({ subFontWeight: w }); },
   setSubItalic: (v) => { get()._pushStyleUndo(); set({ subItalic: v }); },
   setSubBold: (v) => { get()._pushStyleUndo(); set({ subBold: v }); },

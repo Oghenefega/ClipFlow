@@ -73,6 +73,7 @@ export function buildRenderPayload() {
   const fullSubtitleStyle = {
     fontSize: subState.fontSize,
     fontFamily: subState.subFontFamily, subFontFamily: subState.subFontFamily,
+    numbersFontFamily: subState.subNumbersFontFamily,
     fontWeight: subState.subFontWeight, subFontWeight: subState.subFontWeight,
     bold: subState.subBold, subBold: subState.subBold,
     italic: subState.subItalic, subItalic: subState.subItalic,
@@ -102,6 +103,7 @@ export function buildRenderPayload() {
   // Full caption style
   const fullCaptionStyle = {
     fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight,
+    numbersFontFamily: capState.captionNumbersFontFamily,
     fontSize: capState.captionFontSize, bold: capState.captionBold,
     italic: capState.captionItalic, underline: capState.captionUnderline,
     color: capState.captionColor, lineSpacing: capState.captionLineSpacing,

@@ -239,6 +239,17 @@ function buildCaptionWordOverrideCss(lineConfig, ov, scaleFactor) {
   return css;
 }
 
+// ── Numbers font (#486) ──
+//
+// A style's numbersFontFamily (empty = off) draws every word that contains a
+// digit in that font — for display fonts whose numerals look weak. A font the
+// user picked by hand (word or line) always wins. Returns the font to use, or
+// null when the word keeps the font it already has.
+function numbersFontFor(text, ownFontFamily, numbersFontFamily) {
+  if (!numbersFontFamily || ownFontFamily) return null;
+  return /\d/.test(text || "") ? numbersFontFamily : null;
+}
+
 // ── Per-line style overrides (#366) ──
 //
 // A caption block keeps the line breaks the user typed (white-space: pre-wrap),
@@ -248,7 +259,9 @@ function buildCaptionWordOverrideCss(lineConfig, ov, scaleFactor) {
 // preview, Projects preview, export overlay window) walks this one token list
 // so the picture cannot drift between them. Whitespace tokens come back with
 // ov: null; a word with nothing to override also comes back with ov: null.
-function buildCaptionTokens(text, wordStyles, lineStyles) {
+// #486: with a numbersFontFamily, a digit word without a font of its own gets
+// that font as its override.
+function buildCaptionTokens(text, wordStyles, lineStyles, numbersFontFamily) {
   const tokens = String(text || "").split(/(\s+)/);
   const ws = wordStyles || {};
   const ls = lineStyles || {};
@@ -264,7 +277,9 @@ function buildCaptionTokens(text, wordStyles, lineStyles) {
     }
     const lineOv = ls[lineIdx];
     const wordOv = ws[wordIdx++];
-    const ov = lineOv || wordOv ? { ...(lineOv || {}), ...(wordOv || {}) } : null;
+    let ov = lineOv || wordOv ? { ...(lineOv || {}), ...(wordOv || {}) } : null;
+    const numFont = numbersFontFor(tok, ov && ov.fontFamily, numbersFontFamily);
+    if (numFont) ov = { ...(ov || {}), fontFamily: numFont };
     out.push({ text: tok, ov: hasOverride(ov) ? ov : null });
   }
   return out;
@@ -300,4 +315,5 @@ module.exports = {
   buildSubtitleWordOverrideCss,
   buildCaptionWordOverrideCss,
   buildCaptionTokens,
+  numbersFontFor,
 };

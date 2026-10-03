@@ -74,9 +74,18 @@ function loadFonts() {
     console.warn("[OverlayRenderer] __FONTS_PATH__ not set — font load will fail");
   }
 
-  const promises = fontWeights.map(({ weight, file, style: fontStyle }) => {
+  // #486: Montserrat is bundled (SIL OFL) so a Numbers font of Montserrat draws
+  // the same on a machine that doesn't have it installed. One variable file per
+  // style covers every weight.
+  const faces = [
+    ...fontWeights.map((f) => ({ family: "Latina Essential", ...f })),
+    { family: "Montserrat", weight: "100 900", file: "Montserrat-Variable.ttf" },
+    { family: "Montserrat", weight: "100 900", file: "Montserrat-Italic-Variable.ttf", style: "italic" },
+  ];
+
+  const promises = faces.map(({ family, weight, file, style: fontStyle }) => {
     const url = `url('file:///${fontsDir}/${file}')`;
-    const font = new FontFace("Latina Essential", url, {
+    const font = new FontFace(family, url, {
       weight: String(weight),
       style: fontStyle || "normal",
     });
@@ -247,10 +256,13 @@ function renderSubtitle(timestamp) {
 
       const wordText = styleEngine.stripPunctuation(w.word || "", punctuationRemove);
       const suffix = i < visibleWords.length - 1 ? " " : "";
+      // #486: font only — the word keeps its karaoke colour and pop. Mirrors PreviewOverlays.
+      const numFont = styleEngine.numbersFontFor(wordText, w.style && w.style.fontFamily, s.numbersFontFamily);
 
       if (useProgressiveFill) {
         // Progressive fill: wrapper with base color + overlay with clip-path
         const wrapper = document.createElement("span");
+        if (numFont) wrapper.style.fontFamily = `'${numFont}', sans-serif`;
         wrapper.style.display = "inline-block";
         wrapper.style.position = "relative";
         wrapper.style.transformOrigin = "center bottom";
@@ -291,6 +303,7 @@ function renderSubtitle(timestamp) {
         span.style.display = "inline-block";
         span.style.transformOrigin = "center bottom";
         span.style.verticalAlign = "baseline";
+        if (numFont) span.style.fontFamily = `'${numFont}', sans-serif`;
 
         if (ovCss) applyStyles(span, ovCss);
 
@@ -343,10 +356,11 @@ function renderCaption(timestamp) {
     const lineStyles = seg.lineStyles;
     const hasWords = wordStyles && Object.keys(wordStyles).length > 0;
     const hasLines = lineStyles && Object.keys(lineStyles).length > 0;
-    if (!hasWords && !hasLines) {
+    const numbersFont = captionStyleConfig.numbersFontFamily; // #486
+    if (!hasWords && !hasLines && !numbersFont) {
       textDiv.textContent = seg.text;
     } else {
-      for (const t of styleEngine.buildCaptionTokens(seg.text, wordStyles, lineStyles)) {
+      for (const t of styleEngine.buildCaptionTokens(seg.text, wordStyles, lineStyles, numbersFont)) {
         if (!t.ov) {
           textDiv.appendChild(document.createTextNode(t.text));
           continue;

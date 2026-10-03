@@ -2013,6 +2013,7 @@ const useEditorStore = create((set, get) => ({
     // Save subtitle styling snapshot for preview rendering
     const subtitleStyle = {
       fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
+      numbersFontFamily: subState.subNumbersFontFamily,
       fontSize: subState.fontSize, bold: subState.subBold, italic: subState.subItalic,
       underline: subState.subUnderline, subColor: subState.subColor,
       strokeOn: subState.strokeOn, strokeWidth: subState.strokeWidth,
@@ -2041,6 +2042,7 @@ const useEditorStore = create((set, get) => ({
     };
     const captionStyle = {
       fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
+      numbersFontFamily: capState.captionNumbersFontFamily,
       fontSize: capState.captionFontSize, bold: capState.captionBold, italic: capState.captionItalic,
       underline: capState.captionUnderline, color: capState.captionColor,
       lineSpacing: capState.captionLineSpacing,
