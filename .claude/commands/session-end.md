@@ -46,7 +46,7 @@ Keep it lean — commits and CHANGELOG.md already record what was built; don't r
 
 ## 5. Commit and push
 
-Stage HANDOFF.md, `src/main/release-notes.js` if step 3 touched it, the distilled skill changes, and any uncommitted work, commit with a descriptive message, and push to master.
+Run `node scripts/dev/nav-map.js` first so `.claude/docs/nav-map.md` matches the code. Stage HANDOFF.md, the nav map, `src/main/release-notes.js` if step 3 touched it, the distilled skill changes, and any uncommitted work, commit with a descriptive message, and push to master.
 
 ## 6. Set the session name (template-locked, self-healing)
 

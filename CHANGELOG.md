@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-02 (session 286): navigability retro over sessions 256-285
+
+### Added
+- **The dev-app test harness is committed in `scripts/dev/`.** `dev-fixture.js` points all four dev-profile folders at a throwaway copy of a zero-approved project and restores the settings byte for byte. `dev-launch.js` starts the app with CDP, waits until it answers and dismisses What's New. `dev-kill.js` stops only the source-run app. The new `README.md` is the recipe. A retro of the last 30 sessions found 26 of them rebuilding these scripts in a temp folder, at 6-15 tool calls each.
+- **`.claude/docs/nav-map.md`, a generated code map** (`node scripts/dev/nav-map.js`). It lists every source file with its header summary, the 1000+-line files section by section, and every `window.clipflow` method traced to its IPC channel and handler file. It holds names only, so it doesn't rot between runs; the session-end command now regenerates it before the final commit.
+- **`scripts/dev/TRAPS.md`**: the 80+ CDP verification traps moved out of a 60 KB agent-memory file that was read in full every session. Superseded entries are marked.
+
+### Changed
+- **CLAUDE.md gained "Where things live" and "Shell and file rules (Windows)"**, the facts sessions re-derived most often: settings, DB, logs, publish log, project and FFmpeg locations, the backslash trap, the line-ending truth (git stores LF, so endings never need checking) and the commit-hook word. It also corrects the installer name (`Corva Setup *.exe`), and the claim that the dev profile never touches real data (it reads the real library until the fixture repoints it). Verification now points at the harness, because `npm start` exits at once while the installed app runs.
+- **The code-review skill points at the committed harness** instead of a long-gone "session 124 scratchpad". It also names `dev-kill.js` as the only way to stop the source-run app.
+
 ## [Unreleased] 2026-10-02 (session 285): 0.5.0-alpha.20 on the feed
 
 ### Changed
