@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] 2026-10-02 (session 285): Rename uses the full window
+
+### Changed
+- **The Rename tab is rebuilt from the approved #485 mockup and no longer sits in an 860px column.** Files waiting from one session sit side by side as tiles tinted in their game colour (a still, the new name with the tag in colour, the original name, Pt stepper, length, and Split / Explorer / Hide on hover). The session header keeps the game picker, Playing/Reacting, a Day stepper and the naming format, and adds a date tile and the session's start-to-end time. A panel on the right shows the selected file at its own shape and scrubs it as you move across it, lists recorded time, length, size, video and audio tracks, says where the file will be saved, and keeps the last six renames with Undo on hover. The header shows what's waiting, the watch folder, Pending/History/Manage and a "Rename N files" button that reads "Rename N selected" while files are ticked; the floating bar now only holds Set Game, Hide Selected and Clear. The TOTAL / PENDING / GAMES counters and the row thumbnail's hover pop-out are gone.
+- **Split is now a long filmstrip under the session** instead of a 64px-per-frame strip under one row. Click where a new game starts to drop a marker, × removes it, each part gets its own game and Reacting switch, and hovering the strip moves the big preview. Closing it keeps the markers (the tile shows "N games") and the split still happens on rename, through the same code as before.
+- **The preview now comes from 100 frames made once per recording** in a single keyframe-only ffmpeg pass (about 18 s and 1 MB for a 30-minute recording), reused after a restart, and shared by the tile, the panel and the split strip. The preview never opens the video file, so it can't block a rename. Before any rename, convert or split, the main process stops a frame job still reading that file. The old every-30-seconds strip job (`thumbs:generate` / `thumbs:cleanup`) is removed, and `probe()` now reports the audio track count.
+- **Recordings are always measured on arrival** (length, size, resolution, frame rate, codec) so the panel can show them; before, they were only measured when auto-split was on. Auto-split behaves exactly as before.
+
+### Fixed
+- **A failed preview-frame job no longer leaves an unhandled error and a tile stuck loading.** The queue now answers the tile with "no preview" when ffmpeg fails or is stopped.
+
 ## [Unreleased] 2026-10-02 (session 284): Rename and Projects layout revamp, designed and approved
 
 ### Added

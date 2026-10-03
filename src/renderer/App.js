@@ -1206,11 +1206,14 @@ export default function App() {
 
   // Helper: per-tab scroll container style. flex:1 + display:block when active,
   // collapsed when inactive. display:none preserves scrollTop in Chromium.
-  const tabPaneStyle = (active) => ({
+  // `fixed` (#485): the view lays out its own scrolling columns, so the pane
+  // itself doesn't scroll.
+  const tabPaneStyle = (active, fixed = false) => ({
     flex: active ? 1 : "0 0 0",
-    overflow: "auto",
-    scrollbarGutter: "stable",
+    overflow: fixed ? "hidden" : "auto",
+    scrollbarGutter: fixed ? "auto" : "stable",
     display: active ? "block" : "none",
+    minHeight: 0,
   });
   const showProjectsList = view === "projects" || (view === "clips" && !selProj);
   const showClipBrowser = view === "clips" && !!selProj;
@@ -1247,8 +1250,9 @@ export default function App() {
             scrollTop is preserved per-tab across switches (#33). display:none keeps
             scrollTop in Chromium. Editor is the only conditional non-clip view —
             it's heavy and per-clip. ClipBrowser is per-project and resets each entry. */}
-        <div style={tabPaneStyle(view === "rename")}>
-          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+        <div style={tabPaneStyle(view === "rename", true)}>
+          {/* #485: full width — file tiles beside a preview panel */}
+          <div style={{ padding: "24px 28px 0", height: "100%", boxSizing: "border-box" }}>
             <RenameView
               gamesDb={gamesDb}
               mainGameName={mainGame}

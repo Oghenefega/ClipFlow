@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import T from "../styles/theme";
-import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, TabBar, Select, MiniSpinbox, Checkbox, formatDuration, toFileUrl, ReactSwitch, renderEntryOption } from "../components/shared";
+import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, Select, MiniSpinbox, Checkbox, formatDuration, toFileUrl, ReactSwitch, renderEntryOption } from "../components/shared";
 import { groupedEntryOptions, linkedGame } from "../../shared/reactions";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
 
@@ -45,12 +45,6 @@ const fmtSessionDate = (dateStr) => {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 };
 
-const IcFolder = <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z" /></svg>;
-const IcSplit = <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="4" cy="4.5" r="2" /><circle cx="4" cy="11.5" r="2" /><path d="M5.7 5.6 14 12M5.7 10.4 14 4" /></svg>;
-const IcHide = <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z" /><path d="M3 13 13 3" /></svg>;
-
-const THUMB_H = 56;
-const PEEK_W = 240;
 
 // Floating batch bar shell — same glass treatment as the Recordings action
 // cluster (#123), bottom-centered. bottom:72 clears the 56px bottom nav.
@@ -91,77 +85,181 @@ function LedgerCheck({ state, onClick, title }) {
   );
 }
 
-// Hover-scrub thumbnail: small native-aspect handle in the row, full-size
-// fixed-position peek with a timestamp badge while scrubbing. Static <img>
-// frames only — no <video>, no timers.
-function HoverScrubThumb({ frames, loading, durationSeconds }) {
-  const [idx, setIdx] = useState(0);
+// ── #485 layout helpers ──
+
+// A game colour (gamesDb hex, sometimes "#888") at an alpha. Anything that
+// isn't a hex — a theme var — goes through color-mix instead.
+const hexA = (c, a) => {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c || "");
+  if (!m) return `color-mix(in srgb, ${c || T.accent} ${Math.round(a * 100)}%, transparent)`;
+  const h = m[1].length === 3 ? m[1].split("").map((x) => x + x).join("") : m[1];
+  const n = parseInt(h, 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+};
+
+// The tile tint and its selected state, in the file's own game colour (s284/s285).
+const gameVars = (c) => ({
+  "--gc1": hexA(c, 0.12), "--gc2": hexA(c, 0.10), "--gc3": hexA(c, 0.025), "--gcb": hexA(c, 0.24),
+  "--gs1": hexA(c, 0.30), "--gs2": hexA(c, 0.26), "--gs3": hexA(c, 0.07), "--gsb": hexA(c, 0.7),
+});
+
+// OBS names carry the recording's start: "2026-09-21 13-24-52" → minutes after midnight.
+const obsStartMin = (fileName) => {
+  const m = /^\d{4}-\d{2}-\d{2}[ _](\d{2})-(\d{2})-(\d{2})/.exec(fileName || "");
+  return m ? Number(m[1]) * 60 + Number(m[2]) + Number(m[3]) / 60 : null;
+};
+const fmtClockOfDay = (min) => {
+  let h = Math.floor(min / 60) % 24, mm = Math.round(min % 60);
+  if (mm === 60) { h = (h + 1) % 24; mm = 0; }
+  return `${((h + 11) % 12) + 1}:${String(mm).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+};
+const fmtBytes = (n) => (!n ? "—" : n >= 1e9 ? `${(n / 1e9).toFixed(2)} GB` : `${Math.round(n / 1e6)} MB`);
+const localDate = (dateStr) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || "");
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+};
+const relDay = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d.getTime())) return "";
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86400000);
+  return days <= 0 ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : days === 1 ? "yesterday" : `${days} days ago`;
+};
+
+const IcRefresh = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>;
+const IcPlus = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M5 12h14M12 5v14" /></svg>;
+const IcArrow = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>;
+const IcChevron = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>;
+const IcScissorsL = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" /></svg>;
+const IcFolderL = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></svg>;
+const IcEyeOff = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></svg>;
+
+// Opens and closes its content by animating the row height (the split strip).
+// While closing it keeps showing what it last held.
+function Collapse({ open, children }) {
+  const [shown, setShown] = useState(open);
+  const [on, setOn] = useState(false);
+  const last = useRef(children);
+  if (open) last.current = children;
+  useEffect(() => {
+    if (open) {
+      setShown(true);
+      let id2 = 0;
+      const id = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setOn(true)); });
+      return () => { cancelAnimationFrame(id); cancelAnimationFrame(id2); };
+    }
+    setOn(false);
+    const t = setTimeout(() => setShown(false), 330);
+    return () => clearTimeout(t);
+  }, [open]);
+  if (!shown) return null;
+  return (
+    <div style={{ display: "grid", gridTemplateRows: on ? "1fr" : "0fr", transition: "grid-template-rows 0.32s cubic-bezier(.22,1,.36,1)" }}>
+      <div style={{ overflow: "hidden", minHeight: 0 }}>{open ? children : last.current}</div>
+    </div>
+  );
+}
+
+// #485: the right-hand panel for the selected file. The preview scrubs by
+// swapping the recording's preview frames (decoded up front), so it never
+// opens the video file — a <video> on it would block the rename (s269).
+function RenameInspector({ row, info, frames, loading, hoverAt, savesAs, splitOn, onSplit, onHide, history, onAllHistory }) {
   const [frac, setFrac] = useState(0);
-  const [hover, setHover] = useState(false);
-  const [aspect, setAspect] = useState(null); // naturalWidth / naturalHeight of the frames
-  const [peekPos, setPeekPos] = useState(null);
-  const ref = useRef(null);
+  const [hovering, setHovering] = useState(false);
+  const imgRef = useRef(null);
+  const rafRef = useRef(0);
+  const pendingRef = useRef(0);
+  const dur = info?.durationSeconds || 0;
+  const facts = info?.facts || {};
+  const aspect = facts.width && facts.height ? `${facts.width} / ${facts.height}` : "16 / 9";
 
-  const width = aspect ? Math.max(32, Math.min(100, Math.round(THUMB_H * aspect))) : 50;
-  const peekH = aspect ? Math.max(96, Math.min(270, Math.round(PEEK_W / aspect))) : 270;
+  useEffect(() => { setFrac(0); }, [row.id]);
 
-  const containerStyle = {
-    width, height: THUMB_H, borderRadius: 6, overflow: "hidden",
-    background: "rgba(var(--lift),0.06)", border: `1px solid ${T.border}`,
-    flexShrink: 0, position: "relative", cursor: "pointer",
+  // Decode every frame once, so a swap is instant. Released when the file changes.
+  const framesKey = frames.map((f) => f.path).join("|");
+  useEffect(() => {
+    const imgs = frames.map((f) => { const im = new Image(); im.src = toFileUrl(f.path); im.decode?.().catch(() => {}); return im; });
+    return () => { imgs.forEach((im) => { im.src = ""; }); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [framesKey]);
+
+  const shown = hoverAt != null && dur > 0 ? Math.min(0.9999, hoverAt / dur) : frac;
+  const idx = frames.length ? Math.min(frames.length - 1, Math.floor(shown * frames.length)) : -1;
+
+  const scrub = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    pendingRef.current = Math.max(0, Math.min(0.9999, (e.clientX - r.left) / r.width));
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; setFrac(pendingRef.current); });
   };
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  if (loading) {
-    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: T.textMuted, fontSize: 9 }}>…</span></div>;
-  }
-  if (!frames || frames.length === 0) {
-    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, opacity: 0.3 }}>🎬</span></div>;
-  }
-
-  const onMove = (e) => {
-    const rect = ref.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return;
-    const f = Math.max(0, Math.min(0.999, (e.clientX - rect.left) / rect.width));
-    setFrac(f);
-    setIdx(Math.min(frames.length - 1, Math.floor(f * frames.length)));
-    const fitsRight = rect.right + 14 + PEEK_W < window.innerWidth;
-    const left = fitsRight ? rect.right + 14 : rect.left - PEEK_W - 14;
-    const top = Math.max(10, Math.min(rect.top + rect.height / 2 - peekH / 2, window.innerHeight - peekH - 10));
-    setPeekPos({ left, top });
-  };
-
-  const ts = frames[idx]?.timestampSeconds != null ? frames[idx].timestampSeconds : frac * (durationSeconds || 0);
+  const date = localDate(row.fileName.slice(0, 10));
+  const start = obsStartMin(row.fileName);
+  const dayLabel = date ? date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "";
+  const video = facts.width ? `${facts.width} × ${facts.height}${facts.fps ? ` · ${Math.round(facts.fps)} fps` : ""}${facts.videoCodec ? ` · ${facts.videoCodec.toUpperCase()}` : ""}` : "—";
+  const label = { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: T.textTertiary };
+  const actBtn = (on) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, height: 32, padding: "0 6px", borderRadius: 9, fontSize: 12, fontWeight: 600, fontFamily: T.font, cursor: "pointer", border: `1px solid ${on ? T.accentBorder : T.border}`, background: on ? T.accentDim : "rgba(var(--lift),0.035)", color: on ? T.accentLight : T.labelStrong || T.textSecondary });
 
   return (
-    <div
-      ref={ref}
-      style={containerStyle}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setIdx(0); setFrac(0); setPeekPos(null); }}
-      onMouseMove={onMove}
-    >
-      {/* all frames stay mounted (decoded) so scrubbing never flickers */}
-      {frames.map((fr, i) => (
-        <img
-          key={fr.path}
-          src={toFileUrl(fr.path)}
-          alt=""
-          draggable={false}
-          onLoad={i === 0 ? (e) => { const el = e.currentTarget; if (el.naturalWidth && el.naturalHeight) setAspect((prev) => prev || el.naturalWidth / el.naturalHeight); } : undefined}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: i === idx ? 1 : 0 }}
-        />
-      ))}
-      {/* position tick */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: "rgba(var(--lift),0.12)" }}>
-        <div style={{ height: "100%", width: "25%", background: T.accentLight, transform: `translateX(${frac * 300}%)`, transition: "transform 0.05s linear" }} />
+    <div style={{ padding: 14, display: "grid", gap: 14, alignContent: "start" }}>
+      <div style={label}>{row.part ? `Pt${row.part} · ` : ""}{dayLabel}</div>
+      <div
+        onMouseMove={scrub}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}`, aspectRatio: aspect, height: "min(330px, 36vh)", maxWidth: "100%", margin: "0 auto", background: "rgba(var(--lift),0.05)", cursor: "ew-resize" }}
+      >
+        {idx >= 0 ? (
+          <img ref={imgRef} src={toFileUrl(frames[idx].path)} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: T.textTertiary, fontSize: 12 }}>{loading ? "Preparing preview…" : "No preview"}</span>
+        )}
+        {/* #328: literal dark chips — they sit over the footage */}
+        <span style={{ position: "absolute", left: 10, bottom: 10, padding: "3px 8px", borderRadius: 6, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", color: "#fff", fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtClock(shown * dur)} / {fmtClock(dur)}</span>
+        {idx >= 0 && <span style={{ position: "absolute", right: 10, bottom: 10, padding: "3px 8px", borderRadius: 6, background: "rgba(0,0,0,0.55)", color: "rgba(255,255,255,0.7)", fontSize: 11, opacity: hovering ? 0 : 1, transition: "opacity 0.2s" }}>Move across to scrub</span>}
       </div>
-      {/* full-size peek pop-out (flips left near the screen edge) */}
-      {hover && peekPos && (
-        <div style={{ position: "fixed", left: peekPos.left, top: peekPos.top, width: PEEK_W, height: peekH, zIndex: 95, borderRadius: 12, border: `1px solid ${T.borderHover}`, boxShadow: "0 14px 44px rgba(var(--shade),calc(0.65 * var(--shadeK)))", overflow: "hidden", pointerEvents: "none", background: "rgba(var(--lift),0.06)" }}>
-          <img src={toFileUrl(frames[idx].path)} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          <span style={{ position: "absolute", right: 8, top: 8, fontSize: 10.5, fontWeight: 700, background: "rgba(0,0,0,0.55)", borderRadius: 5, padding: "2px 7px", color: "#fff" }}>{fmtClock(ts)}</span>
-          <div style={{ position: "absolute", left: 10, right: 10, bottom: 8, height: 3, borderRadius: 2, background: "rgba(var(--lift),0.18)" }}>
-            <div style={{ height: "100%", width: "25%", borderRadius: 2, background: T.accentLight, transform: `translateX(${frac * 300}%)` }} />
+      <div onMouseMove={scrub} style={{ position: "relative", height: 6, borderRadius: 6, background: "rgba(var(--lift),0.07)", cursor: "ew-resize" }}>
+        <i style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${shown * 100}%`, borderRadius: 6, background: `linear-gradient(90deg, ${T.accent}, ${T.accentLight})` }} />
+      </div>
+      <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "7px 16px", fontSize: 12.5, margin: 0, fontVariantNumeric: "tabular-nums" }}>
+        {[
+          ["Recorded", `${dayLabel}${start != null ? ` · ${fmtClockOfDay(start)}` : ""}`],
+          ["Length", dur ? fmtClock(dur) : info?.probing ? "…" : "—"],
+          ["Size", fmtBytes(facts.size)],
+          ["Video", video],
+          ["Audio", facts.audioTracks ? `${facts.audioTracks} track${facts.audioTracks === 1 ? "" : "s"}` : "—"],
+        ].map(([k, v]) => (
+          <React.Fragment key={k}>
+            <dt style={{ color: T.textSecondary }}>{k}</dt>
+            <dd style={{ margin: 0, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: T.text }}>{v}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+      <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(var(--lift),0.03)", border: `1px solid ${T.border}`, fontSize: 12.5, lineHeight: 1.45, overflowWrap: "anywhere", color: T.text }}>
+        <span style={{ color: T.textTertiary }}>Saves as</span><br />{savesAs.dir}\<b>{savesAs.name}</b>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+        <button onClick={onSplit} disabled={!dur} style={actBtn(splitOn)}>{IcScissorsL}Split</button>
+        <button onClick={() => window.clipflow?.revealInFolder(row.filePath)} style={actBtn(false)}>{IcFolderL}Explorer</button>
+        <button onClick={onHide} style={actBtn(false)}>{IcEyeOff}Hide</button>
+      </div>
+      {history.length > 0 && (
+        <div>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ ...label, marginRight: "auto" }}>Recently renamed</span>
+            <span onClick={onAllHistory} style={{ color: T.accentLight, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>All history</span>
+          </div>
+          <div style={{ display: "grid", gap: 2 }}>
+            {history.map((h) => (
+              <div key={h.key} className="cfr-hrow" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 8, fontSize: 12.5 }}>
+                <GamePill tag={h.tag} color={h.color} size="sm" />
+                <span title={h.name} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: T.text }}>{h.name}</span>
+                <span style={{ fontSize: 11.5 }}>
+                  <span className="cfr-hw" style={{ color: T.textSecondary }}>{h.when}</span>
+                  {h.undo && <span className="cfr-hu" onClick={h.undo} style={{ color: T.yellow, fontWeight: 700, cursor: "pointer" }}>{h.busy ? "Undoing…" : "Undo"}</span>}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -239,8 +337,8 @@ function SessionPresetPicker({ presetId, onChange }) {
       <span
         onClick={() => setOpen(!open)}
         title="Naming format for every file in this session"
-        style={{ fontSize: 11, color: T.textSecondary, border: `1px dashed ${T.borderHover}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
-      >{current ? current.label : "Mixed formats"} ▾</span>
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 30, padding: "0 10px", border: `1px solid ${T.border}`, borderRadius: 9, background: "rgba(var(--lift),0.03)", fontSize: 13, fontWeight: 500, color: T.labelStrong || T.textSecondary, cursor: "pointer", whiteSpace: "nowrap" }}
+      >{current ? current.label.replace(/ \+ /g, " · ") : "Mixed formats"}<span style={{ color: T.textTertiary, display: "inline-flex" }}>{IcChevron}</span></span>
       {menu}
     </div>
   );
@@ -310,13 +408,18 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
     document.body
   ) : null;
 
+  // #485: the name reads as plain text with the game tag in its colour.
+  const base = currentName.replace(/\.mp4$/i, "");
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-flex" }}>
+    <div ref={ref} style={{ position: "relative", display: "flex", minWidth: 0, maxWidth: "100%" }}>
       <span
         onClick={() => setOpen(!open)}
-        style={{ color: c, fontSize: 14, fontWeight: 700, fontFamily: T.mono, whiteSpace: "nowrap", cursor: "pointer", borderBottom: `1px dashed ${c}55`, paddingBottom: 1 }}
+        style={{ color: T.text, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", minWidth: 0 }}
         title="Click to change naming format"
-      >{currentName}</span>
+      >
+        {base.split(" ").map((w, i) => <React.Fragment key={i}>{i > 0 ? " " : ""}{w === rename.tag ? <span style={{ color: c }}>{w}</span> : w}</React.Fragment>)}
+        <span style={{ color: T.textTertiary, fontWeight: 500 }}>.mp4</span>
+      </span>
       {menu}
     </div>
   );
@@ -363,15 +466,14 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [splitProgress, setSplitProgress] = useState(null); // { fileId, current, total }
   const [convertProgress, setConvertProgress] = useState(null); // { fileName } — #300 MKV → MP4
 
-  // Game-switch scrubber state
-  // scrubberOpen: { [fileId]: true } — which files have scrubber expanded
-  // scrubberMarkers: { [fileId]: [{timeSeconds, gameBefore, gameAfter}] }
-  // scrubberThumbs: { [fileId]: {thumbnails, duration} }
-  // scrubberLoading: { [fileId]: true }
-  const [scrubberOpen, setScrubberOpen] = useState({});
+  // Game-switch split markers: { [fileId]: [{timeSeconds, gameBefore, gameAfter}] }.
+  // #485: one split strip is open at a time (splitOpenId); closing it keeps the
+  // markers, which apply when the file is renamed.
   const [scrubberMarkers, setScrubberMarkers] = useState({});
-  const [scrubberThumbs, setScrubberThumbs] = useState({});
-  const [scrubberLoading, setScrubberLoading] = useState({});
+  const [splitOpenId, setSplitOpenId] = useState(null);
+  const [splitHoverAt, setSplitHoverAt] = useState(null); // seconds under the pointer on the split strip
+  // #485: the file the right-hand panel shows
+  const [focusId, setFocusId] = useState(null);
 
   // Drag-and-drop state
   const [dragOver, setDragOver] = useState(false);
@@ -524,9 +626,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return unsub;
   }, [isElectron, gamesDb]);
 
-  // Probe duration for new pending files (auto-split detection)
+  // Probe new pending files: duration drives auto-split (when it's on), and
+  // the rest fills the file details panel (#485).
   useEffect(() => {
-    if (!isElectron || !autoSplitEnabled) return;
+    if (!isElectron) return;
     const unprobed = pendingRenames.filter((r) => r.filePath && !splitInfo[r.id]);
     if (unprobed.length === 0) return;
 
@@ -538,10 +641,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         const thresholdSec = splitThreshold * 60;
         const MIN_TAIL = 120; // Don't split if last segment would be < 2 minutes
         const tailLength = dur % thresholdSec;
-        const splitCount = dur > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(dur / thresholdSec) : 0;
+        const splitCount = autoSplitEnabled && dur > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(dur / thresholdSec) : 0;
+        const facts = { width: probe?.width || 0, height: probe?.height || 0, fps: probe?.fps || 0, videoCodec: probe?.videoCodec || null, audioTracks: probe?.audioTracks || 0, size: probe?.size || 0 };
         setSplitInfo((prev) => ({
           ...prev,
-          [r.id]: { durationSeconds: dur, splitCount, probing: false, skipSplit: false },
+          [r.id]: { durationSeconds: dur, splitCount, probing: false, skipSplit: false, facts },
         }));
       }).catch(() => {
         setSplitInfo((prev) => ({ ...prev, [r.id]: { durationSeconds: 0, splitCount: 0, probing: false, skipSplit: false } }));
@@ -607,7 +711,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return () => document.removeEventListener("mousedown", handler);
   }, [gameMenuOpen]);
 
-  // Recalculate split counts when threshold changes
+  // Recalculate split counts when threshold changes (auto-split off = no splits)
   useEffect(() => {
     setSplitInfo((prev) => {
       const updated = {};
@@ -616,16 +720,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         const thresholdSec = splitThreshold * 60;
         const MIN_TAIL = 120;
         const tailLength = info.durationSeconds % thresholdSec;
-        const splitCount = info.durationSeconds > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(info.durationSeconds / thresholdSec) : 0;
+        const splitCount = autoSplitEnabled && info.durationSeconds > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(info.durationSeconds / thresholdSec) : 0;
         updated[id] = { ...info, splitCount };
       }
       return updated;
     });
-  }, [splitThreshold]);
+  }, [splitThreshold, autoSplitEnabled]);
 
   // Load history from SQLite when History tab is opened
   useEffect(() => {
-    if (subTab !== "history" || !isElectron) return;
+    if ((subTab !== "history" && subTab !== "pending") || !isElectron) return;
     loadDbHistory();
   }, [subTab, isElectron]);
 
@@ -1144,41 +1248,13 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return renamedChildren;
   };
 
-  // ============ GAME-SWITCH SCRUBBER ============
-  const toggleScrubber = async (fileId, filePath) => {
-    if (scrubberOpen[fileId]) {
-      // Close scrubber and clean up thumbnails
-      setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-      if (isElectron && filePath) window.clipflow.cleanupThumbnails(filePath);
-      setScrubberThumbs((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-      setScrubberMarkers((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-      return;
-    }
-
-    // Open scrubber — generate thumbnails
-    setScrubberOpen((prev) => ({ ...prev, [fileId]: true }));
-    setScrubberLoading((prev) => ({ ...prev, [fileId]: true }));
-
-    if (isElectron) {
-      try {
-        console.log("[Scrubber] Generating thumbnails for:", filePath);
-        const result = await window.clipflow.generateThumbnails(filePath);
-        console.log("[Scrubber] Result:", result.error || `${result.thumbnails?.length} thumbnails`);
-        if (result.error) {
-          console.error("Thumbnail generation failed:", result.error);
-          setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-        } else {
-          setScrubberThumbs((prev) => ({ ...prev, [fileId]: { thumbnails: result.thumbnails, duration: result.duration } }));
-        }
-      } catch (err) {
-        console.error("Thumbnail generation failed:", err);
-        setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-      } finally {
-        setScrubberLoading((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-      }
-    } else {
-      setScrubberLoading((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
-    }
+  // ============ GAME-SWITCH SPLIT ============
+  // #485: the strip draws the recording's preview frames, so opening it makes
+  // nothing new and closing it keeps the markers.
+  const toggleSplit = (fileId) => {
+    setSplitHoverAt(null);
+    setSplitOpenId((cur) => (cur === fileId ? null : fileId));
+    setFocusId(fileId);
   };
 
   const updateScrubberMarkers = (fileId, markers) => {
@@ -1193,8 +1269,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const markers = scrubberMarkers[r.id] || [];
     if (markers.length === 0) return null;
 
-    const thumbData = scrubberThumbs[r.id];
-    if (!thumbData) return null;
+    const duration = splitInfo[r.id]?.durationSeconds;
+    if (!duration) return null;
 
     const sorted = [...markers].sort((a, b) => a.timeSeconds - b.timeSeconds);
 
@@ -1209,7 +1285,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     // Last segment
     segments.push({
       startSeconds: prevTime,
-      endSeconds: thumbData.duration,
+      endSeconds: duration,
       gameTag: sorted[sorted.length - 1].gameAfter || r.tag,
     });
 
@@ -1229,7 +1305,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       partNumber: null,
       customLabel: r.customLabel || null,
       namingPreset: preset,
-      durationSeconds: thumbData.duration,
+      durationSeconds: duration,
       status: "pending",
     });
 
@@ -1339,25 +1415,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       await window.clipflow.labelRecord(r.tag, r.customLabel);
     }
 
-    // Clean up scrubber thumbnails
-    if (isElectron && r.filePath) window.clipflow.cleanupThumbnails(r.filePath);
-    setScrubberOpen((prev) => { const n = { ...prev }; delete n[r.id]; return n; });
-    setScrubberThumbs((prev) => { const n = { ...prev }; delete n[r.id]; return n; });
     setScrubberMarkers((prev) => { const n = { ...prev }; delete n[r.id]; return n; });
+    setSplitOpenId((cur) => (cur === r.id ? null : cur));
 
     setSplitProgress(null);
     return renamedChildren;
   };
 
   const hideOne = (id) => {
-    // Clean up scrubber if open
-    const r = pendingRenames.find((x) => x.id === id);
-    if (r && scrubberOpen[id] && isElectron && r.filePath) {
-      window.clipflow.cleanupThumbnails(r.filePath);
-    }
-    setScrubberOpen((prev) => { const n = { ...prev }; delete n[id]; return n; });
     setScrubberMarkers((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    setScrubberThumbs((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    setSplitOpenId((cur) => (cur === id ? null : cur));
     setPendingRenames((prev) => prev.filter((x) => x.id !== id));
   };
 
@@ -1506,10 +1573,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     // missing labels, unselected files) keep their split/scrubber state.
     const drop = (obj) => { const n = { ...obj }; renamedIds.forEach((id) => delete n[id]); return n; };
     setSplitInfo((prev) => drop(prev));
-    setScrubberOpen((prev) => drop(prev));
     setScrubberMarkers((prev) => drop(prev));
-    setScrubberThumbs((prev) => drop(prev));
-    setScrubberLoading((prev) => drop(prev));
+    setSplitOpenId((cur) => (cur && renamedIds.has(cur) ? null : cur));
     setPendingRenames((prev) => prev.filter((x) => !renamedIds.has(x.id)));
 
     // Remember the last renamed game for auto-selecting on future files
@@ -1765,26 +1830,80 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         ? `${watchFolder} — ${watchStatus.message}`
         : watchFolder;
 
+  // #485: the file the right panel shows — the clicked one, else the first
+  const focusRow = pendingRenames.find((r) => r.id === focusId) || (displayIds.length ? pendingRenames.find((r) => r.id === displayIds[0]) : null);
+  const totalFootage = pendingRenames.reduce((sum, r) => sum + (splitInfo[r.id]?.durationSeconds || 0), 0);
+  const shortWatch = watchFolder ? (() => { const parts = watchFolder.split("\\").filter(Boolean); return parts.length > 2 ? `${parts[0]}\\…\\${parts[parts.length - 1]}` : watchFolder; })() : "";
+  const renameLabel = renaming
+    ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…")
+    : selectedIds.size > 0 ? `Rename ${selectedIds.size} selected` : `Rename ${pendingRenames.length} file${pendingRenames.length === 1 ? "" : "s"}`;
+  const renameTargets = () => (selectedIds.size > 0 ? pendingRenames.filter((r) => selectedIds.has(r.id)) : pendingRenames);
+
+  // Recently renamed (panel): this session's renames first, then the library's
+  const recentHistory = [
+    ...renameHistory.map((h) => ({
+      key: h.id, tag: h.tag, color: h.color, name: h.newName.replace(/\.mp4$/i, ""), when: h.undone ? "undone" : h.time,
+      undo: !h.undone && h.historyId ? () => undoLocalEntry(h) : null, busy: undoBusy === h.id,
+    })),
+    ...dbHistoryVisible.map((h) => {
+      const game = gamesDb.find((g) => g.tag === h.tag) || gamesDb.find((g) => h.new_filename?.includes(g.tag));
+      return {
+        key: `db-${h.id}`, tag: game?.tag || h.tag || "?", color: game?.color || "#888", name: (h.new_filename || "").replace(/\.mp4$/i, ""),
+        when: relDay(h.created_at), undo: h.action !== "split" ? () => undoDbHistory(h.id) : null, busy: false,
+      };
+    }),
+  ].slice(0, 6);
+
+  const pill = { display: "inline-flex", alignItems: "center", gap: 7, height: 34, padding: "0 13px", borderRadius: 9, fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.035)", color: T.labelStrong || T.textSecondary, cursor: "pointer", fontFamily: T.font };
+  const strip = (tone, dim, title, text, action) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 14px", marginBottom: 10, borderRadius: 12, border: `1px solid ${T.border}`, background: dim }}>
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: tone, boxShadow: `0 0 6px ${tone}`, flexShrink: 0 }} />
+      <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: tone, flexShrink: 0 }}>{title}</span>
+      <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{text}</span>
+      {action}
+    </div>
+  );
+  const stripBtn = (label, onClick) => (
+    <button onClick={onClick} style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{label}</button>
+  );
+
   return (
     <div
       ref={rootRef}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      style={{ position: "relative" }}
+      style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}
     >
-      {/* #172: ledger row hover/selection states + batch bar entrance */}
+      {/* #485: tiles, inspector and history rows */}
       <style>{`
         @keyframes cfrBarUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
-        .cfr-row:hover { background: ${T.surfaceHover}; }
-        .cfr-row.rowsel { background: ${T.accentGlow}; }
-        .cfr-row .cfr-acts { opacity: 0; transition: opacity 0.12s; }
-        .cfr-row:hover .cfr-acts, .cfr-row.rowsel .cfr-acts { opacity: 1; }
+        .cfr-body { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; flex: 1; min-height: 0; }
+        @media (max-width: 1400px) { .cfr-body { grid-template-columns: minmax(0, 1fr) 320px; } }
+        .cfr-scroll { overflow: auto; min-height: 0; }
+        .cfr-scroll::-webkit-scrollbar { width: 10px; }
+        .cfr-scroll::-webkit-scrollbar-thumb { background: rgba(var(--lift),0.08); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+        .cfr-ftiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; padding: 12px; }
+        .cfr-ft { position: relative; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 10px; border-radius: 13px; cursor: pointer;
+          background: radial-gradient(90% 160% at 100% 0%, var(--gc1) 0%, transparent 55%), linear-gradient(100deg, var(--gc2) 0%, var(--gc3) 40%, rgba(var(--lift),0.02) 65%);
+          border: 1px solid var(--gcb); transition: transform .18s cubic-bezier(.22,1,.36,1), box-shadow .18s, border-color .18s; }
+        .cfr-ft:focus-within { z-index: 3; }
+        .cfr-ft:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(var(--shade),calc(.5 * var(--shadeK))), 0 26px 60px -22px rgba(var(--shade),calc(.85 * var(--shadeK))); }
+        .cfr-ft.sel { background: radial-gradient(90% 160% at 100% 0%, var(--gs1) 0%, transparent 60%), linear-gradient(100deg, var(--gs2) 0%, var(--gs3) 55%, rgba(var(--lift),0.03) 85%); border-color: var(--gsb); box-shadow: inset 0 1px 0 rgba(var(--lift),0.09); }
+        .cfr-ft .cfr-acts { opacity: 0; transition: opacity .15s; }
+        .cfr-ft:hover .cfr-acts, .cfr-ft.sel .cfr-acts { opacity: 1; }
+        .cfr-ft .cfr-cb { position: absolute; left: 6px; top: 6px; z-index: 2; opacity: 0; transition: opacity .15s; }
+        .cfr-ft:hover .cfr-cb, .cfr-selecting .cfr-cb, .cfr-ft.rowsel .cfr-cb { opacity: 1; }
         .cfr-check { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity 0.13s ease, width 0.13s ease, margin 0.13s ease; }
-        .cfr-row:hover .cfr-check, .cfr-shead:hover .cfr-check, .cfr-selecting .cfr-check { width: 16px; opacity: 1; margin-left: 0; }
-        .cfr-iconbt { width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: rgba(var(--lift),0.32); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
-        .cfr-iconbt:hover { color: ${T.text}; background: ${T.surfaceHover}; border-color: ${T.border}; }
+        .cfr-shead:hover .cfr-check, .cfr-selecting .cfr-check { width: 16px; opacity: 1; margin-left: 0; }
+        .cfr-iconbt { width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: ${T.textSecondary}; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
+        .cfr-iconbt:hover { color: ${T.text}; background: rgba(var(--lift),0.08); }
+        .cfr-iconbt.on { color: ${T.accentLight}; background: ${T.accentDim}; }
         .cfr-iconbt:disabled { opacity: 0.35; cursor: default; }
+        .cfr-hrow:hover { background: rgba(var(--lift),0.035); }
+        .cfr-hrow .cfr-hu { display: none; }
+        .cfr-hrow:hover .cfr-hu { display: inline; }
+        .cfr-hrow:hover .cfr-hw { display: none; }
       `}</style>
       {/* Drop zone overlay */}
       {dragOver && (
@@ -1803,9 +1922,50 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         </div>
       )}
 
+      {/* #485 header: title + what's waiting, then the tab switch and actions */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 16, paddingBottom: 18, flexShrink: 0, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: T.text }}>Rename</div>
+          <div style={{ color: T.textSecondary, marginTop: 5, fontSize: 13 }}>
+            {pendingRenames.length > 0
+              ? <><b style={{ color: T.text, fontWeight: 600 }}>{pendingRenames.length} recording{pendingRenames.length === 1 ? "" : "s"}</b> waiting from {sessionGroups.length} session{sessionGroups.length === 1 ? "" : "s"}{totalFootage > 0 ? ` · ${formatDuration(totalFootage)} of footage` : ""}</>
+              : "Nothing waiting to be renamed"}
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {watchStatus.state === "watching" && (
+            <span title={watchFolder} style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 30, padding: "0 12px", borderRadius: 999, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.labelStrong || T.textSecondary, fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap" }}>
+              <PulseDot size={7} />Watching {shortWatch}
+            </span>
+          )}
+          <div style={{ display: "flex", padding: 3, borderRadius: 10, background: "rgba(var(--lift),0.035)", border: `1px solid ${T.border}` }}>
+            {[["pending", "Pending", pendingRenames.length], ["history", "History", renameHistory.length + dbHistoryVisible.length], ["manage", "Manage", null]].map(([id, lbl, c]) => (
+              <button key={id} onClick={() => setSubTab(id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7, border: "none", fontFamily: T.font, fontSize: 13, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap", background: subTab === id ? "rgba(var(--lift),0.08)" : "transparent", color: subTab === id ? T.text : T.textSecondary }}>
+                {lbl}{c != null && <span style={{ fontSize: 11, color: subTab === id ? T.accentLight : T.textTertiary }}>{c}</span>}
+              </button>
+            ))}
+          </div>
+          <button onClick={refresh} disabled={refreshing} title={refreshing ? "Refreshed" : "Refresh"} style={{ ...pill, width: 34, padding: 0, justifyContent: "center", color: refreshing ? T.green : pill.color, borderColor: refreshing ? T.greenBorder : T.border }}>{refreshing ? "✓" : IcRefresh}</button>
+          <button onClick={() => onAddGame("game")} style={pill}>{IcPlus}Add game</button>
+          {subTab === "pending" && pendingRenames.length > 0 && (
+            <button
+              onClick={() => renameFiles(renameTargets())}
+              disabled={renaming}
+              style={{ ...pill, color: "#fff", border: "1px solid rgba(255,255,255,0.12)", background: renaming ? "rgba(var(--lift),0.06)" : `linear-gradient(180deg, ${T.accentLight}, ${T.accent})`, boxShadow: renaming ? "none" : `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px color-mix(in srgb, ${T.accent} 30%, transparent)`, cursor: renaming ? "default" : "pointer" }}
+            >{renameLabel}{!renaming && IcArrow}</button>
+          )}
+        </div>
+      </div>
+
+      {/* Dead-stop states: no folder, folder gone, no games */}
+      {watchStatus.state !== "watching" && strip(watchTone, watchStatus.state === "unset" ? T.yellowDim : T.redDim, watchLabel, watchDetail, onNavigate && stripBtn("Choose folder", () => onNavigate("settings")))}
+      {/* #406: without a real game neither detector can match and naming has
+          nothing to go on — say so here rather than quietly tagging Unknown. */}
+      {!hasRealGame && strip(T.yellow, T.yellowDim, "NO GAMES SET UP", "Corva can't tell what you're playing — recordings stay Unknown until you add a game.", stripBtn("+ Add Game", () => onAddGame("game")))}
+
       {/* Import progress banner */}
       {importing && (
-        <div style={{ padding: "10px 16px", borderRadius: T.radius.md, background: T.accentDim, border: `1px solid ${T.accentBorder}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ padding: "10px 16px", borderRadius: T.radius.md, background: T.accentDim, border: `1px solid ${T.accentBorder}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
           <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(var(--lift),0.06)", overflow: "hidden" }}>
             <div style={{ height: "100%", borderRadius: 2, background: T.accent, width: `${importing.pct}%`, transition: "width 0.3s ease" }} />
@@ -1813,67 +1973,23 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         </div>
       )}
 
-      {/* #177: two-deck header (Fega picked mock A with C's stat blocks) —
-          title/stats/actions row + slim WATCHING strip with the full path */}
-      <div style={{ border: `1px solid ${T.border}`, background: T.surface, borderRadius: T.radius.lg, marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "11px 16px" }}>
-          <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", color: T.text, marginRight: "auto", flexShrink: 0 }}>Rename</span>
-          <div style={{ display: "flex", flexShrink: 0 }}>
-            {[[totalRenamed, "total"], [pendingRenames.length, "pending"], [gamesDb.length, "games"]].map(([v, l], i) => (
-              <div key={l} style={{ textAlign: "center", padding: "0 16px", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
-                <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.1, color: T.text }}>{v}</div>
-                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", color: T.textTertiary, textTransform: "uppercase" }}>{l}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(var(--lift),0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
-            <button onClick={() => onAddGame("game")} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(var(--lift),0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: hasRealGame ? `0 0 ${T.radius.lg} ${T.radius.lg}` : 0 }} title={watchDetail}>
-          {watchStatus.state === "watching"
-            ? <PulseDot size={8} />
-            : <span style={{ width: 8, height: 8, borderRadius: "50%", background: watchTone, boxShadow: `0 0 6px ${watchTone}`, flexShrink: 0 }} />}
-          <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: watchTone, flexShrink: 0 }}>{watchLabel}</span>
-          <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchDetail}</span>
-          {watchStatus.state !== "watching" && onNavigate && (
-            <button onClick={() => onNavigate("settings")} style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Choose folder</button>
-          )}
-        </div>
-        {/* #406: without a real game neither detector can match and naming has
-            nothing to go on — say so here rather than quietly tagging Unknown. */}
-        {!hasRealGame && (
-          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: T.yellowDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title="Corva recognises what you're playing by matching against the games you've added.">
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.yellow, boxShadow: `0 0 6px ${T.yellow}`, flexShrink: 0 }} />
-            <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: T.yellow, flexShrink: 0 }}>NO GAMES SET UP</span>
-            <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Corva can't tell what you're playing — recordings stay Unknown until you add a game.</span>
-            <button onClick={() => onAddGame("game")} style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
-          </div>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <TabBar tabs={[{ id: "pending", label: "Pending", count: pendingRenames.length }, { id: "history", label: "History", count: renameHistory.length }, { id: "manage", label: "Manage" }]} active={subTab} onChange={setSubTab} />
-
       {/* Retroactive part notification */}
       {retroNotification && (
-        <div style={{ margin: "12px 0", padding: "12px 16px", borderRadius: T.radius.md, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ margin: "0 0 12px", padding: "12px 16px", borderRadius: T.radius.md, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{ fontSize: 16 }}>⚡</span>
           <span style={{ color: T.yellow, fontSize: 13, fontWeight: 600 }}>{retroNotification}</span>
           <button onClick={() => setRetroNotification(null)} style={{ marginLeft: "auto", background: "none", border: "none", color: T.textMuted, fontSize: 16, cursor: "pointer", padding: "2px 6px" }}>×</button>
         </div>
       )}
 
-      {/* Content — tightened from 16 with the #177 header (dead band under the tabs) */}
-      <div style={{ marginTop: 10 }}>
-        {/* PENDING TAB — #172 session ledger */}
-        {subTab === "pending" && (
-          <>
+      {/* PENDING — #172 sessions, #485 tiles + inspector */}
+      {subTab === "pending" && (pendingRenames.length > 0 && focusRow ? (
+        <div className="cfr-body">
+          <div className="cfr-scroll">
             {/* #473: renaming a file an editor project already uses knocks it
                 offline there. The steps to relink, until the full feature is built. */}
-            {pendingRenames.length > 0 && !relinkTipDismissed && (
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: "rgba(var(--lift),0.02)", marginBottom: 10, padding: "8px 12px", fontSize: 12, color: T.textSecondary }}>
+            {!relinkTipDismissed && (
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: "rgba(var(--lift),0.02)", marginBottom: 12, padding: "8px 12px", fontSize: 12, color: T.textSecondary }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.accent, boxShadow: `0 0 6px ${T.accent}`, flexShrink: 0 }} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Already editing a recording in Resolve or Premiere? Renaming it shows as media offline there.</span>
@@ -1888,182 +2004,227 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                 )}
               </div>
             )}
-            {pendingRenames.length > 0 ? (
-              <div className={selectedIds.size > 0 ? "cfr-selecting" : ""} style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 90 }}>
-                {sessionGroups.map((grp) => {
-                  const rowIds = grp.rows.map((r) => r.id);
-                  const selCount = grp.rows.filter((r) => selectedIds.has(r.id)).length;
-                  const headState = selCount === grp.rows.length ? "on" : selCount > 0 ? "half" : "off";
-                  const samePreset = grp.rows.every((r) => (r.preset || defaultPreset) === (grp.rows[0].preset || defaultPreset));
-                  const headPreset = samePreset ? (grp.rows[0].preset || defaultPreset) : null;
-                  const firstWithPath = grp.rows.find((r) => r.filePath);
-                  const knownDur = grp.rows.reduce((s, r) => s + (splitInfo[r.id]?.durationSeconds || 0), 0);
-                  return (
-                    <div key={grp.key} style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.lg, background: T.surface, overflow: "hidden" }}>
-                      {/* session header — owns everything the parts share */}
-                      <div className="cfr-shead" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(var(--lift),0.02)", borderBottom: `1px solid ${T.border}` }}>
-                        <span className="cfr-check"><LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" /></span>
-                        <span style={{ fontSize: 13.5, fontWeight: 800, color: T.text, whiteSpace: "nowrap" }}>{fmtSessionDate(grp.date)}</span>
-                        <GroupedSelect
-                          value={grp.rows[0].game}
-                          onChange={(v) => setGameForRows(rowIds, v)}
-                          options={gameOptions}
-                          renderSelected={(o) => <><GamePill tag={o.tag || grp.tag} color={o.color || grp.rows[0].color} size="sm" />{o.label}</>}
-                          renderOption={renderEntryOption}
-                          style={{ minWidth: 150 }}
-                          borderColor={`${grp.rows[0].color}44`}
-                        />
-                        <ReactSwitch
-                          compact
-                          tight
-                          entry={gamesDb.find((g) => g.name === grp.rows[0].game)}
-                          gamesDb={gamesDb}
-                          onPick={(e) => setGameForRows(rowIds, e.name, e)}
-                          onReactionFor={onReactionFor}
-                        />
-                        <MiniSpinbox compact label="Day" value={grp.rows[0].day} onChange={(v) => setDayForRows(rowIds, v)} />
-                        <SessionPresetPicker presetId={headPreset} onChange={(v) => setPresetForRows(rowIds, v)} />
-                        <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.textTertiary, flexShrink: 0 }}>
-                          {grp.rows.length} part{grp.rows.length === 1 ? "" : "s"}{knownDur > 0 ? ` · ${formatDuration(knownDur)}` : ""}
-                        </span>
-                        {firstWithPath && (
-                          <button className="cfr-iconbt" title="Show session in Explorer" onClick={() => window.clipflow?.revealInFolder(firstWithPath.filePath)}>{IcFolder}</button>
-                        )}
+            <div className={selectedIds.size > 0 ? "cfr-selecting" : ""} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 16, alignContent: "start", paddingBottom: selectedIds.size > 0 ? 90 : 24 }}>
+              {sessionGroups.map((grp) => {
+                const rowIds = grp.rows.map((r) => r.id);
+                const selCount = grp.rows.filter((r) => selectedIds.has(r.id)).length;
+                const headState = selCount === grp.rows.length ? "on" : selCount > 0 ? "half" : "off";
+                const samePreset = grp.rows.every((r) => (r.preset || defaultPreset) === (grp.rows[0].preset || defaultPreset));
+                const headPreset = samePreset ? (grp.rows[0].preset || defaultPreset) : null;
+                const firstWithPath = grp.rows.find((r) => r.filePath);
+                const knownDur = grp.rows.reduce((s, r) => s + (splitInfo[r.id]?.durationSeconds || 0), 0);
+                const gDate = localDate(grp.date);
+                const startMin = obsStartMin(grp.rows[0].fileName);
+                const lastRow = grp.rows[grp.rows.length - 1];
+                const lastStart = obsStartMin(lastRow.fileName);
+                const lastDur = splitInfo[lastRow.id]?.durationSeconds || 0;
+                const endMin = lastStart != null && lastDur ? lastStart + lastDur / 60 : null;
+                const splitRow = grp.rows.find((r) => r.id === splitOpenId) || null;
+                return (
+                  <div key={grp.key} style={{ borderRadius: 16, border: `1px solid ${T.border}`, background: "linear-gradient(180deg, rgba(var(--lift),0.025), rgba(var(--lift),0.01))", boxShadow: "inset 0 1px 0 rgba(var(--lift),0.04)" }}>
+                    {/* session header — owns everything the parts share */}
+                    <div className="cfr-shead" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", rowGap: 8, padding: "12px 14px", borderBottom: `1px solid ${T.border}` }}>
+                      <span className="cfr-check"><LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" /></span>
+                      <div style={{ width: 42, height: 44, borderRadius: 10, background: "rgba(var(--lift),0.045)", border: `1px solid ${T.border}`, display: "grid", placeContent: "center", textAlign: "center", lineHeight: 1, flexShrink: 0 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.08em", color: T.red }}>{gDate ? gDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase() : "?"}</span>
+                        <b style={{ fontSize: 17, fontWeight: 700, marginTop: 3, color: T.text }}>{gDate ? gDate.getDate() : ""}</b>
                       </div>
-                      {/* rows — only what varies per file */}
-                      <div>
-                        {grp.rows.map((r, ri) => {
-                          const preset = r.preset || defaultPreset;
-                          const showLabel = PRESETS_USING_LABEL.has(preset);
-                          const showPart = PRESETS_ALWAYS_PARTS.has(preset);
-                          const info = splitInfo[r.id];
-                          const hasSplit = info && info.splitCount > 0 && !info.skipSplit;
-                          const splitSkipped = info && info.splitCount > 0 && info.skipSplit;
-                          const preview = previewFrames[r.id];
-                          const isSel = selectedIds.has(r.id);
-                          const labelInvalid = showLabel && r.customLabel && /[\\/:*?"<>|]/.test(r.customLabel);
-                          const splitParts = hasSplit ? getSplitPreview(r) : null;
-                          const splitTitle = splitParts ? `Splits into ${splitParts.map((p) => `${p.label} ${fmtClock(p.start)}–${fmtClock(p.end)}`).join(", ")}. Click to keep as one file.` : "";
-                          return (
-                            <React.Fragment key={r.id}>
-                              <div className={`cfr-row${isSel ? " rowsel" : ""}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 14px", borderTop: ri === 0 ? "none" : `1px solid ${T.border}` }}>
-                                <span className="cfr-check"><LedgerCheck state={isSel ? "on" : "off"} onClick={(e) => toggleRow(r.id, e)} /></span>
-                                <HoverScrubThumb frames={preview?.frames || []} loading={!!preview?.loading} durationSeconds={info?.durationSeconds} />
-                                <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                                  <span style={{ fontSize: 11.5, color: T.textTertiary, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 1, maxWidth: 170 }} title={r.fileName}>{r.fileName}</span>
-                                  <span style={{ color: T.textMuted, fontSize: 11, flexShrink: 0 }}>→</span>
-                                  <PresetNamePicker
-                                    rename={r}
-                                    presets={PRESET_LIST}
-                                    currentPreset={preset}
-                                    getProposed={getProposed}
-                                    onPresetChange={(v) => updatePending(r.id, "preset", v)}
-                                    color={r.color}
-                                  />
-                                  {info && info.probing && <span style={{ fontSize: 10.5, color: T.textMuted, flexShrink: 0 }}>probing…</span>}
-                                  {hasSplit && (
-                                    <span onClick={() => toggleSkipSplit(r.id)} title={splitTitle} style={{ fontSize: 10.5, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}`, borderRadius: 5, padding: "1px 7px", flexShrink: 0, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                      {fmtClock(info.durationSeconds)} · splits into {info.splitCount}
-                                    </span>
-                                  )}
-                                  {splitSkipped && (
-                                    <span onClick={() => toggleSkipSplit(r.id)} title="Auto-split is off for this file — click to split it again" style={{ fontSize: 10.5, color: T.yellow, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, borderRadius: 5, padding: "1px 7px", flexShrink: 0, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                      split off
-                                    </span>
-                                  )}
-                                </div>
-                                {showLabel && (
-                                  <div style={{ position: "relative", flexShrink: 0, width: 150 }}>
-                                    <input
-                                      value={r.customLabel || ""}
-                                      onChange={(e) => updateLabel(r.id, e.target.value)}
-                                      onFocus={() => { setActiveLabelFileId(r.id); fetchLabelSuggestions(r.tag, r.customLabel || ""); }}
-                                      onBlur={() => setTimeout(() => setActiveLabelFileId(null), 200)}
-                                      placeholder="custom-label"
-                                      title={labelInvalid ? "Labels can't contain special characters" : undefined}
-                                      style={{
-                                        width: "100%", background: "rgba(var(--lift),0.04)",
-                                        border: `1px solid ${labelInvalid ? T.red : T.border}`,
-                                        borderRadius: 7, padding: "5px 9px",
-                                        color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none",
-                                      }}
-                                    />
-                                    {/* Autocomplete dropdown */}
-                                    {activeLabelFileId === r.id && labelSuggestions.length > 0 && (
-                                      <div style={{
-                                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                                        background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-                                        boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 999, padding: 4,
-                                        maxHeight: 180, overflowY: "auto",
-                                      }}>
-                                        {labelSuggestions.map((s) => (
-                                          <div
-                                            key={s.label}
-                                            onMouseDown={() => selectLabelSuggestion(r.id, s.label)}
-                                            style={{
-                                              padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                                              color: T.text, fontSize: 13, fontFamily: T.mono,
-                                              display: "flex", justifyContent: "space-between", alignItems: "center",
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(var(--lift),0.06)"}
-                                            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                                          >
-                                            <span>{s.label}</span>
-                                            <span style={{ color: T.textMuted, fontSize: 11 }}>×{s.use_count}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {showPart && <MiniSpinbox compact label="Pt" value={r.part} onChange={(v) => setPartForRow(r.id, v)} />}
-                                <span style={{ fontSize: 11.5, color: T.textTertiary, width: 48, textAlign: "right", flexShrink: 0, fontFamily: T.mono }}>{info?.probing ? "…" : info?.durationSeconds ? fmtClock(info.durationSeconds) : "—"}</span>
-                                <span className="cfr-acts" style={{ display: "flex", gap: 2, flexShrink: 0, justifyContent: "flex-end" }}>
-                                  {r.filePath && <button className="cfr-iconbt" title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder(r.filePath)}>{IcFolder}</button>}
-                                  {r.filePath && info?.durationSeconds > 0 && (
-                                    <button className="cfr-iconbt" title={scrubberOpen[r.id] ? "Close the split view" : "Split this recording at specific points"} disabled={renaming} onClick={() => toggleScrubber(r.id, r.filePath)} style={scrubberOpen[r.id] ? { color: T.accentLight } : undefined}>{IcSplit}</button>
-                                  )}
-                                  <button className="cfr-iconbt" title="Hide from pending" onClick={() => hideOne(r.id)}>{IcHide}</button>
-                                </span>
+                      <div style={{ minWidth: 150 }}>
+                        <b style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>{gDate ? gDate.toLocaleDateString("en-US", { weekday: "long" }) : fmtSessionDate(grp.date)}</b>
+                        <span style={{ fontSize: 12, color: T.textSecondary, fontVariantNumeric: "tabular-nums" }}>
+                          {startMin != null ? fmtClockOfDay(startMin) : ""}{endMin != null ? ` to ${fmtClockOfDay(endMin)}` : ""}{knownDur > 0 ? ` · ${formatDuration(knownDur)}` : ""}
+                        </span>
+                      </div>
+                      <GroupedSelect
+                        value={grp.rows[0].game}
+                        onChange={(v) => setGameForRows(rowIds, v)}
+                        options={gameOptions}
+                        renderSelected={(o) => <><GamePill tag={o.tag || grp.tag} color={o.color || grp.rows[0].color} size="sm" />{o.label}</>}
+                        renderOption={renderEntryOption}
+                        style={{ minWidth: 150 }}
+                        borderColor={T.border}
+                      />
+                      <ReactSwitch
+                        compact
+                        entry={gamesDb.find((g) => g.name === grp.rows[0].game)}
+                        gamesDb={gamesDb}
+                        onPick={(e) => setGameForRows(rowIds, e.name, e)}
+                        onReactionFor={onReactionFor}
+                      />
+                      <MiniSpinbox pill label="Day" value={grp.rows[0].day} onChange={(v) => setDayForRows(rowIds, v)} />
+                      <SessionPresetPicker presetId={headPreset} onChange={(v) => setPresetForRows(rowIds, v)} />
+                      <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, color: T.textSecondary, fontSize: 12.5 }}>
+                        {grp.rows.length} part{grp.rows.length === 1 ? "" : "s"}
+                        {firstWithPath && (
+                          <button className="cfr-iconbt" title="Show session in Explorer" onClick={() => window.clipflow?.revealInFolder(firstWithPath.filePath)} style={{ width: 28, height: 28, border: `1px solid ${T.border}`, borderRadius: 8 }}>{IcFolderL}</button>
+                        )}
+                      </span>
+                    </div>
+                    {/* files side by side — only what varies per file */}
+                    <div className="cfr-ftiles">
+                      {grp.rows.map((r) => {
+                        const preset = r.preset || defaultPreset;
+                        const showLabel = PRESETS_USING_LABEL.has(preset);
+                        const showPart = PRESETS_ALWAYS_PARTS.has(preset);
+                        const info = splitInfo[r.id];
+                        const hasSplit = info && info.splitCount > 0 && !info.skipSplit;
+                        const splitSkipped = info && info.splitCount > 0 && info.skipSplit;
+                        const preview = previewFrames[r.id];
+                        const frames = preview?.frames || [];
+                        const still = frames.length ? frames[Math.floor(frames.length * 0.3)] : null;
+                        const isSel = selectedIds.has(r.id);
+                        const labelInvalid = showLabel && r.customLabel && /[\\/:*?"<>|]/.test(r.customLabel);
+                        const splitParts = hasSplit ? getSplitPreview(r) : null;
+                        const splitTitle = splitParts ? `Splits into ${splitParts.map((p) => `${p.label} ${fmtClock(p.start)}–${fmtClock(p.end)}`).join(", ")}. Click to keep as one file.` : "";
+                        const markers = scrubberMarkers[r.id] || [];
+                        const chip = (color, bg, border) => ({ fontSize: 10.5, color, background: bg, border: `1px solid ${border}`, borderRadius: 5, padding: "1px 7px", flexShrink: 0, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" });
+                        return (
+                          <div
+                            key={r.id}
+                            className={`cfr-ft${focusRow.id === r.id ? " sel" : ""}${isSel ? " rowsel" : ""}`}
+                            style={gameVars(r.color)}
+                            onClick={(e) => { if (!e.target.closest("button, input, [data-nofocus]")) setFocusId(r.id); }}
+                          >
+                            <span className="cfr-cb" data-nofocus=""><LedgerCheck state={isSel ? "on" : "off"} onClick={(e) => toggleRow(r.id, e)} title="Select (shift-click for a range)" /></span>
+                            <div style={{ width: 64, height: 72, borderRadius: 9, overflow: "hidden", border: "1px solid rgba(var(--lift),0.08)", background: "rgba(var(--lift),0.05)", display: "grid", placeItems: "center" }}>
+                              {still
+                                ? <img src={toFileUrl(still.path)} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                                : <span style={{ color: T.textMuted, fontSize: 10 }}>{preview?.loading ? "…" : ""}</span>}
+                            </div>
+                            <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                              <div data-nofocus="" style={{ minWidth: 0, display: "flex" }}>
+                                <PresetNamePicker
+                                  rename={r}
+                                  presets={PRESET_LIST}
+                                  currentPreset={preset}
+                                  getProposed={getProposed}
+                                  onPresetChange={(v) => updatePending(r.id, "preset", v)}
+                                  color={r.color}
+                                />
                               </div>
-                              {/* game-switch scrubber still expands full-width under its row */}
-                              {scrubberOpen[r.id] && r.filePath && (
-                                <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 14px", background: "rgba(var(--lift),0.015)" }}>
-                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                                    <span style={{ color: T.accentLight, fontSize: 12, fontWeight: 600 }}>Mark where games change in this recording</span>
-                                    <button
-                                      onClick={() => toggleScrubber(r.id, r.filePath)}
-                                      style={{ background: "none", border: "none", color: T.textMuted, fontSize: 14, cursor: "pointer", padding: "2px 6px", fontFamily: T.font }}
-                                    >✕</button>
-                                  </div>
-                                  <ThumbnailScrubber
-                                    thumbnails={scrubberThumbs[r.id]?.thumbnails || []}
-                                    duration={scrubberThumbs[r.id]?.duration || splitInfo[r.id]?.durationSeconds || 0}
-                                    games={gamesDb}
-                                    markers={scrubberMarkers[r.id] || []}
-                                    onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
-                                    loading={!!scrubberLoading[r.id]}
-                                    defaultGameTag={r.tag}
-                                    onReactionFor={onReactionFor}
+                              <div title={r.fileName} style={{ fontSize: 11.5, color: T.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>from {r.fileName}</div>
+                              {showLabel && (
+                                <div data-nofocus="" style={{ position: "relative", marginTop: 4, maxWidth: 220 }}>
+                                  <input
+                                    value={r.customLabel || ""}
+                                    onChange={(e) => updateLabel(r.id, e.target.value)}
+                                    onFocus={() => { setActiveLabelFileId(r.id); fetchLabelSuggestions(r.tag, r.customLabel || ""); }}
+                                    onBlur={() => setTimeout(() => setActiveLabelFileId(null), 200)}
+                                    placeholder="custom-label"
+                                    title={labelInvalid ? "Labels can't contain special characters" : undefined}
+                                    style={{
+                                      width: "100%", background: "rgba(var(--lift),0.04)",
+                                      border: `1px solid ${labelInvalid ? T.red : T.border}`,
+                                      borderRadius: 7, padding: "5px 9px",
+                                      color: T.text, fontSize: 12, fontFamily: T.font, outline: "none",
+                                    }}
                                   />
+                                  {/* Autocomplete dropdown */}
+                                  {activeLabelFileId === r.id && labelSuggestions.length > 0 && (
+                                    <div style={{
+                                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                                      background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
+                                      boxShadow: "0 8px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))", zIndex: 999, padding: 4,
+                                      maxHeight: 180, overflowY: "auto",
+                                    }}>
+                                      {labelSuggestions.map((s) => (
+                                        <div
+                                          key={s.label}
+                                          onMouseDown={() => selectLabelSuggestion(r.id, s.label)}
+                                          style={{
+                                            padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+                                            color: T.text, fontSize: 13, fontFamily: T.font,
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(var(--lift),0.06)"}
+                                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                                        >
+                                          <span>{s.label}</span>
+                                          <span style={{ color: T.textMuted, fontSize: 11 }}>×{s.use_count}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </div>
+                              <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                                {showPart && <span data-nofocus=""><MiniSpinbox pill compact label="Pt" value={r.part} onChange={(v) => setPartForRow(r.id, v)} /></span>}
+                                <span style={{ fontSize: 12, color: T.textSecondary, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{info?.probing ? "…" : info?.durationSeconds ? fmtClock(info.durationSeconds) : "—"}</span>
+                                {hasSplit && (
+                                  <span data-nofocus="" onClick={() => toggleSkipSplit(r.id)} title={splitTitle} style={chip(T.accentLight, T.accentDim, T.accentBorder)}>splits into {info.splitCount}</span>
+                                )}
+                                {splitSkipped && (
+                                  <span data-nofocus="" onClick={() => toggleSkipSplit(r.id)} title="Auto-split is off for this file — click to split it again" style={chip(T.yellow, T.yellowDim, T.yellowBorder)}>split off</span>
+                                )}
+                                {markers.length > 0 && splitOpenId !== r.id && (
+                                  <span data-nofocus="" onClick={() => toggleSplit(r.id)} title="Splits where the game changes when you rename. Click to edit." style={chip(T.accentLight, T.accentDim, T.accentBorder)}>{markers.length + 1} games</span>
+                                )}
+                                <span className="cfr-acts" style={{ marginLeft: "auto", display: "flex", gap: 2, flexShrink: 0 }}>
+                                  {r.filePath && info?.durationSeconds > 0 && (
+                                    <button className={`cfr-iconbt${splitOpenId === r.id ? " on" : ""}`} title={splitOpenId === r.id ? "Close the split strip" : "Mark where the game changes"} disabled={renaming} onClick={() => toggleSplit(r.id)}>{IcScissorsL}</button>
+                                  )}
+                                  {r.filePath && <button className="cfr-iconbt" title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder(r.filePath)}>{IcFolderL}</button>}
+                                  <button className="cfr-iconbt" title="Hide from pending" onClick={() => hideOne(r.id)}>{IcEyeOff}</button>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                    {/* #485: the split strip opens under its session */}
+                    <Collapse open={!!splitRow}>
+                      {splitRow && (
+                        <ThumbnailScrubber
+                          thumbnails={previewFrames[splitRow.id]?.frames || []}
+                          duration={splitInfo[splitRow.id]?.durationSeconds || 0}
+                          games={gamesDb}
+                          markers={scrubberMarkers[splitRow.id] || []}
+                          onMarkersChange={(m) => updateScrubberMarkers(splitRow.id, m)}
+                          loading={!!previewFrames[splitRow.id]?.loading}
+                          defaultGameTag={splitRow.tag}
+                          onReactionFor={onReactionFor}
+                          partLabel={`Pt${splitRow.part}`}
+                          onHover={(t) => { setSplitHoverAt(t); if (t != null) setFocusId(splitRow.id); }}
+                          onDone={() => toggleSplit(splitRow.id)}
+                        />
+                      )}
+                    </Collapse>
+                  </div>
+                );
+              })}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", padding: 14, border: "1px dashed rgba(var(--lift),0.1)", borderRadius: 12, color: T.textTertiary, fontSize: 12.5 }}>
+                {IcPlus}Drop an .mp4 or .mkv anywhere on this page to add it
               </div>
-            ) : (
-              <Card style={{ padding: "40px 20px", textAlign: "center" }}>
-                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>{watchStatus.state === "watching" ? "No pending files — watching for new recordings..." : "Nothing is being watched yet."}</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 or .mkv file here</div></>)}
-              </Card>
-            )}
-          </>
-        )}
+            </div>
+          </div>
+          <aside className="cfr-scroll" style={{ marginBottom: 22, borderRadius: 16, border: `1px solid ${T.border}`, background: "linear-gradient(180deg, rgba(var(--lift),0.03), rgba(var(--lift),0.012))", boxShadow: "inset 0 1px 0 rgba(var(--lift),0.04)" }}>
+            <RenameInspector
+              row={focusRow}
+              info={splitInfo[focusRow.id]}
+              frames={previewFrames[focusRow.id]?.frames || []}
+              loading={!!previewFrames[focusRow.id]?.loading}
+              hoverAt={splitOpenId === focusRow.id ? splitHoverAt : null}
+              savesAs={(() => { const dir = focusRow.filePath ? resolveTargetDir(focusRow) : ""; const parts = dir.split("\\").filter(Boolean); return { dir: parts.slice(-2).join("\\"), name: getProposed(focusRow) }; })()}
+              splitOn={splitOpenId === focusRow.id}
+              onSplit={() => toggleSplit(focusRow.id)}
+              onHide={() => hideOne(focusRow.id)}
+              history={recentHistory}
+              onAllHistory={() => setSubTab("history")}
+            />
+          </aside>
+        </div>
+      ) : (
+        <div className="cfr-scroll" style={{ flex: 1 }}>
+          <Card style={{ padding: "40px 20px", textAlign: "center", maxWidth: 860, margin: "0 auto" }}>
+            {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>{watchStatus.state === "watching" ? "No pending files — watching for new recordings..." : "Nothing is being watched yet."}</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 or .mkv file here</div></>)}
+          </Card>
+        </div>
+      ))}
 
+      {subTab !== "pending" && (
+        <div className="cfr-scroll" style={{ flex: 1 }}>
+          <div style={{ maxWidth: 860, margin: "0 auto", paddingBottom: 24 }}>
         {/* HISTORY TAB — reads from both local state (current session) and SQLite (past sessions) */}
         {subTab === "history" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -2177,65 +2338,49 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             )}
           </div>
         )}
-      </div>
+          </div>
+        </div>
+      )}
 
-      {/* #172: floating batch bar — "Rename All" with no selection, selection
-          tools once rows are ticked. Same glass shell as Recordings (#123). */}
-      {subTab === "pending" && pendingRenames.length > 0 && (
-        <div style={{ ...BAR_SHELL, ...(selectedIds.size === 0 ? null : BAR_GLASS) }}>
-          {selectedIds.size === 0 ? (
-            <button
-              onClick={() => renameFiles(pendingRenames)}
-              disabled={renaming}
-              // Standing alone it carries its own lift: the purple glow is
-              // PrimaryButton's (the treatment this button had before #172), and
-              // the dark shadow replaces the one the shell used to cast.
-              style={{ ...BAR_BTN, padding: "11px 22px", fontSize: 13, borderRadius: T.radius.md, background: renaming ? "rgba(var(--lift),0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer", boxShadow: renaming ? "none" : "0 4px 24px rgba(139,92,246,0.35), 0 6px 18px rgba(var(--shade),calc(0.45 * var(--shadeK)))" }}
-            >{renaming ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename All ${pendingRenames.length} File${pendingRenames.length === 1 ? "" : "s"}`}</button>
-          ) : (
-            <>
-              <span style={{ fontSize: 12.5, color: T.textSecondary, padding: "0 4px", whiteSpace: "nowrap", fontFamily: T.font }}><b style={{ color: T.text }}>{selectedIds.size}</b> selected</span>
-              <div ref={gameMenuRef} style={{ position: "relative" }}>
-                <button onClick={() => { setGameMenuOpen((v) => !v); setBulkReacting(false); }} disabled={renaming} style={{ ...BAR_BTN, background: gameMenuOpen ? T.surfaceHover : "transparent", borderColor: T.border, color: T.textSecondary }}>Set Game ▾</button>
-                {gameMenuOpen && (
-                  <div style={{ position: "absolute", bottom: "calc(100% + 10px)", left: "50%", transform: "translateX(-50%)", background: "rgba(22,23,31,0.97)", border: `1px solid ${T.borderHover}`, borderRadius: 12, boxShadow: "0 10px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: 5, minWidth: 210, maxHeight: 320, overflowY: "auto" }}>
-                    {/* #474: with Reacting on, a picked game labels the files as its reaction. */}
-                    <div
-                      onClick={() => setBulkReacting((v) => !v)}
-                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", margin: "0 0 4px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, color: bulkReacting ? T.accentLight : T.textSecondary, background: bulkReacting ? T.accentDim : "transparent", borderBottom: `1px solid ${T.border}` }}
-                    >
-                      <Checkbox checked={bulkReacting} size={14} />🎙 Reacting
-                    </div>
-                    {gameOptions.map((o) => o.isHeader ? (
-                      <div key={o.value} style={{ padding: "7px 12px 3px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{o.label}</div>
-                    ) : (
-                      <div
-                        key={o.value}
-                        onClick={() => {
-                          const g = gamesDb.find((x) => x.name === o.value);
-                          const target = bulkReacting && g && (!g.entryType || g.entryType === "game") ? onReactionFor?.(g) : g;
-                          if (target) setGameForRows(selectedIds, target.name, target);
-                          setGameMenuOpen(false); clearSelection();
-                        }}
-                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: T.text, whiteSpace: "nowrap", fontFamily: T.font }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = T.surfaceHover}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                      >
-                        {renderEntryOption(o)}
-                      </div>
-                    ))}
+      {/* #172: floating selection bar (#485: Rename lives in the header and
+          follows the selection). Same glass shell as Recordings (#123). */}
+      {subTab === "pending" && selectedIds.size > 0 && (
+        <div style={{ ...BAR_SHELL, ...BAR_GLASS }}>
+          <span style={{ fontSize: 12.5, color: T.textSecondary, padding: "0 4px", whiteSpace: "nowrap", fontFamily: T.font }}><b style={{ color: T.text }}>{selectedIds.size}</b> selected</span>
+          <div ref={gameMenuRef} style={{ position: "relative" }}>
+            <button onClick={() => { setGameMenuOpen((v) => !v); setBulkReacting(false); }} disabled={renaming} style={{ ...BAR_BTN, background: gameMenuOpen ? T.surfaceHover : "transparent", borderColor: T.border, color: T.textSecondary }}>Set Game ▾</button>
+            {gameMenuOpen && (
+              <div style={{ position: "absolute", bottom: "calc(100% + 10px)", left: "50%", transform: "translateX(-50%)", background: "rgba(22,23,31,0.97)", border: `1px solid ${T.borderHover}`, borderRadius: 12, boxShadow: "0 10px 32px rgba(var(--shade),calc(0.55 * var(--shadeK)))", padding: 5, minWidth: 210, maxHeight: 320, overflowY: "auto" }}>
+                {/* #474: with Reacting on, a picked game labels the files as its reaction. */}
+                <div
+                  onClick={() => setBulkReacting((v) => !v)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", margin: "0 0 4px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, color: bulkReacting ? T.accentLight : T.textSecondary, background: bulkReacting ? T.accentDim : "transparent", borderBottom: `1px solid ${T.border}` }}
+                >
+                  <Checkbox checked={bulkReacting} size={14} />🎙 Reacting
+                </div>
+                {gameOptions.map((o) => o.isHeader ? (
+                  <div key={o.value} style={{ padding: "7px 12px 3px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{o.label}</div>
+                ) : (
+                  <div
+                    key={o.value}
+                    onClick={() => {
+                      const g = gamesDb.find((x) => x.name === o.value);
+                      const target = bulkReacting && g && (!g.entryType || g.entryType === "game") ? onReactionFor?.(g) : g;
+                      if (target) setGameForRows(selectedIds, target.name, target);
+                      setGameMenuOpen(false); clearSelection();
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: T.text, whiteSpace: "nowrap", fontFamily: T.font }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = T.surfaceHover}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    {renderEntryOption(o)}
                   </div>
-                )}
+                ))}
               </div>
-              <button onClick={hideSelected} disabled={renaming} style={{ ...BAR_BTN, background: "transparent", borderColor: T.border, color: T.textSecondary }}>Hide Selected</button>
-              <button onClick={clearSelection} disabled={renaming} style={{ ...BAR_BTN, background: "transparent", borderColor: T.border, color: T.textSecondary }}>Clear</button>
-              <button
-                onClick={() => renameFiles(pendingRenames.filter((r) => selectedIds.has(r.id)))}
-                disabled={renaming}
-                style={{ ...BAR_BTN, background: renaming ? "rgba(var(--lift),0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
-              >{renaming ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename ${selectedIds.size} Selected`}</button>
-            </>
-          )}
+            )}
+          </div>
+          <button onClick={hideSelected} disabled={renaming} style={{ ...BAR_BTN, background: "transparent", borderColor: T.border, color: T.textSecondary }}>Hide Selected</button>
+          <button onClick={clearSelection} disabled={renaming} style={{ ...BAR_BTN, background: "transparent", borderColor: T.border, color: T.textSecondary }}>Clear</button>
         </div>
       )}
     </div>

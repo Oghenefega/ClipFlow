@@ -295,10 +295,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Video splitting
   splitExecute: (fileId, splitPoints) => ipcRenderer.invoke("split:execute", fileId, splitPoints),
 
-  // Thumbnail strip (game-switch scrubber)
-  generateThumbnails: (filePath) => ipcRenderer.invoke("thumbs:generate", filePath),
-  cleanupThumbnails: (filePath) => ipcRenderer.invoke("thumbs:cleanup", filePath),
-
   // Preview frames (rename tab thumbnails)
   generatePreviewFrames: (filePath) => ipcRenderer.invoke("thumbs:preview", filePath),
 

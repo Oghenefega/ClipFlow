@@ -1109,10 +1109,6 @@ app.on("second-instance", () => {
 // Entries: { filename: string, sizeBytes: number }
 const pendingImports = new Set();
 
-// Thumbnail cache — maps filePath to { thumbDir, thumbnails, duration }
-// Cleaned up on app quit
-const thumbnailCache = new Map();
-
 const isDev = false;
 
 // #73: 280x280 transparent window holding build/splash.html (static page, no
@@ -1622,11 +1618,6 @@ app.on("window-all-closed", () => {
   if (testWatcher) testWatcher.close();
   publishScheduler.stopScheduler();
   database.close();
-  // Clean up cached thumbnail directories
-  for (const [, cached] of thumbnailCache) {
-    ffmpeg.cleanupThumbnailStrip(cached.thumbDir);
-  }
-  thumbnailCache.clear();
   destroyTray();
   if (process.platform !== "darwin") app.quit();
 });
@@ -1670,7 +1661,9 @@ ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
     if (path.resolve(oldPath).toLowerCase() !== path.resolve(newPath).toLowerCase() && fs.existsSync(newPath)) {
       return { error: `A file named "${path.basename(newPath)}" already exists in the destination` };
     }
+    stopPreviewJob(oldPath);
     fs.renameSync(oldPath, newPath);
+    if (oldPath !== newPath) dropPreviewFrames(oldPath);
     return { success: true };
   } catch (err) {
     // #150: a locked file (OBS still writing, open in a player or the editor) used to
@@ -1696,7 +1689,9 @@ ipcMain.handle("fs:convertAndRename", async (_, oldPath, newPath) => {
     if (fs.existsSync(newPath)) {
       return { error: `A file named "${path.basename(newPath)}" already exists in the destination` };
     }
+    stopPreviewJob(oldPath);
     const result = await ffmpeg.remuxToMp4(oldPath, newPath);
+    dropPreviewFrames(oldPath);
     logger.info(logger.MODULES.videoProcessing,
       `#300 converted ${path.basename(oldPath)} → ${path.basename(newPath)}${result.audioReencoded ? " (audio re-encoded to AAC)" : ""}`);
     return { success: true, audioReencoded: result.audioReencoded };
@@ -2547,6 +2542,7 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
     const parentFile = rows[0];
 
     const outputDir = path.dirname(parentFile.current_path);
+    stopPreviewJob(parentFile.current_path);
 
     // Build split points with output filenames
     const ffmpegSplitPoints = splitPoints.map((sp, i) => ({
@@ -2636,60 +2632,36 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
   }
 });
 
-// ============ THUMBNAIL STRIP (Game-Switch Scrubber) ============
-ipcMain.handle("thumbs:generate", async (_, filePath) => {
-  try {
-    logger.info("(thumbs)", `Generating thumbnails for: ${filePath}`);
-
-    // Validate file exists
-    if (!fs.existsSync(filePath)) {
-      logger.error("(thumbs)", `File not found: ${filePath}`);
-      return { error: `File not found: ${filePath}` };
-    }
-
-    // Return cached result if available
-    if (thumbnailCache.has(filePath)) {
-      logger.info("(thumbs)", "Returning cached thumbnails");
-      return thumbnailCache.get(filePath);
-    }
-
-    // Generate a stable fileId from the file path
-    const fileId = require("crypto").createHash("md5").update(filePath).digest("hex");
-    const result = await ffmpeg.generateThumbnailStrip(filePath, fileId);
-    logger.info("(thumbs)", `Generated ${result.thumbnails.length} thumbnails (${result.duration}s)`);
-    thumbnailCache.set(filePath, result);
-    return result;
-  } catch (err) {
-    logger.error("(thumbs)", `Thumbnail generation failed: ${err.message}`);
-    return { error: err.message };
-  }
-});
-
-ipcMain.handle("thumbs:cleanup", async (_, filePath) => {
-  try {
-    const cached = thumbnailCache.get(filePath);
-    if (cached) {
-      ffmpeg.cleanupThumbnailStrip(cached.thumbDir);
-      thumbnailCache.delete(filePath);
-    }
-    return { success: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
 // ============ PREVIEW FRAMES (Rename Tab Thumbnails) ============
 const previewCache = new Map();
 let previewInFlight = 0;
 const PREVIEW_MAX_CONCURRENT = 2;
 const previewQueue = [];
+// #485: the ffmpeg reading each recording right now. A rename, convert or split
+// stops it first: on Windows a file open for reading can't be moved.
+const previewJobs = new Map();
+
+function stopPreviewJob(filePath) {
+  const child = previewJobs.get(filePath);
+  if (child) { try { child.kill(); } catch (_) { /* already gone */ } previewJobs.delete(filePath); }
+  previewCache.delete(filePath);
+}
+
+// The frames belong to the old path; a renamed file never asks for them again.
+function dropPreviewFrames(filePath) {
+  stopPreviewJob(filePath);
+  const fileId = require("crypto").createHash("md5").update(filePath).digest("hex");
+  ffmpeg.cleanupPreviewFrames(path.join(require("os").tmpdir(), "clipflow-preview", fileId));
+}
 
 function processPreviewQueue() {
   while (previewInFlight < PREVIEW_MAX_CONCURRENT && previewQueue.length > 0) {
     const { filePath, resolve } = previewQueue.shift();
     previewInFlight++;
+    // A failed or stopped job (#485: a rename stops it) answers with an error
+    // instead of leaving the caller waiting and the rejection unhandled.
     runPreviewGeneration(filePath)
-      .then(resolve)
+      .then(resolve, (err) => resolve({ error: err.message }))
       .finally(() => { previewInFlight--; processPreviewQueue(); });
   }
 }
@@ -2708,7 +2680,12 @@ async function runPreviewGeneration(filePath) {
   const probeResult = await ffmpeg.probe(filePath);
   const duration = probeResult.duration;
 
-  const result = await ffmpeg.generatePreviewFrames(filePath, fileId, duration);
+  let result;
+  try {
+    result = await ffmpeg.generatePreviewFrames(filePath, fileId, duration, (child) => previewJobs.set(filePath, child));
+  } finally {
+    previewJobs.delete(filePath);
+  }
   logger.info("(preview)", `Generated ${result.frames.length} preview frames for ${path.basename(filePath)} (${Math.round(duration)}s)`);
 
   const cached = { frames: result.frames, thumbDir: result.thumbDir, duration };

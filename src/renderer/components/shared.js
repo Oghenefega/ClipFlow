@@ -545,7 +545,8 @@ export const ViralBar = ({ score }) => {
   );
 };
 
-export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label, compact }) => {
+// `pill` (#485): label, −, value and + inside one bordered pill ("Day − 8 +").
+export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label, compact, pill }) => {
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(String(value));
   const timerRef = useRef(null);
@@ -570,6 +571,24 @@ export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label, compac
   const valFont = compact ? 13 : 14;
   const editWidth = compact ? 34 : 42;
   const bs = { width: btnSize, height: btnSize, borderRadius: compact ? 4 : 6, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.03)", color: T.textSecondary, fontSize: btnFont, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, userSelect: "none" };
+
+  if (pill) {
+    const h = compact ? 26 : 30;
+    const pb = { width: compact ? 22 : 26, height: "100%", border: "none", background: "transparent", color: T.textTertiary, fontSize: 15, cursor: "pointer", fontFamily: T.font, userSelect: "none", padding: 0 };
+    const hov = (e, on) => { e.currentTarget.style.color = on ? T.text : T.textTertiary; e.currentTarget.style.background = on ? "rgba(var(--lift),0.06)" : "transparent"; };
+    return (
+      <div style={{ display: "inline-flex", alignItems: "center", height: h, border: `1px solid ${T.border}`, borderRadius: compact ? 8 : 9, background: "rgba(var(--lift),0.03)", overflow: "hidden", flexShrink: 0 }}>
+        {label && <span style={{ padding: compact ? "0 4px 0 8px" : "0 4px 0 10px", color: T.textTertiary, fontSize: compact ? 11.5 : 12 }}>{label}</span>}
+        <button onMouseDown={() => startHold(-1)} onMouseUp={stopHold} onMouseLeave={(e) => { stopHold(); hov(e, false); }} onMouseEnter={(e) => hov(e, true)} style={pb}>−</button>
+        {editing ? (
+          <input value={editVal} onChange={(e) => setEditVal(e.target.value.replace(/\D/g, ""))} onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()} autoFocus style={{ width: 30, textAlign: "center", background: "rgba(var(--lift),0.06)", border: "none", padding: 0, height: "100%", color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.font, outline: "none" }} />
+        ) : (
+          <b onClick={() => { setEditing(true); setEditVal(String(value)); }} style={{ minWidth: 18, textAlign: "center", color: T.text, fontSize: 13, fontWeight: 700, cursor: "text", fontVariantNumeric: "tabular-nums" }}>{value}</b>
+        )}
+        <button onMouseDown={() => startHold(1)} onMouseUp={stopHold} onMouseLeave={(e) => { stopHold(); hov(e, false); }} onMouseEnter={(e) => hov(e, true)} style={pb}>+</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: compact ? 2 : 4 }}>

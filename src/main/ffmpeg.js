@@ -209,6 +209,7 @@ function probe(filePath) {
         const data = JSON.parse(stdout);
         const videoStream = (data.streams || []).find((s) => s.codec_type === "video");
         const audioStream = (data.streams || []).find((s) => s.codec_type === "audio");
+        const audioTracks = (data.streams || []).filter((s) => s.codec_type === "audio").length;
         const duration = parseFloat(data.format?.duration || "0");
         const size = parseInt(data.format?.size || "0", 10);
 
@@ -224,6 +225,7 @@ function probe(filePath) {
           height: videoStream ? parseInt(videoStream.height) : 0,
           videoCodec: videoStream?.codec_name || null,
           audioCodec: audioStream?.codec_name || null,
+          audioTracks,
           fps: Math.round(fps * 100) / 100,
           size,
         });
@@ -793,108 +795,57 @@ async function splitFile(inputPath, splitPoints, outputDir) {
   }
 }
 
-/**
- * Generate a thumbnail strip for the game-switch scrubber.
- * One frame every 30 seconds at 320px wide — stored in a temp directory.
- * @param {string} inputPath - Source video file
- * @param {string} fileId - Unique ID for cache directory naming
- * @returns {Promise<{thumbDir: string, thumbnails: Array<{path: string, timestampSeconds: number}>, duration: number}>}
- */
-async function generateThumbnailStrip(inputPath, fileId) {
-  const thumbDir = path.join(os.tmpdir(), "clipflow-thumbs", fileId);
-  if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
-
-  // Probe to get duration
-  const probeResult = await probe(inputPath);
-  const duration = probeResult.duration;
-
-  // Generate thumbnails: one every 30 seconds
-  await new Promise((resolve, reject) => {
-    const args = [
-      "-i", inputPath,
-      "-vf", "fps=1/30,scale=320:-1",
-      "-q:v", "5",
-      "-y",
-      path.join(thumbDir, "thumb_%04d.jpg"),
-    ];
-    // Generous timeout — large files can take 30-60s
-    execFile(FFMPEG_BIN, args, { timeout: 120000 }, (err) => {
-      if (err) return reject(new Error(`Thumbnail strip generation failed: ${err.message}`));
-      resolve();
-    });
-  });
-
-  // Read generated thumbnails and map to timestamps
-  const files = fs.readdirSync(thumbDir)
-    .filter(f => f.startsWith("thumb_") && f.endsWith(".jpg"))
-    .sort();
-
-  const thumbnails = files.map((filename, i) => ({
-    path: path.join(thumbDir, filename),
-    timestampSeconds: i * 30,
-  }));
-
-  return { thumbDir, thumbnails, duration };
-}
+// #485: the Rename tab scrubs a recording by swapping these pictures, so the
+// preview never opens the video file (a <video> on it blocks the rename, s269).
+const PREVIEW_FRAME_COUNT = 100;
 
 /**
- * Clean up thumbnail strip temp directory.
- * @param {string} thumbDir - The temp directory to delete
- */
-/**
- * Generate preview frames for a video, scaled by duration.
- * <10min: 1 frame (50%), 10-20min: 2 (30%,70%), 20-40min: 3 (25%,50%,75%), 40+min: 4 (20%,40%,60%,80%).
- * @param {string} inputPath - Video file path
- * @param {string} fileId - Unique ID for cache directory
- * @param {number} durationSeconds - Video duration in seconds
+ * Make PREVIEW_FRAME_COUNT evenly spaced stills of a recording in ONE pass,
+ * decoding keyframes only (~18 s for a 30-minute HEVC recording, ~1 MB).
+ * Frames keep the recording's own shape. A finished set already on disk is
+ * reused. `onChild` receives the ffmpeg process so a rename can stop it.
  * @returns {Promise<{thumbDir: string, frames: Array<{path: string, timestampSeconds: number}>}>}
  */
-async function generatePreviewFrames(inputPath, fileId, durationSeconds) {
+async function generatePreviewFrames(inputPath, fileId, durationSeconds, onChild) {
   const thumbDir = path.join(os.tmpdir(), "clipflow-preview", fileId);
-  if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
+  const doneFile = path.join(thumbDir, "frames.json");
+  try {
+    const saved = JSON.parse(fs.readFileSync(doneFile, "utf8"));
+    if (saved.done && saved.frames.length > 0 && saved.frames.every((f) => fs.existsSync(f.path))) {
+      return { thumbDir, frames: saved.frames };
+    }
+  } catch (_) { /* no finished set yet */ }
+  fs.mkdirSync(thumbDir, { recursive: true });
 
-  // Determine frame count and positions based on duration
-  let positions;
-  if (durationSeconds < 600) {        // < 10 min
-    positions = [0.5];
-  } else if (durationSeconds < 1200) { // 10-20 min
-    positions = [0.3, 0.7];
-  } else if (durationSeconds < 2400) { // 20-40 min
-    positions = [0.25, 0.5, 0.75];
-  } else {                             // 40+ min
-    positions = [0.2, 0.4, 0.6, 0.8];
-  }
-
-  const frames = [];
-  for (let i = 0; i < positions.length; i++) {
-    const time = Math.floor(durationSeconds * positions[i]);
-    const outPath = path.join(thumbDir, `preview_${i}.jpg`);
-    await new Promise((resolve, reject) => {
-      const args = [
-        "-ss", String(time),
-        "-i", inputPath,
-        "-vframes", "1",
-        "-vf", "scale=240:-1",
-        "-q:v", "4",
-        "-y",
-        outPath,
-      ];
-      execFile(FFMPEG_BIN, args, { timeout: 30000 }, (err) => {
-        if (err) return reject(new Error(`Preview frame extraction failed at ${time}s: ${err.message}`));
-        resolve();
-      });
+  await new Promise((resolve, reject) => {
+    const args = [
+      "-skip_frame", "nokey",
+      "-i", inputPath,
+      "-an",
+      "-vf", `fps=${PREVIEW_FRAME_COUNT}/${Math.max(1, durationSeconds)},scale=-2:360`,
+      "-fps_mode", "vfr",
+      "-frames:v", String(PREVIEW_FRAME_COUNT),
+      "-q:v", "5",
+      "-y",
+      path.join(thumbDir, "frame_%03d.jpg"),
+    ];
+    const child = execFile(FFMPEG_BIN, args, { timeout: 180000 }, (err) => {
+      if (err) return reject(new Error(`Preview frames failed: ${err.killed ? "stopped" : err.message}`));
+      resolve();
     });
-    frames.push({ path: outPath, timestampSeconds: time });
-  }
+    onChild?.(child);
+  });
 
+  const files = fs.readdirSync(thumbDir).filter((f) => /^frame_\d+\.jpg$/.test(f)).sort();
+  const step = durationSeconds / PREVIEW_FRAME_COUNT;
+  const frames = files.map((f, i) => ({ path: path.join(thumbDir, f), timestampSeconds: Math.round(i * step * 10) / 10 }));
+  fs.writeFileSync(doneFile, JSON.stringify({ done: true, frames }));
   return { thumbDir, frames };
 }
 
-function cleanupThumbnailStrip(thumbDir) {
+function cleanupPreviewFrames(thumbDir) {
   try {
-    if (fs.existsSync(thumbDir)) {
-      fs.rmSync(thumbDir, { recursive: true, force: true });
-    }
+    if (fs.existsSync(thumbDir)) fs.rmSync(thumbDir, { recursive: true, force: true });
   } catch (_) {
     // Best-effort cleanup — ignore errors
   }
@@ -919,7 +870,6 @@ module.exports = {
   extractWaveformPeaks,
   remuxToMp4,
   splitFile,
-  generateThumbnailStrip,
-  cleanupThumbnailStrip,
   generatePreviewFrames,
+  cleanupPreviewFrames,
 };
