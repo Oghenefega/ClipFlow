@@ -14,7 +14,7 @@ import { normalizeHexColor } from "./components/shared";
 import AudioCalibrationModal from "./components/AudioCalibrationModal";
 import RenameView from "./views/RenameView";
 import RecordingsView from "./views/UploadView";
-import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
+import { ProjectsPage } from "./views/ProjectsView";
 import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
 import TrackerView from "./views/TrackerView";
@@ -1158,51 +1158,10 @@ export default function App() {
     { id: "settings", icon: "\u2699\ufe0f", label: "Settings" },
   ];
 
-  // ClipBrowser is rendered conditionally because it's per-project — entering a
-  // different project mounts a fresh tree, which is the right behavior. Every
-  // other persistent tab is always-mounted in its own scroll container below
-  // to preserve scrollTop across tab switches (#33).
-  const renderClipBrowser = () => {
-    if (view !== "clips" || !selProj) return null;
-    const fromList = localProjects.find((p) => p.id === selProj.id);
-    const proj = (selProj.clips?.length > 0) ? selProj : (fromList?.clips?.length > 0 ? fromList : selProj);
-    if (!proj) return null;
-    return (
-      <ClipBrowser
-        project={proj}
-        trackerData={trackerData}
-        onBack={() => { setSelProj(null); setView("projects"); }}
-        onUpdateClip={handleUpdateClip}
-        onUpdateClipFields={handleUpdateClipFields}
-        onTranscript={setTranscript}
-        onEditClipTitle={handleEditClipTitle}
-        onOpenInEditor={handleOpenInEditor}
-        gamesDb={gamesDb}
-        onReactionFor={handleReactionFor}
-        onBatchRender={async (projectId) => {
-          try {
-            const full = await window.clipflow.projectLoad(projectId);
-            if (full?.project) setSelProj(full.project);
-          } catch (e) { /* ignore */ }
-        }}
-        onDeleteClip={async (projectId, clipId) => {
-          try {
-            const r = await window.clipflow.projectDeleteClip(projectId, clipId);
-            if (r?.error) { console.error("Delete clip failed:", r.error); return; }
-            const full = await window.clipflow.projectLoad(projectId);
-            if (full?.project) {
-              setLocalProjects((prev) => prev.map((p) => p.id === projectId ? full.project : p));
-              setSelProj((prev) => prev && prev.id === projectId ? full.project : prev);
-            }
-          } catch (e) { console.error("Delete clip failed:", e); }
-        }}
-        gamesDb={gamesDb}
-        scrollToClipId={returnClipId}
-        initialFilter={clipTabByProject.current[proj.id]}
-        onFilterChange={(tab) => { clipTabByProject.current[proj.id] = tab; }}
-      />
-    );
-  };
+  // #485: the project whose clips the Projects page shows. A fresh summary from
+  // the list wins when the loaded copy has no clips yet.
+  const fromList = selProj ? localProjects.find((p) => p.id === selProj.id) : null;
+  const shownProject = selProj ? ((selProj.clips?.length > 0) ? selProj : (fromList?.clips?.length > 0 ? fromList : selProj)) : null;
 
   // Helper: per-tab scroll container style. flex:1 + display:block when active,
   // collapsed when inactive. display:none preserves scrollTop in Chromium.
@@ -1215,8 +1174,8 @@ export default function App() {
     display: active ? "block" : "none",
     minHeight: 0,
   });
-  const showProjectsList = view === "projects" || (view === "clips" && !selProj);
-  const showClipBrowser = view === "clips" && !!selProj;
+  // #485: one page for the project list and a project's clips
+  const showProjects = view === "projects" || view === "clips";
 
   return (
     <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex", flexDirection: "column", border: "1px solid rgba(var(--lift),0.08)", borderRadius: 8 }}>
@@ -1248,8 +1207,8 @@ export default function App() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: "0 0 8px 8px" }}>
         {/* Each persistent tab is always-mounted with its OWN scroll container so
             scrollTop is preserved per-tab across switches (#33). display:none keeps
-            scrollTop in Chromium. Editor is the only conditional non-clip view —
-            it's heavy and per-clip. ClipBrowser is per-project and resets each entry. */}
+            scrollTop in Chromium. Editor is the only conditional view — it's heavy
+            and per-clip. A project's clips live inside the Projects pane (#485). */}
         <div style={tabPaneStyle(view === "rename", true)}>
           {/* #485: full width — file tiles beside a preview panel */}
           <div style={{ padding: "24px 28px 0", height: "100%", boxSizing: "border-box" }}>
@@ -1436,9 +1395,10 @@ export default function App() {
             />
           </div>
         </div>
-        <div style={tabPaneStyle(showProjectsList)}>
-          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
-            <ProjectsListView
+        <div style={tabPaneStyle(showProjects, true)}>
+          {/* #485: full width — list, clips and player on one page */}
+          <div style={{ padding: "24px 28px 0", height: "100%", boxSizing: "border-box" }}>
+            <ProjectsPage
               // #240: synthetic per-game import containers are queue plumbing,
               // not review targets — 300 imported clips must not flood this tab.
               localProjects={localProjects.filter((p) => p.kind !== "import")}
@@ -1453,18 +1413,36 @@ export default function App() {
               gamesDb={gamesDb}
               gameArt={gameArt}
               trackerData={trackerData}
+              isActive={showProjects}
+              project={shownProject}
+              onUpdateClip={handleUpdateClip}
+              onUpdateClipFields={handleUpdateClipFields}
+              onEditClipTitle={handleEditClipTitle}
+              onOpenInEditor={handleOpenInEditor}
+              onReactionFor={handleReactionFor}
+              onBatchRender={async (projectId) => {
+                try {
+                  const full = await window.clipflow.projectLoad(projectId);
+                  if (full?.project) setSelProj(full.project);
+                } catch (e) { /* ignore */ }
+              }}
+              onDeleteClip={async (projectId, clipId) => {
+                try {
+                  const r = await window.clipflow.projectDeleteClip(projectId, clipId);
+                  if (r?.error) { console.error("Delete clip failed:", r.error); return; }
+                  const full = await window.clipflow.projectLoad(projectId);
+                  if (full?.project) {
+                    setLocalProjects((prev) => prev.map((p) => p.id === projectId ? full.project : p));
+                    setSelProj((prev) => prev && prev.id === projectId ? full.project : prev);
+                  }
+                } catch (e) { console.error("Delete clip failed:", e); }
+              }}
+              scrollToClipId={returnClipId}
+              initialFilter={shownProject ? clipTabByProject.current[shownProject.id] : undefined}
+              onFilterChange={(tab) => { if (shownProject) clipTabByProject.current[shownProject.id] = tab; }}
             />
           </div>
         </div>
-        {/* ClipBrowser — per-project; conditional render so each project is fresh */}
-        {showClipBrowser && (
-          <div style={{ flex: 1, overflow: "auto", scrollbarGutter: "stable" }}>
-            {/* #467: full width — the clip grid sizes itself to the window. */}
-            <div style={{ padding: "32px 40px" }}>
-              {renderClipBrowser()}
-            </div>
-          </div>
-        )}
         {/* Editor — full-pane sibling, only mounted when active */}
         {view === "editor" && (
           <div style={{ flex: 1, overflow: "hidden", height: "100%" }}>

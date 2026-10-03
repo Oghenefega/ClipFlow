@@ -1,8 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import * as Sentry from "@sentry/electron/renderer";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl, ReactSwitch } from "../components/shared";
+import { Card, Badge, PageHeader, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl, ReactSwitch } from "../components/shared";
 import { reactionsFor, linkedGame } from "../../shared/reactions";
 import TestChip from "../components/TestChip";
 import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
@@ -13,13 +13,14 @@ import { sourceToTimeline, timelineToSource, getTimelineDuration, sectionIndexFo
 import { resolveClipReframe, resolveSegmentReframe, fitToScreenReframe } from "../editor/utils/reframeStyle";
 import { makeCompositeScratch, paintReframeComposite } from "../editor/utils/reframeCompositor";
 import { getReasonChips } from "../../shared/rejectReasons";
-import ClipSidePanel, { usePaneBox, sidePanelSize, usePanelKeys, PANEL_GAP } from "../components/ClipSidePanel";
+import { usePanelKeys } from "../components/ClipSidePanel";
 
 // #467: the clip grid. A tile is its 9:16 picture plus TILE_CHROME of padding,
 // title line and score row.
 const TILE_GAP = 14;
 const TILE_CHROME = 14 + 26 + 37;
 const MIN_TILE = 150;
+const RAIL_W = 134; // #485: the collapsed project list (a 96px poster, 7px from every card edge)
 const MAX_TILE = 300;
 // The widest tile that fits `n` clips into a W×H area; below MIN_TILE the grid
 // scrolls instead of shrinking further.
@@ -76,6 +77,16 @@ const getGameColor = (p, gamesDb) => {
   if (p.gameColor) return p.gameColor;
   const g = gamesDb.find((x) => x.name === p.game);
   return g ? g.color : T.accent;
+};
+
+// #485: a game colour (gamesDb hex) at an alpha; anything else (a theme var
+// fallback) goes through color-mix, since appending hex alpha to var() is invalid.
+const hexA = (c, a) => {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c || "");
+  if (!m) return `color-mix(in srgb, ${c || T.accent} ${Math.round(a * 100)}%, transparent)`;
+  const h = m[1].length === 3 ? m[1].split("").map((x) => x + x).join("") : m[1];
+  const n = parseInt(h, 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 };
 
 // Clip-dot glass-orb palette (Fega 2026-08-13). Deliberately NOT the theme
@@ -281,7 +292,15 @@ function queuePosterPaint(job) {
 
 // #467: `width` sizes the whole player (the overlays scale with it); `posterOnly`
 // is the grid tile: the clip's picture in its layout, no playback.
-function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = false }) {
+// #485: width "fill" follows the tile (it resizes while the project list
+// collapses), and `hoverPlay` plays the tile muted while the pointer rests on
+// it, then unloads it the moment the pointer leaves.
+function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = false, hoverPlay = false }) {
+  const fill = width === "fill";
+  const boxRef = useRef(null);
+  const [fillW, setFillW] = useState(0);
+  const hoverRef = useRef(false);
+  const hoverTimer = useRef(null);
   const videoRef = useRef(null);
   const seekbarRef = useRef(null);
   // Last reported timeline position — the rAF loop's gap recovery needs it, and
@@ -362,7 +381,7 @@ function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = fa
   }, [rawPoster, useNle, nleSegments, clipReframe, segReframes, clip.startTime, clip.endTime, project?.sourceWidth, project?.sourceHeight]);
 
   const tpl = template || FALLBACK_TEMPLATE;
-  const CONTAINER_W = width;
+  const CONTAINER_W = fill ? (fillW || 200) : width;
 
   // Resolve effective template — per-clip saved style wins, merged with template defaults
   // for any missing fields (handles clips saved before new fields were added)
@@ -438,7 +457,10 @@ function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = fa
     let rafId;
     const tick = () => {
       const vid = videoRef.current;
-      if (vid && !isSeeking) {
+      // #485: "play" fires the moment play() is called, before the metadata
+      // seek to the clip's start; reading position 0 then looked like the end
+      // of the clip and paused it straight away. Wait for the metadata.
+      if (vid && !isSeeking && vid.readyState >= 1) {
         if (useNle) {
           // Walk the NLE timeline: skip deleted spans, report cut-compressed time.
           const result = mapPreviewSourceTime(vid.currentTime, nleSegments, tlTimeRef.current);
@@ -584,6 +606,44 @@ function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = fa
     }, 50);
   }, [filePath]);
 
+  // #485 hover-to-play: a short rest before loading (sweeping across the grid
+  // loads nothing), muted, one at a time. Leaving unmounts the <video>, and the
+  // hasVideo cleanup above releases its source.
+  const startHover = () => {
+    if (!hoverPlay || !filePath) return;
+    hoverRef.current = true;
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => {
+      if (!hoverRef.current) return;
+      if (fill && boxRef.current) setFillW(boxRef.current.getBoundingClientRect().width);
+      setShowVideo(true);
+      setTimeout(() => {
+        const vid = videoRef.current;
+        if (!vid || !hoverRef.current) return;
+        vid.muted = true;
+        if (_activeVideoRef && _activeVideoRef !== vid && !_activeVideoRef.paused) {
+          _activeVideoRef.pause();
+          _activeVideoRef.dispatchEvent(new Event("clipflow-paused"));
+        }
+        _activeVideoRef = vid;
+        vid.play().then(() => setIsPlaying(true)).catch(() => {});
+      }, 50);
+    }, 250);
+  };
+  const stopHover = () => {
+    if (!hoverPlay) return;
+    hoverRef.current = false;
+    clearTimeout(hoverTimer.current);
+    const vid = videoRef.current;
+    if (vid) { vid.pause(); if (_activeVideoRef === vid) _activeVideoRef = null; }
+    setIsPlaying(false);
+    setShowVideo(false);
+    tlTimeRef.current = 0;
+    seekTargetRef.current = null;
+    setCurrentTime(0);
+  };
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
+
   const handleSeek = useCallback((e) => {
     const vid = videoRef.current;
     const bar = seekbarRef.current;
@@ -609,20 +669,24 @@ function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = fa
   const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
 
   return (
-    <div style={{ width, minWidth: width, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0 }}>
+    <div style={{ width: fill ? "100%" : width, minWidth: fill ? 0 : width, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0 }}>
       {/* Video container — fit exactly to 9:16 content */}
       <div
+        ref={boxRef}
         style={{
-          width, borderRadius: T.radius.md, overflow: "hidden",
+          width: fill ? "100%" : width, borderRadius: T.radius.md, overflow: "hidden",
           background: "#000", position: "relative",
           aspectRatio: "9 / 16", cursor: posterOnly ? "inherit" : "pointer",
         }}
         onClick={posterOnly ? undefined : togglePlay}
+        onMouseEnter={hoverPlay ? startHover : undefined}
+        onMouseLeave={hoverPlay ? stopHover : undefined}
       >
         {showVideo && filePath ? (
           <video
             ref={videoRef}
             src={filePath}
+            muted={hoverPlay}
             poster={thumbPath || undefined}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             onEnded={() => setIsPlaying(false)}
@@ -725,7 +789,7 @@ function ClipVideoPlayer({ clip, project, template, width = 220, posterOnly = fa
           centered inside. No CSS transition on the fill — at 60fps rAF cadence,
           a transition causes perceptible lag and the bar appears to "stick"
           until the next big jump (#79). */}
-      {showVideo && videoDuration > 0 && (
+      {showVideo && videoDuration > 0 && !posterOnly && (
         <div
           ref={seekbarRef}
           data-seekbar="true"
@@ -1327,7 +1391,9 @@ function ClipDetails({ clip, project, onUpdateClip, onUpdateClipFields, onEditCl
 const tileShadow = "0 1px 2px rgba(var(--shade),calc(0.5 * var(--shadeK))), 0 14px 34px -16px rgba(var(--shade),calc(0.7 * var(--shadeK)))";
 const tileShadowLift = "0 2px 4px rgba(var(--shade),calc(0.5 * var(--shadeK))), 0 26px 60px -22px rgba(var(--shade),calc(0.85 * var(--shadeK)))";
 
-function ClipTile({ clip, project, template, posterW, selected, onSelect, onUpdateClip }) {
+// #485: the poster fills the tile (tiles resize with the grid) and plays muted
+// on hover; a selected tile lights up in the project's own game colour.
+function ClipTile({ clip, project, template, tint, selected, onSelect, onUpdateClip }) {
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
   const reasons = clip.rejectReasons || [];
@@ -1338,26 +1404,29 @@ function ClipTile({ clip, project, template, posterW, selected, onSelect, onUpda
     return reasons.map((k) => chips.find((c) => c.key === k)?.label || k).join(", ");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reasonKey]);
-  const border = selected ? T.accent : ca ? T.greenBorder : T.border;
+  const border = selected ? hexA(tint, 0.7) : ca ? T.greenBorder : T.border;
+  const restShadow = selected ? `${tileShadow}, inset 0 1px 0 rgba(var(--lift),0.09)` : tileShadow;
 
   return (
     <div
       data-clip-id={clip.id}
       onClick={() => onSelect(clip.id)}
       style={{
-        scrollMarginTop: 170, minWidth: 0, padding: "6px 6px 8px", borderRadius: 14, cursor: "pointer",
-        background: `linear-gradient(180deg, rgba(var(--lift),0.022), rgba(var(--lift),0)), ${T.surface}`,
+        scrollMarginTop: 12, minWidth: 0, padding: "6px 6px 8px", borderRadius: 14, cursor: "pointer",
+        background: selected
+          ? `linear-gradient(180deg, ${hexA(tint, 0.14)}, rgba(var(--lift),0) 70%), ${T.surface}`
+          : `linear-gradient(180deg, rgba(var(--lift),0.022), rgba(var(--lift),0)), ${T.surface}`,
         border: `1px solid ${border}`,
-        boxShadow: selected ? `0 0 0 1px ${T.accent}, ${tileShadow}` : tileShadow,
+        boxShadow: restShadow,
         transition: "border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease",
       }}
       // Hover by style, not state: a re-render per hover would reach every poster.
       onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; if (!selected) { e.currentTarget.style.borderColor = T.borderHover; e.currentTarget.style.boxShadow = tileShadowLift; } }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = border; e.currentTarget.style.boxShadow = selected ? `0 0 0 1px ${T.accent}, ${tileShadow}` : tileShadow; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = border; e.currentTarget.style.boxShadow = restShadow; }}
     >
       <div style={{ opacity: rej ? 0.4 : 1, transition: "opacity 0.2s ease" }}>
         <ClipPreviewBoundary>
-          <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} width={posterW} posterOnly />
+          <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} width="fill" posterOnly hoverPlay />
         </ClipPreviewBoundary>
       </div>
       <div title={clip.title || ""} style={{ fontSize: 13, fontWeight: 700, color: rej ? T.textTertiary : T.text, margin: "8px 2px 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -1396,9 +1465,14 @@ function sortFolders(folders, mode) {
   return folders; // "created" — array order from store
 }
 
-export function ProjectsListView({
+// #485: the Projects tab is one page — the project list on the left (it shrinks
+// into a poster rail while a clip is open), the selected project's clips in the
+// middle, and the player with the clip's details on the right.
+export function ProjectsPage({
   localProjects = [], setLocalProjects, projectFolders = [], activeFolder, onSelectFolder,
   onFoldersChanged, onSelect, onDeleteProjects, mainGame, gamesDb = [], gameArt = {}, trackerData = [],
+  project, isActive, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip,
+  onReactionFor, scrollToClipId, initialFilter, onFilterChange,
 }) {
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   // Toggle per-project test mode. Optimistic update on the local state, then
@@ -1666,6 +1740,75 @@ export function ProjectsListView({
   // --- Sorted folders for sidebar ---
   const sortedFolders = sortFolders(projectFolders, folderSortMode);
 
+  // ── #485: one page — project list, its clips, and the player ──
+  // The open player is what collapses the list into the rail, so the selected
+  // clip lives here. Another project starts with the player closed; returning
+  // from the editor keeps the clip that was being edited.
+  const [selClipId, setSelClipId] = useState(() => scrollToClipId || null);
+  const open = !!(project && selClipId && (project.clips || []).some((c) => c.id === selClipId));
+  const lastProjId = useRef(project?.id);
+  useEffect(() => {
+    if (project?.id === lastProjId.current) return;
+    lastProjId.current = project?.id;
+    setSelClipId(scrollToClipId && (project?.clips || []).some((c) => c.id === scrollToClipId) ? scrollToClipId : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id]);
+
+  // Column widths from the mockup: a narrower list and panel on small windows.
+  const [small, setSmall] = useState(() => window.innerWidth <= 1400);
+  useEffect(() => {
+    const onResize = () => setSmall(window.innerWidth <= 1400);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const listW = small ? 450 : 560;
+  const panelW = small ? 560 : 660;
+  const pwRef = useRef(null);
+  const [pwW, setPwW] = useState(0);
+  const hasProjects = localProjects.length > 0;
+  useLayoutEffect(() => {
+    const el = pwRef.current;
+    if (!el) return undefined;
+    const measure = () => setPwW(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasProjects]);
+
+  // Card text keeps its expanded width while the cards shrink into the rail, so
+  // it clips instead of reflowing (no height jumps). Measured only while the
+  // list is expanded and settled, never mid-transition.
+  const plistRef = useRef(null);
+  const prevOpen = useRef(open);
+  const toggledAt = useRef(0);
+  useLayoutEffect(() => {
+    if (prevOpen.current !== open) { prevOpen.current = open; toggledAt.current = Date.now(); }
+    const el = plistRef.current;
+    if (!el) return undefined;
+    const measure = () => {
+      if (prevOpen.current || Date.now() - toggledAt.current < 600) return;
+      const b = el.querySelector(".cfp-pcb");
+      if (!b) return;
+      el.style.removeProperty("--pcw");
+      if (b.clientWidth) el.style.setProperty("--pcw", `${b.clientWidth}px`);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el.parentElement);
+    return () => ro.disconnect();
+  }, [open, visibleProjects.length, listW]);
+  const [railTip, setRailTip] = useState(null);
+
+  // Arriving on the tab shows a project straight away: the first one that can open.
+  useEffect(() => {
+    if (!isActive || sorted.length === 0) return;
+    if (project && localProjects.some((p) => p.id === project.id)) return;
+    const first = sorted.find((p) => ["ready", "schedule", "done"].includes(getProjectStatus(p, pub)));
+    if (first) onSelect(first);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, project?.id, sorted.length]);
+
   // --- Empty state (no projects at all) ---
   if (localProjects.length === 0) {
     return (
@@ -1680,35 +1823,76 @@ export function ProjectsListView({
     );
   }
 
+  const E = "cubic-bezier(.22,1,.36,1)";
+  const selTint = project ? getGameColor(project, gamesDb) : T.accent;
+
   return (
-    <div>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
       <style>{`
-        .pl-row { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
-        .pl-row.openable:hover { border-color: ${T.borderHover} !important; box-shadow: 0 2px 4px rgba(var(--shade),calc(.5 * var(--shadeK))), 0 24px 56px -22px rgba(var(--shade),calc(.85 * var(--shadeK))); transform: translateY(-1px); }
-        .pl-chk { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity .13s ease, width .13s ease, margin .13s ease; }
-        .pl-row:hover .pl-chk, .pl-list.selecting .pl-chk, .pl-row.sel .pl-chk { width: 18px; opacity: 1; margin-left: 0; }
-        .pl-open, .pl-trash { opacity: 0; transition: opacity .15s ease; }
-        .pl-row:hover .pl-open, .pl-row:hover .pl-trash { opacity: 1; }
+        .cfp-scroll { overflow: auto; min-height: 0; }
+        .cfp-scroll::-webkit-scrollbar { width: 10px; }
+        .cfp-scroll::-webkit-scrollbar-thumb { background: rgba(var(--lift),0.08); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+        .cfp-pw { display: grid; flex: 1; min-height: 0; transition: grid-template-columns .44s ${E}; }
+        .cfp-plcol { min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0 18px 0 0; border-radius: 20px; border: 1px solid transparent; background: transparent;
+          transition: padding .44s ${E}, margin .44s ${E}, background-color .3s, border-color .3s, box-shadow .3s; }
+        .cfp-pw.open .cfp-plcol { padding: 9px 9px 0; margin-bottom: 22px; background-color: rgba(var(--lift),0.028); border-color: ${T.border};
+          box-shadow: inset 0 1px 0 rgba(var(--lift),0.04), 0 24px 50px -24px rgba(var(--shade),calc(.7 * var(--shadeK))); }
+        .cfp-plcol > .cfp-scroll { overflow-x: hidden; flex: 1; }
+        .cfp-pw.open .cfp-plcol > .cfp-scroll { scrollbar-width: none; }
+        .cfp-pw.open .cfp-plcol > .cfp-scroll::-webkit-scrollbar { width: 0; }
+        .cfp-railtop { height: 0; overflow: hidden; flex-shrink: 0; transition: height .3s ${E}; }
+        .cfp-pw.open .cfp-railtop { height: 38px; }
+        .cfp-plist { display: grid; gap: 12px; padding: 2px 2px 24px; }
+        .cfp-pw.open .cfp-plist { gap: 10px; }
+        .cfp-pc { position: relative; display: flex; align-items: center; gap: 16px; padding: 14px; border-radius: 14px; overflow: hidden;
+          background: radial-gradient(90% 160% at 100% 0%, var(--c1f) 0%, transparent 55%), linear-gradient(100deg, var(--c1a) 0%, var(--c06) 40%, rgba(var(--lift),0.02) 65%);
+          border: 1px solid var(--c3d); transition: padding .44s ${E}, gap .44s ${E}, transform .18s ${E}, box-shadow .25s, border-color .25s; }
+        .cfp-pc.openable { cursor: pointer; }
+        .cfp-pc.openable:hover { transform: translateY(-1px); box-shadow: 0 1px 2px rgba(var(--shade),calc(.5 * var(--shadeK))), 0 14px 34px -16px rgba(var(--shade),calc(.7 * var(--shadeK))); }
+        .cfp-pc.sel { background: radial-gradient(90% 160% at 100% 0%, var(--s1) 0%, transparent 60%), linear-gradient(100deg, var(--s2) 0%, var(--s3) 55%, rgba(var(--lift),0.03) 85%); border-color: var(--sb); box-shadow: inset 0 1px 0 rgba(var(--lift),0.09); }
+        .cfp-pc.multi { background: ${T.accentDim}; border-color: ${T.accentBorder}; }
+        .cfp-pw.open .cfp-pc { padding: 6px; gap: 0; }
+        .cfp-post { position: relative; flex: none; width: 84px; height: 112px; border-radius: 11px; overflow: hidden; display: grid; place-items: center; transition: width .44s ${E}, height .44s ${E}, filter .25s; }
+        .cfp-pw.open .cfp-post { width: 96px; height: 128px; }
+        .cfp-pw.open .cfp-pc:not(.sel) .cfp-post { filter: saturate(.7) brightness(.75); }
+        .cfp-pw.open .cfp-pc:not(.sel):hover .cfp-post { filter: none; }
+        .cfp-plab { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 14px 5px 0; background: linear-gradient(180deg, transparent, rgba(0,0,0,.8) 55%); text-align: center; opacity: 0; transition: opacity .2s; }
+        .cfp-pw.open .cfp-plab { opacity: 1; transition-delay: .28s; }
+        .cfp-rbadge { position: absolute; right: 4px; top: 4px; z-index: 3; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: ${T.accent}; color: #fff; font-size: 11px; font-weight: 800; display: none; place-items: center; box-shadow: 0 0 0 2px ${T.bg}; }
+        .cfp-pw.open .cfp-rbadge { display: grid; }
+        .cfp-pcb { flex: 1; min-width: 0; overflow: hidden; transition: opacity .22s ease .2s, flex-basis .44s ${E}; }
+        .cfp-pw.open .cfp-pcb { opacity: 0; flex: 0 0 0; pointer-events: none; transition: opacity .1s ease, flex-basis .44s ${E}; }
+        /* text keeps its expanded width while the card narrows, so it clips instead of reflowing */
+        .cfp-pcb > * { width: var(--pcw, auto); }
+        .cfp-chk { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity .13s ease, width .13s ease, margin .13s ease; flex-shrink: 0; }
+        .cfp-pc:hover .cfp-chk, .cfp-plist.selecting .cfp-chk, .cfp-pc.multi .cfp-chk { width: 18px; opacity: 1; margin-left: 0; }
+        .cfp-pw.open .cfp-chk { display: none; }
+        .cfp-trash { opacity: 0; transition: opacity .15s ease; }
+        .cfp-pc:hover .cfp-trash { opacity: 1; }
+        .cfp-ccol { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 0 2px; transition: padding .44s ${E}; }
+        .cfp-pw.open .cfp-ccol { padding-left: 16px; }
+        .cfp-cp { min-width: 0; min-height: 0; overflow: hidden; padding-left: 0; transition: padding .38s ${E}; }
+        .cfp-pw.open .cfp-cp { padding-left: 18px; }
+        .cfp-cpi { height: 100%; padding-bottom: 22px; box-sizing: border-box; display: grid; gap: 18px; opacity: 0; transform: translateX(24px); transition: opacity .3s .08s, transform .38s ${E}; }
+        .cfp-pw.open .cfp-cpi { opacity: 1; transform: none; }
       `}</style>
 
-      {/* #275: header + filters pin while the list scrolls. Negative top margin
-          swallows the pane's 32px padding so the block sits flush at the scroll
-          viewport's top edge; its own padding recreates the breathing room and
-          (with the opaque bg) stops rows showing through. zIndex beats the
-          hover-transformed rows, which stack in DOM order after this block. */}
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: T.bg, margin: "-32px 0 16px", padding: "32px 0 14px" }}>
-      <PageHeader
-        title="Projects"
-        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` · ${processingCount} processing` : ""}${readyCount > 0 ? ` · ${readyCount} to review` : ""}${doneCount > 0 ? ` · ${doneCount} done` : ""}`}
-      >
+      {/* #485 header: title + counts, sort on the right */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 16, paddingBottom: 18, flexShrink: 0 }}>
+        <div>
+          <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, color: T.text }}>Projects</div>
+          <div style={{ color: T.textSecondary, marginTop: 5, fontSize: 13 }}>
+            <b style={{ color: T.text, fontWeight: 600 }}>{localProjects.length} project{localProjects.length !== 1 ? "s" : ""}</b>
+            {processingCount > 0 ? ` · ${processingCount} processing` : ""}{readyCount > 0 ? ` · ${readyCount} to review` : ""}{scheduleCount > 0 ? ` · ${scheduleCount} to schedule` : ""}{doneCount > 0 ? ` · ${doneCount} done` : ""}
+          </div>
+        </div>
         {/* Sort dropdown */}
-        <div data-menu style={{ position: "relative" }}>
+        <div data-menu style={{ position: "relative", marginLeft: "auto" }}>
           <button
             onClick={(e) => { e.stopPropagation(); setSortOpen((o) => !o); }}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, color: T.textSecondary, background: T.surface, border: `1px solid ${sortOpen ? T.accentBorder : T.border}`, borderRadius: 9, padding: "8px 12px", cursor: "pointer", fontFamily: T.font }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 30, fontSize: 12.5, fontWeight: 600, color: T.textSecondary, background: "rgba(var(--lift),0.03)", border: `1px solid ${sortOpen ? T.accentBorder : T.border}`, borderRadius: 999, padding: "0 12px", cursor: "pointer", fontFamily: T.font }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M6 12h12M10 18h4" /></svg>
-            Sort: <span style={{ color: T.text }}>{(PROJECT_SORTS.find((s) => s.id === projectSortMode) || PROJECT_SORTS[0]).label}</span>
+            Sort: <span style={{ color: T.text, fontWeight: 700 }}>{(PROJECT_SORTS.find((s) => s.id === projectSortMode) || PROJECT_SORTS[0]).label}</span>
             <span style={{ fontSize: 9, color: T.textMuted }}>{"▾"}</span>
           </button>
           {sortOpen && (
@@ -1728,12 +1912,10 @@ export function ProjectsListView({
             </div>
           )}
         </div>
-      </PageHeader>
+      </div>
 
-      {/* Filter chips: status + game (replaces the folder sidebar + sort bar) */}
-      {/* #275: bottom gap moved to the sticky wrapper — a child margin would
-          collapse out of it and leave a see-through strip under the pinned bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "2px 0 0" }}>
+      {/* Filter chips: status + game */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", paddingBottom: 16, flexShrink: 0 }}>
         <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")} count={localProjects.length}>All</FilterChip>
         <FilterChip active={statusFilter === "review"} onClick={() => setStatusFilter("review")} count={readyCount}>To review</FilterChip>
         <FilterChip active={statusFilter === "schedule"} onClick={() => setStatusFilter("schedule")} count={scheduleCount}>To schedule</FilterChip>
@@ -1750,16 +1932,15 @@ export function ProjectsListView({
         {visibleProjects.length > 0 && (
           <button
             onClick={selectAll}
-            style={{ marginLeft: "auto", background: "none", border: "none", color: T.accent, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 4px" }}
+            style={{ marginLeft: "auto", background: "none", border: "none", color: T.accentLight, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 4px" }}
           >{visibleProjects.every((p) => selected[p.id]) ? "Deselect all" : "Select all"}</button>
         )}
-      </div>
       </div>
 
       {/* #194 per-game approval rates: quality (>=70% confidence, mechanical
           rejects excluded) vs overall, rolling last-10-projects vs all-time */}
       {ratesOpen && (
-        <div style={{ margin: "-6px 0 16px", padding: "12px 16px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md }}>
+        <div style={{ margin: "-6px 0 16px", padding: "12px 16px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md, flexShrink: 0 }}>
           {!approvalStats ? (
             <div style={{ fontSize: 12, color: T.textTertiary }}>Loading…</div>
           ) : approvalStats.games.length === 0 ? (
@@ -1797,196 +1978,240 @@ export function ProjectsListView({
         </div>
       )}
 
-      {/* Launch-pad list (full width) */}
-      {sorted.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <div style={{ color: T.textTertiary, fontSize: 14, fontWeight: 500 }}>No projects match this filter</div>
-          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Try a different game or status.</div>
-        </div>
-      ) : (
-        <div className={selCount > 0 ? "pl-list selecting" : "pl-list"} style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
-          {sorted.map((p) => {
-            const st = getProjectStatus(p, pub);
-            const pColor = getGameColor(p, gamesDb);
-            const clips = p.clips || [];
-            const clipCount = clips.length || p.clipCount || 0;
-            const reviewed = clips.filter((c) => !isClipUndecided(c)).length;
-            const leftToReview = Math.max(0, clipCount - reviewed);
-            const toSchedule = clips.filter((c) => isClipApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
-            const publishedCount = clips.filter((c) => pub.isPublished(c)).length;
-            const approvedCount = clips.filter(isClipApproved).length;
-            const isSel = !!selected[p.id];
-            const openable = st === "ready" || st === "schedule" || st === "done";
-            const isTest = p.testMode === true || (p.tags || []).includes("test");
-            const dateStr = fmtProjectDate(p);
-            return (
-              <div
-                key={p.id}
-                className={`pl-row${isSel ? " sel" : ""}${openable ? " openable" : ""}`}
-                onClick={() => openable && onSelect(p)}
-                style={{
-                  position: "relative", display: "flex", alignItems: "center", gap: 14,
-                  padding: 13, borderRadius: T.radius.lg, overflow: "hidden",
-                  cursor: openable ? "pointer" : "default",
-                  background: isSel
-                    ? T.accentDim
-                    : `radial-gradient(90% 160% at 100% 0%, ${pColor}1f 0%, transparent 55%), linear-gradient(100deg, ${pColor}1a 0%, ${pColor}06 40%, rgba(var(--lift),0.02) 65%)`,
-                  border: `1px solid ${isSel ? T.accentBorder : st === "error" ? T.redBorder : `${pColor}3d`}`,
-                  opacity: st === "processing" ? 0.75 : st === "error" ? 0.6 : 1,
-                }}
-              >
-                {/* hover-reveal checkbox */}
-                <span className="pl-chk" onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
-                  <Checkbox checked={isSel} size={18} />
-                </span>
-
-                {/* game poster — real key art when cached, game-hue + tag fallback */}
-                {(() => {
-                  // #474: a reaction linked to a game shows that game's art.
+      {/* #485: list | clips | player, one page */}
+      <div
+        ref={pwRef}
+        className={`cfp-pw${open ? " open" : ""}`}
+        style={{ gridTemplateColumns: open ? `${RAIL_W}px minmax(0, 1fr) ${panelW}px` : `${listW}px minmax(0, 1fr) 0px` }}
+      >
+        <div className="cfp-plcol">
+          <div className="cfp-railtop">
+            <button onClick={() => setSelClipId(null)} title="Show the project list (Esc)" style={{ width: "100%", height: 30, borderRadius: 9, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, display: "grid", placeItems: "center", cursor: "pointer" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="m6 17 5-5-5-5M13 17l5-5-5-5" /></svg>
+            </button>
+          </div>
+          <div className="cfp-scroll">
+            {sorted.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <div style={{ color: T.textTertiary, fontSize: 14, fontWeight: 500 }}>No projects match this filter</div>
+                <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Try a different game or status.</div>
+              </div>
+            ) : (
+              <div ref={plistRef} className={`cfp-plist${selCount > 0 ? " selecting" : ""}`} onMouseLeave={() => setRailTip(null)}>
+                {sorted.map((p) => {
+                  const st = getProjectStatus(p, pub);
+                  const pColor = getGameColor(p, gamesDb);
+                  const clips = p.clips || [];
+                  const clipCount = clips.length || p.clipCount || 0;
+                  const reviewed = clips.filter((c) => !isClipUndecided(c)).length;
+                  const leftToReview = Math.max(0, clipCount - reviewed);
+                  const toSchedule = clips.filter((c) => isClipApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
+                  const publishedCount = clips.filter((c) => pub.isPublished(c)).length;
+                  const approvedCount = clips.filter(isClipApproved).length;
+                  const isMulti = !!selected[p.id];
+                  const isCur = project?.id === p.id;
+                  const openable = st === "ready" || st === "schedule" || st === "done";
+                  const isTest = p.testMode === true || (p.tags || []).includes("test");
+                  const dateStr = fmtProjectDate(p);
                   const art = gameArt[p.game] || gameArt[linkedGame(gamesDb.find((g) => g.name === p.game), gamesDb)?.name];
+                  // Clip ladder (session 142) — furthest stage wins: published
+                  // (cyan) > scheduled (yellow) > rendered/in queue (orange) >
+                  // approved (green) > rejected (red). Dequeued falls through to
+                  // the untouched ghost — it needs a fresh decision.
+                  const glassOf = (c) => (pub.isPublished(c) ? DOT_GLASS.cyan
+                    : pub.isScheduled(c) ? DOT_GLASS.yellow
+                    : isClipApproved(c) && c.renderStatus === "rendered" ? DOT_GLASS.orange
+                    : isClipApproved(c) ? DOT_GLASS.green
+                    : c.status === "rejected" ? DOT_GLASS.red : null);
+                  const statusText = leftToReview > 0 ? `${reviewed}/${clipCount} done` : toSchedule > 0 ? `${toSchedule} to schedule` : `${clipCount}/${clipCount} done`;
+                  // Rail label: the name without its date and tag ("Day5 Pt1")
+                  const noDate = (p.name || "").replace(/^\d{4}-\d{2}-\d{2}\s*/, "");
+                  const shortName = (p.gameTag && noDate.startsWith(`${p.gameTag} `) ? noDate.slice(p.gameTag.length + 1) : noDate) || p.name;
+                  // Rail mini bar: one segment per outcome, in the orb colours
+                  const counts = new Map();
+                  clips.forEach((c) => { const g = glassOf(c); counts.set(g, (counts.get(g) || 0) + 1); });
+                  const bar = [[DOT_GLASS.cyan, DOT_GLASS.cyan.core], [DOT_GLASS.yellow, DOT_GLASS.yellow.core], [DOT_GLASS.orange, DOT_GLASS.orange.core], [DOT_GLASS.green, DOT_GLASS.green.core], [DOT_GLASS.red, "rgba(255,69,96,.55)"], [null, "rgba(255,255,255,.25)"]]
+                    .map(([g, col]) => [col, counts.get(g) || 0])
+                    .filter(([, n]) => n > 0);
                   return (
-                    <div style={{ position: "relative", flexShrink: 0, width: 60, height: 80, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
-                      {art ? (
-                        <img src={`${toFileUrl(art.path)}?v=${art.v}`} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: openable ? 1 : 0.55 }} />
-                      ) : (
-                        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${pColor}, ${pColor}55 65%, ${pColor}22)`, opacity: openable ? 0.9 : 0.5 }} />
-                      )}
-                      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(var(--shade),calc(.5 * var(--shadeK))))" }} />
-                      {!art && (
-                        <span style={{ position: "relative", zIndex: 1, fontSize: 12, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(var(--shade),calc(.6 * var(--shadeK)))" }}>
-                          {p.gameTag && p.gameTag !== "?" ? p.gameTag : ""}
-                        </span>
-                      )}
+                    <div
+                      key={p.id}
+                      className={`cfp-pc${isCur ? " sel" : ""}${isMulti && !isCur ? " multi" : ""}${openable ? " openable" : ""}`}
+                      onClick={() => { if (!openable) return; setRailTip(null); if (open) setSelClipId(null); if (!isCur) onSelect(p); }}
+                      onMouseEnter={(e) => {
+                        if (!open) return;
+                        const r = e.currentTarget.getBoundingClientRect();
+                        setRailTip({ x: r.right + 12, y: r.top + r.height / 2 - 22, name: p.name, status: statusText });
+                      }}
+                      style={{
+                        "--c1f": hexA(pColor, 0.12), "--c1a": hexA(pColor, 0.10), "--c06": hexA(pColor, 0.024), "--c3d": st === "error" ? T.redBorder : hexA(pColor, 0.24),
+                        "--s1": hexA(pColor, 0.30), "--s2": hexA(pColor, 0.26), "--s3": hexA(pColor, 0.07), "--sb": hexA(pColor, 0.7),
+                        opacity: st === "processing" ? 0.75 : st === "error" ? 0.6 : 1,
+                      }}
+                    >
+                      {/* hover-reveal checkbox (multi-select for delete) */}
+                      <span className="cfp-chk" onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
+                        <Checkbox checked={isMulti} size={18} />
+                      </span>
+
+                      {/* game poster — real key art when cached, game-hue + tag fallback */}
+                      <div className="cfp-post" style={{ background: hexA(pColor, 0.1) }}>
+                        {art ? (
+                          <img src={`${toFileUrl(art.path)}?v=${art.v}`} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: openable ? 1 : 0.55 }} />
+                        ) : (
+                          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${pColor}, ${hexA(pColor, 0.33)} 65%, ${hexA(pColor, 0.13)})`, opacity: openable ? 0.9 : 0.5 }} />
+                        )}
+                        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(var(--shade),calc(.5 * var(--shadeK))))" }} />
+                        {!art && (
+                          <span style={{ position: "relative", zIndex: 1, fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(var(--shade),calc(.6 * var(--shadeK)))" }}>
+                            {p.gameTag && p.gameTag !== "?" ? p.gameTag : ""}
+                          </span>
+                        )}
+                        {/* #328: literal — the rail label sits over the poster art */}
+                        <div className="cfp-plab">
+                          <b style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 5, letterSpacing: "0.01em" }}>{shortName}</b>
+                          <div style={{ display: "flex", height: 4, gap: 1 }}>
+                            {bar.map(([col, n], i) => <i key={i} style={{ display: "block", height: "100%", flex: n, background: col }} />)}
+                          </div>
+                        </div>
+                      </div>
+                      {leftToReview > 0 && <span className="cfp-rbadge">{leftToReview}</span>}
+
+                      {/* main content */}
+                      <div className="cfp-pcb">
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 28 }}>
+                          <div title={p.name} style={{ flex: 1, minWidth: 0, color: isCur ? "#fff" : T.text, fontSize: 17, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
+                          <span
+                            className="cfp-trash"
+                            onClick={(e) => handleSingleDelete(e, p)}
+                            title="Delete project"
+                            style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 28, height: 28, color: T.textMuted, cursor: "pointer", borderRadius: 7 }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, fontSize: 13, color: T.textSecondary, whiteSpace: "nowrap" }}>
+                          {isTest && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.06em", color: T.yellow, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, padding: "1px 6px", borderRadius: 5 }}>TEST</span>}
+                          <span>{dateStr ? `${dateStr} · ` : ""}{clipCount} clip{clipCount !== 1 ? "s" : ""}</span>
+                          {isRanked(p) && (
+                            <span title="Corva watched these clips and ranked them" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: T.textSecondary, fontSize: 12 }}>
+                              {"·"}
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
+                              Ranked
+                            </span>
+                          )}
+                        </div>
+                        {st === "processing" ? (
+                          <div style={{ marginTop: 10, fontSize: 12, color: T.yellow }}>Processing{p.progress ? ` ${p.progress}%` : "..."}</div>
+                        ) : st === "error" ? (
+                          <div style={{ marginTop: 10, fontSize: 12, color: T.red }}>{p.error || "Failed"}</div>
+                        ) : clipCount > 0 ? (
+                          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
+                            <div
+                              style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+                              onMouseEnter={(e) => {
+                                // Breakdown tooltip renders at view root with position:fixed —
+                                // the card's overflow:hidden + hover translateY transform would
+                                // clip it (and re-anchor fixed) if it lived inside the card.
+                                const r = e.currentTarget.getBoundingClientRect();
+                                const tip = {
+                                  x: r.left, y: r.top,
+                                  kept: approvedCount,
+                                  rejected: clips.filter((c) => c.status === "rejected").length,
+                                  toReview: leftToReview,
+                                  inQueue: clips.filter((c) => !pub.isPublished(c) && !pub.isScheduled(c) && isClipApproved(c) && c.renderStatus === "rendered").length,
+                                  scheduled: clips.filter((c) => !pub.isPublished(c) && pub.isScheduled(c)).length,
+                                  published: publishedCount,
+                                };
+                                clearTimeout(orbTipTimer.current);
+                                orbTipTimer.current = setTimeout(() => setOrbTip(tip), 120);
+                              }}
+                              onMouseLeave={() => { clearTimeout(orbTipTimer.current); setOrbTip(null); }}
+                            >
+                              {clips.slice(0, 40).map((c, i) => {
+                                const g = glassOf(c);
+                                // Ember treatment (#254, Fega 2026-08-13): once a project is
+                                // fully reviewed, rejected orbs fade to a whisper — rejection
+                                // is curation, not failure. The outer glow is dropped.
+                                const ember = leftToReview === 0 && c.status === "rejected";
+                                return <span key={i} style={{
+                                  width: 11, height: 11, borderRadius: "50%", flexShrink: 0,
+                                  ...(g ? glassDot(g) : { background: "rgba(var(--lift),0.10)", boxShadow: "inset 0 1px 1px rgba(var(--lift),0.07)" }),
+                                  ...(ember ? { opacity: 0.22, boxShadow: "inset 0 -1px 2px rgba(var(--shade),calc(0.35 * var(--shadeK)))" } : {}),
+                                }} />;
+                              })}
+                            </div>
+                            {/* ONE state-relevant fact per card (Fega 2026-08-13): done-count while
+                                reviewing, the schedule count once reviewed, full counter when done.
+                                Kept-% deliberately NOT shown; the breakdown lives in the orb hover. */}
+                            <span style={{ flexShrink: 0, marginLeft: "auto", whiteSpace: "nowrap", fontSize: 12, color: T.textSecondary, fontWeight: 600 }}>
+                              {leftToReview > 0
+                                ? <><b style={{ color: T.text }}>{reviewed}</b>/{clipCount} done</>
+                                : toSchedule > 0
+                                  ? <b style={{ color: T.accentLight }}>{toSchedule} to schedule</b>
+                                  : <><b style={{ color: T.text }}>{clipCount}</b>/{clipCount} done</>}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   );
-                })()}
-
-                {/* main content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Title row — hover-reveal actions (Review/Open + delete) share the
-                      top-right corner; the static status badge is gone (redundant with
-                      the right-aligned count, Fega 2026-08-13). */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 30 }}>
-                    <div style={{ flex: 1, minWidth: 0, color: T.text, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={p.name}>{p.name}</div>
-                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                      {openable && (
-                        <button
-                          className="pl-open"
-                          onClick={(e) => { e.stopPropagation(); onSelect(p); }}
-                          style={{
-                            // "schedule" gets the muted Open treatment too — the remaining
-                            // action (scheduling) happens on the Queue tab, not in here.
-                            fontFamily: T.font, fontSize: 12.5, fontWeight: 700, borderRadius: 9, padding: "6px 14px", cursor: "pointer",
-                            color: st === "ready" ? "#fff" : T.textSecondary,
-                            background: st === "ready" ? T.accent : T.surfaceHover,
-                            border: st === "ready" ? "none" : `1px solid ${T.border}`,
-                            boxShadow: st === "ready" ? "0 6px 16px -8px rgba(139,92,246,0.8)" : "none",
-                          }}
-                        >{st === "ready" ? "Review" : "Open"}</button>
-                      )}
-                      <span
-                        className="pl-trash"
-                        onClick={(e) => handleSingleDelete(e, p)}
-                        title="Delete project"
-                        style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 28, height: 28, color: T.textMuted, cursor: "pointer", borderRadius: 7 }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 12, color: T.textSecondary, flexWrap: "wrap" }}>
-                    {isTest && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.06em", color: T.yellow, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, padding: "1px 6px", borderRadius: 5 }}>TEST</span>}
-                    <span>{dateStr ? `${dateStr} · ` : ""}{clipCount} clip{clipCount !== 1 ? "s" : ""}</span>
-                  </div>
-                  {st === "processing" ? (
-                    <div style={{ marginTop: 8, fontSize: 12, color: T.yellow }}>Processing{p.progress ? ` ${p.progress}%` : "..."}</div>
-                  ) : st === "error" ? (
-                    <div style={{ marginTop: 8, fontSize: 12, color: T.red }}>{p.error || "Failed"}</div>
-                  ) : clipCount > 0 ? (
-                    <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
-                        onMouseEnter={(e) => {
-                          // Breakdown tooltip renders at view root with position:fixed —
-                          // the card's overflow:hidden + hover translateY transform would
-                          // clip it (and re-anchor fixed) if it lived inside the card.
-                          const r = e.currentTarget.getBoundingClientRect();
-                          const tip = {
-                            x: r.left, y: r.top,
-                            kept: approvedCount,
-                            rejected: clips.filter((c) => c.status === "rejected").length,
-                            toReview: leftToReview,
-                            inQueue: clips.filter((c) => !pub.isPublished(c) && !pub.isScheduled(c) && isClipApproved(c) && c.renderStatus === "rendered").length,
-                            scheduled: clips.filter((c) => !pub.isPublished(c) && pub.isScheduled(c)).length,
-                            published: publishedCount,
-                          };
-                          clearTimeout(orbTipTimer.current);
-                          orbTipTimer.current = setTimeout(() => setOrbTip(tip), 120);
-                        }}
-                        onMouseLeave={() => { clearTimeout(orbTipTimer.current); setOrbTip(null); }}
-                      >
-                        {clips.slice(0, 40).map((c, i) => {
-                          // Clip ladder (session 142) — furthest stage wins: published
-                          // (cyan, matches the Tracker's posted-via-ClipFlow dot) >
-                          // scheduled (yellow, matches the Tracker's scheduled dots) >
-                          // rendered/waiting-in-queue (orange) > approved (green) >
-                          // rejected (red). Dequeued falls through to the untouched
-                          // ghost — it needs a fresh decision.
-                          const g = pub.isPublished(c) ? DOT_GLASS.cyan
-                            : pub.isScheduled(c) ? DOT_GLASS.yellow
-                            : isClipApproved(c) && c.renderStatus === "rendered" ? DOT_GLASS.orange
-                            : isClipApproved(c) ? DOT_GLASS.green
-                            : c.status === "rejected" ? DOT_GLASS.red : null;
-                          // Ember treatment (#254, Fega 2026-08-13): once a project is
-                          // fully reviewed, rejected orbs fade to a whisper — rejection
-                          // is curation, not failure, and ClipFlow's never-empty
-                          // detection guarantees red-heavy cards (the user is the
-                          // precision filter). Vivid red is decision feedback, useful
-                          // only while reviewing; at volume on wrapped cards it read
-                          // as "the app doesn't work". Opacity fades the whole orb
-                          // including its inset shading; the outer glow is dropped.
-                          const ember = leftToReview === 0 && c.status === "rejected";
-                          return <span key={i} style={{
-                            width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
-                            ...(g ? glassDot(g) : { background: "rgba(var(--lift),0.10)", boxShadow: "inset 0 1px 1px rgba(var(--lift),0.07)" }),
-                            ...(ember ? { opacity: 0.22, boxShadow: "inset 0 -1px 2px rgba(var(--shade),calc(0.35 * var(--shadeK)))" } : {}),
-                          }} />;
-                        })}
-                      </div>
-                      {/* Count pinned to the right edge — ONE state-relevant fact per card
-                          (Fega 2026-08-13): done-count while reviewing (progress framing —
-                          the number counts the lit orbs and grows as he works), the
-                          actionable schedule count once reviewed, full counter when wrapped.
-                          Kept-% deliberately NOT shown anywhere on the card: it's an internal
-                          detection metric, and a low % reads as "the app doesn't work" while
-                          it's still learning taste. Full breakdown lives in the orb hover. */}
-                      <span style={{ flexShrink: 0, marginLeft: "auto", whiteSpace: "nowrap", fontSize: 11, color: T.textSecondary, fontWeight: 600 }}>
-                        {leftToReview > 0
-                          ? <><b style={{ color: T.text }}>{reviewed}</b>/{clipCount} done</>
-                          : toSchedule > 0
-                            ? <b style={{ color: T.accent }}>{toSchedule} to schedule</b>
-                            : <><b style={{ color: T.text }}>{clipCount}</b>/{clipCount} done</>}
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-
+                })}
               </div>
-            );
-          })}
+            )}
+          </div>
+        </div>
+
+        {project ? (
+          <ClipBrowser
+            key={project.id}
+            project={project}
+            selId={selClipId}
+            setSelId={setSelClipId}
+            tint={selTint}
+            pwW={pwW}
+            listW={listW}
+            panelW={panelW}
+            small={small}
+            trackerData={trackerData}
+            onUpdateClip={onUpdateClip}
+            onUpdateClipFields={onUpdateClipFields}
+            onEditClipTitle={onEditClipTitle}
+            onOpenInEditor={onOpenInEditor}
+            onBatchRender={onBatchRender}
+            onDeleteClip={onDeleteClip}
+            gamesDb={gamesDb}
+            onReactionFor={onReactionFor}
+            scrollToClipId={scrollToClipId}
+            initialFilter={initialFilter}
+            onFilterChange={onFilterChange}
+          />
+        ) : (
+          <>
+            <div className="cfp-ccol" style={{ display: "grid", placeItems: "center", color: T.textTertiary, fontSize: 13 }}>Pick a project to see its clips</div>
+            <div className="cfp-cp" />
+          </>
+        )}
+      </div>
+
+      {/* Rail hover: the full name and status beside the poster */}
+      {railTip && open && (
+        <div style={{ position: "fixed", left: railTip.x, top: railTip.y, zIndex: 60, pointerEvents: "none", padding: "8px 11px", borderRadius: 10, background: T.surfaceHover, border: `1px solid ${T.borderHover}`, boxShadow: "0 12px 30px rgba(var(--shade),calc(0.5 * var(--shadeK)))", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", color: T.text }}>
+          {railTip.name}
+          <span style={{ display: "block", fontSize: 11.5, color: T.textSecondary, fontWeight: 500, marginTop: 2 }}>{railTip.status} · click to show all projects</span>
         </div>
       )}
-
 
       {/* ── Floating Action Bar (when projects selected) ── */}
       {selCount > 0 && (
         <div style={{
-          marginTop: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "center",
-          padding: "12px 20px", borderRadius: T.radius.md,
-          background: T.surface, border: `1px solid ${T.border}`,
-          boxShadow: "0 -4px 20px rgba(var(--shade),calc(0.3 * var(--shadeK)))",
+          position: "fixed", left: "50%", bottom: 84, transform: "translateX(-50%)", zIndex: 90,
+          display: "flex", gap: 10, alignItems: "center", justifyContent: "center",
+          padding: "10px 16px", borderRadius: T.radius.md,
+          background: T.surface, border: `1px solid ${T.borderHover}`,
+          boxShadow: "0 10px 32px rgba(var(--shade),calc(0.5 * var(--shadeK)))",
         }}>
           <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selCount} selected</span>
 
@@ -2321,7 +2546,10 @@ function pickClipTab(clips, remembered, returnClipId) {
   return count.pending > 0 ? "pending" : count.approved > 0 ? "approved" : "all";
 }
 
-export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, onReactionFor, scrollToClipId, initialFilter, onFilterChange, trackerData = [] }) {
+// #485: the selected project's clips and its player, as the middle and right
+// columns of the Projects page. `selId` lives in the page, because the open
+// player is what collapses the project list into the rail.
+export function ClipBrowser({ project, selId, setSelId, tint, pwW, listW, panelW, small, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, onReactionFor, scrollToClipId, initialFilter, onFilterChange, trackerData = [] }) {
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   const [filter, setFilter] = useState(() => pickClipTab(project.clips || [], initialFilter, scrollToClipId));
   // Report the auto-picked tab too, not just clicks — it is the working tab.
@@ -2340,14 +2568,11 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
   }, []);
 
   // Returning from the editor lands on the clip that was being edited instead
-  // of the top of the list. One rAF lets the rows lay out before scrolling.
+  // of the top of the list. One rAF lets the tiles lay out before scrolling.
   useEffect(() => {
     if (!scrollToClipId) return;
     const id = requestAnimationFrame(() => {
-      // "start", not "center": a card is taller than the space under the pinned
-      // header (#432), and centring tucked its title beneath it. The card's
-      // scrollMarginTop is what keeps it clear of that header.
-      document.querySelector(`[data-clip-id="${scrollToClipId}"]`)?.scrollIntoView({ block: "start" });
+      document.querySelector(`[data-clip-id="${scrollToClipId}"]`)?.scrollIntoView({ block: "nearest" });
     });
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2395,7 +2620,8 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
   const matching = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? (isClipUndecided(c) || stickyRejected.has(c.id)) : true);
   // #483: once the clip judge has scored this project, likely keepers come
   // first; unscored clips follow, ties keep detection order (stable sort).
-  const filtered = clips.some((c) => c.judge)
+  const ranked = clips.some((c) => c.judge);
+  const filtered = ranked
     ? [...matching].sort((a, b) => (b.judge?.score ?? -1) - (a.judge?.score ?? -1))
     : matching;
   const approved = clips.filter(isApproved).length;
@@ -2406,23 +2632,27 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
   const publishedCount = clips.filter((c) => pub.isPublished(c)).length;
   const toSchedule = clips.filter((c) => isApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
 
-  // ── #467: grid + side panel ──
-  // Tiles are sized from the window so the whole project fits the visible height
-  // (15–20 clips is the usual haul). The size comes from the closed layout and the
-  // project's full clip count, so tiles never jump when the panel opens, a tab
-  // changes or a clip is decided; the open panel narrows the grid and it scrolls.
-  const wrapRef = useRef(null);
-  const gridRef = useRef(null);
-  const box = usePaneBox(wrapRef);
-  const gridTop = usePaneBox(gridRef).top;
-  // Returning from the editor reopens the clip that was being edited.
-  const [selId, setSelId] = useState(() => (scrollToClipId && clips.some((c) => c.id === scrollToClipId) ? scrollToClipId : null));
+  // ── #467 grid, #485 three-column page ──
+  // Tile size comes from the EXPANDED layout and the project's full clip count,
+  // so tiles never jump; the column count is set for the layout the page is
+  // heading to, up front, so tiles resize smoothly while the list collapses.
+  const scrollRef = useRef(null);
+  const [areaH, setAreaH] = useState(0);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const measure = () => setAreaH(el.clientHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const selClip = selId ? clips.find((c) => c.id === selId) || null : null;
-  const panel = selClip ? sidePanelSize(box, 14) : null;
-  const tileW = fitTileWidth(box.w, box.paneH - gridTop - 32, clips.length);
-  const gridW = panel ? box.w - panel.w - PANEL_GAP : box.w;
-  const cols = Math.max(1, Math.floor((gridW + TILE_GAP) / (tileW + TILE_GAP)));
-  const posterW = Math.max(100, Math.floor((gridW - (cols - 1) * TILE_GAP) / cols) - 14);
+  const open = !!selClip;
+  const closedW = Math.max(0, pwW - listW - 4);
+  const targetW = open ? Math.max(0, pwW - RAIL_W - panelW - 16 - 4) : closedW;
+  const tileW = fitTileWidth(closedW, areaH - 28, clips.length);
+  const cols = Math.max(1, Math.floor((targetW + TILE_GAP) / (tileW + TILE_GAP)));
 
   // A decision can take the open clip off this tab (approvals don't linger on
   // Pending). The panel then moves to the clip that took its place, so a run of
@@ -2444,9 +2674,20 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
     const next = filtered[i + d];
     if (!next) return;
     setSelId(next.id);
-    requestAnimationFrame(() => document.querySelector(`[data-clip-id="${next.id}"]`)?.scrollIntoView({ block: "nearest" }));
+    requestAnimationFrame(() => document.querySelector(`[data-clip-id="${next.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   };
-  usePanelKeys({ open: !!selClip, onClose: () => setSelId(null), onPrev: () => stepClip(-1), onNext: () => stepClip(1) });
+  usePanelKeys({ open, onClose: () => setSelId(null), onPrev: () => stepClip(-1), onNext: () => stepClip(1) });
+
+  // The panel keeps showing its clip while it slides out, then lets it go
+  // (which unloads its video).
+  const [shownId, setShownId] = useState(selId);
+  useEffect(() => {
+    if (selId) { setShownId(selId); return undefined; }
+    const t = setTimeout(() => setShownId(null), 380);
+    return () => clearTimeout(t);
+  }, [selId]);
+  const panelClip = shownId ? clips.find((c) => c.id === shownId) || null : null;
+  const playerW = small ? 240 : 300;
 
   const [renderError, setRenderError] = useState(null);
 
@@ -2481,96 +2722,126 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
     if (onBatchRender) onBatchRender(project.id);
   };
 
+  const parts = [
+    [approved, "approved"], [pending, "to review"], [rendered, "rendered"],
+    [scheduledCount, "scheduled"], [publishedCount, "published"], [toSchedule, "to schedule"],
+  ].filter(([n]) => n > 0);
+
   return (
-    // #467: the page and the clip panel side by side; the panel docks, never overlays.
-    <div ref={wrapRef} style={{ display: "flex", gap: PANEL_GAP, alignItems: "flex-start" }}>
-    <div style={{ flex: 1, minWidth: 0 }}>
-      {/* #432: the #275 pin, for the inside of a project — name, back button and
-          the tabs stay reachable while the clip cards scroll. Same flush trick
-          (negative margin swallows the pane's 32px padding, opaque bg hides the
-          cards passing under). The cards here are tall, so the pinned block is
-          kept short: top is negative, which lets the first 16px of its own top
-          padding scroll away before it sticks, and the header's gap to the tabs
-          is tightened by the 12px it now pads below them — the cards start
-          where they always did. */}
-      <div style={{ position: "sticky", top: -16, zIndex: 30, background: T.bg, margin: "-32px 0 0", padding: "32px 0 12px" }}>
-      <PageHeader style={{ marginBottom: 16 }} title={project.name} subtitle={`${approved} approved · ${pending} pending${rendered > 0 ? ` · ${rendered} rendered` : ""}${scheduledCount > 0 ? ` · ${scheduledCount} scheduled` : ""}${publishedCount > 0 ? ` · ${publishedCount} published` : ""}${toSchedule > 0 ? ` · ${toSchedule} to schedule` : ""}`} backAction={onBack}>
-        {renderableApproved > 0 && (
-          <button
-            onClick={handleBatchRender}
-            disabled={batchRendering}
-            style={{
-              padding: "6px 14px", borderRadius: 6, border: "none",
-              background: batchRendering ? T.yellow : `linear-gradient(135deg, ${T.green}, #2dd4a8)`,
-              color: batchRendering ? "#000" : "#fff", fontSize: 12, fontWeight: 700,
-              cursor: batchRendering ? "default" : "pointer", fontFamily: T.font,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {batchRendering ? `⏳ ${batchProgress.pct}%` : `Render All (${renderableApproved})`}
-          </button>
-        )}
-        <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
-      </PageHeader>
-
-      <TabBar tabs={[{ id: "all", label: "All", count: clips.length }, { id: "pending", label: "Pending", count: pending }, { id: "approved", label: "Approved", count: approved }]} active={filter} onChange={(f) => { setFilter(f); setSelId(null); }} />
-      </div>
-
-      {renderError && (
-        <div style={{ margin: "12px 0 0", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: `1px solid ${T.red}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ color: T.red, fontSize: 12, fontFamily: T.font }}>Render error: {renderError}</span>
-          <button onClick={() => setRenderError(null)} style={{ background: "none", border: "none", color: T.textTertiary, cursor: "pointer", fontSize: 14 }}>✕</button>
+    <>
+      <div className="cfp-ccol">
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "2px 2px 14px" }}>
+          <div style={{ minWidth: 0 }}>
+            <div title={project.name} style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.02em", color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.name}</div>
+            <div style={{ marginTop: 5, color: T.textSecondary, fontSize: 12.5, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {project.gameTag && project.gameTag !== "?" && <GamePill tag={project.gameTag} color={tint} size="sm" />}
+              {parts.map(([n, label], i) => (
+                <React.Fragment key={label}>
+                  {i > 0 && <span>·</span>}
+                  <span><b style={{ color: T.text, fontWeight: 700 }}>{n}</b> {label}</span>
+                </React.Fragment>
+              ))}
+              {ranked && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 8px", borderRadius: 999, background: T.accentDim, color: T.accentLight, fontWeight: 700, fontSize: 11.5 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
+                  Ranked by Corva, best first
+                </span>
+              )}
+            </div>
+          </div>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            {renderableApproved > 0 && (
+              <button
+                onClick={handleBatchRender}
+                disabled={batchRendering}
+                style={{
+                  height: 34, padding: "0 14px", borderRadius: 9, border: "none",
+                  background: batchRendering ? T.yellow : "linear-gradient(180deg, #34d399, #10b981)",
+                  boxShadow: batchRendering ? "none" : "inset 0 1px 0 rgba(255,255,255,0.3), 0 6px 18px -6px rgba(16,185,129,0.7)",
+                  color: "#04130d", fontSize: 12.5, fontWeight: 700,
+                  cursor: batchRendering ? "default" : "pointer", fontFamily: T.font, whiteSpace: "nowrap",
+                }}
+              >
+                {batchRendering ? `⏳ ${batchProgress.pct}%` : `Render all (${renderableApproved})`}
+              </button>
+            )}
+            <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(var(--lift),0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
+          </div>
         </div>
-      )}
 
-      <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: TILE_GAP, marginTop: 16, alignItems: "start" }}>
-        {filtered.map((clip) => (
-          <ClipTile
-            key={clip.id}
-            clip={clip}
-            project={project}
-            template={previewTemplate}
-            posterW={posterW}
-            selected={clip.id === selId}
-            onSelect={selectClip}
-            onUpdateClip={updateClipSticky}
-          />
-        ))}
-      </div>
-      {filtered.length === 0 && (
-        <Card style={{ padding: 40, textAlign: "center", marginTop: 16 }}>
-          <div style={{ color: T.textTertiary, fontSize: 14 }}>No clips match this filter.</div>
-        </Card>
-      )}
-    </div>
-      {selClip && (
-        <ClipSidePanel
-          size={panel}
-          previewHeight={panel.previewH + 14}
-          previewStyle={{ overflow: "visible", borderRadius: 0, boxShadow: "none" }}
-          onClose={() => setSelId(null)}
-          preview={(
-            <ClipPreviewBoundary key={selClip.id}>
-              <ClipVideoPlayer clip={selClip} project={project} template={previewTemplate} width={panel.previewW} />
-            </ClipPreviewBoundary>
+        <div style={{ display: "flex", gap: 6, padding: "0 2px 12px" }}>
+          {[["all", "All", clips.length], ["pending", "Pending", pending], ["approved", "Approved", approved]].map(([id, label, n]) => (
+            <FilterChip key={id} active={filter === id} onClick={() => { setFilter(id); setSelId(null); }} count={n}>{label}</FilterChip>
+          ))}
+        </div>
+
+        {renderError && (
+          <div style={{ margin: "0 2px 12px", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: `1px solid ${T.red}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ color: T.red, fontSize: 12, fontFamily: T.font }}>Render error: {renderError}</span>
+            <button onClick={() => setRenderError(null)} style={{ background: "none", border: "none", color: T.textTertiary, cursor: "pointer", fontSize: 14 }}>✕</button>
+          </div>
+        )}
+
+        <div ref={scrollRef} className="cfp-scroll" style={{ flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: TILE_GAP, padding: "4px 2px 24px", alignItems: "start" }}>
+            {filtered.map((clip) => (
+              <ClipTile
+                key={clip.id}
+                clip={clip}
+                project={project}
+                template={previewTemplate}
+                tint={tint}
+                selected={clip.id === selId}
+                onSelect={selectClip}
+                onUpdateClip={updateClipSticky}
+              />
+            ))}
+          </div>
+          {filtered.length === 0 && (
+            <Card style={{ padding: 40, textAlign: "center", margin: "0 2px" }}>
+              <div style={{ color: T.textTertiary, fontSize: 14 }}>No clips match this filter.</div>
+            </Card>
           )}
-        >
-          <ClipDetails
-            key={selClip.id}
-            clip={selClip}
-            project={project}
-            pub={pub}
-            onUpdateClip={updateClipSticky}
-            onUpdateClipFields={onUpdateClipFields}
-            onEditClipTitle={onEditClipTitle}
-            onOpenInEditor={onOpenInEditor}
-            onDeleteClip={onDeleteClip}
-            gamesDb={gamesDb}
-            onReactionFor={onReactionFor}
-            momentPriorities={momentPriorities}
-          />
-        </ClipSidePanel>
-      )}
-    </div>
+        </div>
+      </div>
+
+      <div className="cfp-cp">
+        <div className="cfp-cpi" style={{ width: panelW - 18, gridTemplateColumns: `${playerW}px minmax(0, 1fr)` }}>
+          {panelClip && (
+            <>
+              <div style={{ alignSelf: "start" }}>
+                <ClipPreviewBoundary key={panelClip.id}>
+                  <ClipVideoPlayer clip={panelClip} project={project} template={previewTemplate} width={playerW} />
+                </ClipPreviewBoundary>
+              </div>
+              <div className="cfp-scroll" style={{ position: "relative", minWidth: 0, paddingRight: 4 }}>
+                <button onClick={() => setSelId(null)} title="Close (Esc)" style={{ position: "absolute", top: 0, right: 4, zIndex: 1, width: 30, height: 30, borderRadius: "50%", border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, fontSize: 15, cursor: "pointer", fontFamily: T.font }}>×</button>
+                <ClipDetails
+                  key={panelClip.id}
+                  clip={panelClip}
+                  project={project}
+                  pub={pub}
+                  onUpdateClip={updateClipSticky}
+                  onUpdateClipFields={onUpdateClipFields}
+                  onEditClipTitle={onEditClipTitle}
+                  onOpenInEditor={onOpenInEditor}
+                  onDeleteClip={onDeleteClip}
+                  gamesDb={gamesDb}
+                  onReactionFor={onReactionFor}
+                  momentPriorities={momentPriorities}
+                />
+                <div style={{ fontSize: 11.5, color: T.textTertiary, margin: "14px 0 4px", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Kbd>←</Kbd><Kbd>→</Kbd> next clip {"·"} <Kbd>Esc</Kbd> back to all projects
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
+
+const Kbd = ({ children }) => (
+  <span style={{ fontSize: 10.5, fontWeight: 700, padding: "1px 5px", borderRadius: 4, border: `1px solid ${T.border}`, background: "rgba(var(--lift),0.04)", color: T.textSecondary, lineHeight: "15px" }}>{children}</span>
+);
