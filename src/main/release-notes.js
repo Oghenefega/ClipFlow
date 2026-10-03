@@ -12,6 +12,13 @@
 // Omit any empty section.
 module.exports = [
   {
+    version: "unreleased",
+    date: "2026-10-03",
+    added: [
+      "Clips now open ready: when Generate Clips finishes, every clip already has a title and an on-screen caption written in your style, with your colours, and five more options waiting in the AI panel. Corva watches the game at full detail, so it reads player names off the screen instead of guessing. Turn it off in Settings under \"Write captions and titles when clips are generated\".",
+    ],
+  },
+  {
     version: "0.5.0-alpha.21",
     date: "2026-10-03",
     added: [

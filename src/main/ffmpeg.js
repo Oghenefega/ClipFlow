@@ -155,15 +155,25 @@ function transcodeCopy(videoPath, outPath, opts = {}) {
  * is capped low (2M): the model samples ~1fps server-side, visual fidelity
  * beyond "readable gameplay" is wasted upload.
  *
+ * #487: title/caption calls pass `band` and `longSide` so the model reads the
+ * game at real size: `band` crops a full-width strip of the source ({ y, h }
+ * in source pixels, h null = to the bottom) before scaling, and `longSide`
+ * scales the long side down to that instead of the short side to shortSide.
+ * The clip judge passes neither and keeps the 720 short-side cut it was
+ * validated on.
+ *
  * @param {string} videoPath - Source recording
  * @param {string} outPath
- * @param {object} opts - { start, duration, shortSide = 720 }
+ * @param {object} opts - { start, duration, shortSide = 720, band = null, longSide = null }
  * @returns {Promise<{success: true, path: string}>}
  */
 function cutTitlePreview(videoPath, outPath, opts = {}) {
-  const { start = 0, duration = 30, shortSide = 720 } = opts;
+  const { start = 0, duration = 30, shortSide = 720, band = null, longSide = null } = opts;
   return new Promise((resolve, reject) => {
-    const scale = `scale='if(gt(iw,ih),-2,${shortSide})':'if(gt(iw,ih),${shortSide},-2)'`;
+    const crop = band ? `crop=iw:${band.h ? Math.round(band.h) : `ih-${Math.round(band.y)}`}:0:${Math.round(band.y)},` : "";
+    const scale = longSide
+      ? `scale='if(gt(iw,ih),min(${longSide},iw),-2)':'if(gt(iw,ih),-2,min(${longSide},ih))'`
+      : `scale='if(gt(iw,ih),-2,${shortSide})':'if(gt(iw,ih),${shortSide},-2)'`;
     const args = [
       "-y",
       "-ss", start.toFixed(3),
@@ -171,7 +181,7 @@ function cutTitlePreview(videoPath, outPath, opts = {}) {
       "-t", Math.max(0.5, duration).toFixed(3),
       "-map", "0:v:0",
       "-map", "0:a:0?",
-      "-vf", scale,
+      "-vf", crop + scale,
       "-r", "30",
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
       "-maxrate", "2M", "-bufsize", "4M",

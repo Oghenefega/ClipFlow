@@ -35,6 +35,7 @@
  */
 
 const kb = require("../data/caption-hook-examples.json");
+const { toMarked } = require("./caption-marks");
 
 // ─── Section builders ─────────────────────────────────────────────
 
@@ -66,9 +67,15 @@ function flattenCaption(text) {
  * mixing invented examples into real ones dilutes exactly the signal we're
  * trying to concentrate.
  *
+ * #487: captions come from their own list when one is given — the creator's
+ * most recent captions with their colours as marks — instead of riding along
+ * with the view-ranked titles.
+ *
  * @param {Array<{title: string, caption: string, game: string}>} voiceExamples
+ * @param {Array<{caption: string, styles: object|null}>} [captionExamples]
+ * @param {Array<{color: string, captions: number}>} [palette]  learned colours (caption-marks.js)
  */
-function formatVoice(voiceExamples) {
+function formatVoice(voiceExamples, captionExamples, palette) {
   const real = (voiceExamples || []).filter((e) => e && e.title);
 
   if (real.length === 0) {
@@ -87,8 +94,10 @@ function formatVoice(voiceExamples) {
   }
 
   const titleRows = real.map((e) => `- "${e.title}"${e.game ? `  [${e.game}]` : ""}`);
-  const withCaptions = real.filter((e) => e.caption);
-  const captionRows = withCaptions.map((e) => `- "${flattenCaption(e.caption)}"`);
+  const recent = (captionExamples || []).filter((e) => e && e.caption);
+  const captionRows = recent.length > 0
+    ? recent.map((e) => `- "${flattenCaption(toMarked(e.caption, e.styles || {}, palette))}"`)
+    : real.filter((e) => e.caption).map((e) => `- "${flattenCaption(e.caption)}"`);
 
   const out = [
     "These are titles this creator has ACTUALLY PUBLISHED. This is the target.",
@@ -103,17 +112,40 @@ function formatVoice(voiceExamples) {
   if (captionRows.length > 0) {
     out.push(
       "",
-      "On-screen captions they've actually used. Most stack over two or three",
+      `On-screen captions they've actually used${recent.length > 0 ? " (this game's first, newest first)" : ""}. Most stack over two or three`,
       "lines; some are a single line. Match how much of each line they put in",
       "caps. Shown here flattened onto one line, where",
       "\" / \" is a line break and \" // \" is a blank line between beats. Those",
-      "marks are notation for you to read — never write one into a caption.",
+      "separators are notation for you to read — never write one into a caption.",
+      "Borrow their shape, never their words: a caption that repeats one of",
+      "these lines is wasted.",
       "",
       captionRows.join("\n")
     );
   }
 
+  const colours = colourSection(palette);
+  if (recent.length > 0 && colours) out.push("", colours);
+
   return out.join("\n");
+}
+
+/**
+ * #487: how the creator colours captions, learned from their own published
+ * ones (caption-marks.js learnPalette). "" when they never colour — then no
+ * marks are asked for, and any the model writes anyway are stripped.
+ */
+function colourSection(palette) {
+  if (!Array.isArray(palette) || palette.length === 0) return "";
+  const list = palette.map((p) => `${p.color} (in ${p.captions} of their captions)`).join(", ");
+  return [
+    "## Colour",
+    "They colour words in their captions. In the examples a coloured stretch is",
+    "written [#rrggbb]LIKE THIS[/]. Colour your captions the same way: the same",
+    "colours for the same kind of words, as often as the examples do it. A mark",
+    "never crosses a line break; to colour a whole line, mark the whole line.",
+    `Only these colours: ${list}. Titles never carry marks.`,
+  ].join("\n");
 }
 
 // Detection's read of the clip's intensity (#85 Chunk B). Calibration only —
@@ -138,6 +170,10 @@ happened — the wow, the irony, the specific moment. Everything you write comes
 from that.
 
 - Never invent a detail, game term, player name, or event the clip doesn't support.
+- **Names come from this clip only.** Name a player, team or map only when it
+  is on screen, said out loud, or in the creator's own description of the
+  game. Never fill a name in from what you remember about real teams or
+  rosters. If you can't read the name, write the line without it.
 - **When the creator tells you what the clip is about, that IS the clip truth.**
   They were there; the transcript and footage only confirm it. Every card is
   built on what they said — the angles are different angles on THEIR framing,
@@ -180,11 +216,13 @@ The viewer reads it while the footage plays, in one to three short lines.
   a slash, a pipe, or a dash standing in for one.
 - A blank line (\\n\\n) sets a second beat apart. Use it only when the beat
   genuinely lands on its own.
-- First person, spoken register — how you'd say it out loud, not how you'd write it.
+- Spoken register — how you'd say it out loud, not how you'd write it. First
+  person when it is the creator's own moment; when someone else made the play,
+  name them the way the examples do.
 - No hashtags, no emoji.
 - Caps carry the beat. A whole line in caps is normal on screen ("he ACTUALLY /
-  HIT THAT"); match the density in the examples, not a quota. Never every word
-  of every line.
+  HIT THAT"); match the density in the examples, not a quota — if they write
+  every line in caps, so do you.
 
 **Both**
 - Plain words. If a word would make someone ask "who talks like that", cut it.
@@ -208,6 +246,12 @@ function titleAnchorSection(titleAnchor) {
   return `\n\n## The creator's own name for this clip (intent anchor):\n"${String(titleAnchor).trim()}"\nThey named this moment themselves — the name carries their intent and voice. Keep that intent: improve wording, casing, and format only where clearly better. Do not pivot to a different moment or angle than the one they named.`;
 }
 
+// #487: what the output format says about colour marks — nothing when the
+// creator never colours.
+function captionMarksNote(palette) {
+  return Array.isArray(palette) && palette.length > 0 ? ", colour marks like the examples" : "";
+}
+
 // ─── Public API ───────────────────────────────────────────────────
 
 /**
@@ -221,8 +265,9 @@ function titleAnchorSection(titleAnchor) {
  * @param {string} [opts.gameHashtag]    The game's hashtag from gamesDb (#223).
  * @returns {string}
  */
-function buildSystemPrompt({ styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [], gameHashtag = "" } = {}) {
+function buildSystemPrompt({ styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [], gameHashtag = "", captionExamples = [], palette = [] } = {}) {
   const tag = hashtagText(gameHashtag);
+  const marks = captionMarksNote(palette);
   return `# TASK
 
 You write the two pieces of copy that sell a short-form gaming clip:
@@ -243,7 +288,7 @@ ${CLIP_TRUTH}
 
 # 2. WRITE THE WAY THIS CREATOR WRITES
 
-${formatVoice(voiceExamples)}
+${formatVoice(voiceExamples, captionExamples, palette)}
 
 ---
 
@@ -262,6 +307,9 @@ ${formatAntiPatterns()}
 # 5. THE 3-CARD BATCH
 
 **Find the strongest line first** — the single line that opens the loop hardest.
+When the moment is a play (a kill, a clutch, a goal, a save), the strongest
+line names who made it and what it was; the reaction to it gets one of the
+other cards.
 That line is BOTH title #1 and caption #1, reformatted to each surface's rules.
 Never split that line across the surfaces: the best line does not get saved for
 one surface while a weaker line goes on the other.
@@ -297,9 +345,9 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
     { "title": "...", "chip": "..." }
   ],
   "captions": [
-    { "caption": "<the SAME strongest line as title 1, reformatted — 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" },
-    { "caption": "<a DIFFERENT angle from title 2, not a rewording of it — same 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" },
-    { "caption": "<a DIFFERENT angle from title 3, not a rewording of it — same 4-9 words, first person, no hashtags, real \\n line breaks>", "chip": "<2-6 words>" }
+    { "caption": "<the SAME strongest line as title 1, reformatted — 4-9 words, no hashtags, real \\n line breaks${marks}>", "chip": "<2-6 words>" },
+    { "caption": "<a DIFFERENT angle from title 2, not a rewording of it — same 4-9 words, no hashtags, real \\n line breaks${marks}>", "chip": "<2-6 words>" },
+    { "caption": "<a DIFFERENT angle from title 3, not a rewording of it — same 4-9 words, no hashtags, real \\n line breaks${marks}>", "chip": "<2-6 words>" }
   ]
 }
 \`\`\`
@@ -310,7 +358,8 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
 - Use emojis, Title Case, or hashtags in a caption
 - Write "/", "|" or " - " in a caption where a line break belongs
 - Mirror titles 2-3 as captions 2-3 (only card 1 is shared)
-- Add a second clause to a title that already landed`;
+- Add a second clause to a title that already landed
+- Reuse the words of any example above — write this clip's line in their shape`;
 }
 
 /**
@@ -328,8 +377,7 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
  * @param {number} [opts.confidence]    Detection confidence 0-1.
  * @param {Array}  [opts.rejectedSuggestions]  Strings or { text|title|caption } objects.
  * @param {Array}  [opts.frames]        [{ base64, label }] stills from the clip (#183 Phase 1).
- * @param {string} [opts.titleAnchor]   The creator's own past name for this clip (#240 imports).
- * @returns {string|Array}
+ * @param {string} [opts.titleAnchor]   The creator's own past name for this clip (#240 imports). * @returns {string|Array}
  */
 function buildUserContent({ transcript, gameName, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames, titleAnchor } = {}) {
   // #422: the creator's own words go FIRST. Appended after the transcript
@@ -528,13 +576,13 @@ function singleModeInstruction(mode, kind) {
  * @param {string} [opts.gameHashtag]   The game's hashtag from gamesDb (#223).
  * @returns {string}
  */
-function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [], gameHashtag = "" } = {}) {
+function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [], gameHashtag = "", captionExamples = [], palette = [] } = {}) {
   const isTitle = kind === "title";
   const outputField = isTitle ? "title" : "caption";
   const tag = hashtagText(gameHashtag);
   const outputDesc = isTitle
     ? `3-7 words, the key word SHOUTED, ends with ${tag}`
-    : "4-9 words, first person, no hashtags, real \\n line breaks";
+    : `4-9 words, no hashtags, real \\n line breaks${captionMarksNote(palette)}`;
 
   return `# ROLE
 
@@ -555,7 +603,7 @@ ${CLIP_TRUTH}
 
 # WRITE THE WAY THIS CREATOR WRITES
 
-${formatVoice(voiceExamples)}
+${formatVoice(voiceExamples, captionExamples, palette)}
 
 ---
 

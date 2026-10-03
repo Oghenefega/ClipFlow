@@ -151,7 +151,7 @@ function recordGeneration({ clipId, projectId, game, transcript, suggestions, ge
  * clip — a hand-written title is still voice data, and is in fact the most
  * valuable kind.
  */
-function recordPublish({ clipId, projectId, game, title, caption, transcript, publishedAt }) {
+function recordPublish({ clipId, projectId, game, title, caption, transcript, publishedAt, captionStyles }) {
   const d = db();
   if (!d || !clipId) return;
   try {
@@ -169,20 +169,22 @@ function recordPublish({ clipId, projectId, game, title, caption, transcript, pu
 
     d.run(
       `INSERT INTO title_caption_rounds
-         (clip_id, project_id, game, transcript, final_title, final_caption, title_source, caption_source, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (clip_id, project_id, game, transcript, final_title, final_caption, final_caption_styles, title_source, caption_source, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(clip_id) DO UPDATE SET
          project_id     = COALESCE(excluded.project_id, project_id),
          game           = COALESCE(excluded.game, game),
          transcript     = COALESCE(excluded.transcript, transcript),
          final_title    = excluded.final_title,
          final_caption  = excluded.final_caption,
+         final_caption_styles = excluded.final_caption_styles,
          title_source   = excluded.title_source,
          caption_source = excluded.caption_source,
          published_at   = excluded.published_at,
          updated_at     = datetime('now')`,
       [clipId, projectId || null, game || null, transcript || null,
-       title || null, caption || null, titleSource, captionSource, stamp]
+       title || null, caption || null, captionStyles ? JSON.stringify(captionStyles) : null,
+       titleSource, captionSource, stamp]
     );
     database.save();
     log.info("Recorded published copy", { clipId, titleSource, captionSource });
@@ -288,6 +290,85 @@ function getPublishedRounds(gameTag, gameName, limit = 30) {
     log.warn("getPublishedRounds failed", { gameTag, error: err.message });
     return [];
   }
+}
+
+const parseStyles = (json) => {
+  if (!json) return null;
+  try { return JSON.parse(json); } catch (_) { return null; }
+};
+
+/**
+ * #487: the on-screen captions the creator shipped most recently, with their
+ * colours — the caption half of the few-shot set. Recency, not views: the
+ * creator's caption style moves (sentence case to ALL CAPS in Sept 2026) and
+ * the newest is the target. This game's captions first, then other games'.
+ *
+ * @returns {Array<{caption: string, styles: object|null, game: string}>}
+ */
+function getCaptionExamples({ gameTag, gameName, limit = 30 } = {}) {
+  const d = db();
+  if (!d) return [];
+  const variants = [...new Set(
+    [gameTag, gameName].filter(Boolean).map((s) => String(s).replace(/\s+/g, "").toLowerCase())
+  )];
+  const sameGame = variants.length
+    ? `CASE WHEN LOWER(REPLACE(COALESCE(game, ''), ' ', '')) IN (${variants.map(() => "?").join(", ")}) THEN 0 ELSE 1 END,`
+    : "";
+  try {
+    const rows = database.toRows(d.exec(
+      `SELECT final_caption, final_caption_styles, game
+         FROM title_caption_rounds
+        WHERE published_at IS NOT NULL
+          AND final_caption IS NOT NULL AND TRIM(final_caption) != ''
+        ORDER BY ${sameGame} published_at DESC
+        LIMIT ?`,
+      [...variants, Math.max(1, limit)]
+    ));
+    return rows.map((r) => ({ caption: r.final_caption, styles: parseStyles(r.final_caption_styles), game: r.game || "" }));
+  } catch (err) {
+    log.warn("getCaptionExamples failed", { error: err.message });
+    return [];
+  }
+}
+
+/** #487: every published caption's colours — what the palette is learned from. */
+function getCaptionStyleRows() {
+  const d = db();
+  if (!d) return [];
+  try {
+    return database.toRows(d.exec(
+      `SELECT final_caption_styles FROM title_caption_rounds
+        WHERE published_at IS NOT NULL AND final_caption_styles IS NOT NULL`
+    )).map((r) => parseStyles(r.final_caption_styles)).filter(Boolean);
+  } catch (err) {
+    log.warn("getCaptionStyleRows failed", { error: err.message });
+    return [];
+  }
+}
+
+/** #487 one-time backfill: published rows whose caption colours were never recorded. */
+function getRowsMissingCaptionStyles() {
+  const d = db();
+  if (!d) return [];
+  try {
+    return database.toRows(d.exec(
+      `SELECT clip_id, project_id, final_caption FROM title_caption_rounds
+        WHERE published_at IS NOT NULL AND final_caption_styles IS NULL
+          AND final_caption IS NOT NULL AND TRIM(final_caption) != ''`
+    ));
+  } catch (err) {
+    log.warn("getRowsMissingCaptionStyles failed", { error: err.message });
+    return [];
+  }
+}
+
+function setCaptionStyles(entries) {
+  const d = db();
+  if (!d || !entries.length) return;
+  for (const { clipId, styles } of entries) {
+    d.run(`UPDATE title_caption_rounds SET final_caption_styles = ? WHERE clip_id = ?`, [JSON.stringify(styles), clipId]);
+  }
+  database.save();
 }
 
 /** Summary for the Settings debug panel. */
@@ -401,6 +482,10 @@ module.exports = {
   recordViews,
   getVoiceExamples,
   getPublishedRounds,
+  getCaptionExamples,
+  getCaptionStyleRows,
+  getRowsMissingCaptionStyles,
+  setCaptionStyles,
   getStats,
   backfill,
   // exported for tests / prompt builder

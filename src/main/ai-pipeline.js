@@ -528,6 +528,7 @@ async function runAIPipeline({
   sourceFile, gameData, watchFolder, store,
   sendProgress, sendSignalProgress, askDegrade,
   strictMode = true,
+  afterSave = null,
 }) {
   const processingDir = store.get("processingDir") || DEFAULT_PROCESSING_DIR;
   ensureProcessingDirs(processingDir);
@@ -1167,6 +1168,22 @@ async function runAIPipeline({
     project.status = "ready";
     projects.saveProject(watchFolder, project);
     logger.endStep("Save Project");
+
+    // ============ Stage 8b: Titles & captions (#487) ============
+    // The caller's step that writes every clip's title and caption, run on
+    // the saved project before "complete" so the project opens ready. It
+    // writes the clips on disk itself; a failure never fails the recording.
+    if (afterSave && project.clips.length > 0) {
+      sendProgress("captions", 98, "Writing titles and captions...");
+      logger.startStep("Titles & Captions");
+      try {
+        const r = await afterSave(project, logger);
+        logger.endStep("Titles & Captions", r?.summary || "done");
+      } catch (e) {
+        logger.warn(`Titles & captions failed: ${e.message}`);
+        logger.endStep("Titles & Captions", "failed");
+      }
+    }
 
     // Clean up wav files
     try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }

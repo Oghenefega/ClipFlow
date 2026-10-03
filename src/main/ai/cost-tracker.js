@@ -34,6 +34,12 @@ const PRICING = {
   // ai.google.dev/gemini-api/docs/pricing. Video input bills as normal input
   // tokens (~300/sec of footage).
   "gemini-3.6-flash":      { input: 1.50, output: 7.50 },
+  // #487 (pricing page read 2026-10-03): 3.6 and 3.8 Flash are $0.75 / $3.75
+  // through 2026-12-31 and the rates above from 2027-01-01 — the table keeps
+  // the 2027 rate, so the logs read high until then. 3.5 Flash-Lite has no
+  // announced change.
+  "gemini-3.8-flash":      { input: 1.50, output: 7.50 },
+  "gemini-3.5-flash-lite": { input: 0.30, output: 2.50 },
 
   // Mistral
   "mistral-large-latest":  { input: 2,    output: 6 },

@@ -14,6 +14,30 @@ function trackApplied(cardKind, callId) {
   if (Number.isInteger(callId)) window.clipflow?.aiCallApplied?.(callId);
 }
 
+// #487: a caption card can carry the creator's colours (wordStyles /
+// lineStyles, written by the main process from the model's marks). Applying
+// it swaps the caption's colours for the card's; fonts and sizes the caption
+// already had stay. Runs right after setCaptionText, on the block it retexted.
+const COLOUR_KEYS = ["color", "glowOn", "glowColor"];
+function applyCardColours(card) {
+  const cap = useCaptionStore.getState();
+  const segs = cap.captionSegments || [];
+  if (segs.length === 0) return;
+  const targetId = segs.some((s) => s.id === cap.activeCaptionId) ? cap.activeCaptionId : segs[0].id;
+  const merge = (current, fromCard) => {
+    const out = {};
+    for (const [k, st] of Object.entries(current || {})) {
+      const rest = Object.fromEntries(Object.entries(st || {}).filter(([key]) => !COLOUR_KEYS.includes(key)));
+      if (Object.keys(rest).length) out[k] = rest;
+    }
+    for (const [k, st] of Object.entries(fromCard || {})) out[k] = { ...out[k], ...st };
+    return out;
+  };
+  cap.setCaptionSegments(segs.map((s) => (s.id === targetId
+    ? { ...s, wordStyles: merge(s.wordStyles, card.wordStyles), lineStyles: merge(s.lineStyles, card.lineStyles) }
+    : s)));
+}
+
 // #420: the approve-time batch landed. Only the open clip needs telling — any
 // other clip reads the saved cards off its clip when it is opened.
 if (typeof window !== "undefined" && window.clipflow?.onTitlegenDone) {
@@ -251,6 +275,7 @@ const useAIStore = create((set, get) => ({
     const { aiGame } = get();
     const text = captionObj.caption || captionObj.text || "";
     useCaptionStore.getState().setCaptionText(text);
+    if (captionObj.wordStyles || captionObj.lineStyles) applyCardColours(captionObj);
     useEditorStore.getState().markDirty();
     // Persist immediately — same reasoning as acceptTitle (#8). Mark "Applied"
     // only after the save is confirmed; surface an error on failure instead of
@@ -304,10 +329,17 @@ const useAIStore = create((set, get) => ({
     if (get().aiSuggestions) return;
     const saved = clip.suggestions;
     if (saved?.titles?.length) {
+      // #487: Generate Clips already wrote card 1 into the title and caption —
+      // show it as picked while the clip still reads that way.
+      const pre = saved.prefilled || {};
+      const titleIdx = Number.isInteger(pre.title) && saved.titles[pre.title]?.title === clip.title ? pre.title : null;
+      const captionIdx = Number.isInteger(pre.caption) && saved.captions?.[pre.caption]?.caption === clip.caption ? pre.caption : null;
       set({
         aiSuggestions: { titles: saved.titles, captions: saved.captions || [] },
         aiCallId: saved.callId ?? null,
         aiFallback: saved.fallback || null,
+        acceptedTitleIdx: titleIdx,
+        acceptedCaptionIdx: captionIdx,
       });
       return;
     }

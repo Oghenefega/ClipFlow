@@ -170,6 +170,7 @@ const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
 const titleCaptionPrompt = require("./ai/title-caption-prompt");
 const titleCaptionLog = require("./title-caption-log");
+const captionMarks = require("./ai/caption-marks");
 const analytics = require("./analytics");
 const queueImports = require("./queue-imports");
 const transcriptionProvider = require("./ai/transcription-provider");
@@ -480,6 +481,9 @@ const STORE_DEFAULTS = {
   // #483: watch-and-listen judge scores each new clip and the review list sorts
   // by it. OFF until checked on a fresh-customer machine.
   clipJudgeEnabled: false,
+  // #487: Generate Clips writes every clip's title and caption (card 1) as its
+  // last step. Default ON (Fega, 2026-10-02); off = cards only on approve/ask.
+  autoTitlegenOnGenerate: true,
   // YAMNet silence skip — pre-filter frames below 0.002 RMS (true silence /
   // below room tone) to skip wasted inference. Default ON. User can turn off
   // in Settings to force YAMNet to run on every frame regardless of volume.
@@ -1391,6 +1395,36 @@ app.whenReady().then(async () => {
   } catch (err) {
     logger.warn(logger.MODULES.titleGeneration, "Title/caption backfill failed", { error: err.message });
   }
+
+  // #487: published rows from before caption colours were recorded get them
+  // from the clip in its project file, when its caption still reads the same.
+  // Every boot, same reason as above; a checked row stores {} so it is read
+  // once. Deferred: it opens project files.
+  setTimeout(() => {
+    try {
+      const rows = titleCaptionLog.getRowsMissingCaptionStyles();
+      if (rows.length === 0) return;
+      const cache = new Map();
+      const entries = rows.flatMap((r) => {
+        if (!cache.has(r.project_id)) {
+          try { cache.set(r.project_id, projects.loadProject(libraryRoot(), r.project_id)); } catch (_) { cache.set(r.project_id, null); }
+        }
+        // A project that can't be read (library drive offline, project
+        // deleted) is left for the next boot rather than stamped as checked.
+        const proj = cache.get(r.project_id);
+        if (!proj) return [];
+        const clip = (proj.clips || []).find((c) => c.id === r.clip_id);
+        const same = clip && titleCaptionLog.normalize(clip.caption) === titleCaptionLog.normalize(r.final_caption);
+        return [{ clipId: r.clip_id, styles: (same && captionStylesOf(clip)) || {} }];
+      });
+      titleCaptionLog.setCaptionStyles(entries);
+      logger.info(logger.MODULES.titleGeneration, "#487 caption colours backfilled", {
+        checked: entries.length, styled: entries.filter((e) => e.styles.wordStyles || e.styles.lineStyles).length,
+      });
+    } catch (err) {
+      logger.warn(logger.MODULES.titleGeneration, "#487 caption colour backfill failed", { error: err.message });
+    }
+  }, 10000);
 
   // #183 Phase 4 → #387: refresh view counts in the background, well after the
   // window is up. Every boot, not behind a once-a-day store flag — the flag
@@ -3545,10 +3579,25 @@ async function generateClips(sourceFile, gameData) {
     mainWindow?.webContents.send("pipeline:askDegrade", { requestId, failed });
   });
 
+  // #487: write every clip's title and caption before the project is shown.
+  // Off by the setting, in test mode (like the clip judge), and without Gemini
+  // (the stills fallback on every clip is the dearest way to write blind).
+  let afterSave = null;
+  if (store.get("autoTitlegenOnGenerate") === false) {
+    logger.info(logger.MODULES.titleGeneration, "#487 skipped: turned off in Settings");
+  } else if (gameData?.isTest) {
+    logger.info(logger.MODULES.titleGeneration, "#487 skipped: test mode");
+  } else if (!geminiProvider.isConfigured()) {
+    logger.info(logger.MODULES.titleGeneration, "#487 skipped: Gemini not set up");
+  } else {
+    afterSave = writeTitlesAndCaptions;
+  }
+
   const result = await aiPipeline.runAIPipeline({
     sourceFile, gameData, watchFolder, store,
     sendProgress, sendSignalProgress, askDegrade,
     strictMode: store.get("strictMode") !== false,
+    afterSave,
   });
   // #248: a failed run pulses the feedback bubble and becomes the "last app
   // error" context on the next Problem report. The pre-flight refusals above
@@ -4063,6 +4112,29 @@ const pendingPublishAlerts = [];
  * from the main-process scheduler with no renderer alive. Both callers hand over the same
  * inputs and buildTrackerRow shapes them identically.
  */
+// #487: the colours on a clip's caption (its first block, the one clip.caption
+// mirrors), stored with the published row so the title/caption prompt can
+// show them. baseColor is the block colour — a word painted that colour is
+// not a highlight. Null when nothing is coloured.
+function captionStylesOf(clip) {
+  const seg = (clip?.captionSegments || [])[0];
+  if (!seg) return null;
+  const pick = (map) => {
+    const out = {};
+    for (const [k, st] of Object.entries(map || {})) {
+      if (typeof st?.color !== "string") continue;
+      out[k] = { color: st.color };
+      if (typeof st.glowOn === "boolean") out[k].glowOn = st.glowOn;
+      if (typeof st.glowColor === "string") out[k].glowColor = st.glowColor;
+    }
+    return Object.keys(out).length ? out : null;
+  };
+  const wordStyles = pick(seg.wordStyles);
+  const lineStyles = pick(seg.lineStyles);
+  if (!wordStyles && !lineStyles) return null;
+  return { wordStyles, lineStyles, baseColor: clip.captionStyle?.color || null };
+}
+
 function recordPublishedClip(row, { training } = {}) {
   const rows = store.get("trackerData") || [];
   if (!rows.some((r) => r?.id === row.id)) {
@@ -4085,12 +4157,14 @@ function recordPublishedClip(row, { training } = {}) {
   if (training) {
     try {
       let transcript = "";
+      let captionStyles = null;
       try {
         const proj = projects.loadProject(libraryRoot(), training.projectId);
         const clip = (proj?.clips || []).find((c) => c.id === training.clipId);
         transcript = (clip?.transcription?.segments || []).map((sg) => sg.text).join(" ").trim();
+        captionStyles = captionStylesOf(clip);
       } catch (_) { /* transcript is a nice-to-have, not required */ }
-      titleCaptionLog.recordPublish({ ...training, transcript });
+      titleCaptionLog.recordPublish({ ...training, transcript, captionStyles });
     } catch (err) {
       logger.warn(logger.MODULES.system, `Title/caption training row failed: ${err.message}`);
     }
@@ -4373,7 +4447,12 @@ function buildTitleCaptionStoreContext(params = {}) {
   const activeGame = gamesDb.find((g) => g.name === params.gameName);
   const gameHashtag = activeGame?.hashtag || "";
 
-  return { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag };
+  // #487: captions get their own examples — the newest 30, this game first,
+  // with their colours — and the colours the creator actually uses.
+  const captionExamples = titleCaptionLog.getCaptionExamples({ gameTag: activeGame?.tag, gameName: params.gameName, limit: 30 });
+  const palette = captionMarks.learnPalette(titleCaptionLog.getCaptionStyleRows());
+
+  return { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag, captionExamples, palette };
 }
 
 // #183 Phase 1: give the title/caption model actual stills from the clip.
@@ -4453,7 +4532,35 @@ async function collectClipFrames({ projectId, clipId }) {
 // A fallback is never quiet (#424): the reason goes on the ai_calls row and
 // into the cost log, comes back to the renderer, and is named under the cards.
 
-const BATCH_KINDS = new Set(["generate", "auto_generate"]);
+// auto_detect (#487): every clip, as the last step of Generate Clips.
+const BATCH_KINDS = new Set(["generate", "auto_generate", "auto_detect"]);
+
+// #487: the model writes caption colours as inline marks (caption-marks.js).
+// Every card leaves here as plain text — what classifySource compares at
+// publish — with the colours beside it as wordStyles/lineStyles. Titles never
+// carry colour; a stray mark is stripped. Works on a batch or a single card.
+function stylizeCards(parsed, palette) {
+  const caption = (c) => {
+    if (!c || typeof c.caption !== "string") return c;
+    // The examples show line breaks as " / " and blank lines as " // "; the
+    // model copies that notation despite being told not to (s289: 2 of 9
+    // cards). On screen a spaced slash is never meant literally.
+    const broken = c.caption.replace(/[ \t]+\/\/[ \t]+/g, "\n\n").replace(/[ \t]+\/[ \t]+/g, "\n");
+    const { text, wordStyles, lineStyles } = captionMarks.parseMarked(broken, palette);
+    const { wordStyles: _w, lineStyles: _l, ...rest } = c;
+    return { ...rest, caption: text, ...(wordStyles ? { wordStyles } : {}), ...(lineStyles ? { lineStyles } : {}) };
+  };
+  const title = (t) => (t && typeof t.title === "string" ? { ...t, title: captionMarks.parseMarked(t.title, []).text } : t);
+  if (!parsed || typeof parsed !== "object") return parsed;
+  if (Array.isArray(parsed.captions) || Array.isArray(parsed.titles)) {
+    return {
+      ...parsed,
+      ...(Array.isArray(parsed.titles) ? { titles: parsed.titles.map(title) } : {}),
+      ...(Array.isArray(parsed.captions) ? { captions: parsed.captions.map(caption) } : {}),
+    };
+  }
+  return title(caption(parsed));
+}
 // #421: how hard Gemini thinks on title/caption calls. null = model default.
 // gemini-3.6-flash accepts minimal | low | medium | high. Measured on 23 real
 // calls (s260): default thinks ~1,650 tokens per batch (88% of output, $0.023,
@@ -4475,8 +4582,23 @@ function clipCutRange(clip) {
   return { start: Math.min(...valid.map((s) => s.start)), end: Math.max(...valid.map((s) => s.end)) };
 }
 
-// #193: a temp 720p cut of the clip range (audio included) for Gemini to
-// watch. Throws on any failure so the caller falls back. The caller deletes it.
+// #487: the strip of the recording the game lives in, from the saved layout.
+// A stacked canvas (webcam strip above or below the game) gives the full-width
+// band on the game's side of the webcam — the layout's own game crop is cut
+// for a vertical frame and can drop the kill feed. No layout, a game-only
+// layout, or a webcam laid over the game: null, the whole frame.
+function gameBand(reframe) {
+  const cam = reframe?.camRect;
+  const game = reframe?.gameRect;
+  if (!cam || !game) return null;
+  if (game.y >= cam.y + cam.h) return { y: cam.y + cam.h, h: null };
+  if (game.y + game.h <= cam.y) return { y: 0, h: cam.y };
+  return null;
+}
+
+// #193: a temp cut of the clip range (audio included) for Gemini to watch.
+// #487: the game band at 1280 on the long side, so on-screen names are
+// readable. Throws on any failure so the caller falls back. The caller deletes it.
 async function cutClipPreview(projectId, clipId) {
   if (!projectId || !clipId) throw new Error("Missing projectId/clipId");
   const project = projects.loadProject(libraryRoot(), projectId);
@@ -4487,7 +4609,11 @@ async function cutClipPreview(projectId, clipId) {
   const previewDir = path.join(app.getPath("userData"), "processing", "titlecaption-preview");
   fs.mkdirSync(previewDir, { recursive: true });
   const previewPath = path.join(previewDir, `${clipId}.mp4`);
-  await ffmpeg.cutTitlePreview(project.sourceFile, previewPath, { start, duration: end - start });
+  // A clip's own layout (tri-state: absent = the project's) wins.
+  const reframe = clip.reframe !== undefined ? clip.reframe : project.reframe;
+  await ffmpeg.cutTitlePreview(project.sourceFile, previewPath, {
+    start, duration: end - start, band: gameBand(reframe), longSide: 1280,
+  });
   return { previewPath, seconds: end - start };
 }
 
@@ -4513,6 +4639,7 @@ async function callGemini({ systemPrompt, userText, params, withVideo, maxTokens
       messages: [{ role: "user", content }],
       maxTokens,
       thinkingLevel: TITLE_THINKING_LEVEL,
+      mediaResolution: withVideo ? "MEDIA_RESOLUTION_HIGH" : undefined,
     });
     if (!text) throw new Error("Empty response from Gemini");
     return { text, usage, model, seconds };
@@ -4637,7 +4764,7 @@ async function runTitleCaptionCall({ kind, params = {} }) {
     }
 
     costUsd = writeTitleCostLog({ kind, params, model, usage, pathUsed, fallbackReason, seconds });
-    const parsed = aiPrompt.extractJSON(text, "object");
+    const parsed = stylizeCards(aiPrompt.extractJSON(text, "object"), ctx.palette);
     const callId = aiCallLog.record({ ...row, provider, model, path: pathUsed, fallbackReason, usage, costUsd, durationMs: Date.now() - t0, ok: true });
     if (!single) {
       // #183: persist what was offered so publish time can compare it against
@@ -4787,6 +4914,106 @@ ipcMain.handle("titlegen:saveCards", async (_, projectId, clipId, cards) => {
 const autoTitlegenInFlight = new Set();
 ipcMain.handle("titlegen:pending", async (_, clipId) => autoTitlegenInFlight.has(clipId));
 
+// The per-clip params the editor's Generate sends (useAIStore._collectClipParams),
+// resolved from the clip on disk. Shared by the approve-time path (#420) and
+// the Generate Clips step (#487).
+function clipTitlegenParams(project, clip) {
+  // #458: the words of the clip as it was cut, the same ones the editor's
+  // Generate sends (_collectClipParams: the saved subtitles clipped to the
+  // sections — switched-off lines included, they were still said).
+  // clip.transcription is the AI's original window and never follows an
+  // edit, so an edit-then-Queue clip got cards about the moment it left.
+  const lines = resolveClipSubtitles(clip, project, { includeExtras: false }).segments
+    .map((s) => ({ startSec: s.start, endSec: s.end, text: s.text, words: s.words }));
+  const cut = clip.nleSegments?.length ? visibleSubtitleSegments(lines, clip.nleSegments) : lines;
+  const transcript = cut.map((s) => s.text).join(" ").trim();
+
+  // The game entry by the clip's effective tag.
+  const gamesDb = store.get("gamesDb") || [];
+  const tag = String(clip.gameTag || project.gameTag || "").toLowerCase();
+  const game = gamesDb.find((g) => (g.tag || "").toLowerCase() === tag) || null;
+  return {
+    clipId: clip.id,
+    projectId: project.id,
+    projectName: project.name || "",
+    transcript,
+    userContext: "",
+    gameName: game?.name || "",
+    gameContextAuto: game?.aiContextAuto || "",
+    gameContextUser: game?.aiContextUser || "",
+    energyLevel: clip.energyLevel || "",
+    confidence: clip.confidence || 0,
+    rejectedSuggestions: [],
+    // #487 deliberately leaves out the clip judge's one-line read (#483):
+    // measured on the three blind-test clips, twice each, card 1 named the
+    // player and the play 6 of 6 without it and 2 of 5 with it — the read
+    // centres the creator's reaction, and the cards followed it there.
+  };
+}
+
+// #487: the last step of Generate Clips — every clip gets its six cards, and
+// card 1 goes straight into the title and the caption (with its colours) so
+// the project opens ready. Fega's call (2026-10-02): he reviews every clip
+// before it posts, so a written title is a starting point, not a publish.
+// Only a clip still on its placeholder title and with no caption of its own
+// is written; anything else keeps the cards in the panel only.
+const PREFILL_CONCURRENCY = 3;
+
+async function writeTitlesAndCaptions(project, pipelineLog) {
+  const clips = [...(project.clips || [])];
+  let written = 0, failed = 0;
+  // The model sometimes hands back one of the creator's own published
+  // captions word for word despite the prompt (s289: 2 of 25 Meccha clips,
+  // 3 of 6 Asuna runs). A caption he already shipped is never the one written
+  // onto a new clip; the first card that isn't one is, and the cards stay.
+  // A copy is a card whose whole text sits inside a shipped caption (his
+  // usually carry a series line underneath the part the model repeats), at
+  // least three words so one shared word never counts.
+  const shipped = titleCaptionLog.getCaptionExamples({ gameTag: project.gameTag, gameName: project.game, limit: 200 })
+    .map((e) => ` ${titleCaptionLog.normalize(e.caption)} `);
+  const isCopy = (text) => {
+    const n = titleCaptionLog.normalize(text);
+    return n.split(" ").length >= 3 && shipped.some((s) => s.includes(` ${n} `));
+  };
+  async function worker() {
+    while (clips.length) {
+      const clip = clips.shift();
+      const params = clipTitlegenParams(project, clip);
+      let res = await runTitleCaptionCall({ kind: "auto_detect", params });
+      // One more try on a failed call (s289: 1 in ~15 came back as unparseable
+      // JSON). Both attempts are logged in ai_calls.
+      if (!res.success) res = await runTitleCaptionCall({ kind: "auto_detect", params });
+      const title = res.success && res.data?.titles?.[0]?.title;
+      const captions = (res.success && res.data?.captions) || [];
+      const captionIdx = Math.max(0, captions.findIndex((c) => c?.caption && !isCopy(c.caption)));
+      const card = captions[captionIdx];
+      if (!title || !card?.caption) {
+        failed++;
+        pipelineLog?.warn?.(`Titles & captions: ${clip.id} ${res.error || "came back without a card 1"}`);
+        continue;
+      }
+      try {
+        const disk = (projects.loadProject(libraryRoot(), project.id)?.clips || []).find((c) => c.id === clip.id);
+        if (!disk || !/^Clip \d+$/.test(disk.title || "") || (disk.captionSegments || []).length > 0) continue;
+        const seg = { id: "cap-1", text: card.caption, startSec: 0, endSec: null };
+        if (card.wordStyles) seg.wordStyles = card.wordStyles;
+        if (card.lineStyles) seg.lineStyles = card.lineStyles;
+        const r = projects.updateClip(libraryRoot(), project.id, clip.id, {
+          title, caption: card.caption, captionSegments: [seg],
+          suggestions: { ...disk.suggestions, prefilled: { title: 0, caption: captionIdx } },
+        });
+        if (r?.error) throw new Error(r.error);
+        written++;
+      } catch (e) {
+        failed++;
+        pipelineLog?.warn?.(`Titles & captions: could not write ${clip.id}: ${e.message}`);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(PREFILL_CONCURRENCY, clips.length) }, worker));
+  return { written, failed, summary: `${written}/${project.clips.length} clips written, ${failed} failed` };
+}
+
 // The approve-time path. Same call as the Generate button, so it is logged
 // the same way (ai_calls kind = auto_generate) and costs the same. Rules:
 // one generation per clip, ever (Regenerate stays manual); never touches the
@@ -4799,40 +5026,13 @@ function maybeAutoGenerateOnApprove(project, clip) {
   if (clip.suggestions?.titles?.length) return;
   if (autoTitlegenInFlight.has(clip.id)) return;
 
-  // #458: the words of the clip as it was cut, the same ones the editor's
-  // Generate sends (_collectClipParams: the saved subtitles clipped to the
-  // sections — switched-off lines included, they were still said).
-  // clip.transcription is the AI's original window and never follows an
-  // edit, so an edit-then-Queue clip got cards about the moment it left.
-  const lines = resolveClipSubtitles(clip, project, { includeExtras: false }).segments
-    .map((s) => ({ startSec: s.start, endSec: s.end, text: s.text, words: s.words }));
-  const cut = clip.nleSegments?.length ? visibleSubtitleSegments(lines, clip.nleSegments) : lines;
-  const transcript = cut.map((s) => s.text).join(" ").trim();
+  const params = clipTitlegenParams(project, clip);
   // No transcript and no Gemini means the stills path on the text provider —
   // the dearest way to write blind. Not worth doing unasked.
-  if (!transcript && !geminiProvider.isConfigured()) {
+  if (!params.transcript && !geminiProvider.isConfigured()) {
     logger.info(logger.MODULES.titleGeneration, "#420 skipped: no transcript and Gemini not set up", { clipId: clip.id });
     return;
   }
-
-  // The same per-clip params the editor sends (useAIStore._collectClipParams),
-  // resolved from the clip on disk: the game entry by the clip's effective tag.
-  const gamesDb = store.get("gamesDb") || [];
-  const tag = String(clip.gameTag || project.gameTag || "").toLowerCase();
-  const game = gamesDb.find((g) => (g.tag || "").toLowerCase() === tag) || null;
-  const params = {
-    clipId: clip.id,
-    projectId: project.id,
-    projectName: project.name || "",
-    transcript,
-    userContext: "",
-    gameName: game?.name || "",
-    gameContextAuto: game?.aiContextAuto || "",
-    gameContextUser: game?.aiContextUser || "",
-    energyLevel: clip.energyLevel || "",
-    confidence: clip.confidence || 0,
-    rejectedSuggestions: [],
-  };
 
   autoTitlegenInFlight.add(clip.id);
   logger.info(logger.MODULES.titleGeneration, "#420 generating on approve", { clipId: clip.id, projectId: project.id });

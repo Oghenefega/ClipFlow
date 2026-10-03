@@ -130,6 +130,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [strictMode, setStrictMode] = useState(true);
   const [yamnetSilenceSkip, setYamnetSilenceSkip] = useState(true);
   const [clipJudgeEnabled, setClipJudgeEnabled] = useState(false); // #483
+  const [autoTitlegenOnGenerate, setAutoTitlegenOnGenerate] = useState(true); // #487
   // Clip cutting encoder (Issue #75 Phase 1) — "auto" | "gpu" | "cpu"
   const [clipCutEncoder, setClipCutEncoderState] = useState("auto");
   const [nvencAvailable, setNvencAvailable] = useState(null); // null = unknown, true/false once probed
@@ -176,6 +177,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         const yss = await window.clipflow.storeGet("yamnetSilenceSkip");
         if (yss !== undefined && yss !== null) setYamnetSilenceSkip(!!yss);
         setClipJudgeEnabled((await window.clipflow.storeGet("clipJudgeEnabled")) === true);
+        setAutoTitlegenOnGenerate((await window.clipflow.storeGet("autoTitlegenOnGenerate")) !== false);
         // Clip cutting encoder (#75) — load setting + probe NVENC capability
         const cce = await window.clipflow.storeGet("clipCutEncoder");
         if (cce === "gpu" || cce === "cpu" || cce === "auto") setClipCutEncoderState(cce);
@@ -441,6 +443,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "set-naming",    section: "games",       title: "Default Naming Preset",       kw: "rename pattern filename date day part" },
     { id: "set-theme",     section: "appearance",  title: "Theme",                       kw: "colour color dark light mode pink appearance skin look" },
     { id: "set-guide",     section: "ai",          title: "Title & Caption Style Guide", kw: "voice rules titling prompt context" },
+    { id: "set-autowrite", section: "ai",          title: "Write captions on generate",  kw: "auto titles captions generate clips automatic write colours ready" },
     { id: "set-autogen",   section: "ai",          title: "Generate on approve",         kw: "auto titles captions approve automatic cards cost" },
     { id: "set-aiprefs",   section: "ai",          title: "AI Preferences",              kw: "creator profile content vibe moment priorities style description" },
     { id: "set-platforms", section: "publishing",  title: "Connected Platforms",         kw: "accounts youtube tiktok instagram facebook x kick oauth connect reconnect token" },
@@ -1282,6 +1285,36 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         ) : (
           <p style={{ color: T.textMuted, fontSize: 12, margin: 0, fontStyle: "italic" }}>No style guide set. Click Edit to paste your titling rules and preferences.</p>
         )}
+      </Card>
+
+      {/* #487: write titles and captions as Generate Clips finishes */}
+      <Card {...cardProps("set-autowrite")} style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ paddingRight: 16 }}>
+            <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Write captions and titles when clips are generated</div>
+            <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 2 }}>Every clip opens with a title and a caption in your style, colours included, and five more cards to choose from. A couple of cents per clip.</div>
+          </div>
+          <button
+            onClick={() => {
+              const next = !autoTitlegenOnGenerate;
+              setAutoTitlegenOnGenerate(next);
+              window.clipflow?.storeSet("autoTitlegenOnGenerate", next);
+            }}
+            style={{
+              width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer",
+              background: autoTitlegenOnGenerate ? T.green : "rgba(var(--lift),0.12)",
+              position: "relative", transition: "background 0.2s", flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: 8, background: "#fff",
+              position: "absolute", top: 3,
+              left: autoTitlegenOnGenerate ? 21 : 3,
+              transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(var(--shade),calc(0.3 * var(--shadeK)))",
+            }} />
+          </button>
+        </div>
       </Card>
 
       {/* #420: generate on approve */}

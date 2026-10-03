@@ -62,6 +62,28 @@ function ChipLabel({ children }) {
   return <div className="text-[11px] italic text-muted-foreground/80 mt-0.5 mb-2">{children}</div>;
 }
 
+// #487: a caption card in the colours it will have on screen. Word index runs
+// across lines (whitespace tokens), line index by "\n" — the editor's own
+// indexing; a word colour beats its line's. Plain text when the card has none.
+function ColouredCaption({ card }) {
+  const text = card?.caption || "";
+  if (!card?.wordStyles && !card?.lineStyles) return text;
+  let wi = 0;
+  return text.split("\n").map((line, li) => {
+    const words = line.split(/\s+/).filter(Boolean);
+    return (
+      <div key={li}>
+        {words.map((w, k) => {
+          const color = card.wordStyles?.[wi]?.color || card.lineStyles?.[li]?.color;
+          wi++;
+          return <span key={k} style={color ? { color } : undefined}>{k > 0 ? " " : ""}{w}</span>;
+        })}
+        {words.length === 0 ? " " : null}
+      </div>
+    );
+  });
+}
+
 // Render a title with its trailing #gamehashtag de-emphasized so the headline
 // reads clean (#85).
 function renderTitleWithHashtag(title) {
@@ -1005,7 +1027,7 @@ function AIToolsPanel({ gamesDb }) {
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="border-l-2 border-primary/50 pl-2.5 mb-2">
-                      <div className="text-base text-foreground leading-snug whitespace-pre-line">{c.caption}</div>
+                      <div className="text-base text-foreground leading-snug whitespace-pre-line"><ColouredCaption card={c} /></div>
                       {c.chip && <ChipLabel>{c.chip}</ChipLabel>}
                     </div>
                     <div className="flex items-center gap-1">

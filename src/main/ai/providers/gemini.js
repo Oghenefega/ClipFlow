@@ -267,7 +267,7 @@ const provider = {
    * Same contract as the other providers:
    * @returns {Promise<{ text: string, toolCalls: null, usage: { inputTokens: number, outputTokens: number } }>}
    */
-  async chat({ model, system, messages, maxTokens, timeout, thinkingLevel }) {
+  async chat({ model, system, messages, maxTokens, timeout, thinkingLevel, mediaResolution }) {
     const store = getStore();
     const apiKey = store ? String(store.get("geminiApiKey") || "").trim() : "";
     const routing = resolveRouting(apiKey);
@@ -292,6 +292,9 @@ const provider = {
     // on gemini-3.6-flash). Only the title/caption calls do; the #235
     // full-recording watch passes nothing and keeps the model default.
     if (thinkingLevel) body.generationConfig.thinkingConfig = { thinkingLevel };
+    // #487: MEDIA_RESOLUTION_HIGH spends 280 tokens per video frame instead of
+    // 70, enough to read a kill feed. Title/caption video calls only.
+    if (mediaResolution) body.generationConfig.mediaResolution = mediaResolution;
     if (system) body.systemInstruction = { parts: [{ text: system }] };
 
     const useModel = model || DEFAULT_MODEL;

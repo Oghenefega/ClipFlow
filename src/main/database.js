@@ -421,6 +421,13 @@ const MIGRATIONS = [
       database.run(`ALTER TABLE feedback ADD COLUMN judge_kind TEXT`);
     },
   },
+  {
+    version: 17,
+    description: "Add final_caption_styles to title_caption_rounds (#487: the shipped caption's word/line colours)",
+    up(database) {
+      database.run(`ALTER TABLE title_caption_rounds ADD COLUMN final_caption_styles TEXT`);
+    },
+  },
 ];
 
 /**
